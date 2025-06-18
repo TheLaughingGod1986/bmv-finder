@@ -1,14 +1,15 @@
 # UK Sold Property Prices
 
-A simple web application to search and view recent sold property prices from the UK Land Registry.
+A modern, mobile-friendly web application to search and view recent sold property prices from the UK Land Registry.
 
 ## Features
 
 - **Real Land Registry Data**: Uses official UK Land Registry Price Paid Data
 - **Postcode Search**: Search for sold prices by UK postcode
 - **Local Database**: Stores data locally in SQLite for fast queries
-- **Data Updates**: Update the database with the latest Land Registry data
-- **Clean Interface**: Simple, responsive web interface
+- **Automated Updates**: Daily automatic updates via GitHub Actions
+- **Modern UI**: Clean, responsive design with mobile-friendly cards
+- **Rich Data Display**: Property type, duration, new/existing status, and more
 
 ## Getting Started
 
@@ -45,19 +46,52 @@ npm run dev
 ## Usage
 
 1. **Search for Sold Prices**: Enter a UK postcode and click "Get Sold Prices"
-2. **Update Data**: Click "Update Land Registry Data" to download the latest data
-3. **View Results**: See recent sold prices in a clean table format
+2. **View Results**: See recent sold prices in a modern, responsive table
+3. **Mobile Experience**: Cards automatically display on mobile devices
+4. **Update Data**: Click "Update Land Registry Data" to download the latest data
+
+## Automated Updates
+
+The application includes automated daily updates of Land Registry data:
+
+### GitHub Actions (Recommended)
+- Automatically runs daily at 2 AM UTC
+- Updates the database and commits changes
+- No server setup required
+
+### Manual Cron Setup
+If you prefer to run updates on your own server:
+
+```bash
+# Add to crontab (runs daily at 2 AM)
+0 2 * * * /usr/bin/node /path/to/your/project/cron-update.js
+```
+
+### Environment Variables
+- `UPDATE_URL`: URL of your update endpoint (default: http://localhost:3000/api/update-land-registry)
+- `LOG_FILE`: Path to log file (default: ./update-logs.txt)
+
+## Data Display
+
+The application shows comprehensive property information:
+
+- **Address**: Full property address with postcode
+- **Property Type**: Detached, Semi-detached, Terraced, Flat/Maisonette
+- **Duration**: Freehold or Leasehold
+- **Status**: New Build or Existing property
+- **Sale Date**: Date of the transaction
+- **Price**: Sale price in GBP
 
 ## Data Source
 
 This application uses the official UK Land Registry Price Paid Data, which includes:
 - Property sale prices
 - Transaction dates
-- Property addresses
-- Property types
-- Postcodes
+- Property addresses and types
+- Freehold/Leasehold information
+- New/Existing property status
 
-The data is updated monthly by the Land Registry and can be refreshed using the update button.
+The data is updated monthly by the Land Registry and can be refreshed automatically or manually.
 
 ## Project Structure
 
@@ -65,21 +99,25 @@ The data is updated monthly by the Land Registry and can be refreshed using the 
 src/
 ├── app/
 │   ├── api/
-│   │   ├── scan/route.ts          # API endpoint for postcode searches
-│   │   └── update-land-registry/  # API endpoint for data updates
-│   ├── page.tsx                   # Main application page
-│   ├── layout.tsx                 # App layout
-│   └── globals.css                # Global styles
-├── import_land_registry.js        # Script to download and import data
-└── query_land_registry.js         # CLI tool for testing queries
+│   │   ├── scan/route.ts                    # API endpoint for postcode searches
+│   │   └── update-land-registry/route.ts    # API endpoint for data updates
+│   ├── page.tsx                             # Main application page
+│   ├── layout.tsx                           # App layout
+│   └── globals.css                          # Global styles
+├── import_land_registry.js                  # Script to download and import data
+├── query_land_registry.js                   # CLI tool for testing queries
+├── cron-update.js                           # Automated update script
+└── .github/workflows/
+    └── daily-update.yml                     # GitHub Actions workflow
 ```
 
 ## Technologies Used
 
 - **Next.js 13** - React framework with App Router
 - **TypeScript** - Type safety
-- **Tailwind CSS** - Styling
+- **Tailwind CSS** - Modern, responsive styling
 - **SQLite** - Local database
+- **GitHub Actions** - Automated updates
 - **Land Registry API** - Official UK property data
 
 ## License

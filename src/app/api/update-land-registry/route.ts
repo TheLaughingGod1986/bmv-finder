@@ -20,14 +20,16 @@ export async function POST(request: NextRequest) {
         resolve(NextResponse.json({ 
           success: true, 
           message: 'Land Registry data updated successfully!',
-          output: outputMsg 
+          output: outputMsg,
+          timestamp: new Date().toISOString()
         }));
       } else {
         resolve(NextResponse.json({ 
           success: false, 
           error: errorMsg || 'Failed to update data.',
           output: outputMsg,
-          exitCode: code 
+          exitCode: code,
+          timestamp: new Date().toISOString()
         }, { status: 500 }));
       }
     });
@@ -35,8 +37,18 @@ export async function POST(request: NextRequest) {
     proc.on('error', (err) => {
       resolve(NextResponse.json({ 
         success: false, 
-        error: `Process error: ${err.message}` 
+        error: `Process error: ${err.message}`,
+        timestamp: new Date().toISOString()
       }, { status: 500 }));
     });
+  });
+}
+
+// GET endpoint for health checks and manual triggers
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'ok',
+    message: 'Land Registry update endpoint is running',
+    timestamp: new Date().toISOString()
   });
 } 

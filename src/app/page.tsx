@@ -13,6 +13,8 @@ interface SoldPrice {
   county: string;
   paon: string;
   saon: string;
+  duration: string;
+  old_new: string;
 }
 
 export default function Home() {
@@ -62,6 +64,25 @@ export default function Home() {
     } finally {
       setIsUpdating(false);
     }
+  };
+
+  const formatPropertyType = (type: string) => {
+    const types: { [key: string]: string } = {
+      'D': 'Detached',
+      'S': 'Semi-detached', 
+      'T': 'Terraced',
+      'F': 'Flat/Maisonette',
+      'O': 'Other'
+    };
+    return types[type] || type;
+  };
+
+  const formatDuration = (duration: string) => {
+    return duration === 'F' ? 'Freehold' : duration === 'L' ? 'Leasehold' : duration;
+  };
+
+  const formatOldNew = (oldNew: string) => {
+    return oldNew === 'Y' ? 'New Build' : oldNew === 'N' ? 'Existing' : oldNew;
   };
 
   const formatAddress = (property: SoldPrice) => {
@@ -137,30 +158,89 @@ export default function Home() {
         </div>
         {soldPrices.length > 0 && (
           <div className="bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold mb-4 text-blue-800">Recent Sold Prices for {postcode}</h2>
-            <div className="overflow-x-auto">
-              <table className="min-w-full border border-gray-200 rounded-lg divide-y divide-gray-200">
+            <h2 className="text-xl font-bold mb-6 text-gray-800">Recent Sold Prices for {postcode}</h2>
+            
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="min-w-full">
                 <thead>
-                  <tr className="bg-gradient-to-r from-blue-50 to-purple-50">
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Address</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Postcode</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Type</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Sold Date</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Price</th>
+                  <tr className="border-b border-gray-200">
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Duration</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {soldPrices.map((sp, idx) => (
-                    <tr key={sp.id || idx} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50 transition' : 'bg-gray-50 hover:bg-blue-50 transition'}>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-900">{formatAddress(sp)}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{sp.postcode}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{sp.property_type}</td>
-                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{sp.date_of_transfer}</td>
-                      <td className="px-4 py-3 whitespace-nowrap font-semibold text-blue-700">{formatPrice(sp.price)}</td>
+                    <tr key={sp.id || idx} className="hover:bg-gray-50 transition-colors duration-150">
+                      <td className="px-6 py-4">
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{formatAddress(sp)}</div>
+                          <div className="text-sm text-gray-500">{sp.postcode}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {formatPropertyType(sp.property_type)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{formatDuration(sp.duration)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          sp.old_new === 'Y' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {formatOldNew(sp.old_new)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-gray-700">{sp.date_of_transfer}</td>
+                      <td className="px-6 py-4">
+                        <div className="text-sm font-semibold text-gray-900">{formatPrice(sp.price)}</div>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            {/* Mobile Cards */}
+            <div className="md:hidden space-y-4">
+              {soldPrices.map((sp, idx) => (
+                <div key={sp.id || idx} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex-1">
+                      <h3 className="text-sm font-semibold text-gray-900 mb-1">{formatAddress(sp)}</h3>
+                      <p className="text-xs text-gray-600">{sp.postcode}</p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-lg font-bold text-gray-900">{formatPrice(sp.price)}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <span className="text-gray-500">Type:</span>
+                      <span className="ml-1 font-medium">{formatPropertyType(sp.property_type)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Duration:</span>
+                      <span className="ml-1 font-medium">{formatDuration(sp.duration)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Status:</span>
+                      <span className="ml-1 font-medium">{formatOldNew(sp.old_new)}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-500">Date:</span>
+                      <span className="ml-1 font-medium">{sp.date_of_transfer}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
