@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, MapPin, TrendingUp, Home, Building2 } from 'lucide-react';
+import { Search, MapPin, TrendingUp, Home as HomeIcon, Building2 } from 'lucide-react';
 import PostcodeScanner from '@/components/PostcodeScanner';
 import PropertyGrid from '@/components/PropertyGrid';
 import MapView from '@/components/MapView';
@@ -42,7 +42,7 @@ export default function DealScannerPage() {
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
               <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 p-3 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-200 hover:shadow-2xl">
-                <Home className="h-6 w-6 text-white" />
+                <HomeIcon className="h-6 w-6 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
