@@ -1,243 +1,267 @@
 'use client';
 
-import { BMVCalculation } from '@/types';
+import React from 'react';
+import { BMVCalculation, BMVResult } from '@/types';
 import { MapPin, Bed, TrendingUp, ExternalLink, Star, PoundSterling, Home, Sparkles, Globe } from 'lucide-react';
 
 interface PropertyGridProps {
-  properties: BMVCalculation[];
+  properties: BMVResult[];
+  nearbyProperties?: { postcode: string; properties: BMVResult[] }[];
+  isLoading?: boolean;
+  error?: string;
 }
 
-export default function PropertyGrid({ properties }: PropertyGridProps) {
-  console.log('PropertyGrid received properties:', properties);
-  
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
+export default function PropertyGrid({ properties, nearbyProperties, isLoading, error }: PropertyGridProps) {
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-gray-600">Scanning properties...</span>
+      </div>
+    );
+  }
 
-  const getConfidenceColor = (confidence: string) => {
-    switch (confidence) {
-      case 'high':
-        return 'bg-gradient-to-r from-emerald-100 via-green-100 to-teal-100 text-emerald-800 border-emerald-200';
-      case 'medium':
-        return 'bg-gradient-to-r from-amber-100 via-yellow-100 to-orange-100 text-amber-800 border-amber-200';
-      case 'low':
-        return 'bg-gradient-to-r from-rose-100 via-red-100 to-pink-100 text-rose-800 border-rose-200';
-      default:
-        return 'bg-gradient-to-r from-slate-100 via-gray-100 to-zinc-100 text-slate-800 border-slate-200';
-    }
-  };
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-600 mb-4">
+          <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+          <h3 className="text-lg font-semibold">Error</h3>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
 
-  const getBMVColor = (percentage: number) => {
-    if (percentage >= 15) return 'text-emerald-600';
-    if (percentage >= 10) return 'text-amber-600';
-    if (percentage >= 5) return 'text-orange-600';
-    return 'text-rose-600';
-  };
-
-  const getBMVBackground = (percentage: number) => {
-    if (percentage >= 15) return 'bg-gradient-to-r from-emerald-500 via-green-500 to-teal-500';
-    if (percentage >= 10) return 'bg-gradient-to-r from-amber-500 via-yellow-500 to-orange-500';
-    if (percentage >= 5) return 'bg-gradient-to-r from-orange-500 via-red-500 to-rose-500';
-    return 'bg-gradient-to-r from-rose-500 via-red-500 to-pink-500';
-  };
-
-  const getPropertyTypeColor = (type: string) => {
-    const colors = {
-      'House': 'from-blue-500 to-cyan-500',
-      'Flat': 'from-purple-500 to-pink-500',
-      'Terraced': 'from-emerald-500 to-teal-500',
-      'Semi-Detached': 'from-violet-500 to-indigo-500',
-      'Detached': 'from-orange-500 to-red-500',
-      'Studio': 'from-fuchsia-500 to-purple-500',
-      'End of Terrace': 'from-cyan-500 to-blue-500'
-    };
-    return colors[type as keyof typeof colors] || 'from-gray-500 to-slate-500';
-  };
-
-  const getSourceColor = (source: string) => {
-    const colors = {
-      'rightmove': 'from-blue-500 to-cyan-500',
-      'zoopla': 'from-purple-500 to-pink-500',
-      'onthemarket': 'from-emerald-500 to-teal-500'
-    };
-    return colors[source as keyof typeof colors] || 'from-gray-500 to-slate-500';
-  };
-
-  const getSourceName = (source: string) => {
-    const names = {
-      'rightmove': 'Rightmove',
-      'zoopla': 'Zoopla',
-      'onthemarket': 'OnTheMarket'
-    };
-    return names[source as keyof typeof names] || source;
-  };
-
-  const handleExternalLink = (url: string, source: string) => {
-    console.log('Opening external link:', url, 'from source:', source);
-    
-    // Validate URL before opening
-    if (!url || url === '#' || url === '') {
-      console.warn('Invalid URL provided:', url);
-      return;
-    }
-    
-    // Ensure URL has proper protocol
-    let finalUrl = url;
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      finalUrl = 'https://' + url;
-    }
-    
-    try {
-      window.open(finalUrl, '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      console.error('Error opening external link:', error);
-    }
-  };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      {properties.map((bmv, index) => (
-        <div
-          key={bmv.property.id}
-          className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200/50 overflow-hidden hover-lift group animate-fade-in relative"
-          style={{ animationDelay: `${index * 0.1}s` }}
-        >
-          {/* Decorative Background Elements */}
-          <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-violet-200 to-purple-200 rounded-full opacity-30 -translate-y-10 translate-x-10"></div>
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-gradient-to-br from-cyan-200 to-blue-200 rounded-full opacity-30 translate-y-8 -translate-x-8"></div>
-          
-          {/* Property Image */}
-          <div className="relative h-56 bg-gradient-to-br from-gray-200 to-gray-300 overflow-hidden">
-            <img
-              src={bmv.property.imageUrl}
-              alt={bmv.property.title}
-              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-            
-            {/* Confidence Badge */}
-            <div className="absolute top-4 left-4 z-10">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold border shadow-lg ${getConfidenceColor(bmv.confidence)}`}>
-                {bmv.confidence.toUpperCase()} Confidence
-              </span>
-            </div>
-            
-            {/* Price Badge */}
-            <div className="absolute top-4 right-4 z-10">
-              <span className="bg-black/90 backdrop-blur-sm text-white px-3 py-2 rounded-xl text-sm font-bold shadow-lg">
-                {formatPrice(bmv.property.price)}
-              </span>
-            </div>
-
-            {/* BMV Badge */}
-            <div className="absolute bottom-4 left-4 z-10">
-              <div className={`${getBMVBackground(bmv.bmvPercentage)} text-white px-3 py-2 rounded-xl text-sm font-bold shadow-lg flex items-center`}>
-                <Sparkles className="h-3 w-3 mr-1" />
-                +{bmv.bmvPercentage}% BMV
-              </div>
-            </div>
-
-            {/* Property Type Badge */}
-            <div className="absolute bottom-4 right-4 z-10">
-              <div className={`bg-gradient-to-r ${getPropertyTypeColor(bmv.property.propertyType)} text-white px-3 py-2 rounded-xl text-xs font-bold shadow-lg`}>
-                {bmv.property.propertyType}
-              </div>
-            </div>
+  if (properties.length === 0) {
+    return (
+      <div className="space-y-8">
+        {/* No properties found message */}
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <div className="text-gray-500 mb-4">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">No Properties Found</h3>
+            <p className="text-gray-600 max-w-md mx-auto">
+              We couldn't find any properties in this area. This might be due to:
+            </p>
+            <ul className="text-gray-600 text-sm mt-2 space-y-1 max-w-md mx-auto">
+              <li>• Limited property availability in this postcode</li>
+              <li>• Properties outside our search criteria</li>
+              <li>• Temporary data access limitations</li>
+            </ul>
           </div>
+        </div>
 
-          {/* Property Details */}
-          <div className="p-6 relative z-10">
-            <div className="flex items-start justify-between mb-4">
-              <h3 className="font-bold text-xl text-gray-900 line-clamp-2 group-hover:text-violet-600 transition-colors">
-                {bmv.property.title}
-              </h3>
+        {/* Try Larger Area Suggestion */}
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
             </div>
-
-            <div className="flex items-center text-gray-600 mb-3">
-              <MapPin className="h-5 w-5 mr-2 text-violet-500" />
-              <span className="text-sm font-medium">{bmv.property.address}</span>
-            </div>
-
-            <div className="flex items-center text-gray-600 mb-6">
-              <Bed className="h-5 w-5 mr-2 text-fuchsia-500" />
-              <span className="text-sm font-medium">{bmv.property.bedrooms} bed • {bmv.property.propertyType}</span>
-            </div>
-
-            {/* Source Attribution */}
-            <div className="mb-4 p-3 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-slate-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <Globe className="h-4 w-4 mr-2 text-gray-500" />
-                  <span className="text-sm font-medium text-gray-600">Source:</span>
-                  <span className={`ml-2 px-2 py-1 rounded-lg text-xs font-bold bg-gradient-to-r ${getSourceColor(bmv.property.source)} text-white`}>
-                    {getSourceName(bmv.property.source)}
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleExternalLink(bmv.property.listingUrl, bmv.property.source)}
-                  className="flex items-center px-3 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-violet-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
-                >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  View Original
-                </button>
-              </div>
-            </div>
-
-            {/* BMV Analysis */}
-            <div className="space-y-4 mb-6">
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-emerald-50 via-green-50 to-teal-50 rounded-xl border border-emerald-200">
-                <span className="text-sm font-medium text-gray-700">BMV Amount:</span>
-                <span className="font-bold text-lg text-emerald-600">
-                  +{formatPrice(bmv.bmvAmount)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-cyan-50 via-blue-50 to-indigo-50 rounded-xl border border-cyan-200">
-                <span className="text-sm font-medium text-gray-700">Rental Yield:</span>
-                <span className="font-bold text-lg text-cyan-600">
-                  {bmv.rentalYield}%
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-gradient-to-r from-violet-50 via-purple-50 to-fuchsia-50 rounded-xl border border-violet-200">
-                <span className="text-sm font-medium text-gray-700">Est. Monthly Rent:</span>
-                <span className="font-bold text-lg text-violet-600">
-                  {formatPrice(bmv.estimatedRent)}
-                </span>
-              </div>
-            </div>
-
-            {/* Market Comparison */}
-            <div className="mb-6 p-4 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-slate-200">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-600">Avg. Sold Price:</span>
-                <span className="font-bold text-gray-900">
-                  {formatPrice(bmv.averageSoldPrice)}
-                </span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-3">
-              <button 
-                onClick={() => handleExternalLink(bmv.property.listingUrl, bmv.property.source)}
-                className="flex-1 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white py-3 px-4 rounded-xl text-sm font-bold hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
+            <h4 className="text-lg font-semibold text-blue-800 mb-2">Try Expanding Your Search</h4>
+            <p className="text-blue-700 text-sm mb-4">
+              No properties found in your current search area. Try increasing the search radius to find more properties in surrounding areas.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 shadow-md hover:shadow-lg"
               >
-                <ExternalLink className="h-4 w-4 mr-2" />
-                View on {getSourceName(bmv.property.source)}
+                Try 3 Mile Radius
               </button>
-              <button className="flex-1 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white py-3 px-4 rounded-xl text-sm font-bold hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
-                Save Deal
+              <button
+                onClick={() => window.location.reload()}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg font-medium hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
+              >
+                Try 5 Mile Radius
               </button>
+            </div>
+            <p className="text-xs text-blue-600 mt-3">
+              Tip: Larger search areas may include properties from neighboring postcodes
+            </p>
+          </div>
+        </div>
+
+        {/* Development Notice */}
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-amber-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+            <div>
+              <h4 className="text-lg font-semibold text-amber-800 mb-2">Development Status</h4>
+              <p className="text-amber-700 text-sm leading-relaxed mb-3">
+                This application is currently in development. The property scraping functionality is being built to handle modern anti-scraping measures from property websites like Rightmove, Zoopla, and OnTheMarket.
+              </p>
+              <div className="text-xs text-amber-600 space-y-1">
+                <p><strong>Current Status:</strong> Scrapers are being developed to work with property websites</p>
+                <p><strong>Challenge:</strong> Modern websites use sophisticated anti-bot measures</p>
+                <p><strong>Solution:</strong> Implementing robust scraping methods or using official APIs</p>
+              </div>
             </div>
           </div>
         </div>
-      ))}
+
+        {/* Nearby Properties - Only show if we have real data */}
+        {nearbyProperties && nearbyProperties.length > 0 && nearbyProperties.some(area => area.properties.length > 0) && (
+          <div className="space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Properties in Nearby Areas</h2>
+              <p className="text-gray-600">Here are some properties from surrounding postcodes:</p>
+            </div>
+            
+            {nearbyProperties.map((area, areaIndex) => (
+              <div key={areaIndex} className="bg-white rounded-lg shadow-md overflow-hidden">
+                <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
+                  <h3 className="text-xl font-semibold text-white">
+                    Properties in {area.postcode}
+                  </h3>
+                  <p className="text-blue-100 text-sm">
+                    {area.properties.length} properties found
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-6">
+                  {area.properties.map((property, propertyIndex) => (
+                    <div key={propertyIndex} className="bg-gray-50 rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-300">
+                      <div className="relative">
+                        <img
+                          src={property.property.imageUrl}
+                          alt={property.property.title}
+                          className="w-full h-48 object-cover"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop';
+                          }}
+                        />
+                        <div className="absolute top-2 right-2">
+                          <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                            {property.bmvPercentage > 0 ? `${property.bmvPercentage.toFixed(1)}% BMV` : 'Sample'}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <h4 className="font-semibold text-gray-800 text-lg">
+                            £{property.property.price.toLocaleString()}
+                          </h4>
+                          <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                            {property.property.bedrooms} bed
+                          </span>
+                        </div>
+                        
+                        <h5 className="font-medium text-gray-700 mb-1">
+                          {property.property.title}
+                        </h5>
+                        <p className="text-gray-600 text-sm mb-3">
+                          {property.property.address}
+                        </p>
+                        
+                        <div className="flex items-center justify-between">
+                          <span className="text-gray-500 text-xs">
+                            {property.property.propertyType}
+                          </span>
+                          <a
+                            href={property.property.listingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            View on Rightmove
+                            <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold text-gray-800">
+          Found {properties.length} Properties
+        </h2>
+        <div className="text-sm text-gray-600">
+          Sorted by BMV percentage
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {properties.map((property, index) => (
+          <div key={property.property.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-300">
+            <div className="relative">
+              <img
+                src={property.property.imageUrl}
+                alt={property.property.title}
+                className="w-full h-48 object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.src = 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=400&h=300&fit=crop';
+                }}
+              />
+              <div className="absolute top-2 right-2">
+                <span className="bg-blue-600 text-white px-2 py-1 rounded-full text-xs font-semibold">
+                  {property.bmvPercentage > 0 ? `${property.bmvPercentage.toFixed(1)}% BMV` : 'Sample'}
+                </span>
+              </div>
+            </div>
+            
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <h4 className="font-semibold text-gray-800 text-lg">
+                  £{property.property.price.toLocaleString()}
+                </h4>
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-xs font-medium">
+                  {property.property.bedrooms} bed
+                </span>
+              </div>
+              
+              <h5 className="font-medium text-gray-700 mb-1">
+                {property.property.title}
+              </h5>
+              <p className="text-gray-600 text-sm mb-3">
+                {property.property.address}
+              </p>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500 text-xs">
+                  {property.property.propertyType}
+                </span>
+                <a
+                  href={property.property.listingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  View on {property.property.source === 'rightmove' ? 'Rightmove' : 
+                           property.property.source === 'zoopla' ? 'Zoopla' : 
+                           property.property.source === 'onthemarket' ? 'OnTheMarket' : 'Original Site'}
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 } 

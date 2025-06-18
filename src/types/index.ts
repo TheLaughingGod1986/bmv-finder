@@ -36,6 +36,17 @@ export interface BMVCalculation {
   confidence: 'high' | 'medium' | 'low';
 }
 
+export interface BMVResult {
+  property: Property;
+  averageSoldPrice: number;
+  bmvPercentage: number;
+  bmvAmount: number;
+  rentalYield: number;
+  estimatedRent: number;
+  areaGrowth: number;
+  confidence: 'high' | 'medium' | 'low';
+}
+
 export interface RentalData {
   postcode: string;
   averageRent: number;

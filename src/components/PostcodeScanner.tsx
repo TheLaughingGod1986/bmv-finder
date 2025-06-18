@@ -6,11 +6,14 @@ import { Search, MapPin, AlertCircle, Sparkles, TrendingUp, Home, Zap } from 'lu
 interface PostcodeScannerProps {
   onScanStart: () => void;
   onScanComplete: (results: any) => void;
-  isScanning: boolean;
+  onScanError: (errorMessage: string) => void;
+  onScanFinish: () => void;
+  isScanning?: boolean;
 }
 
-export default function PostcodeScanner({ onScanStart, onScanComplete, isScanning }: PostcodeScannerProps) {
+export default function PostcodeScanner({ onScanStart, onScanComplete, onScanError, onScanFinish, isScanning = false }: PostcodeScannerProps) {
   const [postcode, setPostcode] = useState('');
+  const [radius, setRadius] = useState(1); // Default 1 mile radius
   const [error, setError] = useState('');
   const [isValid, setIsValid] = useState(false);
 
@@ -46,7 +49,12 @@ export default function PostcodeScanner({ onScanStart, onScanComplete, isScannin
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ postcode }),
+        body: JSON.stringify({ 
+          postcode,
+          config: {
+            radius: radius
+          }
+        }),
       });
 
       const data = await response.json();
@@ -55,10 +63,13 @@ export default function PostcodeScanner({ onScanStart, onScanComplete, isScannin
         throw new Error(data.error || 'Failed to scan properties');
       }
 
-      onScanComplete(data.data);
+      onScanComplete(data);
+      onScanFinish();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-      onScanComplete({ properties: [] });
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setError(errorMessage);
+      onScanError(errorMessage);
+      onScanFinish();
     }
   };
 
@@ -86,7 +97,8 @@ export default function PostcodeScanner({ onScanStart, onScanComplete, isScannin
         </p>
       </div>
 
-      <div className="max-w-md mx-auto relative z-10">
+      <div className="max-w-md mx-auto relative z-10 space-y-6">
+        {/* Postcode Input */}
         <div className="relative group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
             <MapPin className="h-6 w-6 text-violet-500 group-focus-within:text-fuchsia-600 transition-colors duration-200" />
@@ -117,8 +129,34 @@ export default function PostcodeScanner({ onScanStart, onScanComplete, isScannin
           )}
         </div>
 
+        {/* Radius Selector */}
+        <div className="bg-gradient-to-r from-violet-50 to-purple-50 rounded-xl p-4 border border-violet-200/50">
+          <label className="block text-sm font-semibold text-gray-700 mb-3">
+            Search Radius
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {[1, 3, 5].map((mileRadius) => (
+              <button
+                key={mileRadius}
+                onClick={() => setRadius(mileRadius)}
+                disabled={isScanning}
+                className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  radius === mileRadius
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-lg transform scale-105'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 hover:border-violet-300'
+                }`}
+              >
+                {mileRadius} mile{mileRadius > 1 ? 's' : ''}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-600 mt-2 text-center">
+            Larger radius = more properties but may include less relevant areas
+          </p>
+        </div>
+
         {error && (
-          <div className="mt-4 flex items-center text-red-600 text-sm bg-gradient-to-r from-red-50 to-pink-50 px-4 py-3 rounded-lg border border-red-200 animate-fade-in">
+          <div className="flex items-center text-red-600 text-sm bg-gradient-to-r from-red-50 to-pink-50 px-4 py-3 rounded-lg border border-red-200 animate-fade-in">
             <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0" />
             {error}
           </div>
@@ -127,7 +165,7 @@ export default function PostcodeScanner({ onScanStart, onScanComplete, isScannin
         <button
           onClick={handleScan}
           disabled={!isValid || isScanning}
-          className={`mt-6 w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center group relative overflow-hidden ${
+          className={`w-full py-4 px-6 rounded-xl font-bold text-lg transition-all duration-300 flex items-center justify-center group relative overflow-hidden ${
             isValid && !isScanning
               ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-xl hover:shadow-2xl transform hover:scale-105 hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
@@ -154,7 +192,7 @@ export default function PostcodeScanner({ onScanStart, onScanComplete, isScannin
         </button>
 
         {isScanning && (
-          <div className="mt-6 text-center animate-fade-in">
+          <div className="text-center animate-fade-in">
             <p className="text-sm text-gray-600 mb-3">
               Analyzing market data and calculating BMV opportunities...
             </p>

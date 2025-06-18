@@ -1,141 +1,176 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, MapPin, TrendingUp, Home as HomeIcon, Building2 } from 'lucide-react';
-import PostcodeScanner from '@/components/PostcodeScanner';
-import PropertyGrid from '@/components/PropertyGrid';
-import MapView from '@/components/MapView';
-import StatsPanel from '@/components/StatsPanel';
-import { BMVCalculation } from '@/types';
 
-export default function DealScannerPage() {
-  const [scanResults, setScanResults] = useState<BMVCalculation[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
-  const [scanStats, setScanStats] = useState<any>(null);
+interface SoldPrice {
+  id: string;
+  price: number;
+  date_of_transfer: string;
+  postcode: string;
+  property_type: string;
+  street: string;
+  town_city: string;
+  county: string;
+  paon: string;
+  saon: string;
+}
 
-  const handleScanComplete = (results: any) => {
-    setScanResults(results.properties || []);
-    setScanStats(results);
-    setIsScanning(false);
+export default function Home() {
+  const [postcode, setPostcode] = useState('');
+  const [soldPrices, setSoldPrices] = useState<SoldPrice[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateMsg, setUpdateMsg] = useState<string | null>(null);
+
+  const handleScan = async () => {
+    setIsLoading(true);
+    setError(null);
+    setSoldPrices([]);
+    try {
+      const response = await fetch('/api/scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ postcode }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to fetch sold prices');
+      }
+      setSoldPrices(data.data.soldPrices || []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleScanStart = () => {
-    setIsScanning(true);
-    setScanResults([]);
-    setScanStats(null);
+  const handleUpdateData = async () => {
+    setIsUpdating(true);
+    setUpdateMsg(null);
+    try {
+      const response = await fetch('/api/update-land-registry', { method: 'POST' });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || data.message || 'Failed to update data');
+      }
+      setUpdateMsg(data.message || 'Land Registry data updated successfully!');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      setUpdateMsg(`Failed to update data: ${errorMessage}`);
+      console.error('Update error:', err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const formatAddress = (property: SoldPrice) => {
+    const parts = [property.paon, property.saon, property.street].filter(Boolean);
+    return parts.join(' ');
+  };
+
+  const formatPrice = (price: number) => {
+    return price ? `£${price.toLocaleString()}` : 'N/A';
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-50 via-cyan-50 to-emerald-100 relative overflow-hidden">
-      {/* Animated Background Pattern */}
-      <div className="absolute inset-0 bg-grid-slate-100 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] -z-10"></div>
-      
-      {/* Floating Color Orbs */}
-      <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full opacity-20 animate-pulse"></div>
-      <div className="absolute top-40 right-20 w-24 h-24 bg-gradient-to-r from-cyan-400 to-blue-400 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '1s' }}></div>
-      <div className="absolute bottom-20 left-1/4 w-20 h-20 bg-gradient-to-r from-emerald-400 to-teal-400 rounded-full opacity-20 animate-pulse" style={{ animationDelay: '2s' }}></div>
-      
-      {/* Header */}
-      <header className="bg-white/90 backdrop-blur-md shadow-xl border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 p-3 rounded-xl shadow-lg transform hover:scale-105 transition-transform duration-200 hover:shadow-2xl">
-                <HomeIcon className="h-6 w-6 text-white" />
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
               </div>
               <div>
-                <h1 className="text-xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
-                  DealScanner
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Sold Property Prices
                 </h1>
-                <p className="text-sm text-gray-600 font-medium">Find Below Market Value Properties</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-4">
-              <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600 bg-gradient-to-r from-emerald-100 to-teal-100 px-4 py-2 rounded-full border border-emerald-200">
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
-                <span className="font-medium text-emerald-700">Live Market Data</span>
+                <p className="text-sm text-gray-600">UK Land Registry Data</p>
               </div>
             </div>
           </div>
         </div>
       </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Postcode Scanner */}
-        <div className="mb-8 animate-fade-in">
-          <PostcodeScanner 
-            onScanStart={handleScanStart}
-            onScanComplete={handleScanComplete}
-            isScanning={isScanning}
-          />
+      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+          <div className="mb-4">
+            <label htmlFor="postcode" className="block text-sm font-semibold text-gray-700 mb-2">
+              Enter UK Postcode
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="postcode"
+                type="text"
+                value={postcode}
+                onChange={e => setPostcode(e.target.value.toUpperCase())}
+                placeholder="e.g., SW1A 1AA"
+                className="flex-1 px-4 py-3 border-2 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 border-gray-300 text-gray-900 bg-white shadow-sm transition-all duration-200 placeholder-gray-400"
+                disabled={isLoading}
+              />
+              <button
+                onClick={handleScan}
+                disabled={!postcode || isLoading}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+              >
+                {isLoading ? 'Loading...' : 'Get Sold Prices'}
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-4 mt-4">
+            <button
+              onClick={handleUpdateData}
+              disabled={isUpdating}
+              className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-700 text-white rounded-lg font-semibold text-sm shadow-md hover:from-green-600 hover:to-green-800 transition-all duration-200"
+            >
+              {isUpdating ? 'Updating...' : 'Update Land Registry Data'}
+            </button>
+            {updateMsg && <span className="text-sm ml-2 text-gray-700">{updateMsg}</span>}
+          </div>
+          {error && (
+            <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
+              {error}
+            </div>
+          )}
         </div>
-
-        {/* Results Section */}
-        {scanResults.length > 0 && (
-          <div className="animate-slide-up">
-            {/* Stats Panel */}
-            <div className="mb-6">
-              <StatsPanel stats={scanStats} />
-            </div>
-
-            {/* View Toggle */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-clip-text text-transparent">
-                Found {scanResults.length} Properties
-              </h2>
-              
-              <div className="flex bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200/50 p-1">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center ${
-                    viewMode === 'grid'
-                      ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-lg transform scale-105'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  <Building2 className="h-4 w-4 mr-2" />
-                  Grid View
-                </button>
-                <button
-                  onClick={() => setViewMode('map')}
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center ${
-                    viewMode === 'map'
-                      ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white shadow-lg transform scale-105'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                >
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Map View
-                </button>
-              </div>
-            </div>
-
-            {/* Results Display */}
-            <div className="animate-fade-in">
-              {viewMode === 'grid' ? (
-                <PropertyGrid properties={scanResults} />
-              ) : (
-                <MapView properties={scanResults} />
-              )}
+        {soldPrices.length > 0 && (
+          <div className="bg-white rounded-xl shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4 text-blue-800">Recent Sold Prices for {postcode}</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-gray-200 rounded-lg divide-y divide-gray-200">
+                <thead>
+                  <tr className="bg-gradient-to-r from-blue-50 to-purple-50">
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Address</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Postcode</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Type</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Sold Date</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 sticky top-0 z-10">Price</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {soldPrices.map((sp, idx) => (
+                    <tr key={sp.id || idx} className={idx % 2 === 0 ? 'bg-white hover:bg-blue-50 transition' : 'bg-gray-50 hover:bg-blue-50 transition'}>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-900">{formatAddress(sp)}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{sp.postcode}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{sp.property_type}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-gray-700">{sp.date_of_transfer}</td>
+                      <td className="px-4 py-3 whitespace-nowrap font-semibold text-blue-700">{formatPrice(sp.price)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
-
-        {/* Empty State */}
-        {!isScanning && scanResults.length === 0 && (
-          <div className="text-center py-16 animate-fade-in">
-            <div className="mx-auto h-24 w-24 bg-gradient-to-br from-violet-200 via-purple-200 to-fuchsia-200 rounded-full flex items-center justify-center mb-6 shadow-lg">
-              <Search className="h-12 w-12 text-violet-600" />
-            </div>
-            <h3 className="text-xl font-bold bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 bg-clip-text text-transparent mb-3">
-              Ready to Find BMV Properties?
-            </h3>
-            <p className="text-gray-600 max-w-md mx-auto text-lg leading-relaxed">
-              Enter a UK postcode above to start scanning for below market value opportunities. 
-              We'll analyze recent sold prices and rental yields to find the best deals.
-            </p>
+        {soldPrices.length === 0 && !isLoading && !error && (
+          <div className="text-center text-gray-500 mt-12">
+            <svg className="w-16 h-16 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <h3 className="text-xl font-semibold mb-2">No Sold Prices Found</h3>
+            <p>Enter a valid UK postcode to see recent sold property prices.</p>
           </div>
         )}
       </main>

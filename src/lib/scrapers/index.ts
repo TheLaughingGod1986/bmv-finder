@@ -8,6 +8,7 @@ export interface PropertyScraper {
   scrapeSoldPrices(postcode: string): Promise<SoldPrice[]>;
   scrapeRentalData(postcode: string): Promise<RentalData[]>;
   scrapeAreaGrowth(postcode: string): Promise<AreaGrowthData>;
+  getNearbyProperties?(originalPostcode: string): Promise<{ postcode: string; properties: Property[] }[]>;
 }
 
 export class ScraperManager {
@@ -17,6 +18,10 @@ export class ScraperManager {
     this.scrapers.set('rightmove', new RightmoveScraper());
     this.scrapers.set('zoopla', new ZooplaScraper());
     this.scrapers.set('onthemarket', new OnTheMarketScraper());
+  }
+
+  getScraper(source: string): PropertyScraper | undefined {
+    return this.scrapers.get(source);
   }
 
   async scrapeAll(postcode: string, config: ScraperConfig) {
@@ -69,4 +74,6 @@ export class ScraperManager {
 
     return results;
   }
-} 
+}
+
+export { fetchSoldPrices } from './rightmove'; 
