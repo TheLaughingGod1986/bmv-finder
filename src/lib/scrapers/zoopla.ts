@@ -16,7 +16,7 @@ export class ZooplaScraper implements PropertyScraper {
         propertyType: 'Terraced',
         description: 'Charming period property with modern updates',
         coordinates: { lat: 51.5074, lng: -0.1278 },
-        listingUrl: 'https://zoopla.co.uk/property-1',
+        listingUrl: 'https://www.zoopla.co.uk/for-sale/details/property-12345678',
         source: 'zoopla',
         listedDate: '2024-01-12'
       },
@@ -31,7 +31,7 @@ export class ZooplaScraper implements PropertyScraper {
         propertyType: 'End of Terrace',
         description: 'Well-maintained family home with garden',
         coordinates: { lat: 51.5074, lng: -0.1278 },
-        listingUrl: 'https://zoopla.co.uk/property-2',
+        listingUrl: 'https://www.zoopla.co.uk/for-sale/details/property-87654321',
         source: 'zoopla',
         listedDate: '2024-01-08'
       }

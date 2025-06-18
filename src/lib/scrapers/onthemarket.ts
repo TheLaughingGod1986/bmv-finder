@@ -16,7 +16,7 @@ export class OnTheMarketScraper implements PropertyScraper {
         propertyType: 'Studio',
         description: 'Modern studio apartment in prime location',
         coordinates: { lat: 51.5074, lng: -0.1278 },
-        listingUrl: 'https://onthemarket.com/property-1',
+        listingUrl: 'https://www.onthemarket.com/for-sale/property-98765432',
         source: 'onthemarket',
         listedDate: '2024-01-14'
       }

@@ -1,13 +1,15 @@
 'use client';
 
 import { BMVCalculation } from '@/types';
-import { MapPin, Bed, TrendingUp, ExternalLink, Star, PoundSterling, Home, Sparkles } from 'lucide-react';
+import { MapPin, Bed, TrendingUp, ExternalLink, Star, PoundSterling, Home, Sparkles, Globe } from 'lucide-react';
 
 interface PropertyGridProps {
   properties: BMVCalculation[];
 }
 
 export default function PropertyGrid({ properties }: PropertyGridProps) {
+  console.log('PropertyGrid received properties:', properties);
+  
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -55,6 +57,46 @@ export default function PropertyGrid({ properties }: PropertyGridProps) {
       'End of Terrace': 'from-cyan-500 to-blue-500'
     };
     return colors[type as keyof typeof colors] || 'from-gray-500 to-slate-500';
+  };
+
+  const getSourceColor = (source: string) => {
+    const colors = {
+      'rightmove': 'from-blue-500 to-cyan-500',
+      'zoopla': 'from-purple-500 to-pink-500',
+      'onthemarket': 'from-emerald-500 to-teal-500'
+    };
+    return colors[source as keyof typeof colors] || 'from-gray-500 to-slate-500';
+  };
+
+  const getSourceName = (source: string) => {
+    const names = {
+      'rightmove': 'Rightmove',
+      'zoopla': 'Zoopla',
+      'onthemarket': 'OnTheMarket'
+    };
+    return names[source as keyof typeof names] || source;
+  };
+
+  const handleExternalLink = (url: string, source: string) => {
+    console.log('Opening external link:', url, 'from source:', source);
+    
+    // Validate URL before opening
+    if (!url || url === '#' || url === '') {
+      console.warn('Invalid URL provided:', url);
+      return;
+    }
+    
+    // Ensure URL has proper protocol
+    let finalUrl = url;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      finalUrl = 'https://' + url;
+    }
+    
+    try {
+      window.open(finalUrl, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error opening external link:', error);
+    }
   };
 
   return (
@@ -114,14 +156,6 @@ export default function PropertyGrid({ properties }: PropertyGridProps) {
               <h3 className="font-bold text-xl text-gray-900 line-clamp-2 group-hover:text-violet-600 transition-colors">
                 {bmv.property.title}
               </h3>
-              <a
-                href={bmv.property.listingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-violet-600 hover:text-fuchsia-600 ml-3 flex-shrink-0 p-2 hover:bg-violet-50 rounded-lg transition-colors"
-              >
-                <ExternalLink className="h-5 w-5" />
-              </a>
             </div>
 
             <div className="flex items-center text-gray-600 mb-3">
@@ -132,6 +166,26 @@ export default function PropertyGrid({ properties }: PropertyGridProps) {
             <div className="flex items-center text-gray-600 mb-6">
               <Bed className="h-5 w-5 mr-2 text-fuchsia-500" />
               <span className="text-sm font-medium">{bmv.property.bedrooms} bed • {bmv.property.propertyType}</span>
+            </div>
+
+            {/* Source Attribution */}
+            <div className="mb-4 p-3 bg-gradient-to-r from-slate-50 to-gray-50 rounded-xl border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Globe className="h-4 w-4 mr-2 text-gray-500" />
+                  <span className="text-sm font-medium text-gray-600">Source:</span>
+                  <span className={`ml-2 px-2 py-1 rounded-lg text-xs font-bold bg-gradient-to-r ${getSourceColor(bmv.property.source)} text-white`}>
+                    {getSourceName(bmv.property.source)}
+                  </span>
+                </div>
+                <button
+                  onClick={() => handleExternalLink(bmv.property.listingUrl, bmv.property.source)}
+                  className="flex items-center px-3 py-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg text-sm font-medium hover:from-violet-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  View Original
+                </button>
+              </div>
             </div>
 
             {/* BMV Analysis */}
@@ -170,8 +224,12 @@ export default function PropertyGrid({ properties }: PropertyGridProps) {
 
             {/* Action Buttons */}
             <div className="flex space-x-3">
-              <button className="flex-1 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white py-3 px-4 rounded-xl text-sm font-bold hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
-                View Details
+              <button 
+                onClick={() => handleExternalLink(bmv.property.listingUrl, bmv.property.source)}
+                className="flex-1 bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white py-3 px-4 rounded-xl text-sm font-bold hover:from-violet-700 hover:via-purple-700 hover:to-fuchsia-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center"
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                View on {getSourceName(bmv.property.source)}
               </button>
               <button className="flex-1 bg-gradient-to-r from-emerald-600 via-green-600 to-teal-600 text-white py-3 px-4 rounded-xl text-sm font-bold hover:from-emerald-700 hover:via-green-700 hover:to-teal-700 transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl">
                 Save Deal
