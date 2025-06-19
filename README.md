@@ -6,8 +6,8 @@ A modern, mobile-friendly web application to search and view recent sold propert
 
 - **Real Land Registry Data**: Uses official UK Land Registry Price Paid Data
 - **Postcode Search**: Search for sold prices by UK postcode
-- **Local Database**: Stores data locally in SQLite for fast queries
-- **Automated Updates**: Daily automatic updates via GitHub Actions
+- **Local Database**: Stores data in Turso for fast queries
+- **Automated Updates**: Monthly updates with incremental imports
 - **Modern UI**: Clean, responsive design with mobile-friendly cards
 - **Rich Data Display**: Property type, duration, new/existing status, and more
 
@@ -31,12 +31,17 @@ cd bmv-finder
 npm install
 ```
 
-3. Download and import Land Registry data:
+3. Download and import Land Registry data (initial import):
 ```bash
-node import_land_registry.js
+npm run import:land-registry
 ```
 
-4. Start the development server:
+4. For subsequent updates (monthly):
+```bash
+npm run update:land-registry
+```
+
+5. Start the development server:
 ```bash
 npm run dev
 ```
@@ -49,6 +54,37 @@ npm run dev
 2. **View Results**: See recent sold prices in a modern, responsive table
 3. **Mobile Experience**: Cards automatically display on mobile devices
 4. **Update Data**: Click "Update Land Registry Data" to download the latest data
+
+## Data Updates
+
+### Initial Import
+
+For the first run, use the full import script which downloads and imports the complete dataset:
+
+```bash
+npm run import:land-registry
+```
+
+### Monthly Updates
+
+After the initial import, you can use the update script to fetch only the latest changes. This is much faster as it only downloads the monthly update file:
+
+```bash
+npm run update:land-registry
+```
+
+### Automation
+
+To keep your data up to date, you can set up a monthly cron job to run the update script. Here's an example using `crontab` to run on the 25th of each month:
+
+```bash
+# Add this to your crontab
+0 0 25 * * cd /path/to/bmv-finder && npm run update:land-registry
+```
+
+### Update Schedule
+
+The UK Land Registry typically publishes updates around the 20th of each month, containing data from about 2 months prior. The update script is designed to automatically detect and download the latest available update.
 
 ## Automated Updates
 
@@ -119,6 +155,10 @@ src/
 - **SQLite** - Local database
 - **GitHub Actions** - Automated updates
 - **Land Registry API** - Official UK property data
+
+## Database
+
+This project uses Turso (SQLite) for data storage. The database connection is configured via environment variables in the `.env` file.
 
 ## License
 
