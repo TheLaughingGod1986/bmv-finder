@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 
 export async function POST(request: NextRequest): Promise<Response> {
-  return new Promise<Response>((resolve) => {
+
+  return new Promise((resolve) => {
     const proc = spawn('node', ['import_land_registry.js'], { cwd: process.cwd() });
     let errorMsg = '';
     let outputMsg = '';
@@ -45,10 +46,10 @@ export async function POST(request: NextRequest): Promise<Response> {
 }
 
 // GET endpoint for health checks and manual triggers
-export async function GET() {
+export async function GET(): Promise<Response> {
   return NextResponse.json({ 
     status: 'ok',
     message: 'Land Registry update endpoint is running',
     timestamp: new Date().toISOString()
   });
-} 
+}

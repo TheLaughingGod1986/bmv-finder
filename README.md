@@ -1,4 +1,4 @@
-# UK Sold Property Prices
+# UK Sold Property Prices.
 
 A modern, mobile-friendly web application to search and view recent sold property prices from the UK Land Registry.
 
