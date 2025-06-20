@@ -1,11 +1,12 @@
 // lib/turso-rest.ts
 
-// (Assuming other imports and code above)
-
 export class TursoRest {
   useLocal = false;
 
-  // ... other methods and properties ...
+  // Example method that executes a Turso query
+  async executeTursoQuery(query: string, params?: any[]) {
+    // Your existing implementation here
+  }
 
   async queryDatabase(query: string, params?: any[]) {
     try {
@@ -17,14 +18,10 @@ export class TursoRest {
         console.log('Turso connection failed, falling back to local database:', error);
       }
       this.useLocal = true;
-      // Optionally, fallback logic to local database here
+
+      // Optional: you might want to handle fallback query here or rethrow
     }
   }
 
-  async executeTursoQuery(query: string, params?: any[]) {
-    // Implementation of Turso query execution
-    // ...
-  }
-
-  // ... other methods ...
+  // Other class methods ...
 }
