@@ -7,9 +7,9 @@ interface FiltersProps {
   setMaxPrice: (v: number | '') => void;
   priceBounds: { min: number; max: number };
   filterDuration: string[];
-  setFilterDuration: (v: string[]) => void;
+  setFilterDuration: React.Dispatch<React.SetStateAction<string[]>>;
   filterType: string[];
-  setFilterType: (v: string[]) => void;
+  setFilterType: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const Filters: React.FC<FiltersProps> = ({
@@ -76,10 +76,10 @@ const Filters: React.FC<FiltersProps> = ({
           <input type="checkbox" checked={filterDuration.length === 0} onChange={() => setFilterDuration([])} className="mr-1" /> All
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" checked={filterDuration.includes('F')} onChange={() => setFilterDuration(fd => fd.includes('F') ? fd.filter(x => x !== 'F') : [...fd, 'F'])} className="mr-1" /> Freehold
+          <input type="checkbox" checked={filterDuration.includes('F')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('F') ? fd.filter(x => x !== 'F') : [...fd, 'F'])} className="mr-1" /> Freehold
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" checked={filterDuration.includes('L')} onChange={() => setFilterDuration(fd => fd.includes('L') ? fd.filter(x => x !== 'L') : [...fd, 'L'])} className="mr-1" /> Leasehold
+          <input type="checkbox" checked={filterDuration.includes('L')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('L') ? fd.filter(x => x !== 'L') : [...fd, 'L'])} className="mr-1" /> Leasehold
         </label>
       </div>
     </div>
@@ -90,19 +90,19 @@ const Filters: React.FC<FiltersProps> = ({
           <input type="checkbox" checked={filterType.length === 0} onChange={() => setFilterType([])} className="mr-1" /> All
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" checked={filterType.includes('D')} onChange={() => setFilterType(ft => ft.includes('D') ? ft.filter(x => x !== 'D') : [...ft, 'D'])} className="mr-1" /> Detached
+          <input type="checkbox" checked={filterType.includes('D')} onChange={() => setFilterType((ft: string[]) => ft.includes('D') ? ft.filter(x => x !== 'D') : [...ft, 'D'])} className="mr-1" /> Detached
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" checked={filterType.includes('S')} onChange={() => setFilterType(ft => ft.includes('S') ? ft.filter(x => x !== 'S') : [...ft, 'S'])} className="mr-1" /> Semi-detached
+          <input type="checkbox" checked={filterType.includes('S')} onChange={() => setFilterType((ft: string[]) => ft.includes('S') ? ft.filter(x => x !== 'S') : [...ft, 'S'])} className="mr-1" /> Semi-detached
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" checked={filterType.includes('T')} onChange={() => setFilterType(ft => ft.includes('T') ? ft.filter(x => x !== 'T') : [...ft, 'T'])} className="mr-1" /> Terraced
+          <input type="checkbox" checked={filterType.includes('T')} onChange={() => setFilterType((ft: string[]) => ft.includes('T') ? ft.filter(x => x !== 'T') : [...ft, 'T'])} className="mr-1" /> Terraced
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" checked={filterType.includes('F')} onChange={() => setFilterType(ft => ft.includes('F') ? ft.filter(x => x !== 'F') : [...ft, 'F'])} className="mr-1" /> Flat/Maisonette
+          <input type="checkbox" checked={filterType.includes('F')} onChange={() => setFilterType((ft: string[]) => ft.includes('F') ? ft.filter(x => x !== 'F') : [...ft, 'F'])} className="mr-1" /> Flat/Maisonette
         </label>
         <label className="inline-flex items-center">
-          <input type="checkbox" checked={filterType.includes('O')} onChange={() => setFilterType(ft => ft.includes('O') ? ft.filter(x => x !== 'O') : [...ft, 'O'])} className="mr-1" /> Other
+          <input type="checkbox" checked={filterType.includes('O')} onChange={() => setFilterType((ft: string[]) => ft.includes('O') ? ft.filter(x => x !== 'O') : [...ft, 'O'])} className="mr-1" /> Other
         </label>
       </div>
     </div>

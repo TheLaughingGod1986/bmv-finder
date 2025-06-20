@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { SoldPrice } from '../page';
+import { SoldPrice } from '../../../types/sold-price';
 
 interface SoldPricesTableProps {
   soldPrices: SoldPrice[];

@@ -89,7 +89,11 @@ class DatabaseClient {
         try {
           return await this.executeTursoQuery(query, params);
         } catch (error) {
-          console.log('Turso connection failed, falling back to local database:', error.message);
+          if (error instanceof Error) {
+            console.log('Turso connection failed, falling back to local database:', error.message);
+          } else {
+            console.log('Turso connection failed, falling back to local database:', error);
+          }
           this.useLocal = true;
         }
       }

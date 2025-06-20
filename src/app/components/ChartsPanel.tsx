@@ -12,7 +12,7 @@ import {
 
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-import { SoldPrice } from '../page';
+import { SoldPrice } from '../../../types/sold-price';
 
 interface ChartsPanelProps {
   soldPrices: SoldPrice[];
