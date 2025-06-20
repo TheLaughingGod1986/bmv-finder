@@ -1,6 +1,7 @@
 // @ts-ignore - Node.js types are included in @types/node
 import 'server-only';
 import { createClient } from '@libsql/client';
+import { NextResponse } from 'next/server';
 
 interface TursoColumn {
   name: string;
