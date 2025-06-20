@@ -6,4 +6,4 @@ export async function POST() {
 
 export async function GET() {
   return NextResponse.json({ error: 'Use POST' }, { status: 405 });
-}
+} 
