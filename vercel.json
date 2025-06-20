@@ -1,8 +1,8 @@
-{
+{{
   "crons": [
     {
       "path": "/api/cron/update-land-registry",
-      "schedule": "0 9 15 * *"  // 9 AM UTC on the 15th of each month (10 AM BST)
+      "schedule": "0 9 15 * *"
     }
   ]
 }
