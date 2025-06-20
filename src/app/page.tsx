@@ -101,20 +101,23 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postcode: searchTerm, trend: true }),
       });
+
       let data: any = null;
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         try {
           data = await response.json();
-        } catch (jsonErr) {
+        } catch {
           throw new Error('Received invalid JSON from server.');
         }
       } else {
         throw new Error('Server returned a non-JSON response.');
       }
+
       if (!response.ok || !data.success) {
         throw new Error(data?.error || 'Failed to fetch sold prices');
       }
+
       setSoldPrices(data.data.soldPrices || []);
       setTrendData(data.data.trendData || []);
     } catch (err) {
