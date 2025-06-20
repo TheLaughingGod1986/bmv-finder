@@ -46,8 +46,9 @@ interface TursoResponse {
 
 class DatabaseClient {
   private tursoClient: any;
-  private localClient: any;
+  private localClient: any | null;
   private useLocal: boolean = false;
+  private isLocalDev: boolean;
 
   constructor() {
     const databaseUrl = process.env.DATABASE_URL;
@@ -65,12 +66,18 @@ class DatabaseClient {
       baseUrl: this.getTursoBaseUrl(databaseUrl),
       authToken: authToken
     };
-    
-    // Initialize local SQLite client as fallback
-    this.localClient = createClient({
-      url: 'file:land_registry.db'
-    });
-    
+
+    // Only allow local fallback in development (not on Vercel)
+    this.isLocalDev = process.env.NODE_ENV === 'development' && !process.env.VERCEL;
+    if (this.isLocalDev) {
+      const { createClient } = require('@libsql/client');
+      this.localClient = createClient({
+        url: 'file:land_registry.db'
+      });
+    } else {
+      this.localClient = null;
+    }
+
     console.log('Database Client initialized with Turso URL:', this.tursoClient.baseUrl);
   }
 
@@ -89,17 +96,23 @@ class DatabaseClient {
         try {
           return await this.executeTursoQuery(query, params);
         } catch (error) {
-          if (error instanceof Error) {
-            console.log('Turso connection failed, falling back to local database:', error.message);
+          if (this.isLocalDev && this.localClient) {
+            // Only fallback to local in development
+            console.log('Turso connection failed, falling back to local database:', error instanceof Error ? error.message : error);
+            this.useLocal = true;
           } else {
-            console.log('Turso connection failed, falling back to local database:', error);
+            // In production, throw error
+            throw error;
           }
-          this.useLocal = true;
         }
       }
-      
-      // Use local database
-      return await this.executeLocalQuery(query, params);
+
+      // Use local database (only in dev)
+      if (this.isLocalDev && this.localClient) {
+        return await this.executeLocalQuery(query, params);
+      } else {
+        throw new Error('Database connection failed and no local fallback is available.');
+      }
     } catch (error) {
       console.error('Error in executeQuery:', error);
       throw new Error(`Database operation failed: ${error instanceof Error ? error.message : String(error)}`);

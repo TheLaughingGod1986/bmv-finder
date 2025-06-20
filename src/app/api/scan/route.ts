@@ -27,6 +27,7 @@ interface Property {
 }
 
 export async function POST(request: NextRequest) {
+  console.log('POST /api/scan called');
   const { postcode, propertyId, trend } = await request.json();
   if (!postcode && !propertyId) {
     return NextResponse.json({ error: 'Postcode or area is required' }, { status: 400 });
