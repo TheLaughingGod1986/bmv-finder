@@ -65,28 +65,16 @@ class DatabaseClient {
         try {
           return await this.executeTursoQuery(query, params);
         } catch (error) {
-          if (error instanceof Error) {
-            console.log(
-              'Turso connection failed, falling back to local database:',
-              error.message
-            );
-          } else {
-            console.log(
-              'Turso connection failed, falling back to local database:',
-              String(error)
-            );
-          }
+          const message = error instanceof Error ? error.message : String(error);
+          console.log('Turso connection failed, falling back to local database:', message);
           this.useLocal = true;
         }
       }
       return await this.executeLocalQuery(query, params);
     } catch (error) {
-      console.error('Error in executeQuery:', error);
-      throw new Error(
-        `Database operation failed: ${
-          error instanceof Error ? error.message : String(error)
-        }`
-      );
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('Error in executeQuery:', message);
+      throw new Error(`Database operation failed: ${message}`);
     }
   }
 
