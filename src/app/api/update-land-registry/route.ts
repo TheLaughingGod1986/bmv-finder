@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 
 export async function POST(request: NextRequest): Promise<Response> {
+
   return new Promise((resolve) => {
     const proc = spawn('node', ['import_land_registry.js'], { cwd: process.cwd() });
     let errorMsg = '';

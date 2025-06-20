@@ -16,28 +16,9 @@ import Filters from './components/Filters';
 import SoldPricesTable from './components/SoldPricesTable';
 import dynamic from 'next/dynamic';
 import ChartsPanel from './components/ChartsPanel';
+import { SoldPrice } from '../../types/sold-price';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
-
-interface SoldPrice {
-  id: string;
-  price: number;
-  date_of_transfer: string;
-  postcode: string;
-  property_type: string;
-  street: string;
-  town_city: string;
-  county: string;
-  paon: string;
-  saon: string;
-  duration: string;
-  old_new: string;
-  locality: string;
-  district: string;
-  ppd_category_type: string;
-  record_status: string;
-  growthPct?: number;
-}
 
 interface TrendDataEntry {
   year: string;
@@ -120,9 +101,19 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ postcode: searchTerm, trend: true }),
       });
-      const data = await response.json();
+      let data: any = null;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          throw new Error('Received invalid JSON from server.');
+        }
+      } else {
+        throw new Error('Server returned a non-JSON response.');
+      }
       if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to fetch sold prices');
+        throw new Error(data?.error || 'Failed to fetch sold prices');
       }
       setSoldPrices(data.data.soldPrices || []);
       setTrendData(data.data.trendData || []);
