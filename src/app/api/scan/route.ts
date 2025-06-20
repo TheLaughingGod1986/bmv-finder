@@ -26,6 +26,6 @@ interface Property {
   status?: string;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   return NextResponse.json({ message: "POST handler works!" });
 }
