@@ -152,3 +152,7 @@ export async function POST(request: Request) {
     );
   }
 }
+
+export async function GET() {
+  return NextResponse.json({ success: false, error: "Use POST" }, { status: 405 });
+}
