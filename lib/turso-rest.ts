@@ -240,10 +240,21 @@ class DatabaseClient {
   }
 }
 
-// Create a singleton instance
-const databaseClient = new DatabaseClient();
+// Lazy-initialize the DatabaseClient only when needed
+let databaseClient: DatabaseClient | null = null;
 
-// Export the instance methods as module functions
-export const executeQuery = databaseClient.executeQuery.bind(databaseClient);
-export const getRows = databaseClient.getRows.bind(databaseClient);
-export const execute = databaseClient.execute.bind(databaseClient);
+function getDatabaseClient() {
+  if (!databaseClient) {
+    databaseClient = new DatabaseClient();
+  }
+  return databaseClient;
+}
+
+export const executeQuery = (...args: Parameters<DatabaseClient['executeQuery']>) =>
+  getDatabaseClient().executeQuery(...args);
+
+export const getRows = (...args: Parameters<DatabaseClient['getRows']>) =>
+  getDatabaseClient().getRows(...args);
+
+export const execute = (...args: Parameters<DatabaseClient['execute']>) =>
+  getDatabaseClient().execute(...args);
