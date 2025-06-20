@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse/sync';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const limit = parseInt(searchParams.get('limit') || '100', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
