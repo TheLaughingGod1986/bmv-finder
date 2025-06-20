@@ -102,8 +102,8 @@ class DatabaseClient {
             console.log('Turso connection failed, falling back to local database:', error instanceof Error ? error.message : error);
             this.useLocal = true;
           } else {
-            // In production, throw error
-            throw error;
+            // In production, throw error and do NOT fallback to local
+            throw new Error('Turso connection failed and no local fallback is available in production.');
           }
         }
       }
