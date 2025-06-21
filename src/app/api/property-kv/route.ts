@@ -19,14 +19,21 @@ export async function GET(request: Request) {
         console.log(`[KV API] Request received. Postcode param: "${postcode}"`);
 
         if (postcode) {
-            // The population script now creates an index for the postcode area (e.g., "SS9").
-            // We can now do a direct, case-sensitive lookup.
             const cleanPostcode = postcode.replace(/\s/g, '').toUpperCase();
-            console.log(`[KV API] Searching for exact key: "postcode:${cleanPostcode}"`);
-            
-            propertyIds = await kv.smembers(`postcode:${cleanPostcode}`);
+            const searchPattern = `postcode:${cleanPostcode}*`;
+            console.log(`[KV API] Scanning for keys with pattern: "${searchPattern}"`);
 
-            console.log(`[KV API] Found ${propertyIds.length} property IDs for key.`);
+            const matchingPostcodeKeys: string[] = [];
+            for await (const key of kv.scanIterator({ match: searchPattern })) {
+                matchingPostcodeKeys.push(key);
+            }
+            console.log(`[KV API] Found ${matchingPostcodeKeys.length} matching postcode keys.`);
+
+            if (matchingPostcodeKeys.length > 0) {
+                // Use SUNION to get all unique property IDs from the matching postcode sets
+                const allIds = await kv.sunion(...matchingPostcodeKeys as [string, ...string[]]);
+                propertyIds = allIds.map(id => String(id));
+            }
         } else {
             // This is a fallback for when no postcode is provided.
             // It's not efficient for production but works for demonstration.
