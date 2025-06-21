@@ -81,7 +81,9 @@ export async function GET() {
             batch.forEach(postcode => {
                 const members = postcodeIndex[postcode];
                 if (members && members.length > 0) {
-                    pipeline.sadd(`postcode:${postcode}`, ...members);
+                    for (const member of members) {
+                        pipeline.sadd(`postcode:${postcode}`, member);
+                    }
                 }
             });
             await pipeline.exec();
