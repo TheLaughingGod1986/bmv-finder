@@ -79,7 +79,11 @@ export async function GET(request: Request) {
 
         Object.keys(postcodeIndex).forEach(postcode => {
             const members = Array.from(postcodeIndex[postcode]);
-            pipeline.sadd(`postcode:${postcode}`, ...members);
+            if (members.length > 0) {
+                for (const member of members) {
+                    pipeline.sadd(`postcode:${postcode}`, member);
+                }
+            }
         });
         
         await pipeline.exec();
