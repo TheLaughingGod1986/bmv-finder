@@ -257,7 +257,7 @@ export default function Home() {
               <button
                 onClick={handleScan}
                 disabled={!searchTerm || isLoading}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200 sm:w-auto w-full"
               >
                 {isLoading ? 'Loading...' : 'Get Sold Prices'}
               </button>

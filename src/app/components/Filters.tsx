@@ -25,7 +25,7 @@ const Filters: React.FC<FiltersProps> = ({
 }) => (
   <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
     {/* Price Filter */}
-    <div className="flex flex-col">
+    <div className="hidden sm:flex flex-col">
       <label className="block text-xs font-semibold text-gray-600 mb-1">Price Range (£)</label>
       <div className="flex items-center gap-2">
         <input
