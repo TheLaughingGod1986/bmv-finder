@@ -8,12 +8,14 @@
     "start": "next start",
     "lint": "next lint",
     "import:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/import-land-registry.ts",
-    "update:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/update-land-registry.ts"
+    "update:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/update-land-registry.ts",
+    "populate:kv": "node ./scripts/run-populate-kv.js"
   },
   "dependencies": {
     "@libsql/client": "^0.6.2",
     "@types/csv-parse": "^1.1.12",
     "@types/node-fetch": "^2.6.12",
+    "@vercel/kv": "^3.0.0",
     "chart.js": "^4.5.0",
     "csv-parse": "^5.6.0",
     "csv-parser": "^3.2.0",
