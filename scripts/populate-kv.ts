@@ -59,24 +59,34 @@ async function populateKV() {
         }
 
         console.log('Creating and storing postcode index...');
-        const postcodeIndex: Record<string, string[]> = {};
+        const postcodeIndex: Record<string, Set<string>> = {};
         records.forEach(record => {
             if (record.postcode && record.id) {
                 const cleanPostcode = record.postcode.replace(/\s/g, '').toUpperCase();
-                if (!postcodeIndex[cleanPostcode]) {
-                    postcodeIndex[cleanPostcode] = [];
+                
+                // Index the full postcode (e.g., "SS91AA")
+                if (!postcodeIndex[cleanPostcode]) postcodeIndex[cleanPostcode] = new Set();
+                postcodeIndex[cleanPostcode].add(record.id);
+
+                // Index the postcode area (e.g., "SS9")
+                const areaMatch = cleanPostcode.match(/^([A-Z]+[0-9]+)/);
+                if (areaMatch) {
+                    const area = areaMatch[1];
+                    if (!postcodeIndex[area]) postcodeIndex[area] = new Set();
+                    postcodeIndex[area].add(record.id);
                 }
-                postcodeIndex[cleanPostcode].push(record.id);
             }
         });
 
         const postcodes = Object.keys(postcodeIndex);
+        console.log(`Created index for ${postcodes.length} unique postcodes/areas.`);
+
         for (let i = 0; i < postcodes.length; i += batchSize) {
             const batch = postcodes.slice(i, i + batchSize);
             const pipeline = kv.pipeline();
             batch.forEach(postcode => {
-                const members = postcodeIndex[postcode];
-                if (members && members.length > 0) {
+                const members = Array.from(postcodeIndex[postcode]);
+                if (members.length > 0) {
                     for (const member of members) {
                         pipeline.sadd(`postcode:${postcode}`, member);
                     }

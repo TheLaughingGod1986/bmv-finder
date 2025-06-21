@@ -19,33 +19,14 @@ export async function GET(request: Request) {
         console.log(`[KV API] Request received. Postcode param: "${postcode}"`);
 
         if (postcode) {
+            // The population script now creates an index for the postcode area (e.g., "SS9").
+            // We can now do a direct, case-sensitive lookup.
             const cleanPostcode = postcode.replace(/\s/g, '').toUpperCase();
-            const searchPattern = `postcode:${cleanPostcode}*`;
-            let debugLog = `[KV API] Searching for pattern: "${searchPattern}". `;
+            console.log(`[KV API] Searching for exact key: "postcode:${cleanPostcode}"`);
             
-            const matchingPostcodeKeys: string[] = [];
-            
-            // SCAN for keys. Note: Vercel KV scan is case-sensitive.
-            // We assume postcodes were stored uppercase, which they were.
-            for await (const key of kv.scanIterator({ match: searchPattern })) {
-                matchingPostcodeKeys.push(key);
-            }
+            propertyIds = await kv.smembers(`postcode:${cleanPostcode}`);
 
-            debugLog += `Found ${matchingPostcodeKeys.length} matching postcode keys.`;
-            if (matchingPostcodeKeys.length > 0) {
-                debugLog += ` First key found: "${matchingPostcodeKeys[0]}"`;
-            }
-            console.log(debugLog);
-
-            if (matchingPostcodeKeys.length > 0) {
-                // To avoid type issues with sunion, we'll fetch members for each key
-                const idSets = await Promise.all(
-                    matchingPostcodeKeys.map(key => kv.smembers(key))
-                );
-                // Flatten the array of arrays and remove duplicates
-                const uniqueIds = new Set(idSets.flat());
-                propertyIds = Array.from(uniqueIds);
-            }
+            console.log(`[KV API] Found ${propertyIds.length} property IDs for key.`);
         } else {
             // This is a fallback for when no postcode is provided.
             // It's not efficient for production but works for demonstration.
