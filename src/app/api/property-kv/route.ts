@@ -1,11 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@vercel/kv';
+import { kv } from '@vercel/kv';
 import type { SoldPrice } from '../../../../types/sold-price';
 
-const kv = createClient({
-    url: process.env.UPSTASH_REDIS_REST_URL || '',
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
+// No manual client creation needed. 
+// The library automatically picks up the environment variables from Vercel.
 
 export async function GET(request: Request) {
     try {

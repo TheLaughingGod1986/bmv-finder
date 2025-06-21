@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@vercel/kv';
+import { kv } from '@vercel/kv';
 import path from 'path';
 import fs from 'fs/promises';
 import { parse } from 'csv-parse/sync';
 import type { SoldPrice } from '../../../../types/sold-price';
-
-const kv = createClient({
-    url: process.env.UPSTASH_REDIS_REST_URL || '',
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
 
 const csvFilePath = path.join(process.cwd(), 'pp-complete.csv');
 
