@@ -18,12 +18,16 @@ export async function GET(request: Request) {
 
         if (postcode) {
             const cleanPostcode = postcode.replace(/\s/g, '').toUpperCase();
+            console.log(`Searching for postcode prefix: ${cleanPostcode}`);
+            
             const matchingPostcodeKeys: string[] = [];
             
-            // Use SCAN to find all postcode keys matching the prefix
+            // SCAN for keys. Note: Vercel KV scan is case-sensitive.
+            // We assume postcodes were stored uppercase, which they were.
             for await (const key of kv.scanIterator({ match: `postcode:${cleanPostcode}*`, count: 1000 })) {
                 matchingPostcodeKeys.push(key);
             }
+            console.log(`Found ${matchingPostcodeKeys.length} matching postcode keys:`, matchingPostcodeKeys);
 
             if (matchingPostcodeKeys.length > 0) {
                 // To avoid type issues with sunion, we'll fetch members for each key
@@ -42,6 +46,8 @@ export async function GET(request: Request) {
         }
         
         const total = propertyIds.length;
+        console.log(`Found a total of ${total} properties.`);
+
         const paginatedIds = propertyIds.slice(offset, offset + limit);
         const properties: SoldPrice[] = [];
 
