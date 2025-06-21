@@ -107,15 +107,21 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                 <div className="text-lg font-bold text-blue-700">{formatPrice(sp.price)}</div>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div className="grid grid-cols-2 gap-3 text-xs border-b pb-3 mb-3">
               <div><span className="text-gray-500">Date:</span> <span className="ml-1 font-medium">{sp.date_of_transfer.slice(0, 4)}</span></div>
-              <div><span className="text-gray-500">Price:</span> <span className="ml-1 font-medium">{formatPrice(sp.price)}</span></div>
               <div><span className="text-gray-500">Type:</span> <span className="ml-1 font-medium">{formatDuration(sp.duration)}</span></div>
-              <div><span className="text-gray-500">Property Type:</span> <span className="ml-1 font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">{formatPropertyType(sp.property_type)}</span></div>
+              <div className="col-span-2"><span className="text-gray-500">Property Type:</span> <span className="ml-1 font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">{formatPropertyType(sp.property_type)}</span></div>
               <div><span className="text-gray-500">Town:</span> <span className="ml-1 font-medium">{sp.town_city}</span></div>
               <div><span className="text-gray-500">District:</span> <span className="ml-1 font-medium">{sp.district}</span></div>
               <div><span className="text-gray-500">County:</span> <span className="ml-1 font-medium">{sp.county}</span></div>
             </div>
+             <button
+              type="button"
+              className="w-full text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded text-sm text-blue-600 hover:underline"
+              onClick={() => handleShowHistory(sp.id)}
+             >
+              View History
+            </button>
           </div>
         ))}
       </div>

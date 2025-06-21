@@ -34,6 +34,7 @@ export default function Home() {
   const [soldPrices, setSoldPrices] = useState<SoldPrice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPostcodeHint, setShowPostcodeHint] = useState(false);
   const [trendData, setTrendData] = useState<TrendDataEntry[]>([]);
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
@@ -95,6 +96,7 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
     setSoldPrices([]);
+    setShowPostcodeHint(false);
     try {
       // Construct the URL with query parameters
       const params = new URLSearchParams();
@@ -120,7 +122,11 @@ export default function Home() {
         throw new Error(data?.message || 'Failed to fetch sold prices');
       }
 
-      setSoldPrices(data.data || []);
+      const results = data.data || [];
+      setSoldPrices(results);
+      if (results.length === 0 && searchTerm.trim().length > 4) {
+        setShowPostcodeHint(true);
+      }
       // The trend data calculation is now done on the client-side,
       // so we don't need to set it from the API response.
       // setTrendData(data.data.trendData || []); 
@@ -196,7 +202,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
@@ -214,7 +220,7 @@ export default function Home() {
           </div>
         </div>
       </header>
-      <main className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* SEO-friendly introduction */}
         <section className="mb-8">
           <h2 className="text-xl font-bold mb-2 text-gray-800">Discover UK Sold Property Prices</h2>
@@ -234,11 +240,11 @@ export default function Home() {
             filterType={filterType}
             setFilterType={setFilterType}
           />
-          <div className="mb-4">
+          <div className="mb-4 pt-6 border-t">
             <label htmlFor="searchTerm" className="block text-sm font-semibold text-gray-700 mb-2">
               Search by postcode, address, street, or town
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <input
                 id="searchTerm"
                 type="text"
@@ -257,6 +263,12 @@ export default function Home() {
               </button>
             </div>
           </div>
+          {showPostcodeHint && (
+            <div className="text-blue-800 bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
+              <p className="font-semibold">No results for the full postcode?</p>
+              <p>Try searching for just the first part of the postcode (e.g., "SW1A") to see a wider area.</p>
+            </div>
+          )}
           {error && (
             <div className="text-red-600 bg-red-50 border border-red-200 rounded-lg p-4 mt-4">
               {error}
@@ -268,7 +280,7 @@ export default function Home() {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {searchTerm}</h2>
           <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by price, type, or property type.</p>
-          <div className="flex flex-wrap gap-4 mb-4">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
             <button
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow"
               onClick={() => {
@@ -300,11 +312,8 @@ export default function Home() {
             >
               Export CSV
             </button>
-            <a
+            <button
               className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold shadow"
-              href={`https://docs.google.com/spreadsheets/u/0/d/1/export?format=csv`}
-              target="_blank"
-              rel="noopener noreferrer"
               onClick={e => {
                 // Instead, open a new Google Sheet and import the CSV
                 const csvRows = [
@@ -338,7 +347,7 @@ export default function Home() {
               }}
             >
               Export to Google Sheets
-            </a>
+            </button>
           </div>
           <SoldPricesTable
             soldPrices={filteredSoldPrices}

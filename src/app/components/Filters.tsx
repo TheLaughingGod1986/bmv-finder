@@ -23,14 +23,14 @@ const Filters: React.FC<FiltersProps> = ({
   filterType,
   setFilterType,
 }) => (
-  <div className="flex flex-wrap gap-4 mb-4">
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
     {/* Price Filter */}
     <div className="flex flex-col">
       <label className="block text-xs font-semibold text-gray-600 mb-1">Price Range (£)</label>
       <div className="flex items-center gap-2">
         <input
           type="number"
-          className="border rounded px-2 py-1 text-sm w-24"
+          className="border rounded px-2 py-1 text-sm w-full"
           placeholder={`Min (${priceBounds.min.toLocaleString()})`}
           value={minPrice}
           min={priceBounds.min}
@@ -40,7 +40,7 @@ const Filters: React.FC<FiltersProps> = ({
         <span className="text-gray-500">-</span>
         <input
           type="number"
-          className="border rounded px-2 py-1 text-sm w-24"
+          className="border rounded px-2 py-1 text-sm w-full"
           placeholder={`Max (${priceBounds.max.toLocaleString()})`}
           value={maxPrice}
           min={priceBounds.min}
@@ -56,7 +56,7 @@ const Filters: React.FC<FiltersProps> = ({
           step={1000}
           value={minPrice === '' ? priceBounds.min : minPrice}
           onChange={e => setMinPrice(Number(e.target.value))}
-          className="w-24"
+          className="w-full"
         />
         <input
           type="range"
@@ -65,13 +65,13 @@ const Filters: React.FC<FiltersProps> = ({
           step={1000}
           value={maxPrice === '' ? priceBounds.max : maxPrice}
           onChange={e => setMaxPrice(Number(e.target.value))}
-          className="w-24"
+          className="w-full"
         />
       </div>
     </div>
-    <div>
+    <div className="border-t pt-4 md:border-none md:pt-0">
       <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
-      <div className="flex flex-col gap-1">
+      <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
         <label className="inline-flex items-center">
           <input type="checkbox" checked={filterDuration.length === 0} onChange={() => setFilterDuration([])} className="mr-1" /> All
         </label>
@@ -83,9 +83,9 @@ const Filters: React.FC<FiltersProps> = ({
         </label>
       </div>
     </div>
-    <div>
+    <div className="border-t pt-4 md:border-none md:pt-0">
       <label className="block text-xs font-semibold text-gray-600 mb-1">Property Type</label>
-      <div className="flex flex-col gap-1">
+      <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
         <label className="inline-flex items-center">
           <input type="checkbox" checked={filterType.length === 0} onChange={() => setFilterType([])} className="mr-1" /> All
         </label>
