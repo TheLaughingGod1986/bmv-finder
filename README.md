@@ -174,3 +174,74 @@ We welcome contributions! To get started:
 - Open a pull request with a clear description of your changes.
 
 Thank you for helping improve this project!
+
+## Automatic Daily Deployment
+
+The app automatically updates with fresh Land Registry data every day at 2 AM UTC via GitHub Actions. This ensures:
+
+- ✅ Fresh property data daily
+- ✅ Automatic rate limit reset handling
+- ✅ Complete dataset population (all UK properties since 1995)
+- ✅ Zero downtime deployments
+
+### How it works:
+
+1. **Daily Schedule**: GitHub Actions runs at 2 AM UTC (when Upstash rate limits reset)
+2. **Data Download**: Downloads the latest complete Land Registry dataset (~5GB)
+3. **Deployment**: Deploys the updated app to Vercel
+4. **Population**: Triggers the KV population API to load all properties into Redis
+5. **Verification**: Tests the population with sample postcodes
+
+### Manual Trigger
+
+You can also manually trigger the daily population:
+1. Go to your GitHub repository
+2. Navigate to Actions → "Daily KV Population"
+3. Click "Run workflow"
+
+## Local Development
+
+```bash
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Add your Vercel KV credentials
+
+# Run development server
+npm run dev
+```
+
+## Environment Variables
+
+Create a `.env.local` file with:
+
+```env
+KV_URL=your_vercel_kv_url
+KV_REST_API_URL=your_vercel_kv_rest_url
+KV_REST_API_TOKEN=your_vercel_kv_token
+KV_REST_API_READ_ONLY_TOKEN=your_vercel_kv_read_token
+```
+
+## GitHub Actions Setup
+
+To enable automatic daily deployment, add these secrets to your GitHub repository:
+
+1. Go to Settings → Secrets and variables → Actions
+2. Add the following secrets:
+   - `VERCEL_TOKEN`: Your Vercel API token
+   - `VERCEL_ORG_ID`: Your Vercel organization ID
+   - `VERCEL_PROJECT_ID`: Your Vercel project ID
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Run tests: `npm run lint && npm run type-check`
+5. Submit a pull request
+
+## License
+
+MIT

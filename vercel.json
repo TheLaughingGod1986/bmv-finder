@@ -1,8 +1,13 @@
 {
+  "functions": {
+    "src/app/api/populate-kv/route.ts": {
+      "maxDuration": 3600
+    }
+  },
   "crons": [
     {
-      "path": "/api/cron/update-land-registry",
-      "schedule": "0 9 15 * *"
+      "path": "/api/populate-kv",
+      "schedule": "0 2 * * *"
     }
   ]
 }
