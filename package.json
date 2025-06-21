@@ -8,8 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "import:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/import-land-registry.ts",
-    "update:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/update-land-registry.ts",
-    "populate:kv": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/populate-kv.ts"
+    "update:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/update-land-registry.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.6.2",
