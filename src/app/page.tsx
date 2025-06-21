@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo, useCallback } from 'react';
-import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -35,7 +34,6 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPostcodeHint, setShowPostcodeHint] = useState(false);
-  const [trendData, setTrendData] = useState<TrendDataEntry[]>([]);
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string[]>([]);
@@ -137,6 +135,10 @@ export default function Home() {
     }
   };
 
+  const formatDuration = useCallback((duration: string) => {
+    return duration === 'F' ? 'Freehold' : duration === 'L' ? 'Leasehold' : duration;
+  }, []);
+
   const formatPropertyType = useCallback((type: string) => {
     const types: { [key: string]: string } = {
       'D': 'Detached',
@@ -148,14 +150,6 @@ export default function Home() {
     return types[type] || type;
   }, []);
 
-  const formatDuration = useCallback((duration: string) => {
-    return duration === 'F' ? 'Freehold' : duration === 'L' ? 'Leasehold' : duration;
-  }, []);
-
-  const formatOldNew = useCallback((oldNew: string) => {
-    return oldNew === 'Y' ? 'New Build' : oldNew === 'N' ? 'Existing' : oldNew;
-  }, []);
-
   const formatAddress = useCallback((property: SoldPrice) => {
     const parts = [property.paon, property.saon, property.street].filter(Boolean);
     return parts.join(' ');
@@ -164,15 +158,6 @@ export default function Home() {
   const formatPrice = useCallback((price: number) => {
     return price ? `£${price.toLocaleString()}` : 'N/A';
   }, []);
-
-  // Add helpers for PPD Category and Record Status
-  const formatPPDCategory = (cat: string) => cat === 'A' ? 'Standard' : cat === 'B' ? 'Additional' : cat;
-  const formatRecordStatus = (status: string) => {
-    if (status === 'A') return 'Addition';
-    if (status === 'C') return 'Change';
-    if (status === 'D') return 'Deletion';
-    return status;
-  };
 
   const handleShowHistory = async (id: string) => {
     // This function needs to be re-evaluated.

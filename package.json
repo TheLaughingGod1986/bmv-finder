@@ -7,22 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "import:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/import-land-registry.ts",
-    "update:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/update-land-registry.ts"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "@libsql/client": "^0.6.2",
-    "@types/csv-parse": "^1.1.12",
-    "@types/node-fetch": "^2.6.12",
     "@vercel/analytics": "^1.5.0",
     "@vercel/kv": "^3.0.0",
     "@vercel/speed-insights": "^1.2.0",
     "chart.js": "^4.5.0",
-    "csv-parse": "^5.6.0",
-    "csv-parser": "^3.2.0",
-    "dotenv": "^16.5.0",
     "next": "14.2.3",
-    "node-fetch": "^3.3.2",
     "react": "18.2.0",
     "react-chartjs-2": "^5.3.0",
     "react-dom": "18.2.0"
@@ -36,7 +28,6 @@
     "eslint-config-next": "14.1.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
-    "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
 }

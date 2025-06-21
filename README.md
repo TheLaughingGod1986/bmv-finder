@@ -163,3 +163,14 @@ This project uses Turso (SQLite) for data storage. The database connection is co
 ## License
 
 This project is for educational purposes. Please respect the Land Registry's terms of use for their data.
+
+## Contributing
+
+We welcome contributions! To get started:
+
+- Fork the repository and create a new branch for your feature or fix.
+- Run `npm run lint` and `npm run type-check` before opening a pull request.
+- Please ensure your code is clean, readable, and well-documented.
+- Open a pull request with a clear description of your changes.
+
+Thank you for helping improve this project!
