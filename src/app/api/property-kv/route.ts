@@ -15,26 +15,33 @@ export async function GET(request: Request) {
         const offset = parseInt(searchParams.get('offset') || '0', 10);
 
         let propertyIds: string[] = [];
-        let total = 0;
 
         if (postcode) {
-            // Use postcode index for faster lookups
             const cleanPostcode = postcode.replace(/\s/g, '').toUpperCase();
-            propertyIds = await kv.smembers(`postcode:${cleanPostcode}`);
-            total = propertyIds.length;
-        } else {
-            // Get all properties (this might be slow for large datasets)
-            // In production, you might want to implement a different strategy
-            const totalProperties = await kv.get('total_properties') as number;
-            total = totalProperties || 0;
+            const matchingPostcodeKeys: string[] = [];
             
-            // For now, we'll get a sample - in production you'd want pagination keys
-            const sampleSize = Math.min(limit + offset, 1000);
-            const allKeys = await kv.keys('property:*');
-            propertyIds = allKeys.slice(offset, offset + sampleSize).map(key => key.replace('property:', ''));
-        }
+            // Use SCAN to find all postcode keys matching the prefix
+            for await (const key of kv.scanIterator({ match: `postcode:${cleanPostcode}*`, count: 1000 })) {
+                matchingPostcodeKeys.push(key);
+            }
 
-        // Get the actual property data
+            if (matchingPostcodeKeys.length > 0) {
+                // To avoid type issues with sunion, we'll fetch members for each key
+                const idSets = await Promise.all(
+                    matchingPostcodeKeys.map(key => kv.smembers(key))
+                );
+                // Flatten the array of arrays and remove duplicates
+                const uniqueIds = new Set(idSets.flat());
+                propertyIds = Array.from(uniqueIds);
+            }
+        } else {
+            // This is a fallback for when no postcode is provided.
+            // It's not efficient for production but works for demonstration.
+            const allKeys = await kv.keys('property:*');
+            propertyIds = allKeys.slice(0, 1000).map(key => key.replace('property:', ''));
+        }
+        
+        const total = propertyIds.length;
         const paginatedIds = propertyIds.slice(offset, offset + limit);
         const properties: SoldPrice[] = [];
 
@@ -45,9 +52,11 @@ export async function GET(request: Request) {
             });
             
             const results = await pipeline.exec();
-            results?.forEach((result, index) => {
+            results?.forEach((result) => {
                 if (result && typeof result === 'object') {
-                    properties.push(result as SoldPrice);
+                    // Ensure the price is a number, as KV returns strings
+                    const property = { ...result, price: Number((result as any).price) } as SoldPrice;
+                    properties.push(property);
                 }
             });
         }
