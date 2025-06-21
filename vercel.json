@@ -1,13 +1,3 @@
 {
-  "functions": {
-    "src/app/api/populate-kv/route.ts": {
-      "maxDuration": 3600
-    }
-  },
-  "crons": [
-    {
-      "path": "/api/populate-kv",
-      "schedule": "0 2 * * *"
-    }
-  ]
+  "crons": []
 }

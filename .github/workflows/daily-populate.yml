@@ -27,19 +27,21 @@ jobs:
           echo "Downloaded $(wc -l < pp-complete.csv) properties"
 
       - name: Deploy to Vercel
+        id: deploy
         uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-project-name: 'bmv-finder'
           working-directory: ./
 
       - name: Wait for deployment
         run: sleep 30
 
       - name: Trigger KV population
+        env:
+          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
         run: |
-          DEPLOY_URL=$(curl -s "https://api.vercel.com/v1/integrations/deploy/prj_*" | jq -r '.url')
-          curl -X POST "https://$DEPLOY_URL/api/populate-kv" \
+          curl -X POST "https://${DEPLOY_URL}/api/populate-kv" \
             -H "Content-Type: application/json" \
             --max-time 3600 # 1 hour timeout 
