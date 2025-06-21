@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import type { SoldPrice } from '../../../../types/sold-price';
 
+export const dynamic = 'force-dynamic'; // Ensure the route is always dynamic
+
 // No manual client creation needed. 
 // The library automatically picks up the environment variables from Vercel.
 

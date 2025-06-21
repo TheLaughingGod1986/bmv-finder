@@ -5,6 +5,8 @@ import fs from 'fs/promises';
 import { parse } from 'csv-parse/sync';
 import type { SoldPrice } from '../../../../types/sold-price';
 
+export const dynamic = 'force-dynamic'; // Prevent static generation
+
 const csvFilePath = path.join(process.cwd(), 'pp-complete.csv');
 
 const columns = [
