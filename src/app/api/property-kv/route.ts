@@ -16,18 +16,26 @@ export async function GET(request: Request) {
 
         let propertyIds: string[] = [];
 
+        console.log(`[KV API] Request received. Postcode param: "${postcode}"`);
+
         if (postcode) {
             const cleanPostcode = postcode.replace(/\s/g, '').toUpperCase();
-            console.log(`Searching for postcode prefix: ${cleanPostcode}`);
+            const searchPattern = `postcode:${cleanPostcode}*`;
+            let debugLog = `[KV API] Searching for pattern: "${searchPattern}". `;
             
             const matchingPostcodeKeys: string[] = [];
             
             // SCAN for keys. Note: Vercel KV scan is case-sensitive.
             // We assume postcodes were stored uppercase, which they were.
-            for await (const key of kv.scanIterator({ match: `postcode:${cleanPostcode}*`, count: 1000 })) {
+            for await (const key of kv.scanIterator({ match: searchPattern })) {
                 matchingPostcodeKeys.push(key);
             }
-            console.log(`Found ${matchingPostcodeKeys.length} matching postcode keys:`, matchingPostcodeKeys);
+
+            debugLog += `Found ${matchingPostcodeKeys.length} matching postcode keys.`;
+            if (matchingPostcodeKeys.length > 0) {
+                debugLog += ` First key found: "${matchingPostcodeKeys[0]}"`;
+            }
+            console.log(debugLog);
 
             if (matchingPostcodeKeys.length > 0) {
                 // To avoid type issues with sunion, we'll fetch members for each key
@@ -46,7 +54,7 @@ export async function GET(request: Request) {
         }
         
         const total = propertyIds.length;
-        console.log(`Found a total of ${total} properties.`);
+        console.log(`[KV API] Found a total of ${total} properties to return.`);
 
         const paginatedIds = propertyIds.slice(offset, offset + limit);
         const properties: SoldPrice[] = [];
