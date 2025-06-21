@@ -33,12 +33,27 @@ async function populateKV() {
         console.log(`Found ${records.length} records`);
 
         // Clear existing data
-        console.log('Clearing existing data...');
-        const allKeys = await kv.keys('property:*');
-        if(allKeys.length > 0) await kv.del(...allKeys);
+        console.log('Clearing existing data using SCAN to avoid timeouts...');
+        const clearKeysByPattern = async (pattern: string) => {
+            let count = 0;
+            const keysToDelete: string[] = [];
+            for await (const key of kv.scanIterator({ match: pattern })) {
+                keysToDelete.push(key);
+                count++;
+            }
 
-        const allPostcodeKeys = await kv.keys('postcode:*');
-        if(allPostcodeKeys.length > 0) await kv.del(...allPostcodeKeys);
+            if (keysToDelete.length > 0) {
+                const batchSize = 500;
+                for (let i = 0; i < keysToDelete.length; i += batchSize) {
+                    const batch = keysToDelete.slice(i, i + batchSize);
+                    await kv.del(...batch);
+                }
+            }
+            console.log(`[Cleaner] Deleted ${count} keys for pattern "${pattern}".`);
+        };
+
+        await clearKeysByPattern('property:*');
+        await clearKeysByPattern('postcode:*');
 
 
         console.log('Storing records in KV...');
