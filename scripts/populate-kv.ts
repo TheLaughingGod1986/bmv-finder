@@ -1,11 +1,8 @@
-import { createClient } from '@vercel/kv';
+import { kv } from '@vercel/kv';
 import { parse } from 'csv-parse/sync';
 import fs from 'fs/promises';
 import path from 'path';
 import type { SoldPrice } from '../types/sold-price';
-import dotenv from 'dotenv';
-
-dotenv.config({ path: '.env.local' });
 
 const csvFilePath = path.join(process.cwd(), 'pp-complete.csv');
 
@@ -14,11 +11,6 @@ const columns = [
     'old_new', 'duration', 'paon', 'saon', 'street', 'locality',
     'town_city', 'district', 'county', 'ppd_category_type', 'record_status'
 ];
-
-const kv = createClient({
-    url: process.env.UPSTASH_REDIS_REST_URL || '',
-    token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
-});
 
 async function populateKV() {
     try {
@@ -42,29 +34,34 @@ async function populateKV() {
 
         // Clear existing data
         console.log('Clearing existing data...');
-        await kv.del('properties');
+        const allKeys = await kv.keys('property:*');
+        if(allKeys.length > 0) await kv.del(...allKeys);
 
-        // Store records in batches
+        const allPostcodeKeys = await kv.keys('postcode:*');
+        if(allPostcodeKeys.length > 0) await kv.del(...allPostcodeKeys);
+
+
+        console.log('Storing records in KV...');
         const batchSize = 1000;
         for (let i = 0; i < records.length; i += batchSize) {
             const batch = records.slice(i, i + batchSize);
             const pipeline = kv.pipeline();
             
-            batch.forEach((record, index) => {
-                const key = `property:${record.id}`;
-                pipeline.hset(key, { ...record });
+            batch.forEach((record) => {
+                if (record.id) {
+                    const key = `property:${record.id}`;
+                    pipeline.hset(key, { ...record });
+                }
             });
             
             await pipeline.exec();
-            console.log(`Processed batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(records.length / batchSize)}`);
+            console.log(`Processed record batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(records.length / batchSize)}`);
         }
 
-        // Store postcode index for faster lookups
-        console.log('Creating postcode index...');
+        console.log('Creating and storing postcode index...');
         const postcodeIndex: Record<string, string[]> = {};
-        
         records.forEach(record => {
-            if (record.postcode) {
+            if (record.postcode && record.id) {
                 const cleanPostcode = record.postcode.replace(/\s/g, '').toUpperCase();
                 if (!postcodeIndex[cleanPostcode]) {
                     postcodeIndex[cleanPostcode] = [];
@@ -73,12 +70,10 @@ async function populateKV() {
             }
         });
 
-        // Store postcode index in batches
         const postcodes = Object.keys(postcodeIndex);
         for (let i = 0; i < postcodes.length; i += batchSize) {
             const batch = postcodes.slice(i, i + batchSize);
             const pipeline = kv.pipeline();
-            
             batch.forEach(postcode => {
                 const members = postcodeIndex[postcode];
                 if (members && members.length > 0) {
@@ -87,11 +82,10 @@ async function populateKV() {
                     }
                 }
             });
-            
             await pipeline.exec();
+            console.log(`Processed postcode batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(postcodes.length / batchSize)}`);
         }
 
-        // Store total count
         await kv.set('total_properties', records.length);
         
         console.log('✅ Successfully populated Vercel KV with property data!');

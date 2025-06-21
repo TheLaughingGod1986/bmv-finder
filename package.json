@@ -9,7 +9,7 @@
     "lint": "next lint",
     "import:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/import-land-registry.ts",
     "update:land-registry": "ts-node --project ./scripts/tsconfig.json ./scripts/update-land-registry.ts",
-    "populate:kv": "node ./scripts/run-populate-kv.js"
+    "populate:kv": "ts-node -r dotenv/config --project ./scripts/tsconfig.json ./scripts/populate-kv.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.6.2",
