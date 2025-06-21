@@ -7,6 +7,10 @@ import type { SoldPrice } from '../../../../types/sold-price';
 
 export const dynamic = 'force-dynamic';
 
+// --- Caching All Records in Memory ---
+let allRecordsCache: SoldPrice[] | null = null;
+// ------------------------------------
+
 const columns = [
     'id', 'price', 'date_of_transfer', 'postcode', 'property_type',
     'old_new', 'duration', 'paon', 'saon', 'street', 'locality',
@@ -14,9 +18,15 @@ const columns = [
 ];
 
 async function getRecords() {
+    if (allRecordsCache) {
+        console.log('[KV Populator] Using cached records.');
+        return allRecordsCache;
+    }
+
+    console.log('[KV Populator] Reading and parsing CSV for the first time...');
     const csvFilePath = path.join(process.cwd(), 'pp-complete.csv');
     const fileContent = await fs.readFile(csvFilePath, 'utf8');
-    return parse(fileContent, {
+    const records = parse(fileContent, {
         columns: columns,
         skip_empty_lines: true,
         cast: (value, context) => {
@@ -26,6 +36,9 @@ async function getRecords() {
             return value;
         }
     });
+    allRecordsCache = records;
+    console.log('[KV Populator] CSV parsed and cached.');
+    return records;
 }
 
 export async function GET(request: Request) {
@@ -38,6 +51,9 @@ export async function GET(request: Request) {
         if (action === 'clear') {
             console.log('[KV Populator] Clearing all existing property and postcode data...');
             
+            // Clear the in-memory cache as well
+            allRecordsCache = null;
+
             const clearKeysByPattern = async (pattern: string) => {
                 const keysToDelete: string[] = [];
                 for await (const key of kv.scanIterator({ match: pattern })) {
