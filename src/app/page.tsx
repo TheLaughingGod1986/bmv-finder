@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -16,6 +16,8 @@ import SoldPricesTable from './components/SoldPricesTable';
 import dynamic from 'next/dynamic';
 import ChartsPanel from './components/ChartsPanel';
 import { SoldPrice } from '../../types/sold-price';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -29,16 +31,44 @@ const AreaPriceTrendChart = dynamic(() => import('./components/AreaPriceTrendCha
 const PropertyHistoryModal = dynamic(() => import('./components/PropertyHistoryModal'), { ssr: false, loading: () => null });
 
 export default function Home() {
-  const [searchTerm, setSearchTerm] = useState('');
+  const [postcode, setPostcode] = useState('');
+  const [propertyType, setPropertyType] = useState<PropertyType | 'ALL'>('ALL');
   const [soldPrices, setSoldPrices] = useState<SoldPrice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchedPostcode, setSearchedPostcode] = useState('');
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [showPostcodeHint, setShowPostcodeHint] = useState(false);
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string[]>([]);
   const [minPrice, setMinPrice] = useState<number | ''>('');
   const [maxPrice, setMaxPrice] = useState<number | ''>('');
+
+  useEffect(() => {
+    const fetchLastUpdated = async () => {
+      try {
+        const response = await fetch('/api/last-updated');
+        const data = await response.json();
+        if (data.lastUpdated) {
+          const formattedDate = new Date(data.lastUpdated).toLocaleString(
+            'en-GB',
+            {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            }
+          );
+          setLastUpdated(formattedDate);
+        }
+      } catch (err) {
+        console.error('Failed to fetch last updated timestamp', err);
+      }
+    };
+    fetchLastUpdated();
+  }, []);
 
   // Compute min and max price from loaded data
   const priceBounds = useMemo(() => {
@@ -90,7 +120,11 @@ export default function Home() {
     });
   }, [filteredSoldPrices]);
 
-  const handleScan = async () => {
+  const handleSearch = async (searchPostcode: string) => {
+    if (!searchPostcode.trim()) {
+      setError('Please enter a postcode.');
+      return;
+    }
     setIsLoading(true);
     setError(null);
     setSoldPrices([]);
@@ -98,7 +132,7 @@ export default function Home() {
     try {
       // Construct the URL with query parameters
       const params = new URLSearchParams();
-      params.append('postcode', searchTerm);
+      params.append('postcode', searchPostcode);
       // Add other params like limit/offset if needed in the future
       // params.append('limit', '1000'); 
 
@@ -122,7 +156,7 @@ export default function Home() {
 
       const results = data.data || [];
       setSoldPrices(results);
-      if (results.length === 0 && searchTerm.trim().length > 4) {
+      if (results.length === 0 && searchPostcode.trim().length > 4) {
         setShowPostcodeHint(true);
       }
       // The trend data calculation is now done on the client-side,
@@ -200,6 +234,11 @@ export default function Home() {
                   Sold Property Prices
                 </h1>
                 <p className="text-sm text-gray-600">UK Land Registry Data</p>
+                {lastUpdated && (
+                  <p className="text-xs text-gray-500 mb-4 italic">
+                    Data last updated: {lastUpdated}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -215,6 +254,9 @@ export default function Home() {
         </section>
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <Filters
+            propertyType={propertyType}
+            onPropertyTypeChange={setPropertyType}
+            isLoading={isLoading}
             minPrice={minPrice}
             maxPrice={maxPrice}
             setMinPrice={setMinPrice}
@@ -226,22 +268,22 @@ export default function Home() {
             setFilterType={setFilterType}
           />
           <div className="mb-4 pt-6 border-t">
-            <label htmlFor="searchTerm" className="block text-sm font-semibold text-gray-700 mb-2">
+            <label htmlFor="postcode" className="block text-sm font-semibold text-gray-700 mb-2">
               Search by postcode, address, street, or town
             </label>
             <div className="flex flex-col sm:flex-row gap-2">
               <input
-                id="searchTerm"
+                id="postcode"
                 type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
+                value={postcode}
+                onChange={e => setPostcode(e.target.value)}
                 placeholder="e.g., SW1A 1AA, Downing Street, Manchester"
                 className="flex-1 px-4 py-3 border-2 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 border-gray-300 text-gray-900 bg-white shadow-sm transition-all duration-200 placeholder-gray-400"
                 disabled={isLoading}
               />
               <button
-                onClick={handleScan}
-                disabled={!searchTerm || isLoading}
+                onClick={() => handleSearch(postcode)}
+                disabled={!postcode || isLoading}
                 className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200 sm:w-auto w-full"
               >
                 {isLoading ? 'Loading...' : 'Get Sold Prices'}
@@ -263,7 +305,7 @@ export default function Home() {
         <ChartsPanel soldPrices={filteredSoldPrices} />
         <AreaPriceTrendChart filteredTrendData={filteredTrendData} />
         <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {searchTerm}</h2>
+          <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {postcode}</h2>
           <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by price, type, or property type.</p>
           <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
             <button
@@ -336,7 +378,7 @@ export default function Home() {
           </div>
           <SoldPricesTable
             soldPrices={filteredSoldPrices}
-            postcode={searchTerm}
+            postcode={postcode}
             formatAddress={formatAddress}
             formatPrice={formatPrice}
             formatDuration={formatDuration}
@@ -351,6 +393,8 @@ export default function Home() {
           formatAddress={formatAddress}
           onClose={() => setHistoryModal({ open: false, property: null, history: [] })}
         />
+        <Analytics />
+        <SpeedInsights />
       </main>
     </div>
   );

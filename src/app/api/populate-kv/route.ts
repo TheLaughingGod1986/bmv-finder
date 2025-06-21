@@ -102,6 +102,10 @@ export async function POST(request: NextRequest) {
         }
         console.log(`🎉 Population complete! Processed ${processed} properties`);
         
+        const timestamp = new Date().toISOString();
+        await kv.set('data_last_updated', timestamp);
+        console.log(`✅ Set data_last_updated timestamp to: ${timestamp}`);
+
         // Test with SE39FW
         console.log('\n🧪 Testing SE39FW search...');
         const se39fwKeys: string[] = [];
@@ -137,7 +141,7 @@ export async function POST(request: NextRequest) {
         resolve(NextResponse.json({
           success: true,
           message: `Daily population complete! Processed ${processed} properties`,
-          timestamp: new Date().toISOString(),
+          timestamp: timestamp,
           se39fwTest: {
             postcodeKeys: se39fwKeys.length,
             properties: se39fwProperties.length,

@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo } from 'react';
 import { Pie, Bar } from 'react-chartjs-2';
 import {
@@ -13,9 +15,12 @@ import {
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 import { SoldPrice } from '../../../types/sold-price';
+import { SoldPricesTable } from './SoldPricesTable';
+import AreaPriceTrendChart from './AreaPriceTrendChart';
 
 interface ChartsPanelProps {
   soldPrices: SoldPrice[];
+  searchedPostcode: string;
 }
 
 const propertyTypeLabels: Record<string, string> = {
@@ -26,7 +31,7 @@ const propertyTypeLabels: Record<string, string> = {
   O: 'Other',
 };
 
-const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices }) => {
+const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices, searchedPostcode }) => {
   // Pie chart data: property type breakdown
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -69,18 +74,17 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices }) => {
     };
   }, [soldPrices]);
 
-  if (!soldPrices.length) return null;
+  if (soldPrices.length === 0) {
+    return null;
+  }
 
   return (
-    <div className="grid md:grid-cols-2 gap-8 mb-8">
-      <div className="bg-white rounded-xl shadow p-4">
-        <h3 className="font-semibold text-gray-800 mb-2">Property Type Breakdown</h3>
-        <Pie data={pieData} />
-      </div>
-      <div className="bg-white rounded-xl shadow p-4">
-        <h3 className="font-semibold text-gray-800 mb-2">Sales Per Year</h3>
-        <Bar data={barData} options={{ plugins: { legend: { display: false } } }} />
-      </div>
+    <div className="space-y-8">
+      <AreaPriceTrendChart soldPrices={soldPrices} />
+      <SoldPricesTable
+        soldPrices={soldPrices}
+        searchedPostcode={searchedPostcode}
+      />
     </div>
   );
 };
