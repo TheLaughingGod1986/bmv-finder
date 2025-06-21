@@ -37,11 +37,29 @@ export async function GET(request: Request) {
 
         if (action === 'clear') {
             console.log('[KV Populator] Clearing all existing property and postcode data...');
-            const propertyKeys = await kv.keys('property:*');
-            if (propertyKeys.length > 0) await kv.del(...propertyKeys);
-            const postcodeKeys = await kv.keys('postcode:*');
-            if (postcodeKeys.length > 0) await kv.del(...postcodeKeys);
-            return NextResponse.json({ message: 'All property data has been cleared.' });
+            
+            const clearKeysByPattern = async (pattern: string) => {
+                const keysToDelete: string[] = [];
+                for await (const key of kv.scanIterator({ match: pattern })) {
+                    keysToDelete.push(key);
+                }
+
+                if (keysToDelete.length > 0) {
+                    const batchSize = 500;
+                    for (let i = 0; i < keysToDelete.length; i += batchSize) {
+                        const batch = keysToDelete.slice(i, i + batchSize);
+                        await kv.del(...batch);
+                    }
+                    console.log(`[KV Populator] Deleted ${keysToDelete.length} keys for pattern "${pattern}".`);
+                } else {
+                    console.log(`[KV Populator] No keys found for pattern "${pattern}".`);
+                }
+            };
+
+            await clearKeysByPattern('property:*');
+            await clearKeysByPattern('postcode:*');
+            
+            return NextResponse.json({ message: 'All property and postcode data has been cleared successfully.' });
         }
         
         const allRecords: SoldPrice[] = await getRecords();
