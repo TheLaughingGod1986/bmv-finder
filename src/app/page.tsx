@@ -96,11 +96,13 @@ export default function Home() {
     setError(null);
     setSoldPrices([]);
     try {
-      const response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postcode: searchTerm, trend: true }),
-      });
+      // Construct the URL with query parameters
+      const params = new URLSearchParams();
+      params.append('postcode', searchTerm);
+      // Add other params like limit/offset if needed in the future
+      // params.append('limit', '1000'); 
+
+      const response = await fetch(`/api/property-kv?${params.toString()}`);
 
       let data: any = null;
       const contentType = response.headers.get('content-type');
@@ -114,12 +116,14 @@ export default function Home() {
         throw new Error('Server returned a non-JSON response.');
       }
 
-      if (!response.ok || !data.success) {
-        throw new Error(data?.error || 'Failed to fetch sold prices');
+      if (!response.ok) {
+        throw new Error(data?.message || 'Failed to fetch sold prices');
       }
 
-      setSoldPrices(data.data.soldPrices || []);
-      setTrendData(data.data.trendData || []);
+      setSoldPrices(data.data || []);
+      // The trend data calculation is now done on the client-side,
+      // so we don't need to set it from the API response.
+      // setTrendData(data.data.trendData || []); 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -165,6 +169,12 @@ export default function Home() {
   };
 
   const handleShowHistory = async (id: string) => {
+    // This function needs to be re-evaluated.
+    // The current KV data structure doesn't support fetching history for a single property ID easily.
+    // For now, we can disable it or show an alert.
+    alert('Property history view is temporarily unavailable.');
+    return;
+    /*
     try {
       const response = await fetch('/api/scan', {
         method: 'POST',
@@ -180,6 +190,7 @@ export default function Home() {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       console.error('Error fetching property history:', errorMessage);
     }
+    */
   };
 
   return (
