@@ -15,6 +15,7 @@ import Filters from './components/Filters';
 import SoldPricesTable from './components/SoldPricesTable';
 import dynamic from 'next/dynamic';
 import ChartsPanel from './components/ChartsPanel';
+import InstallPrompt from './components/InstallPrompt';
 import { SoldPrice } from '../../types/sold-price';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -407,6 +408,7 @@ export default function Home() {
         )}
         <Analytics />
         <SpeedInsights />
+        <InstallPrompt />
       </main>
     </div>
   );

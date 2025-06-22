@@ -10,6 +10,58 @@ A modern, mobile-friendly web application to search and view recent sold propert
 - **Automated Updates**: Monthly updates with incremental imports
 - **Modern UI**: Clean, responsive design with mobile-friendly cards
 - **Rich Data Display**: Property type, duration, new/existing status, and more
+- **Progressive Web App (PWA)**: Installable on mobile devices with offline support
+
+## Progressive Web App (PWA)
+
+This application is a Progressive Web App that can be installed on mobile devices and desktop computers.
+
+### PWA Features
+
+- **Installable**: Add to home screen on iOS and Android
+- **Offline Support**: Basic offline functionality with service worker
+- **App-like Experience**: Full-screen mode when installed
+- **Automatic Updates**: Updates automatically when new versions are available
+
+### How to Install
+
+#### On Mobile (iOS):
+1. Open the website in Safari
+2. Tap the Share button (square with arrow)
+3. Tap "Add to Home Screen"
+4. Tap "Add"
+
+#### On Mobile (Android):
+1. Open the website in Chrome
+2. Tap the menu (three dots)
+3. Tap "Add to Home screen"
+4. Tap "Add"
+
+#### On Desktop (Chrome/Edge):
+1. Look for the install icon in the address bar
+2. Click "Install" when prompted
+
+### PWA Configuration
+
+The PWA is configured with:
+- **Manifest**: `public/manifest.json` - Defines app appearance and behavior
+- **Service Worker**: `public/sw.js` - Handles caching and offline functionality
+- **Icons**: Multiple sizes for different devices and contexts
+- **Meta Tags**: Proper PWA meta tags in the HTML head
+
+### Generating Icons
+
+To regenerate the PWA icons:
+
+```bash
+npm run generate-icons
+```
+
+This will create:
+- `icon-192.png` - 192x192 icon for Android
+- `icon-512.png` - 512x512 icon for Android
+- `favicon-32x32.png` - 32x32 favicon
+- `favicon-16x16.png` - 16x16 favicon
 
 ## Getting Started
 

@@ -19,37 +19,37 @@ const Filters: React.FC<FiltersProps> = ({
     <div className="border-t pt-4 md:border-none md:pt-0">
       <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Type</label>
       <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterDuration.length === 0} onChange={() => setFilterDuration([])} className="mr-1" /> All
+        <label htmlFor="type-all" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="type-all" checked={filterDuration.length === 0} onChange={() => setFilterDuration([])} className="mr-1" /> All
         </label>
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterDuration.includes('F')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('F') ? fd.filter(x => x !== 'F') : [...fd, 'F'])} className="mr-1" /> Freehold
+        <label htmlFor="type-freehold" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="type-freehold" checked={filterDuration.includes('F')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('F') ? fd.filter(x => x !== 'F') : [...fd, 'F'])} className="mr-1" /> Freehold
         </label>
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterDuration.includes('L')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('L') ? fd.filter(x => x !== 'L') : [...fd, 'L'])} className="mr-1" /> Leasehold
+        <label htmlFor="type-leasehold" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="type-leasehold" checked={filterDuration.includes('L')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('L') ? fd.filter(x => x !== 'L') : [...fd, 'L'])} className="mr-1" /> Leasehold
         </label>
       </div>
     </div>
     <div className="border-t pt-4 md:border-none md:pt-0">
       <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Property Type</label>
       <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterType.length === 0} onChange={() => setFilterType([])} className="mr-1" /> All
+        <label htmlFor="prop-all" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="prop-all" checked={filterType.length === 0} onChange={() => setFilterType([])} className="mr-1" /> All
         </label>
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterType.includes('D')} onChange={() => setFilterType((ft: string[]) => ft.includes('D') ? ft.filter(x => x !== 'D') : [...ft, 'D'])} className="mr-1" /> Detached
+        <label htmlFor="prop-detached" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="prop-detached" checked={filterType.includes('D')} onChange={() => setFilterType((ft: string[]) => ft.includes('D') ? ft.filter(x => x !== 'D') : [...ft, 'D'])} className="mr-1" /> Detached
         </label>
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterType.includes('S')} onChange={() => setFilterType((ft: string[]) => ft.includes('S') ? ft.filter(x => x !== 'S') : [...ft, 'S'])} className="mr-1" /> Semi-detached
+        <label htmlFor="prop-semi" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="prop-semi" checked={filterType.includes('S')} onChange={() => setFilterType((ft: string[]) => ft.includes('S') ? ft.filter(x => x !== 'S') : [...ft, 'S'])} className="mr-1" /> Semi-detached
         </label>
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterType.includes('T')} onChange={() => setFilterType((ft: string[]) => ft.includes('T') ? ft.filter(x => x !== 'T') : [...ft, 'T'])} className="mr-1" /> Terraced
+        <label htmlFor="prop-terraced" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="prop-terraced" checked={filterType.includes('T')} onChange={() => setFilterType((ft: string[]) => ft.includes('T') ? ft.filter(x => x !== 'T') : [...ft, 'T'])} className="mr-1" /> Terraced
         </label>
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterType.includes('F')} onChange={() => setFilterType((ft: string[]) => ft.includes('F') ? ft.filter(x => x !== 'F') : [...ft, 'F'])} className="mr-1" /> Flat/Maisonette
+        <label htmlFor="prop-flat" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="prop-flat" checked={filterType.includes('F')} onChange={() => setFilterType((ft: string[]) => ft.includes('F') ? ft.filter(x => x !== 'F') : [...ft, 'F'])} className="mr-1" /> Flat/Maisonette
         </label>
-        <label className="inline-flex items-center group-disabled:opacity-50">
-          <input type="checkbox" checked={filterType.includes('O')} onChange={() => setFilterType((ft: string[]) => ft.includes('O') ? ft.filter(x => x !== 'O') : [...ft, 'O'])} className="mr-1" /> Other
+        <label htmlFor="prop-other" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="prop-other" checked={filterType.includes('O')} onChange={() => setFilterType((ft: string[]) => ft.includes('O') ? ft.filter(x => x !== 'O') : [...ft, 'O'])} className="mr-1" /> Other
         </label>
       </div>
     </div>
