@@ -21,6 +21,8 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
+type PropertyType = 'D' | 'S' | 'T' | 'F' | 'O';
+
 interface TrendDataEntry {
   year: string;
   avgPrice: number;
