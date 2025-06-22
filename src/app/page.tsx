@@ -302,97 +302,108 @@ export default function Home() {
             </div>
           )}
         </div>
-        <ChartsPanel soldPrices={filteredSoldPrices} />
-        <AreaPriceTrendChart filteredTrendData={filteredTrendData} />
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {postcode}</h2>
-          <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by price, type, or property type.</p>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
-            <button
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow"
-              onClick={() => {
-                const csvRows = [
-                  [
-                    'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'District', 'County'
-                  ],
-                  ...filteredSoldPrices.map(sp => [
-                    `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
-                    sp.postcode,
-                    sp.date_of_transfer,
-                    sp.price,
-                    sp.duration,
-                    sp.property_type,
-                    sp.town_city,
-                    sp.district,
-                    sp.county
-                  ])
-                ];
-                const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'sold_prices.csv';
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-            >
-              Export CSV
-            </button>
-            <button
-              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold shadow"
-              onClick={e => {
-                // Instead, open a new Google Sheet and import the CSV
-                const csvRows = [
-                  [
-                    'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'District', 'County'
-                  ],
-                  ...filteredSoldPrices.map(sp => [
-                    `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
-                    sp.postcode,
-                    sp.date_of_transfer,
-                    sp.price,
-                    sp.duration,
-                    sp.property_type,
-                    sp.town_city,
-                    sp.district,
-                    sp.county
-                  ])
-                ];
-                const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
-                const blob = new Blob([csvContent], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                window.open(`https://docs.google.com/spreadsheets/u/0/`, '_blank');
-                setTimeout(() => {
-                  const a = document.createElement('a');
-                  a.href = url;
-                  a.download = 'sold_prices.csv';
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }, 1000);
-                e.preventDefault();
-              }}
-            >
-              Export to Google Sheets
-            </button>
+        {/* Main content area: charts and table */}
+        {filteredSoldPrices.length > 0 && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mt-8">
+            {/* Left side: charts */}
+            <div className="lg:col-span-1 space-y-8">
+              <ChartsPanel soldPrices={filteredSoldPrices} />
+            </div>
+            {/* Right side: table */}
+            <div className="lg:col-span-2">
+              <AreaPriceTrendChart filteredTrendData={filteredTrendData} />
+              <div className="bg-white rounded-xl shadow-lg p-6">
+                <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {postcode}</h2>
+                <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by price, type, or property type.</p>
+                <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
+                  <button
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow"
+                    onClick={() => {
+                      const csvRows = [
+                        [
+                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'District', 'County'
+                        ],
+                        ...filteredSoldPrices.map(sp => [
+                          `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
+                          sp.postcode,
+                          sp.date_of_transfer,
+                          sp.price,
+                          sp.duration,
+                          sp.property_type,
+                          sp.town_city,
+                          sp.district,
+                          sp.county
+                        ])
+                      ];
+                      const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
+                      const blob = new Blob([csvContent], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'sold_prices.csv';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                  >
+                    Export CSV
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold shadow"
+                    onClick={e => {
+                      // Instead, open a new Google Sheet and import the CSV
+                      const csvRows = [
+                        [
+                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'District', 'County'
+                        ],
+                        ...filteredSoldPrices.map(sp => [
+                          `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
+                          sp.postcode,
+                          sp.date_of_transfer,
+                          sp.price,
+                          sp.duration,
+                          sp.property_type,
+                          sp.town_city,
+                          sp.district,
+                          sp.county
+                        ])
+                      ];
+                      const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
+                      const blob = new Blob([csvContent], { type: 'text/csv' });
+                      const url = URL.createObjectURL(blob);
+                      window.open(`https://docs.google.com/spreadsheets/u/0/`, '_blank');
+                      setTimeout(() => {
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'sold_prices.csv';
+                        a.click();
+                        URL.revokeObjectURL(url);
+                      }, 1000);
+                      e.preventDefault();
+                    }}
+                  >
+                    Export to Google Sheets
+                  </button>
+                </div>
+                <SoldPricesTable
+                  soldPrices={filteredSoldPrices}
+                  postcode={postcode}
+                  formatAddress={formatAddress}
+                  formatPrice={formatPrice}
+                  formatDuration={formatDuration}
+                  formatPropertyType={formatPropertyType}
+                  handleShowHistory={handleShowHistory}
+                />
+              </div>
+              <PropertyHistoryModal
+                open={historyModal.open}
+                property={historyModal.property}
+                history={historyModal.history}
+                formatAddress={formatAddress}
+                onClose={() => setHistoryModal({ open: false, property: null, history: [] })}
+              />
+            </div>
           </div>
-          <SoldPricesTable
-            soldPrices={filteredSoldPrices}
-            postcode={postcode}
-            formatAddress={formatAddress}
-            formatPrice={formatPrice}
-            formatDuration={formatDuration}
-            formatPropertyType={formatPropertyType}
-            handleShowHistory={handleShowHistory}
-          />
-        </div>
-        <PropertyHistoryModal
-          open={historyModal.open}
-          property={historyModal.property}
-          history={historyModal.history}
-          formatAddress={formatAddress}
-          onClose={() => setHistoryModal({ open: false, property: null, history: [] })}
-        />
+        )}
         <Analytics />
         <SpeedInsights />
       </main>

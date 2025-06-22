@@ -15,12 +15,10 @@ import {
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 import { SoldPrice } from '../../../types/sold-price';
-import SoldPricesTable from './SoldPricesTable';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
 
 interface ChartsPanelProps {
   soldPrices: SoldPrice[];
-  searchedPostcode: string;
 }
 
 const propertyTypeLabels: Record<string, string> = {
@@ -31,7 +29,7 @@ const propertyTypeLabels: Record<string, string> = {
   O: 'Other',
 };
 
-const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices, searchedPostcode }) => {
+const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices }) => {
   // Pie chart data: property type breakdown
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -81,10 +79,6 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices, searchedPostcode 
   return (
     <div className="space-y-8">
       <AreaPriceTrendChart soldPrices={soldPrices} />
-      <SoldPricesTable
-        soldPrices={soldPrices}
-        searchedPostcode={searchedPostcode}
-      />
     </div>
   );
 };
