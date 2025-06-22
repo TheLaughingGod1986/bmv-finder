@@ -1,13 +1,24 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import type { SoldPrice } from '../../../../types/sold-price';
+import { mockSoldPrices } from '../mock-data';
 
 export const dynamic = 'force-dynamic'; // Ensure the route is always dynamic
 
 // No manual client creation needed. 
 // The library automatically picks up the environment variables from Vercel.
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
+    // Use mock data in development to avoid hitting Vercel KV rate limits
+    if (process.env.NODE_ENV === 'development') {
+        console.log('[DEV MODE] Returning mock property data.');
+        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
+        return NextResponse.json({
+            data: mockSoldPrices,
+            message: 'Mock data for development',
+        });
+    }
+
     try {
         const { searchParams } = new URL(request.url);
         const postcode = searchParams.get('postcode');

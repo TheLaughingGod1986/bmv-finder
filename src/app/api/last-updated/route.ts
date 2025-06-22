@@ -4,6 +4,11 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[DEV MODE] Returning mock last updated timestamp.');
+    return NextResponse.json({ lastUpdated: new Date().toISOString() });
+  }
+
   try {
     const lastUpdated = await kv.get('data_last_updated');
     return NextResponse.json({ lastUpdated });

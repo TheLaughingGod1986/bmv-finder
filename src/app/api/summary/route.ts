@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
+import { mockTrendData } from '../mock-data';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+    if (process.env.NODE_ENV === 'development') {
+        console.log('[DEV MODE] Returning mock summary data.');
+        await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
+        return NextResponse.json(mockTrendData);
+    }
+
     try {
         const summaryData = await kv.get('summary:uk-wide');
 
