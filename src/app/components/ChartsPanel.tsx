@@ -15,7 +15,6 @@ import {
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 import { SoldPrice } from '../../../types/sold-price';
-import AreaPriceTrendChart from './AreaPriceTrendChart';
 
 interface ChartsPanelProps {
   soldPrices: SoldPrice[];
@@ -78,7 +77,6 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices }) => {
 
   return (
     <div className="space-y-8">
-      <AreaPriceTrendChart soldPrices={soldPrices} />
       <div className="bg-white rounded-xl shadow p-4">
         <h3 className="font-semibold text-gray-800 mb-2">Property Type Breakdown</h3>
         <Pie data={pieData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
