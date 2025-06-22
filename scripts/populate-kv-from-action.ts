@@ -17,6 +17,13 @@ async function processBatch(batch: any[]) {
   await pipeline.exec();
 }
 
+interface NationalTrendDataEntry {
+  year: string;
+  avgPrice: number;
+  count: number;
+  pctChange: number | null;
+}
+
 async function populate() {
   try {
     // Verify environment variables
@@ -88,12 +95,12 @@ async function populate() {
 
     // Calculate and store the national summary
     console.log('\n📊 Generating and storing national price trend summary...');
-    const summaryData = Object.entries(yearlyData)
+    const summaryData: NationalTrendDataEntry[] = Object.entries(yearlyData)
       .map(([year, data]) => ({
         year,
         avgPrice: Math.round(data.total / data.count),
         count: data.count,
-        pctChange: null, // Placeholder, will be calculated next
+        pctChange: null,
       }))
       .sort((a, b) => a.year.localeCompare(b.year));
     
