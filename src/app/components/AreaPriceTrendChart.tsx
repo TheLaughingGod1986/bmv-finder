@@ -8,14 +8,15 @@ interface TrendDataEntry {
 }
 
 interface AreaPriceTrendChartProps {
+  title: string;
   filteredTrendData: TrendDataEntry[];
 }
 
-const AreaPriceTrendChart: React.FC<AreaPriceTrendChartProps> = React.memo(({ filteredTrendData }) => {
+const AreaPriceTrendChart: React.FC<AreaPriceTrendChartProps> = React.memo(({ title, filteredTrendData }) => {
   if (filteredTrendData.length <= 1) return null;
   return (
     <div className="mb-8 bg-white rounded-xl shadow p-4">
-      <h3 className="font-semibold text-gray-800 mb-2">Area Price Trend</h3>
+      <h3 className="font-semibold text-gray-800 mb-2">{title}</h3>
       <p className="text-gray-600 text-sm mb-4">This interactive chart shows the average sold price and year-on-year percentage change for properties matching your filters. Use it to spot trends and compare price growth over time.</p>
       <Line
         data={{

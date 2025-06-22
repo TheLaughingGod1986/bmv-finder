@@ -10,8 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sold Property Prices",
-  description: "View UK Land Registry sold property prices, trends, and analytics in a modern, mobile-friendly interface.",
+  title: "UK Sold Property Prices | Search House Prices & Market Trends",
+  description: "Instantly search and analyze UK sold house prices using the latest Land Registry data. View historical property data, market trends, and regional price analysis for free. Your go-to tool for property research.",
+  keywords: "sold property prices, uk house prices, land registry data, property price check, house price trends, property market analysis, property valuation, real estate data",
 };
 
 export default function RootLayout({

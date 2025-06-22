@@ -47,9 +47,19 @@ async function populate() {
     let batch: any[] = [];
     let processedCount = 0;
     const startTime = Date.now();
+    const yearlyData: Record<string, { total: number; count: number }> = {};
 
     for await (const record of parser) {
       batch.push(record);
+      
+      const year = record.date_of_transfer?.slice(0, 4);
+      if (year && record.price) {
+        const price = Number(record.price);
+        if (!yearlyData[year]) yearlyData[year] = { total: 0, count: 0 };
+        yearlyData[year].total += price;
+        yearlyData[year].count++;
+      }
+
       if (batch.length >= BATCH_SIZE) {
         await processBatch(batch);
         processedCount += batch.length;
@@ -75,6 +85,30 @@ async function populate() {
     const timestamp = new Date().toISOString();
     await kv.set('data_last_updated', timestamp);
     console.log(`\n✅ Set data_last_updated timestamp to: ${timestamp}`);
+
+    // Calculate and store the national summary
+    console.log('\n📊 Generating and storing national price trend summary...');
+    const summaryData = Object.entries(yearlyData)
+      .map(([year, data]) => ({
+        year,
+        avgPrice: Math.round(data.total / data.count),
+        count: data.count,
+        pctChange: null, // Placeholder, will be calculated next
+      }))
+      .sort((a, b) => a.year.localeCompare(b.year));
+    
+    for (let i = 1; i < summaryData.length; i++) {
+      const prevYearData = summaryData[i-1];
+      const currYearData = summaryData[i];
+      if (prevYearData && currYearData.avgPrice && prevYearData.avgPrice) {
+        currYearData.pctChange = parseFloat(
+          (((currYearData.avgPrice - prevYearData.avgPrice) / prevYearData.avgPrice) * 100).toFixed(1)
+        );
+      }
+    }
+    
+    await kv.set('summary:uk-wide', JSON.stringify(summaryData));
+    console.log('✅ National summary stored successfully.');
 
   } catch (error) {
     console.error('\n❌ Error during population:', error);

@@ -43,8 +43,22 @@ export default function Home() {
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string[]>([]);
-  const [minPrice, setMinPrice] = useState<number | ''>('');
-  const [maxPrice, setMaxPrice] = useState<number | ''>('');
+  const [nationalTrendData, setNationalTrendData] = useState<TrendDataEntry[]>([]);
+
+  useEffect(() => {
+    const fetchNationalSummary = async () => {
+      try {
+        const response = await fetch('/api/summary');
+        const data = await response.json();
+        if (response.ok) {
+          setNationalTrendData(data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch national summary', err);
+      }
+    };
+    fetchNationalSummary();
+  }, []);
 
   useEffect(() => {
     const fetchLastUpdated = async () => {
@@ -71,23 +85,9 @@ export default function Home() {
     fetchLastUpdated();
   }, []);
 
-  // Compute min and max price from loaded data
-  const priceBounds = useMemo(() => {
-    if (!soldPrices.length) return { min: 0, max: 1000000 };
-    let min = Math.min(...soldPrices.map(sp => sp.price));
-    let max = Math.max(...soldPrices.map(sp => sp.price));
-    return { min, max };
-  }, [soldPrices]);
-
   // Compute filtered and sorted soldPrices
   const filteredSoldPrices = useMemo(() => {
     let filtered = [...soldPrices];
-    if (minPrice !== '' && !isNaN(Number(minPrice))) {
-      filtered = filtered.filter(sp => sp.price >= Number(minPrice));
-    }
-    if (maxPrice !== '' && !isNaN(Number(maxPrice))) {
-      filtered = filtered.filter(sp => sp.price <= Number(maxPrice));
-    }
     if (filterDuration.length > 0) {
       filtered = filtered.filter(sp => filterDuration.includes(sp.duration));
     }
@@ -96,7 +96,7 @@ export default function Home() {
     }
     // Sort newest to oldest
     return filtered.slice().sort((a, b) => b.date_of_transfer.localeCompare(a.date_of_transfer));
-  }, [soldPrices, minPrice, maxPrice, filterDuration, filterType]);
+  }, [soldPrices, filterDuration, filterType]);
 
   // Compute trend data for the filteredSoldPrices
   const filteredTrendData = useMemo(() => {
@@ -120,6 +120,10 @@ export default function Home() {
       return { year, avgPrice, pctChange };
     });
   }, [filteredSoldPrices]);
+
+  const trendDataForChart = useMemo(() => {
+    return searchedPostcode ? filteredTrendData : nationalTrendData;
+  }, [searchedPostcode, filteredTrendData, nationalTrendData]);
 
   console.log('filteredTrendData', filteredTrendData);
 
@@ -196,29 +200,24 @@ export default function Home() {
     return price ? `£${price.toLocaleString()}` : 'N/A';
   }, []);
 
-  const handleShowHistory = async (id: string) => {
-    // This function needs to be re-evaluated.
-    // The current KV data structure doesn't support fetching history for a single property ID easily.
-    // For now, we can disable it or show an alert.
-    alert('Property history view is temporarily unavailable.');
-    return;
-    /*
-    try {
-      const response = await fetch('/api/scan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ propertyId: id }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.error || 'Failed to fetch property history');
-      }
-      setHistoryModal({ open: true, property: data.data.property, history: data.data.history });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      console.error('Error fetching property history:', errorMessage);
-    }
-    */
+  const handleShowHistory = (id: string) => {
+    const selectedProperty = soldPrices.find(p => p.id === id);
+    if (!selectedProperty) return;
+
+    const propertyHistory = soldPrices
+      .filter(p =>
+        p.postcode === selectedProperty.postcode &&
+        p.street?.trim().toLowerCase() === selectedProperty.street?.trim().toLowerCase() &&
+        p.paon?.trim().toLowerCase() === selectedProperty.paon?.trim().toLowerCase() &&
+        p.saon?.trim().toLowerCase() === selectedProperty.saon?.trim().toLowerCase()
+      )
+      .sort((a, b) => new Date(a.date_of_transfer).getTime() - new Date(b.date_of_transfer).getTime());
+      
+    setHistoryModal({
+      open: true,
+      property: selectedProperty,
+      history: propertyHistory,
+    });
   };
 
   return (
@@ -237,30 +236,30 @@ export default function Home() {
                   Sold Property Prices
                 </h1>
                 <p className="text-sm text-gray-600">UK Land Registry Data</p>
-                {lastUpdated && (
-                  <p className="text-xs text-gray-500 mb-4 italic">
-                    Data last updated: {lastUpdated}
-                  </p>
-                )}
               </div>
             </div>
+            {lastUpdated && (
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-700">Database Last Updated</p>
+                <p className="text-xs text-gray-500">{lastUpdated}</p>
+              </div>
+            )}
           </div>
         </div>
       </header>
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* SEO-friendly introduction */}
-        <section className="mb-8">
-          <h2 className="text-xl font-bold mb-2 text-gray-800">Discover UK Sold Property Prices</h2>
-          <p className="text-gray-600 text-sm">Enter a postcode to view recently sold property prices. Use the filters to narrow down your search by price, tenure, or property type. This data is sourced from the HM Land Registry.</p>
+        <section className="mb-8 text-center">
+          <h2 className="text-3xl font-extrabold mb-2 text-gray-800 tracking-tight">
+            The Ultimate Tool for UK Property Price Research
+          </h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
+            Instantly search and analyze millions of sold house prices from the official HM Land Registry. Whether you're buying, selling, or just curious, our tool provides detailed property data, market trends, and regional analysis to help you make informed decisions.
+          </p>
         </section>
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <Filters
             isLoading={isLoading}
-            minPrice={minPrice}
-            maxPrice={maxPrice}
-            setMinPrice={setMinPrice}
-            setMaxPrice={setMaxPrice}
-            priceBounds={priceBounds}
             filterDuration={filterDuration}
             setFilterDuration={setFilterDuration}
             filterType={filterType}
@@ -310,10 +309,13 @@ export default function Home() {
             </div>
             {/* Right side: table and trend chart */}
             <div className="lg:col-span-2 space-y-8">
-              <AreaPriceTrendChart filteredTrendData={filteredTrendData} />
+              <AreaPriceTrendChart
+                title={searchedPostcode ? `Price Trend for ${searchedPostcode}` : 'National Price Trend'}
+                filteredTrendData={trendDataForChart}
+              />
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {postcode}</h2>
-                <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by price, type, or property type.</p>
+                <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by tenure, or property type.</p>
                 <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
                   <button
                     className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow"

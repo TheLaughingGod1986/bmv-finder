@@ -2,11 +2,6 @@ import React from 'react';
 
 interface FiltersProps {
   isLoading: boolean;
-  minPrice: number | '';
-  maxPrice: number | '';
-  setMinPrice: (v: number | '') => void;
-  setMaxPrice: (v: number | '') => void;
-  priceBounds: { min: number; max: number };
   filterDuration: string[];
   setFilterDuration: React.Dispatch<React.SetStateAction<string[]>>;
   filterType: string[];
@@ -15,62 +10,12 @@ interface FiltersProps {
 
 const Filters: React.FC<FiltersProps> = ({
   isLoading,
-  minPrice,
-  maxPrice,
-  setMinPrice,
-  setMaxPrice,
-  priceBounds,
   filterDuration,
   setFilterDuration,
   filterType,
   setFilterType,
 }) => (
-  <fieldset disabled={isLoading} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4 group">
-    {/* Price Filter */}
-    <div className="hidden sm:flex flex-col">
-      <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Price Range (£)</label>
-      <div className="flex items-center gap-2">
-        <input
-          type="number"
-          className="border rounded px-2 py-1 text-sm w-full disabled:bg-gray-100"
-          placeholder={`Min (${priceBounds.min.toLocaleString()})`}
-          value={minPrice}
-          min={priceBounds.min}
-          max={priceBounds.max}
-          onChange={e => setMinPrice(e.target.value === '' ? '' : Math.max(priceBounds.min, Number(e.target.value)))}
-        />
-        <span className="text-gray-500 group-disabled:opacity-50">-</span>
-        <input
-          type="number"
-          className="border rounded px-2 py-1 text-sm w-full disabled:bg-gray-100"
-          placeholder={`Max (${priceBounds.max.toLocaleString()})`}
-          value={maxPrice}
-          min={priceBounds.min}
-          max={priceBounds.max}
-          onChange={e => setMaxPrice(e.target.value === '' ? '' : Math.min(priceBounds.max, Number(e.target.value)))}
-        />
-      </div>
-      <div className="flex items-center gap-2 mt-2">
-        <input
-          type="range"
-          min={priceBounds.min}
-          max={priceBounds.max}
-          step={1000}
-          value={minPrice === '' ? priceBounds.min : minPrice}
-          onChange={e => setMinPrice(Number(e.target.value))}
-          className="w-full disabled:opacity-50"
-        />
-        <input
-          type="range"
-          min={priceBounds.min}
-          max={priceBounds.max}
-          step={1000}
-          value={maxPrice === '' ? priceBounds.max : maxPrice}
-          onChange={e => setMaxPrice(Number(e.target.value))}
-          className="w-full disabled:opacity-50"
-        />
-      </div>
-    </div>
+  <fieldset disabled={isLoading} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4 group">
     <div className="border-t pt-4 md:border-none md:pt-0">
       <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Type</label>
       <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
