@@ -282,7 +282,7 @@ export default function Home() {
               <button
                 onClick={() => handleSearch(postcode)}
                 disabled={!postcode || isLoading}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200 sm:w-auto w-full"
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200 sm:w-auto w-full disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
               >
                 {isLoading ? 'Loading...' : 'Get Sold Prices'}
               </button>
@@ -318,7 +318,7 @@ export default function Home() {
                 <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by tenure, or property type.</p>
                 <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
                   <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow"
+                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     onClick={() => {
                       const csvRows = [
                         [
@@ -349,7 +349,7 @@ export default function Home() {
                     Export CSV
                   </button>
                   <button
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold shadow"
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold shadow disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
                     onClick={e => {
                       // Instead, open a new Google Sheet and import the CSV
                       const csvRows = [
