@@ -1,17 +1,55 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
+import { SoldPrice } from '../../../types/sold-price';
 
 interface TrendDataEntry {
   year: string;
   avgPrice: number;
+  count: number;
   pctChange: number | null;
 }
 
 interface AreaPriceTrendChartProps {
-  filteredTrendData: TrendDataEntry[];
+  soldPrices: SoldPrice[];
 }
 
-const AreaPriceTrendChart: React.FC<AreaPriceTrendChartProps> = React.memo(({ filteredTrendData }) => {
+const AreaPriceTrendChart: React.FC<AreaPriceTrendChartProps> = React.memo(({ soldPrices }) => {
+  const trendData = useMemo(() => {
+    if (soldPrices.length === 0) return [];
+    
+    const yearlyData: Record<string, { total: number; count: number }> = {};
+    for (const sp of soldPrices) {
+      const year = sp.date_of_transfer.slice(0, 4);
+      if (!yearlyData[year]) yearlyData[year] = { total: 0, count: 0 };
+      yearlyData[year].total += sp.price;
+      yearlyData[year].count++;
+    }
+
+    const sortedYears = Object.keys(yearlyData).sort();
+    
+    const data: TrendDataEntry[] = sortedYears.map(year => ({
+      year,
+      avgPrice: yearlyData[year].total / yearlyData[year].count,
+      count: yearlyData[year].count,
+      pctChange: null,
+    }));
+
+    for (let i = 1; i < data.length; i++) {
+      const prevYearData = data[i-1];
+      const currYearData = data[i];
+      if (prevYearData && currYearData.avgPrice && prevYearData.avgPrice) {
+        currYearData.pctChange = parseFloat(
+          (((currYearData.avgPrice - prevYearData.avgPrice) / prevYearData.avgPrice) * 100).toFixed(1)
+        );
+      }
+    }
+    
+    return data;
+
+  }, [soldPrices]);
+  
+  const filteredTrendData = trendData.filter(d => d.count > 1); // Only show years with more than 1 sale
+
   if (filteredTrendData.length <= 1) return null;
   return (
     <div className="mb-8 bg-white rounded-xl shadow p-4">
