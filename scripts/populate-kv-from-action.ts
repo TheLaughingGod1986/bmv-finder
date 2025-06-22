@@ -5,22 +5,6 @@ import path from 'path';
 
 const BATCH_SIZE = 500; // Increased batch size for faster CLI performance
 
-async function clearKeys(pattern: string) {
-  console.log(`\n🧹 Clearing existing keys for pattern: ${pattern}...`);
-  let cursor = '0';
-  let deletedCount = 0;
-  do {
-    const [nextCursor, keys] = await kv.scan(cursor, { match: pattern, count: 1000 });
-    cursor = nextCursor;
-    if (keys.length > 0) {
-      await kv.del(...keys);
-      deletedCount += keys.length;
-      process.stdout.write(`\r   Deleted ${deletedCount} keys...`);
-    }
-  } while (cursor !== '0');
-  console.log(`\n✅ Finished clearing pattern: ${pattern}. Total deleted: ${deletedCount}.`);
-}
-
 async function processBatch(batch: any[]) {
   const pipeline = kv.pipeline();
   batch.forEach(property => {
@@ -50,8 +34,9 @@ async function populate() {
     console.log(`Found CSV file at: ${CSV_PATH}`);
 
     // Clear existing data first
-    await clearKeys('property:*');
-    await clearKeys('postcode:*');
+    console.log('\n🧹 Clearing all existing data from the database...');
+    await kv.flushall();
+    console.log('✅ Database cleared.');
     
     console.log('\n⏳ Populating new data...');
     const parser = fs.createReadStream(CSV_PATH).pipe(parse({
