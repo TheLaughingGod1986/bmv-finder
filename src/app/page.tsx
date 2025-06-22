@@ -98,29 +98,6 @@ export default function Home() {
     return filtered.slice().sort((a, b) => b.date_of_transfer.localeCompare(a.date_of_transfer));
   }, [soldPrices, minPrice, maxPrice, filterDuration, filterType]);
 
-  // Compute trend data for the filteredSoldPrices
-  const filteredTrendData = useMemo(() => {
-    const yearMap: { [year: string]: { sum: number, count: number } } = {};
-    for (const row of filteredSoldPrices) {
-      const year = row.date_of_transfer?.slice(0, 4);
-      if (!year) continue;
-      if (!yearMap[year]) yearMap[year] = { sum: 0, count: 0 };
-      yearMap[year].sum += row.price;
-      yearMap[year].count += 1;
-    }
-    const sortedYears = Object.keys(yearMap).sort();
-    let prevAvg: number | null = null;
-    return sortedYears.map((year) => {
-      const avgPrice = Math.round(yearMap[year].sum / yearMap[year].count);
-      let pctChange: number | null = null;
-      if (prevAvg !== null) {
-        pctChange = Number(((avgPrice / prevAvg - 1) * 100).toFixed(1));
-      }
-      prevAvg = avgPrice;
-      return { year, avgPrice, pctChange };
-    });
-  }, [filteredSoldPrices]);
-
   const handleSearch = async (searchPostcode: string) => {
     if (!searchPostcode.trim()) {
       setError('Please enter a postcode.');
@@ -308,7 +285,6 @@ export default function Home() {
             </div>
             {/* Right side: table */}
             <div className="lg:col-span-2">
-              <AreaPriceTrendChart filteredTrendData={filteredTrendData} />
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {postcode}</h2>
                 <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by price, type, or property type.</p>
