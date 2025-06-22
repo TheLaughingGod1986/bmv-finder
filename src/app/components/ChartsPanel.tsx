@@ -79,6 +79,14 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices }) => {
   return (
     <div className="space-y-8">
       <AreaPriceTrendChart soldPrices={soldPrices} />
+      <div className="bg-white rounded-xl shadow p-4">
+        <h3 className="font-semibold text-gray-800 mb-2">Property Type Breakdown</h3>
+        <Pie data={pieData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
+      </div>
+      <div className="bg-white rounded-xl shadow p-4">
+        <h3 className="font-semibold text-gray-800 mb-2">Sales per Year</h3>
+        <Bar data={barData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+      </div>
     </div>
   );
 };
