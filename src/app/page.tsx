@@ -121,6 +121,8 @@ export default function Home() {
     });
   }, [filteredSoldPrices]);
 
+  console.log('filteredTrendData', filteredTrendData);
+
   const handleSearch = async (searchPostcode: string) => {
     if (!searchPostcode.trim()) {
       setError('Please enter a postcode.');
@@ -306,8 +308,8 @@ export default function Home() {
             <div className="lg:col-span-1 space-y-8">
               <ChartsPanel soldPrices={filteredSoldPrices} />
             </div>
-            {/* Right side: table */}
-            <div className="lg:col-span-2">
+            {/* Right side: table and trend chart */}
+            <div className="lg:col-span-2 space-y-8">
               <AreaPriceTrendChart filteredTrendData={filteredTrendData} />
               <div className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {postcode}</h2>
