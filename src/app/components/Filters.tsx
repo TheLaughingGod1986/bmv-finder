@@ -1,6 +1,7 @@
 import React from 'react';
 
 interface FiltersProps {
+  isLoading: boolean;
   minPrice: number | '';
   maxPrice: number | '';
   setMinPrice: (v: number | '') => void;
@@ -13,6 +14,7 @@ interface FiltersProps {
 }
 
 const Filters: React.FC<FiltersProps> = ({
+  isLoading,
   minPrice,
   maxPrice,
   setMinPrice,
@@ -23,24 +25,24 @@ const Filters: React.FC<FiltersProps> = ({
   filterType,
   setFilterType,
 }) => (
-  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
+  <fieldset disabled={isLoading} className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4 group">
     {/* Price Filter */}
     <div className="hidden sm:flex flex-col">
-      <label className="block text-xs font-semibold text-gray-600 mb-1">Price Range (£)</label>
+      <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Price Range (£)</label>
       <div className="flex items-center gap-2">
         <input
           type="number"
-          className="border rounded px-2 py-1 text-sm w-full"
+          className="border rounded px-2 py-1 text-sm w-full disabled:bg-gray-100"
           placeholder={`Min (${priceBounds.min.toLocaleString()})`}
           value={minPrice}
           min={priceBounds.min}
           max={priceBounds.max}
           onChange={e => setMinPrice(e.target.value === '' ? '' : Math.max(priceBounds.min, Number(e.target.value)))}
         />
-        <span className="text-gray-500">-</span>
+        <span className="text-gray-500 group-disabled:opacity-50">-</span>
         <input
           type="number"
-          className="border rounded px-2 py-1 text-sm w-full"
+          className="border rounded px-2 py-1 text-sm w-full disabled:bg-gray-100"
           placeholder={`Max (${priceBounds.max.toLocaleString()})`}
           value={maxPrice}
           min={priceBounds.min}
@@ -56,7 +58,7 @@ const Filters: React.FC<FiltersProps> = ({
           step={1000}
           value={minPrice === '' ? priceBounds.min : minPrice}
           onChange={e => setMinPrice(Number(e.target.value))}
-          className="w-full"
+          className="w-full disabled:opacity-50"
         />
         <input
           type="range"
@@ -65,48 +67,48 @@ const Filters: React.FC<FiltersProps> = ({
           step={1000}
           value={maxPrice === '' ? priceBounds.max : maxPrice}
           onChange={e => setMaxPrice(Number(e.target.value))}
-          className="w-full"
+          className="w-full disabled:opacity-50"
         />
       </div>
     </div>
     <div className="border-t pt-4 md:border-none md:pt-0">
-      <label className="block text-xs font-semibold text-gray-600 mb-1">Type</label>
+      <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Type</label>
       <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterDuration.length === 0} onChange={() => setFilterDuration([])} className="mr-1" /> All
         </label>
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterDuration.includes('F')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('F') ? fd.filter(x => x !== 'F') : [...fd, 'F'])} className="mr-1" /> Freehold
         </label>
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterDuration.includes('L')} onChange={() => setFilterDuration((fd: string[]) => fd.includes('L') ? fd.filter(x => x !== 'L') : [...fd, 'L'])} className="mr-1" /> Leasehold
         </label>
       </div>
     </div>
     <div className="border-t pt-4 md:border-none md:pt-0">
-      <label className="block text-xs font-semibold text-gray-600 mb-1">Property Type</label>
+      <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Property Type</label>
       <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterType.length === 0} onChange={() => setFilterType([])} className="mr-1" /> All
         </label>
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterType.includes('D')} onChange={() => setFilterType((ft: string[]) => ft.includes('D') ? ft.filter(x => x !== 'D') : [...ft, 'D'])} className="mr-1" /> Detached
         </label>
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterType.includes('S')} onChange={() => setFilterType((ft: string[]) => ft.includes('S') ? ft.filter(x => x !== 'S') : [...ft, 'S'])} className="mr-1" /> Semi-detached
         </label>
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterType.includes('T')} onChange={() => setFilterType((ft: string[]) => ft.includes('T') ? ft.filter(x => x !== 'T') : [...ft, 'T'])} className="mr-1" /> Terraced
         </label>
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterType.includes('F')} onChange={() => setFilterType((ft: string[]) => ft.includes('F') ? ft.filter(x => x !== 'F') : [...ft, 'F'])} className="mr-1" /> Flat/Maisonette
         </label>
-        <label className="inline-flex items-center">
+        <label className="inline-flex items-center group-disabled:opacity-50">
           <input type="checkbox" checked={filterType.includes('O')} onChange={() => setFilterType((ft: string[]) => ft.includes('O') ? ft.filter(x => x !== 'O') : [...ft, 'O'])} className="mr-1" /> Other
         </label>
       </div>
     </div>
-  </div>
+  </fieldset>
 );
 
 export default Filters; 
