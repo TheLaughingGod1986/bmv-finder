@@ -55,7 +55,6 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Property Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Town/City</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">District</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">County</th>
             </tr>
           </thead>
@@ -87,7 +86,6 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-700">{sp.town_city}</td>
-                <td className="px-6 py-4 text-sm text-gray-700">{sp.district}</td>
                 <td className="px-6 py-4 text-sm text-gray-700">{sp.county}</td>
               </tr>
             ))}
@@ -112,7 +110,6 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
               <div><span className="text-gray-500">Type:</span> <span className="ml-1 font-medium">{formatDuration(sp.duration)}</span></div>
               <div className="col-span-2"><span className="text-gray-500">Property Type:</span> <span className="ml-1 font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">{formatPropertyType(sp.property_type)}</span></div>
               <div><span className="text-gray-500">Town:</span> <span className="ml-1 font-medium">{sp.town_city}</span></div>
-              <div><span className="text-gray-500">District:</span> <span className="ml-1 font-medium">{sp.district}</span></div>
               <div><span className="text-gray-500">County:</span> <span className="ml-1 font-medium">{sp.county}</span></div>
             </div>
              <button

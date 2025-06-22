@@ -14,7 +14,6 @@ interface SoldPrice {
   duration: string;
   old_new: string;
   locality: string;
-  district: string;
   ppd_category_type: string;
   record_status: string;
   growthPct?: number;

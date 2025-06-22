@@ -40,7 +40,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
       columns: [
         'id', 'price', 'date_of_transfer', 'postcode', 'property_type',
         'old_new', 'duration', 'paon', 'saon', 'street', 'locality',
-        'town_city', 'district', 'county', 'ppd_category_type', 'record_status'
+        'town_city', 'county', 'ppd_category_type', 'record_status'
       ],
       skip_empty_lines: true,
       cast: (value: string, context: any) => {

@@ -64,8 +64,10 @@ export default function Home() {
   useEffect(() => {
     const fetchLastUpdated = async () => {
       try {
+        console.log('Fetching last updated timestamp...');
         const response = await fetch('/api/last-updated');
         const data = await response.json();
+        console.log('Last updated response:', data);
         if (data.lastUpdated) {
           const formattedDate = new Date(data.lastUpdated).toLocaleString(
             'en-GB',
@@ -77,7 +79,10 @@ export default function Home() {
               minute: '2-digit',
             }
           );
+          console.log('Setting last updated to:', formattedDate);
           setLastUpdated(formattedDate);
+        } else {
+          console.log('No lastUpdated timestamp found in response');
         }
       } catch (err) {
         console.error('Failed to fetch last updated timestamp', err);
@@ -239,12 +244,12 @@ export default function Home() {
                 <p className="text-sm text-gray-600">UK Land Registry Data</p>
               </div>
             </div>
-            {lastUpdated && (
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-700">Database Last Updated</p>
-                <p className="text-xs text-gray-500">{lastUpdated}</p>
-              </div>
-            )}
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-700">Database Last Updated</p>
+              <p className="text-xs text-gray-500">
+                {lastUpdated ? lastUpdated : 'Not available'}
+              </p>
+            </div>
           </div>
         </div>
       </header>
@@ -323,7 +328,7 @@ export default function Home() {
                     onClick={() => {
                       const csvRows = [
                         [
-                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'District', 'County'
+                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'County'
                         ],
                         ...filteredSoldPrices.map(sp => [
                           `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
@@ -333,7 +338,6 @@ export default function Home() {
                           sp.duration,
                           sp.property_type,
                           sp.town_city,
-                          sp.district,
                           sp.county
                         ])
                       ];
@@ -355,7 +359,7 @@ export default function Home() {
                       // Instead, open a new Google Sheet and import the CSV
                       const csvRows = [
                         [
-                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'District', 'County'
+                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'County'
                         ],
                         ...filteredSoldPrices.map(sp => [
                           `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
@@ -365,7 +369,6 @@ export default function Home() {
                           sp.duration,
                           sp.property_type,
                           sp.town_city,
-                          sp.district,
                           sp.county
                         ])
                       ];
