@@ -34,7 +34,6 @@ const PropertyHistoryModal = dynamic(() => import('./components/PropertyHistoryM
 
 export default function Home() {
   const [postcode, setPostcode] = useState('');
-  const [propertyType, setPropertyType] = useState<PropertyType | 'ALL'>('ALL');
   const [soldPrices, setSoldPrices] = useState<SoldPrice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -250,14 +249,10 @@ export default function Home() {
         {/* SEO-friendly introduction */}
         <section className="mb-8">
           <h2 className="text-xl font-bold mb-2 text-gray-800">Discover UK Sold Property Prices</h2>
-          <p className="text-gray-700 text-base">
-            Instantly search and analyze UK Land Registry sold property prices. Filter by property type, tenure, and price range. Visualize price trends and compare recent sales in your area. All data is sourced from the official UK Land Registry and updated monthly for accuracy.
-          </p>
+          <p className="text-gray-600 text-sm">Enter a postcode to view recently sold property prices. Use the filters to narrow down your search by price, tenure, or property type. This data is sourced from the HM Land Registry.</p>
         </section>
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <Filters
-            propertyType={propertyType}
-            onPropertyTypeChange={setPropertyType}
             isLoading={isLoading}
             minPrice={minPrice}
             maxPrice={maxPrice}
