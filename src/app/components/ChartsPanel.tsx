@@ -15,7 +15,7 @@ import {
 ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
 
 import { SoldPrice } from '../../../types/sold-price';
-import { SoldPricesTable } from './SoldPricesTable';
+import SoldPricesTable from './SoldPricesTable';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
 
 interface ChartsPanelProps {
