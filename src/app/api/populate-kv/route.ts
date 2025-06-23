@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { parse, Parser } from 'csv-parse';
+import { parse } from 'csv-parse';
 import fs from 'fs';
 import path from 'path';
 import type { SoldPrice } from '../../../../types/sold-price';
