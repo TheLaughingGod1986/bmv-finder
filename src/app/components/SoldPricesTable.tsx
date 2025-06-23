@@ -92,8 +92,8 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {paginatedSoldPrices.map((sp) => (
-              <tr key={sp.id} className={`${sp % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
+            {paginatedSoldPrices.map((sp, idx) => (
+              <tr key={sp.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
                 <td className="px-6 py-4">
                   <button
                     type="button"
