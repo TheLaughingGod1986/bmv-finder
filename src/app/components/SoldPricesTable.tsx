@@ -9,7 +9,38 @@ interface SoldPricesTableProps {
   formatDuration: (duration: string) => string;
   formatPropertyType: (type: string) => string;
   handleShowHistory: (id: string) => void;
+  requestSort: (key: keyof SoldPrice) => void;
+  sortConfig: { key: keyof SoldPrice; direction: string };
+  getHasHistory: (property: SoldPrice) => boolean;
+  isDateSortDisabled: boolean;
 }
+
+const SortableHeader: React.FC<{
+  title: string;
+  sortKey: keyof SoldPrice;
+  requestSort: (key: keyof SoldPrice) => void;
+  sortConfig: { key: keyof SoldPrice; direction: string };
+  disabled?: boolean;
+  disabledTooltip?: string;
+}> = ({ title, sortKey, requestSort, sortConfig, disabled = false, disabledTooltip }) => {
+  const isSorted = sortConfig.key === sortKey;
+  const icon = isSorted ? (sortConfig.direction === 'ascending' ? '▲' : '▼') : '↕';
+
+  return (
+    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+      <button
+        type="button"
+        onClick={() => requestSort(sortKey)}
+        className="flex items-center space-x-1 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+        disabled={disabled}
+        title={disabled ? disabledTooltip : `Sort by ${title}`}
+      >
+        <span>{title}</span>
+        <span className={`text-gray-400 ${isSorted ? 'text-gray-800' : ''}`}>{icon}</span>
+      </button>
+    </th>
+  );
+};
 
 const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   soldPrices,
@@ -19,6 +50,10 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   formatDuration,
   formatPropertyType,
   handleShowHistory,
+  requestSort,
+  sortConfig,
+  getHasHistory,
+  isDateSortDisabled,
 }) => {
   const [page, setPage] = useState(1);
   const pageSize = 10;
@@ -50,8 +85,8 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
           <thead>
             <tr className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-purple-50">
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Date</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Price</th>
+              <SortableHeader title="Date" sortKey="date_of_transfer" requestSort={requestSort} sortConfig={sortConfig} disabled={isDateSortDisabled} disabledTooltip="Sorting disabled: all results are from the same year" />
+              <SortableHeader title="Price" sortKey="price" requestSort={requestSort} sortConfig={sortConfig} />
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Property Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Town/City</th>
@@ -64,14 +99,16 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                 <td className="px-6 py-4">
                   <button
                     type="button"
-                    className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded"
+                    className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={() => handleShowHistory(sp.id)}
+                    disabled={!getHasHistory(sp)}
                     tabIndex={0}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(sp.id); }}
                   >
                     <div>
                       <div className="text-sm font-medium text-gray-900">{formatAddress(sp)}</div>
                       <div className="text-sm text-gray-500">{sp.postcode}</div>
+                      {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
                     </div>
                   </button>
                 </td>
@@ -114,10 +151,11 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
             </div>
              <button
               type="button"
-              className="w-full text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded text-sm text-blue-600 hover:underline"
+              className="w-full text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded text-sm text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
               onClick={() => handleShowHistory(sp.id)}
+              disabled={!getHasHistory(sp)}
              >
-              View History
+              {getHasHistory(sp) ? 'View History' : 'No History Found'}
             </button>
           </div>
         ))}

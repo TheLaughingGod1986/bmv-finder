@@ -16,6 +16,9 @@ import SoldPricesTable from './components/SoldPricesTable';
 import dynamic from 'next/dynamic';
 import ChartsPanel from './components/ChartsPanel';
 import InstallPrompt from './components/InstallPrompt';
+import ResultsSummary from './components/ResultsSummary';
+import { SkeletonLoader } from './components/SkeletonLoader';
+import EmptyState from './components/EmptyState';
 import { SoldPrice } from '../../types/sold-price';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -41,10 +44,55 @@ export default function Home() {
   const [searchedPostcode, setSearchedPostcode] = useState('');
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [showPostcodeHint, setShowPostcodeHint] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string[]>([]);
   const [nationalTrendData, setNationalTrendData] = useState<TrendDataEntry[]>([]);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof SoldPrice; direction: 'ascending' | 'descending' }>({
+    key: 'price',
+    direction: 'descending',
+  });
+  const [showResultsSummary, setShowResultsSummary] = useState(false);
+
+  const isDateSortDisabled = useMemo(() => {
+    if (soldPrices.length < 2) return true;
+    const firstYear = soldPrices[0].date_of_transfer.slice(0, 4);
+    return soldPrices.every(p => p.date_of_transfer.slice(0, 4) === firstYear);
+  }, [soldPrices]);
+
+  // Create a map of how many times each unique address appears
+  const propertySaleCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    if (!soldPrices || soldPrices.length === 0) {
+      return counts;
+    }
+    for (const sp of soldPrices) {
+      // Create a consistent key for each unique address
+      const addressKey = [
+        sp.postcode,
+        sp.street?.trim().toLowerCase(),
+        sp.paon?.trim().toLowerCase(),
+        sp.saon?.trim().toLowerCase()
+      ].filter(Boolean).join('|');
+      
+      if(addressKey) {
+        counts.set(addressKey, (counts.get(addressKey) || 0) + 1);
+      }
+    }
+    return counts;
+  }, [soldPrices]);
+
+  // Check if a property has more than one sale record
+  const getHasHistory = useCallback((property: SoldPrice) => {
+    const addressKey = [
+      property.postcode,
+      property.street?.trim().toLowerCase(),
+      property.paon?.trim().toLowerCase(),
+      property.saon?.trim().toLowerCase()
+    ].filter(Boolean).join('|');
+    return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
+  }, [propertySaleCounts]);
 
   useEffect(() => {
     const fetchNationalSummary = async () => {
@@ -91,6 +139,44 @@ export default function Home() {
     fetchLastUpdated();
   }, []);
 
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K to focus search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('postcode') as HTMLInputElement;
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      }
+      
+      // Enter key in search input
+      if (e.key === 'Enter' && document.activeElement?.id === 'postcode') {
+        e.preventDefault();
+        handleSearch(postcode);
+      }
+      
+      // Escape to clear search
+      if (e.key === 'Escape' && document.activeElement?.id === 'postcode') {
+        setPostcode('');
+        setError(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [postcode]);
+
+  const requestSort = (key: keyof SoldPrice) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
   // Compute filtered and sorted soldPrices
   const filteredSoldPrices = useMemo(() => {
     let filtered = [...soldPrices];
@@ -100,9 +186,20 @@ export default function Home() {
     if (filterType.length > 0) {
       filtered = filtered.filter(sp => filterType.includes(sp.property_type));
     }
-    // Sort newest to oldest
-    return filtered.slice().sort((a, b) => b.date_of_transfer.localeCompare(a.date_of_transfer));
-  }, [soldPrices, filterDuration, filterType]);
+    
+    // Sorting
+    filtered.sort((a, b) => {
+      if (a[sortConfig.key] < b[sortConfig.key]) {
+        return sortConfig.direction === 'ascending' ? -1 : 1;
+      }
+      if (a[sortConfig.key] > b[sortConfig.key]) {
+        return sortConfig.direction === 'ascending' ? 1 : -1;
+      }
+      return 0;
+    });
+
+    return filtered;
+  }, [soldPrices, filterDuration, filterType, sortConfig]);
 
   // Compute trend data for the filteredSoldPrices
   const filteredTrendData = useMemo(() => {
@@ -131,7 +228,37 @@ export default function Home() {
     return searchedPostcode ? filteredTrendData : nationalTrendData;
   }, [searchedPostcode, filteredTrendData, nationalTrendData]);
 
-  console.log('filteredTrendData', filteredTrendData);
+  // Results summary statistics
+  const resultsSummary = useMemo(() => {
+    if (filteredSoldPrices.length === 0) return null;
+    
+    const prices = filteredSoldPrices.map(sp => sp.price);
+    const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+    const minPrice = Math.min(...prices);
+    const maxPrice = Math.max(...prices);
+    const priceRange = maxPrice - minPrice;
+    
+    const propertyTypes = filteredSoldPrices.reduce((acc, sp) => {
+      acc[sp.property_type] = (acc[sp.property_type] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const mostCommonType = Object.entries(propertyTypes)
+      .sort(([,a], [,b]) => b - a)[0];
+    
+    return {
+      totalProperties: filteredSoldPrices.length,
+      avgPrice,
+      minPrice,
+      maxPrice,
+      priceRange,
+      mostCommonType: mostCommonType ? `${mostCommonType[0]} (${mostCommonType[1]})` : 'N/A',
+      dateRange: {
+        earliest: filteredSoldPrices[filteredSoldPrices.length - 1]?.date_of_transfer,
+        latest: filteredSoldPrices[0]?.date_of_transfer
+      }
+    };
+  }, [filteredSoldPrices]);
 
   const handleSearch = async (searchPostcode: string) => {
     if (!searchPostcode.trim()) {
@@ -142,6 +269,7 @@ export default function Home() {
     setError(null);
     setSoldPrices([]);
     setShowPostcodeHint(false);
+    setHasSearched(true);
     try {
       // Construct the URL with query parameters
       const params = new URLSearchParams();
@@ -272,25 +400,50 @@ export default function Home() {
             setFilterType={setFilterType}
           />
           <div className="mb-4 pt-6 border-t">
-            <label htmlFor="postcode" className="block text-sm font-semibold text-gray-700 mb-2">
-              Search by postcode, address, street, or town
-            </label>
+            <div className="flex justify-between items-center mb-2">
+              <label htmlFor="postcode" className="block text-sm font-semibold text-gray-700">
+                Search by postcode, address, street, or town
+              </label>
+              <span className="hidden sm:block ml-2 text-xs text-gray-500 font-normal shrink-0">
+                (⌘K to focus, Enter to search, Esc to clear)
+              </span>
+            </div>
             <div className="flex flex-col sm:flex-row gap-2">
-              <input
-                id="postcode"
-                type="text"
-                value={postcode}
-                onChange={e => setPostcode(e.target.value)}
-                placeholder="e.g., SW1A 1AA, Downing Street, Manchester"
-                className="flex-1 px-4 py-3 border-2 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 border-gray-300 text-gray-900 bg-white shadow-sm transition-all duration-200 placeholder-gray-400"
-                disabled={isLoading}
-              />
+              <div className="relative flex-1">
+                <input
+                  id="postcode"
+                  type="text"
+                  value={postcode}
+                  onChange={e => setPostcode(e.target.value)}
+                  placeholder="e.g., SW1A 1AA, Downing Street, Manchester"
+                  className="w-full px-4 py-3 border-2 rounded-lg text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-400 border-gray-300 text-gray-900 bg-white shadow-sm transition-all duration-200 placeholder-gray-400"
+                  disabled={isLoading}
+                />
+                {postcode && (
+                  <button
+                    onClick={() => setPostcode('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    type="button"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
               <button
                 onClick={() => handleSearch(postcode)}
                 disabled={!postcode || isLoading}
-                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200 sm:w-auto w-full disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold text-lg shadow-md hover:from-blue-700 hover:to-purple-700 transition-all duration-200 sm:w-auto w-full disabled:from-gray-200 disabled:to-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {isLoading ? 'Loading...' : 'Get Sold Prices'}
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    🔍 Get Sold Prices
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -306,109 +459,128 @@ export default function Home() {
             </div>
           )}
         </div>
-        {/* Main content area: charts and table */}
-        {filteredSoldPrices.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start mt-8">
-            {/* Left side: charts */}
-            <div className="lg:col-span-1 space-y-8">
-              <ChartsPanel soldPrices={filteredSoldPrices} />
-            </div>
-            {/* Right side: table and trend chart */}
-            <div className="lg:col-span-2 space-y-8">
-              <AreaPriceTrendChart
-                title={searchedPostcode ? `Price Trend for ${searchedPostcode}` : 'National Price Trend'}
-                filteredTrendData={trendDataForChart}
-              />
-              <div className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-2 text-gray-800">Recent Sold Prices for {postcode}</h2>
-                <p className="text-gray-600 text-sm mb-6">This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by tenure, or property type.</p>
-                <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
-                  <button
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
-                    onClick={() => {
-                      const csvRows = [
-                        [
-                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'County'
-                        ],
-                        ...filteredSoldPrices.map(sp => [
-                          `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
-                          sp.postcode,
-                          sp.date_of_transfer,
-                          sp.price,
-                          sp.duration,
-                          sp.property_type,
-                          sp.town_city,
-                          sp.county
-                        ])
-                      ];
-                      const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
-                      const blob = new Blob([csvContent], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      const a = document.createElement('a');
-                      a.href = url;
-                      a.download = 'sold_prices.csv';
-                      a.click();
-                      URL.revokeObjectURL(url);
-                    }}
-                  >
-                    Export CSV
-                  </button>
-                  <button
-                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold shadow disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
-                    onClick={e => {
-                      // Instead, open a new Google Sheet and import the CSV
-                      const csvRows = [
-                        [
-                          'Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'County'
-                        ],
-                        ...filteredSoldPrices.map(sp => [
-                          `${sp.paon} ${sp.saon} ${sp.street}`.trim(),
-                          sp.postcode,
-                          sp.date_of_transfer,
-                          sp.price,
-                          sp.duration,
-                          sp.property_type,
-                          sp.town_city,
-                          sp.county
-                        ])
-                      ];
-                      const csvContent = csvRows.map(row => row.map(String).map(v => '"' + v.replace(/"/g, '""') + '"').join(',')).join('\n');
-                      const blob = new Blob([csvContent], { type: 'text/csv' });
-                      const url = URL.createObjectURL(blob);
-                      window.open(`https://docs.google.com/spreadsheets/u/0/`, '_blank');
-                      setTimeout(() => {
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = 'sold_prices.csv';
-                        a.click();
-                        URL.revokeObjectURL(url);
-                      }, 1000);
-                      e.preventDefault();
-                    }}
-                  >
-                    Export to Google Sheets
-                  </button>
+
+        {/* Results block - always render the parent div, conditionally render content inside */}
+        <div className="mt-8 min-h-[40vh]">
+          {isLoading ? (
+            <SkeletonLoader />
+          ) : filteredSoldPrices.length > 0 ? (
+            <div>
+              {resultsSummary && (
+                <div className="mb-8">
+                  <ResultsSummary summary={resultsSummary} postcode={searchedPostcode} />
                 </div>
-                <SoldPricesTable
-                  soldPrices={filteredSoldPrices}
-                  postcode={postcode}
-                  formatAddress={formatAddress}
-                  formatPrice={formatPrice}
-                  formatDuration={formatDuration}
-                  formatPropertyType={formatPropertyType}
-                  handleShowHistory={handleShowHistory}
-                />
+              )}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                {/* Left side: charts */}
+                <div className="lg:col-span-1 space-y-8">
+                  <ChartsPanel soldPrices={filteredSoldPrices} />
+                </div>
+                {/* Right side: table and trend chart */}
+                <div className="lg:col-span-2 space-y-8">
+                  <AreaPriceTrendChart
+                    title={searchedPostcode ? `Price Trend for ${searchedPostcode}` : 'National Price Trend'}
+                    filteredTrendData={trendDataForChart}
+                  />
+                  <div className="bg-white rounded-xl shadow-lg p-6">
+                    <h2 className="text-xl font-bold mb-2 text-gray-800">
+                      Recent Sold Prices for {searchedPostcode}
+                    </h2>
+                    <p className="text-gray-600 text-sm mb-6">
+                      This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by tenure, or property type.
+                    </p>
+                    <div className="flex flex-col sm:flex-row flex-wrap gap-4 mb-4">
+                      <button
+                        className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold shadow disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                        onClick={() => {
+                          const csvRows = [
+                            ['Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'County'],
+                            ...filteredSoldPrices.map((sp) => [
+                              `${sp.paon} ${sp.saon} ${sp.street}`.trim(), sp.postcode, sp.date_of_transfer, sp.price, sp.duration, sp.property_type, sp.town_city, sp.county,
+                            ]),
+                          ];
+                          const csvContent = csvRows
+                            .map((row) => row.map(String).map((v) => '"' + v.replace(/"/g, '""') + '"').join(','))
+                            .join('\n');
+                          const blob = new Blob([csvContent], { type: 'text/csv' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = 'sold_prices.csv';
+                          a.click();
+                          URL.revokeObjectURL(url);
+                        }}
+                      >
+                        Export CSV
+                      </button>
+                      <button
+                        className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 font-semibold shadow disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                        onClick={(e) => {
+                          // Instead, open a new Google Sheet and import the CSV
+                          const csvRows = [
+                            ['Address', 'Postcode', 'Date', 'Price', 'Type', 'Property Type', 'Town/City', 'County'],
+                            ...filteredSoldPrices.map((sp) => [
+                              `${sp.paon} ${sp.saon} ${sp.street}`.trim(), sp.postcode, sp.date_of_transfer, sp.price, sp.duration, sp.property_type, sp.town_city, sp.county,
+                            ]),
+                          ];
+                          const csvContent = csvRows
+                            .map((row) => row.map(String).map((v) => '"' + v.replace(/"/g, '""') + '"').join(','))
+                            .join('\n');
+                          const blob = new Blob([csvContent], { type: 'text/csv' });
+                          const url = URL.createObjectURL(blob);
+                          window.open(`https://docs.google.com/spreadsheets/u/0/`, '_blank');
+                          setTimeout(() => {
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = 'sold_prices.csv';
+                            a.click();
+                            URL.revokeObjectURL(url);
+                          }, 1000);
+                          e.preventDefault();
+                        }}
+                      >
+                        Export to Google Sheets
+                      </button>
+                    </div>
+                    <SoldPricesTable
+                      soldPrices={filteredSoldPrices}
+                      postcode={postcode}
+                      formatAddress={formatAddress}
+                      formatPrice={formatPrice}
+                      formatDuration={formatDuration}
+                      formatPropertyType={formatPropertyType}
+                      handleShowHistory={handleShowHistory}
+                      requestSort={requestSort}
+                      sortConfig={sortConfig}
+                      getHasHistory={getHasHistory}
+                      isDateSortDisabled={isDateSortDisabled}
+                    />
+                  </div>
+                  <PropertyHistoryModal
+                    open={historyModal.open}
+                    property={historyModal.property}
+                    history={historyModal.history}
+                    formatAddress={formatAddress}
+                    onClose={() => setHistoryModal({ open: false, property: null, history: [] })}
+                  />
+                </div>
               </div>
-              <PropertyHistoryModal
-                open={historyModal.open}
-                property={historyModal.property}
-                history={historyModal.history}
-                formatAddress={formatAddress}
-                onClose={() => setHistoryModal({ open: false, property: null, history: [] })}
-              />
             </div>
-          </div>
-        )}
+          ) : (
+            <EmptyState
+              postcode={searchedPostcode}
+              hasSearched={hasSearched}
+              onTryDifferentSearch={() => {
+                const searchInput = document.getElementById('postcode') as HTMLInputElement;
+                if (searchInput) searchInput.focus();
+                setSoldPrices([]);
+                setHasSearched(false);
+                setPostcode('');
+                setError(null);
+              }}
+            />
+          )}
+        </div>
         <Analytics />
         <SpeedInsights />
         <InstallPrompt />
