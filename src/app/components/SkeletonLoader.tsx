@@ -40,36 +40,4 @@ export const SkeletonLoader: React.FC = () => (
       </div>
     </div>
   </div>
-);
-
-export const TableSkeleton: React.FC = () => (
-  <div className="animate-pulse">
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="h-6 bg-gray-200 rounded w-1/3 mb-6"></div>
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead>
-            <tr>
-              {[...Array(6)].map((_, i) => (
-                <th key={i} className="px-6 py-4">
-                  <div className="h-4 bg-gray-200 rounded w-20"></div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {[...Array(8)].map((_, i) => (
-              <tr key={i}>
-                {[...Array(6)].map((_, j) => (
-                  <td key={j} className="px-6 py-4">
-                    <div className="h-4 bg-gray-200 rounded w-24"></div>
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 ); 
