@@ -3,7 +3,6 @@ import { SoldPrice } from '../../../types/sold-price';
 
 interface SoldPricesTableProps {
   soldPrices: SoldPrice[];
-  postcode: string;
   formatAddress: (sp: SoldPrice) => string;
   formatPrice: (price: number) => string;
   formatDuration: (duration: string) => string;
@@ -44,7 +43,6 @@ const SortableHeader: React.FC<{
 
 const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   soldPrices,
-  postcode,
   formatAddress,
   formatPrice,
   formatDuration,
@@ -94,8 +92,8 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {paginatedSoldPrices.map((sp, idx) => (
-              <tr key={sp.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
+            {paginatedSoldPrices.map((sp) => (
+              <tr key={sp.id} className={`${sp % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
                 <td className="px-6 py-4">
                   <button
                     type="button"
@@ -107,7 +105,6 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                   >
                     <div>
                       <div className="text-sm font-medium text-gray-900">{formatAddress(sp)}</div>
-                      <div className="text-sm text-gray-500">{sp.postcode}</div>
                       {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
                     </div>
                   </button>
@@ -131,12 +128,11 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
       </div>
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
-        {paginatedSoldPrices.map((sp, idx) => (
+        {paginatedSoldPrices.map((sp) => (
           <div key={sp.id} className="shadow-md rounded-xl border border-gray-200 bg-white p-4">
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-gray-900 mb-1">{formatAddress(sp)}</h3>
-                <p className="text-xs text-gray-600">{sp.postcode}</p>
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-blue-700">{formatPrice(sp.price)}</div>

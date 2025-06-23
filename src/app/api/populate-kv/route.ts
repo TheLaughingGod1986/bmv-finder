@@ -106,7 +106,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
   });
 }
 
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     console.log('🚀 Starting daily KV population...');
     

@@ -45,7 +45,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ postcode, hasSearched, onTryDif
         No properties found for &quot;{postcode}&quot;
       </h3>
       <p className="text-gray-600 max-w-md mx-auto mb-8">
-        We couldn't find any sold properties matching your search. This could be because:
+        We couldn&apos;t find any sold properties matching your search. This could be because:
       </p>
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 max-w-lg mx-auto mb-8">
         <ul className="text-sm text-gray-700 space-y-2 text-left">
