@@ -44,7 +44,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
         'town_city', 'county', 'ppd_category_type', 'record_status'
       ],
       skip_empty_lines: true,
-      cast: (value: string, context: unknown) => {
+      cast: (value: string, context: { column?: string }) => {
         if (context.column === 'price') {
           const price = parseInt(value, 10);
           return isNaN(price) ? 0 : price;
