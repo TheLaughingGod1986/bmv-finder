@@ -245,7 +245,7 @@ export default function Home() {
         throw new Error((data as { message?: string })?.message || 'Failed to fetch sold prices');
       }
 
-      const results = data.data || [];
+      const results = (data as { data?: SoldPrice[] })?.data || [];
       setSoldPrices(results as SoldPrice[]);
       if (results.length === 0 && searchPostcode.trim().length > 4) {
         setShowPostcodeHint(true);
