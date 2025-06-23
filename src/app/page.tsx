@@ -60,9 +60,9 @@ export default function Home() {
       // Create a consistent key for each unique address
       const addressKey = [
         sp.postcode,
-        sp.street?.trim().toLowerCase(),
-        sp.paon?.trim().toLowerCase(),
-        sp.saon?.trim().toLowerCase()
+        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
       ].filter(Boolean).join('|');
       
       if(addressKey) {
@@ -76,9 +76,9 @@ export default function Home() {
   const getHasHistory = useCallback((property: SoldPrice) => {
     const addressKey = [
       property.postcode,
-      property.street?.trim().toLowerCase(),
-      property.paon?.trim().toLowerCase(),
-      property.saon?.trim().toLowerCase()
+      typeof property.street === 'string' ? property.street.trim().toLowerCase() : '',
+      typeof property.paon === 'string' ? property.paon.trim().toLowerCase() : '',
+      typeof property.saon === 'string' ? property.saon.trim().toLowerCase() : ''
     ].filter(Boolean).join('|');
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
@@ -291,9 +291,9 @@ export default function Home() {
     const propertyHistory = soldPrices
       .filter(p =>
         p.postcode === selectedProperty.postcode &&
-        p.street?.trim().toLowerCase() === selectedProperty.street?.trim().toLowerCase() &&
-        p.paon?.trim().toLowerCase() === selectedProperty.paon?.trim().toLowerCase() &&
-        p.saon?.trim().toLowerCase() === selectedProperty.saon?.trim().toLowerCase()
+        (typeof p.street === 'string' ? p.street.trim().toLowerCase() : '') === (typeof selectedProperty.street === 'string' ? selectedProperty.street.trim().toLowerCase() : '') &&
+        (typeof p.paon === 'string' ? p.paon.trim().toLowerCase() : '') === (typeof selectedProperty.paon === 'string' ? selectedProperty.paon.trim().toLowerCase() : '') &&
+        (typeof p.saon === 'string' ? p.saon.trim().toLowerCase() : '') === (typeof selectedProperty.saon === 'string' ? selectedProperty.saon.trim().toLowerCase() : '')
       )
       .sort((a, b) => new Date(a.date_of_transfer).getTime() - new Date(b.date_of_transfer).getTime());
       
