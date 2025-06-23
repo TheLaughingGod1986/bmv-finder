@@ -17,7 +17,7 @@ const data = {
 const options = {
   responsive: true,
   plugins: {
-    legend: { position: 'top' },
+    legend: { position: 'top' as const },
     title: { display: true, text: 'Test Minimal Growth Chart' },
   },
 };
