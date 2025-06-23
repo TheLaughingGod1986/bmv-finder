@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
             results?.forEach((result) => {
                 if (result && typeof result === 'object') {
                     // Ensure the price is a number, as KV returns strings
-                    const property = { ...result, price: Number((result as any).price) } as SoldPrice;
+                    const property = { ...result, price: Number((result as unknown) as any) } as SoldPrice;
                     properties.push(property);
                 }
             });

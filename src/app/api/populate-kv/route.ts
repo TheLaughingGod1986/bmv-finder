@@ -33,7 +33,7 @@ async function processBatch(batch: any[]) {
 // New function to handle CSV parsing
 async function parseCsv(csvPath: string): Promise<NextResponse> {
   return new Promise((resolve) => {
-    let batch: any[] = [];
+    let batch: unknown[] = [];
     let processed = 0;
 
     const parser = parse({
@@ -43,7 +43,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
         'town_city', 'county', 'ppd_category_type', 'record_status'
       ],
       skip_empty_lines: true,
-      cast: (value: string, context: any) => {
+      cast: (value: string, context: unknown) => {
         if (context.column === 'price') {
           const price = parseInt(value, 10);
           return isNaN(price) ? 0 : price;
@@ -59,7 +59,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
         if (batch.length >= BATCH_SIZE) {
           parser.pause();
           try {
-            await processBatch(batch);
+            await processBatch(batch as any);
             processed += batch.length;
             if (processed % 1000 === 0) console.log(`✅ Processed ${processed} properties...`);
           } catch (error) {
@@ -74,7 +74,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
     parser.on('end', async () => {
       if (batch.length > 0) {
         try {
-          await processBatch(batch);
+          await processBatch(batch as any);
           processed += batch.length;
         } catch (error) {
           console.error('Error processing final batch:', error);

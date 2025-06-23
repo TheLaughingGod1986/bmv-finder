@@ -24,10 +24,10 @@ const EmptyState: React.FC<EmptyStateProps> = ({ postcode, hasSearched, onTryDif
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-lg mx-auto">
           <h4 className="font-semibold text-blue-800 mb-2">💡 Search Tips:</h4>
           <ul className="text-sm text-blue-700 space-y-1">
-            <li>• Try partial postcodes (e.g., "SW1A" instead of "SW1A 1AA")</li>
-            <li>• Search by street name (e.g., "Downing Street")</li>
-            <li>• Use town or city names (e.g., "Manchester")</li>
-            <li>• Press ⌘K to quickly focus the search box</li>
+            <li>&bull; Try partial postcodes (e.g., &quot;SW1A&quot; instead of &quot;SW1A 1AA&quot;)</li>
+            <li>&bull; Search by street name (e.g., &quot;Downing Street&quot;)</li>
+            <li>&bull; Use town or city names (e.g., &quot;Manchester&quot;)</li>
+            <li>&bull; Press &#8984;K to quickly focus the search box</li>
           </ul>
         </div>
       </div>

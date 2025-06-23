@@ -25,8 +25,6 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-type PropertyType = 'D' | 'S' | 'T' | 'F' | 'O';
-
 interface TrendDataEntry {
   year: string;
   avgPrice: number;
@@ -41,7 +39,6 @@ export default function Home() {
   const [soldPrices, setSoldPrices] = useState<SoldPrice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [searchedPostcode, setSearchedPostcode] = useState('');
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [showPostcodeHint, setShowPostcodeHint] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -53,7 +50,6 @@ export default function Home() {
     key: 'price',
     direction: 'descending',
   });
-  const [showResultsSummary, setShowResultsSummary] = useState(false);
 
   const isDateSortDisabled = useMemo(() => {
     if (soldPrices.length < 2) return true;
@@ -227,10 +223,6 @@ export default function Home() {
     });
   }, [filteredSoldPrices]);
 
-  const trendDataForChart = useMemo(() => {
-    return searchedPostcode ? filteredTrendData : nationalTrendData;
-  }, [searchedPostcode, filteredTrendData, nationalTrendData]);
-
   // Results summary statistics
   const resultsSummary = useMemo(() => {
     if (filteredSoldPrices.length === 0) return null;
@@ -357,14 +349,6 @@ export default function Home() {
     });
   };
 
-  // TEMP: Hardcoded mock data for growth chart testing
-  const testTrendData = [
-    { year: '2021', avgPrice: 380000, pctChange: null },
-    { year: '2022', avgPrice: 410000, pctChange: 7.9 },
-    { year: '2023', avgPrice: 425000, pctChange: 3.7 },
-    { year: '2024', avgPrice: 440000, pctChange: 3.5 },
-  ];
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
@@ -481,7 +465,7 @@ export default function Home() {
             <div>
               {resultsSummary && (
                 <div className="mb-8">
-                  <ResultsSummary summary={resultsSummary} postcode={searchedPostcode} />
+                  <ResultsSummary summary={resultsSummary} postcode={postcode} />
                 </div>
               )}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -494,7 +478,7 @@ export default function Home() {
                   <AreaPriceTrendChart />
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-2 text-gray-800">
-                      Recent Sold Prices for {searchedPostcode}
+                      Recent Sold Prices for {postcode}
                     </h2>
                     <p className="text-gray-600 text-sm mb-6">
                       This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by tenure, or property type.
@@ -578,7 +562,7 @@ export default function Home() {
             </div>
           ) : (
             <EmptyState
-              postcode={searchedPostcode}
+              postcode={postcode}
               hasSearched={hasSearched}
               onTryDifferentSearch={() => {
                 const searchInput = document.getElementById('postcode') as HTMLInputElement;
