@@ -10,7 +10,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "UK Sold Property Prices | Search House Prices & Market Trends",
+  title: "Sold UK Property Prices | Search House Prices & Market Trends",
   description: "Instantly search and analyze UK sold house prices using the latest Land Registry data. View historical property data, market trends, and regional price analysis for free. Your go-to tool for property research.",
   keywords: "sold property prices, uk house prices, land registry data, property price check, house price trends, property market analysis, property valuation, real estate data",
   manifest: "/manifest.json",
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "BMV Finder"
+    title: "Sold UK Property Prices"
   },
   formatDetection: {
     telephone: false
@@ -45,10 +45,10 @@ export default function RootLayout({
         <meta name="twitter:image" content="/og-image.png" />
         
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="BMV Finder" />
+        <meta name="application-name" content="Sold UK Property Prices" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="BMV Finder" />
+        <meta name="apple-mobile-web-app-title" content="Sold UK Property Prices" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-tap-highlight" content="no" />
