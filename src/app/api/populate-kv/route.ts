@@ -51,7 +51,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
         }
         return value;
       }
-    });
+    }) as NodeJS.ReadWriteStream;
 
     parser.on('readable', async () => {
       let record;
