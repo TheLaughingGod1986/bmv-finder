@@ -15,10 +15,10 @@ const Filters: React.FC<FiltersProps> = ({
   filterType,
   setFilterType,
 }) => (
-  <fieldset disabled={isLoading} className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4 group">
-    <div className="border-t pt-4 md:border-none md:pt-0">
+  <fieldset disabled={isLoading} className="flex flex-col sm:flex-row sm:items-start sm:gap-4 gap-2 mb-2 group p-2">
+    <div className="flex-1 min-w-[140px]">
       <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Type</label>
-      <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
+      <div className="flex flex-col gap-1">
         <label htmlFor="type-all" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
           <input type="checkbox" id="type-all" checked={filterDuration.length === 0} onChange={() => setFilterDuration([])} className="mr-1" /> All
         </label>
@@ -30,9 +30,10 @@ const Filters: React.FC<FiltersProps> = ({
         </label>
       </div>
     </div>
-    <div className="border-t pt-4 md:border-none md:pt-0">
+    <div className="hidden sm:block w-px bg-gray-200 mx-2 self-stretch" />
+    <div className="flex-1 min-w-[180px]">
       <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Property Type</label>
-      <div className="grid grid-cols-2 sm:grid-cols-1 gap-1">
+      <div className="flex flex-col gap-1">
         <label htmlFor="prop-all" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
           <input type="checkbox" id="prop-all" checked={filterType.length === 0} onChange={() => setFilterType([])} className="mr-1" /> All
         </label>
