@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface ResultsSummaryProps {
   summary: {
@@ -14,6 +14,18 @@ interface ResultsSummaryProps {
     };
   };
   postcode: string;
+}
+
+const PROPERTY_TYPE_LABELS: { [key: string]: string } = {
+  'D': 'Detached',
+  'S': 'Semi-detached',
+  'T': 'Terraced',
+  'F': 'Flat/Maisonette',
+  'O': 'Other',
+};
+
+function getTypeLabel(type: string) {
+  return PROPERTY_TYPE_LABELS[type] || type;
 }
 
 const ResultsSummary: React.FC<ResultsSummaryProps> = ({ summary, postcode }) => {
@@ -78,8 +90,31 @@ const ResultsSummary: React.FC<ResultsSummaryProps> = ({ summary, postcode }) =>
       <div className="mt-4 pt-4 border-t border-blue-200">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div>
-            <span className="font-semibold text-gray-700">Most Common Type:</span>
-            <span className="ml-2 text-gray-600">{summary.mostCommonType}</span>
+            <span className="font-semibold text-gray-700">Most Common Property Type:</span>
+            {(() => {
+              // Parse type and count from summary.mostCommonType (e.g., 'S (45)')
+              const match = summary.mostCommonType.match(/^(\w) \((\d+)\)$/);
+              if (match) {
+                const abbr = match[1];
+                const count = match[2];
+                return (
+                  <>
+                    <span className="ml-2 text-gray-800 font-medium">{getTypeLabel(abbr)}</span>
+                    <span className="ml-1 text-gray-500">({count} sales)</span>
+                    <span
+                      className="ml-1 text-gray-400 cursor-help"
+                      title="D = Detached, S = Semi-detached, T = Terraced, F = Flat/Maisonette, O = Other"
+                      aria-label="Property type legend"
+                    >
+                      ℹ️
+                    </span>
+                    <div className="text-xs text-gray-500 mt-1">This is the most frequently sold property type in the selected area.</div>
+                  </>
+                );
+              } else {
+                return <span className="ml-2 text-gray-600">{summary.mostCommonType}</span>;
+              }
+            })()}
           </div>
           <div>
             <span className="font-semibold text-gray-700">Date Range:</span>
