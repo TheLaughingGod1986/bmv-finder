@@ -23,6 +23,9 @@ interface SoldPrice {
   town_city: string;
   county: string;
   ppd_category_type: string;
+  record_status: string;
+}
+
 async function clearKeys(pattern: string) {
   let deleted = 0;
   for await (const key of kv.scanIterator({ match: pattern })) {
