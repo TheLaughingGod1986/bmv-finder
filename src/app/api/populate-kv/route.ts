@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import * as csvParse from 'csv-parse';
+import { parse, Parser } from 'csv-parse';
 import fs from 'fs';
 import path from 'path';
 import type { SoldPrice } from '../../../../types/sold-price';
@@ -37,7 +37,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
     let batch: SoldPrice[] = [];
     let processed = 0;
 
-    const parser = csvParse.parse({
+    const parser: Parser = parse({
       columns: [
         'id', 'price', 'date_of_transfer', 'postcode', 'property_type',
         'old_new', 'duration', 'paon', 'saon', 'street', 'locality',
