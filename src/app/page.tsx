@@ -433,7 +433,7 @@ export default function Home() {
                   <AreaPriceTrendChart />
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-2 text-gray-800">
-                      Recent Sold Prices for {postcode}
+                      Recent Sold Prices for &quot;{postcode}&quot;
                     </h2>
                     <p className="text-gray-600 text-sm mb-6">
                       This table lists all sold properties matching your search and filters. Click a row for more details and price history. Use the filters above to refine your results by tenure, or property type.
