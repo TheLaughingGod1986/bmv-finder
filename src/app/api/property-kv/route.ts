@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         console.log(`[KV API] Request received. Postcode param: "${postcode}"`);
 
         if (postcode) {
-            const cleanPostcode = postcode.replace(/\s/g, '').toUpperCase();
+            const cleanPostcode = (postcode ?? '').replace(/\s/g, '').toUpperCase();
             const searchPattern = `postcode:${cleanPostcode}*`;
             console.log(`[KV API] Scanning for keys with pattern: "${searchPattern}"`);
 
