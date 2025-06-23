@@ -8,24 +8,6 @@ export const dynamic = 'force-dynamic';
 
 const BATCH_SIZE = 100;
 
-interface SoldPrice {
-  id: string;
-  price: number;
-  date_of_transfer: string;
-  postcode: string;
-  property_type: string;
-  old_new: string;
-  duration: string;
-  paon: string;
-  saon: string;
-  street: string;
-  locality: string;
-  town_city: string;
-  county: string;
-  ppd_category_type: string;
-  record_status: string;
-}
-
 async function clearKeys(pattern: string) {
   let deleted = 0;
   for await (const key of kv.scanIterator({ match: pattern })) {
