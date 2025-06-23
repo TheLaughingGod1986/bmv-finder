@@ -338,7 +338,7 @@ export default function Home() {
             The Ultimate Tool for UK Property Price Research
           </h2>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Instantly search and analyze millions of sold house prices from the official HM Land Registry. Whether you're buying, selling, or just curious, our tool provides detailed property data, market trends, and regional analysis to help you make informed decisions.
+            Instantly search and analyze millions of sold house prices from the official HM Land Registry. Whether you&apos;re buying, selling, or just curious, our tool provides detailed property data, market trends, and regional analysis to help you make informed decisions.
           </p>
         </section>
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
