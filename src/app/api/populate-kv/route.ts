@@ -37,7 +37,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
     let batch: SoldPrice[] = [];
     let processed = 0;
 
-    const parser: Parser = parse({
+    const parser = parse({
       columns: [
         'id', 'price', 'date_of_transfer', 'postcode', 'property_type',
         'old_new', 'duration', 'paon', 'saon', 'street', 'locality',
@@ -51,7 +51,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
         }
         return value;
       }
-    }) as NodeJS.ReadWriteStream;
+    });
 
     parser.on('readable', async () => {
       let record;
