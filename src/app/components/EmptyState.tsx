@@ -42,7 +42,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({ postcode, hasSearched, onTryDif
         </svg>
       </div>
       <h3 className="text-2xl font-bold text-gray-800 mb-4">
-        No properties found for "{postcode}"
+        No properties found for &quot;{postcode}&quot;
       </h3>
       <p className="text-gray-600 max-w-md mx-auto mb-8">
         We couldn't find any sold properties matching your search. This could be because:

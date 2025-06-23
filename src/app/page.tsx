@@ -25,12 +25,6 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
-interface TrendDataEntry {
-  year: string;
-  avgPrice: number;
-  pctChange: number | null;
-}
-
 const AreaPriceTrendChart = dynamic(() => import('./components/AreaPriceTrendChart'), { ssr: false, loading: () => <div className="mb-8 bg-white rounded-xl shadow p-4 text-center text-gray-400">Loading chart…</div> });
 const PropertyHistoryModal = dynamic(() => import('./components/PropertyHistoryModal'), { ssr: false, loading: () => null });
 
