@@ -493,7 +493,6 @@ export default function Home() {
                     </div>
                     <SoldPricesTable
                       soldPrices={filteredSoldPrices}
-                      postcode={postcode}
                       formatAddress={formatAddress}
                       formatPrice={formatPrice}
                       formatDuration={formatDuration}
