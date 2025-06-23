@@ -47,76 +47,76 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
               </thead>
               <tbody>
                 {history.map((h, i) => (
-                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                    <td className="px-2 py-1">{h.date_of_transfer}</td>
-                    <td className="px-2 py-1">£{h.price.toLocaleString()}</td>
+                  <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-blue-50/50"}>
+                    <td className="px-2 py-1 whitespace-nowrap">{h.date_of_transfer}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">£{h.price.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {/* Growth Section */}
-            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded flex items-center gap-2">
-              <span className="text-green-700 font-semibold">Growth:</span>
-              <span className="text-green-900 font-bold text-lg">£{(history[history.length-1].price - history[0].price).toLocaleString()}</span>
-              <span className="text-green-700 font-semibold">(
-                {(((history[history.length-1].price / history[0].price) - 1) * 100).toFixed(1)}%
-              )</span>
-              <span className="ml-2 text-xs text-gray-500">from first to last sale</span>
+            <div className="my-6 flex justify-center">
+              <div className="bg-green-50 border border-green-200 rounded-lg px-6 py-4 flex flex-col items-center w-full max-w-md shadow-sm">
+                <div className="text-green-800 font-semibold text-lg mb-1">Growth: £{(history[history.length-1].price - history[0].price).toLocaleString()} <span className="text-base">({(((history[history.length-1].price / history[0].price) - 1) * 100).toFixed(1)}%)</span></div>
+                <div className="text-green-700 text-xs">from first to last sale</div>
+              </div>
             </div>
-            <div className="mb-2 text-xs text-gray-500">Percentage growth is calculated from the first recorded sale to the most recent sale of this property.</div>
-            <div className="relative">
-              <svg width="100%" height="120" viewBox="0 0 400 120">
-                {/* Y-axis ticks and labels */}
-                {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-                  const price = Math.round(history[0].price + t * (history[history.length-1].price - history[0].price));
-                  const y = 90 - t * 60;
-                  return (
-                    <g key={i}>
-                      <line x1={35} y1={y} x2={390} y2={y} stroke="#e5e7eb" strokeDasharray="2 2" />
-                      <text x={30} y={y+4} fontSize="10" textAnchor="end" fill="#6b7280">£{price.toLocaleString()}</text>
-                    </g>
-                  );
-                })}
-                {/* X-axis ticks and labels */}
-                {history.map((d, i) => {
-                  const x = (i / (history.length - 1)) * 340 + 50;
-                  return (
-                    <g key={i}>
-                      <line x1={x} y1={90} x2={x} y2={95} stroke="#6b7280" />
-                      <text x={x} y={110} fontSize="10" textAnchor="middle" fill="#6b7280">{d.date_of_transfer.slice(0,4)}</text>
-                    </g>
-                  );
-                })}
-                {/* Y-axis label */}
-                <text x={10} y={60} fontSize="11" textAnchor="middle" fill="#374151" transform="rotate(-90 10 60)">Sale Price (£)</text>
-                {/* X-axis label */}
-                <text x={200} y={118} fontSize="11" textAnchor="middle" fill="#374151">Year</text>
-                {/* Chart line */}
-                {history.map((d, i, arr) => {
-                  if (i === 0) return null;
-                  const prev = arr[i - 1];
-                  const x1 = ((i - 1) / (arr.length - 1)) * 340 + 50;
-                  const x2 = (i / (arr.length - 1)) * 340 + 50;
-                  const y1 = 90 - ((prev.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 60);
-                  const y2 = 90 - ((d.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 60);
-                  return (
-                    <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#16a34a" strokeWidth="2" />
-                  );
-                })}
-                {/* Data points with tooltips */}
-                {history.map((d, i) => {
-                  const x = (i / (history.length - 1)) * 340 + 50;
-                  const y = 90 - ((d.price - history[0].price) / (history[history.length - 1].price - history[0].price + 1) * 60);
-                  return (
-                    <g key={i}>
-                      <circle cx={x} cy={y} r="4" fill="#16a34a">
-                        <title>£{d.price.toLocaleString()} on {d.date_of_transfer}</title>
-                      </circle>
-                      <text x={x} y={y-8} fontSize="10" textAnchor="middle" fill="#16a34a">£{d.price.toLocaleString()}</text>
-                    </g>
-                  );
-                })}
-              </svg>
+            <hr className="my-6 border-blue-100" />
+            <div className="mb-4 text-xs text-gray-500 text-center">Percentage growth is calculated from the first recorded sale to the most recent sale of this property.</div>
+            <div className="flex justify-center items-center">
+              <div className="relative">
+                <svg width="100%" height="120" viewBox="0 0 400 120">
+                  {/* Y-axis ticks and labels */}
+                  {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
+                    const price = Math.round(history[0].price + t * (history[history.length-1].price - history[0].price));
+                    const y = 90 - t * 60;
+                    return (
+                      <g key={i}>
+                        <line x1={35} y1={y} x2={390} y2={y} stroke="#e5e7eb" strokeDasharray="2 2" />
+                        <text x={30} y={y+4} fontSize="10" textAnchor="end" fill="#6b7280">£{price.toLocaleString()}</text>
+                      </g>
+                    );
+                  })}
+                  {/* X-axis ticks and labels */}
+                  {history.map((d, i) => {
+                    const x = (i / (history.length - 1)) * 340 + 50;
+                    return (
+                      <g key={i}>
+                        <line x1={x} y1={90} x2={x} y2={95} stroke="#6b7280" />
+                        <text x={x} y={110} fontSize="10" textAnchor="middle" fill="#6b7280">{d.date_of_transfer.slice(0,4)}</text>
+                      </g>
+                    );
+                  })}
+                  {/* Y-axis label */}
+                  <text x={10} y={60} fontSize="11" textAnchor="middle" fill="#374151" transform="rotate(-90 10 60)">Sale Price (£)</text>
+                  {/* X-axis label */}
+                  <text x={200} y={118} fontSize="11" textAnchor="middle" fill="#374151">Year</text>
+                  {/* Chart line */}
+                  {history.map((d, i, arr) => {
+                    if (i === 0) return null;
+                    const prev = arr[i - 1];
+                    const x1 = ((i - 1) / (arr.length - 1)) * 340 + 50;
+                    const x2 = (i / (arr.length - 1)) * 340 + 50;
+                    const y1 = 90 - ((prev.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 60);
+                    const y2 = 90 - ((d.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 60);
+                    return (
+                      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#16a34a" strokeWidth="2" />
+                    );
+                  })}
+                  {/* Data points with tooltips */}
+                  {history.map((d, i) => {
+                    const x = (i / (history.length - 1)) * 340 + 50;
+                    const y = 90 - ((d.price - history[0].price) / (history[history.length - 1].price - history[0].price + 1) * 60);
+                    return (
+                      <g key={i}>
+                        <circle cx={x} cy={y} r="4" fill="#16a34a">
+                          <title>£{d.price.toLocaleString()} on {d.date_of_transfer}</title>
+                        </circle>
+                        <text x={x} y={y-8} fontSize="10" textAnchor="middle" fill="#16a34a">£{d.price.toLocaleString()}</text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
             </div>
           </>
         ) : (
