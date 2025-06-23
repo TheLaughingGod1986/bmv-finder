@@ -3,7 +3,7 @@ import { kv } from '@vercel/kv';
 import { parse } from 'csv-parse';
 import fs from 'fs';
 import path from 'path';
-import type { SoldPrice } from '../../../types/sold-price';
+import type { SoldPrice } from '../../../../types/sold-price';
 
 export const dynamic = 'force-dynamic';
 
