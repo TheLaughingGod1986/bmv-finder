@@ -242,7 +242,7 @@ export default function Home() {
       }
 
       if (!response.ok) {
-        throw new Error(data?.message || 'Failed to fetch sold prices');
+        throw new Error((data as { message?: string })?.message || 'Failed to fetch sold prices');
       }
 
       const results = data.data || [];
