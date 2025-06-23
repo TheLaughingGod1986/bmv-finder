@@ -77,6 +77,46 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   }
   return (
     <div>
+      {/* Tooltip styles */}
+      <style>{`
+        .custom-tooltip {
+          position: relative;
+          display: inline-block;
+        }
+        .custom-tooltip .custom-tooltiptext {
+          visibility: hidden;
+          width: 180px;
+          background-color: #374151;
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 6px 0;
+          position: absolute;
+          z-index: 10;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -90px;
+          opacity: 0;
+          transition: opacity 0.3s;
+          font-size: 0.85rem;
+          pointer-events: none;
+        }
+        .custom-tooltip:focus .custom-tooltiptext,
+        .custom-tooltip:hover .custom-tooltiptext {
+          visibility: visible;
+          opacity: 1;
+        }
+        .custom-tooltip .custom-tooltiptext::after {
+          content: '';
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: #374151 transparent transparent transparent;
+        }
+      `}</style>
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full">
@@ -97,7 +137,7 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                 <td className="px-6 py-4">
                   <button
                     type="button"
-                    className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed group"
                     onClick={() => handleShowHistory(sp.id)}
                     disabled={!getHasHistory(sp)}
                     tabIndex={0}
@@ -151,7 +191,7 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
                       </svg>
                       <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                        Tap to view full price history for this property
+                        Click to view full price history for this property
                         <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
                       </span>
                     </span>
