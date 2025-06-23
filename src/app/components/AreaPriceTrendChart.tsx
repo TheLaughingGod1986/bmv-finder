@@ -13,7 +13,13 @@ interface AreaPriceTrendChartProps {
 }
 
 const AreaPriceTrendChart: React.FC<AreaPriceTrendChartProps> = React.memo(({ title, filteredTrendData }) => {
-  if (filteredTrendData.length <= 1) return null;
+  if (filteredTrendData.length === 0) {
+    return (
+      <div className="mb-8 bg-white rounded-xl shadow p-4 text-center text-gray-400">
+        Not enough data to show a price trend.
+      </div>
+    );
+  }
   return (
     <div className="mb-8 bg-white rounded-xl shadow p-4">
       <h3 className="font-semibold text-gray-800 mb-2">{title}</h3>

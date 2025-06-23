@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic'; // Ensure the route is always dynamic
 // The library automatically picks up the environment variables from Vercel.
 
 export async function GET(request: NextRequest) {
-    // TEMP: Force mock data in all environments (including production) due to Upstash quota
+    // TEMP: Force mock data in all environments (including local dev and production) due to Upstash quota
     if (true) {
         console.log('[MOCK MODE] Returning mock property data (forced for all envs).');
         await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
             message: 'Mock data for all environments',
         });
     }
-
     try {
         const { searchParams } = new URL(request.url);
         const postcode = searchParams.get('postcode');
