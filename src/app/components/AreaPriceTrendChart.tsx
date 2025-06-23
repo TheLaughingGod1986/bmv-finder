@@ -131,7 +131,7 @@ export default function AreaPriceTrendChart({ labels, data, areaName }: AreaPric
               </span>
             </div>
             <div className="text-sm text-gray-500 mb-4 leading-relaxed">
-              This usually means there haven't been enough property sales in this area in recent years, 
+              This usually means there haven&apos;t been enough property sales in this area in recent years, 
               or the data is too sparse to calculate a reliable trend. We need at least two years of sales data to show meaningful patterns.
             </div>
             <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3 border border-gray-100">
