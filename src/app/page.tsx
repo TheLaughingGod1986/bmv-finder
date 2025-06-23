@@ -400,7 +400,7 @@ export default function Home() {
           {showPostcodeHint && (
             <div className="text-blue-800 bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
               <p className="font-semibold">No results for the full postcode?</p>
-              <p>Try searching for just the first part of the postcode (e.g., "SW1A") to see a wider area.</p>
+              <p>Try searching for just the first part of the postcode (e.g., &quot;SW1A&quot;) to see a wider area.</p>
             </div>
           )}
           {error && (
