@@ -118,9 +118,30 @@ export default function AreaPriceTrendChart({ labels, data, areaName }: AreaPric
         based on official UK Land Registry data. Use it to identify trends in property values over time.
       </p>
 
-      {/* Chart */}
-      <div className="relative">
-        <Line data={chartData} options={options} />
+      {/* Chart or No Data Message */}
+      <div className="relative min-h-[200px] flex items-center justify-center">
+        {labels.length === 0 || data.length === 0 ? (
+          <div className="text-center py-12 max-w-md mx-auto">
+            <div className="flex items-center justify-center gap-2 mb-3">
+              <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="text-lg font-medium text-gray-700">
+                Not enough data to show a price trend
+              </span>
+            </div>
+            <div className="text-sm text-gray-500 mb-4 leading-relaxed">
+              This usually means there haven't been enough property sales in this area in recent years, 
+              or the data is too sparse to calculate a reliable trend. We need at least two years of sales data to show meaningful patterns.
+            </div>
+            <div className="text-xs text-gray-400 bg-gray-50 rounded-lg p-3 border border-gray-100">
+              <strong>Try this:</strong> Search for a broader area (like just the first part of the postcode) 
+              or try a different nearby postcode to see more results.
+            </div>
+          </div>
+        ) : (
+          <Line data={chartData} options={options} />
+        )}
       </div>
 
       {/* How to read section */}
