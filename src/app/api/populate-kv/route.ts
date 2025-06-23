@@ -18,7 +18,7 @@ async function clearKeys(pattern: string) {
   if (deleted) console.log(`Cleared final ${deleted} keys for pattern ${pattern}`);
 }
 
-async function processBatch(batch: any[]) {
+async function processBatch(batch: unknown[]) {
   const pipeline = kv.pipeline();
   batch.forEach(property => {
     pipeline.hset(`property:${property.id}`, property);
@@ -59,7 +59,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
         if (batch.length >= BATCH_SIZE) {
           parser.pause();
           try {
-            await processBatch(batch as any);
+            await processBatch(batch as unknown[]);
             processed += batch.length;
             if (processed % 1000 === 0) console.log(`✅ Processed ${processed} properties...`);
           } catch (error) {
@@ -74,7 +74,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
     parser.on('end', async () => {
       if (batch.length > 0) {
         try {
-          await processBatch(batch as any);
+          await processBatch(batch as unknown[]);
           processed += batch.length;
         } catch (error) {
           console.error('Error processing final batch:', error);

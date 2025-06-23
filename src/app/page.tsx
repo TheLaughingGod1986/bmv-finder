@@ -45,7 +45,6 @@ export default function Home() {
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string[]>([]);
-  const [nationalTrendData, setNationalTrendData] = useState<TrendDataEntry[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: keyof SoldPrice; direction: 'ascending' | 'descending' }>({
     key: 'price',
     direction: 'descending',
@@ -89,21 +88,6 @@ export default function Home() {
     ].filter(Boolean).join('|');
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
-
-  useEffect(() => {
-    const fetchNationalSummary = async () => {
-      try {
-        const response = await fetch('/api/summary');
-        const data = await response.json();
-        if (response.ok) {
-          setNationalTrendData(data);
-        }
-      } catch (err) {
-        console.error('Failed to fetch national summary', err);
-      }
-    };
-    fetchNationalSummary();
-  }, []);
 
   useEffect(() => {
     const fetchLastUpdated = async () => {
@@ -200,29 +184,6 @@ export default function Home() {
     return filtered;
   }, [soldPrices, filterDuration, filterType, sortConfig]);
 
-  // Compute trend data for the filteredSoldPrices
-  const filteredTrendData = useMemo(() => {
-    const yearMap: { [year: string]: { sum: number, count: number } } = {};
-    for (const row of filteredSoldPrices) {
-      const year = row.date_of_transfer?.slice(0, 4);
-      if (!year) continue;
-      if (!yearMap[year]) yearMap[year] = { sum: 0, count: 0 };
-      yearMap[year].sum += row.price;
-      yearMap[year].count += 1;
-    }
-    const sortedYears = Object.keys(yearMap).sort();
-    let prevAvg: number | null = null;
-    return sortedYears.map((year) => {
-      const avgPrice = Math.round(yearMap[year].sum / yearMap[year].count);
-      let pctChange: number | null = null;
-      if (prevAvg !== null) {
-        pctChange = Number(((avgPrice / prevAvg - 1) * 100).toFixed(1));
-      }
-      prevAvg = avgPrice;
-      return { year, avgPrice, pctChange };
-    });
-  }, [filteredSoldPrices]);
-
   // Results summary statistics
   const resultsSummary = useMemo(() => {
     if (filteredSoldPrices.length === 0) return null;
@@ -274,7 +235,7 @@ export default function Home() {
 
       const response = await fetch(`/api/property-kv?${params.toString()}`);
 
-      let data: any = null;
+      let data: unknown = null;
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
         try {
@@ -291,7 +252,7 @@ export default function Home() {
       }
 
       const results = data.data || [];
-      setSoldPrices(results);
+      setSoldPrices(results as SoldPrice[]);
       if (results.length === 0 && searchPostcode.trim().length > 4) {
         setShowPostcodeHint(true);
       }
