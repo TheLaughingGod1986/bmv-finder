@@ -38,25 +38,32 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
         {history.length > 1 ? (
           <>
             <div className="mb-2 text-xs text-gray-500">Each point shows a sale of this property. Hover a point for details.</div>
-            <table className="min-w-full text-xs mb-2">
+            <table className="min-w-full text-xs mb-4 border rounded overflow-hidden">
               <thead>
-                <tr>
-                  <th className="text-left px-2 py-1">Date</th>
-                  <th className="text-left px-2 py-1">Price</th>
+                <tr className="bg-blue-50">
+                  <th className="text-left px-2 py-1 font-semibold text-gray-700">Date</th>
+                  <th className="text-left px-2 py-1 font-semibold text-gray-700">Price</th>
                 </tr>
               </thead>
               <tbody>
                 {history.map((h, i) => (
-                  <tr key={i}>
+                  <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                     <td className="px-2 py-1">{h.date_of_transfer}</td>
                     <td className="px-2 py-1">£{h.price.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            <div className="mb-2">
-              <span className="font-semibold">Growth:</span> £{(history[history.length-1].price - history[0].price).toLocaleString()} ({(((history[history.length-1].price / history[0].price) - 1) * 100).toFixed(1)}%)
+            {/* Growth Section */}
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded flex items-center gap-2">
+              <span className="text-green-700 font-semibold">Growth:</span>
+              <span className="text-green-900 font-bold text-lg">£{(history[history.length-1].price - history[0].price).toLocaleString()}</span>
+              <span className="text-green-700 font-semibold">(
+                {(((history[history.length-1].price / history[0].price) - 1) * 100).toFixed(1)}%
+              )</span>
+              <span className="ml-2 text-xs text-gray-500">from first to last sale</span>
             </div>
+            <div className="mb-2 text-xs text-gray-500">Percentage growth is calculated from the first recorded sale to the most recent sale of this property.</div>
             <div className="relative">
               <svg width="100%" height="120" viewBox="0 0 400 120">
                 {/* Y-axis ticks and labels */}

@@ -77,6 +77,46 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   }
   return (
     <div>
+      {/* Tooltip styles */}
+      <style>{`
+        .custom-tooltip {
+          position: relative;
+          display: inline-block;
+        }
+        .custom-tooltip .custom-tooltiptext {
+          visibility: hidden;
+          width: 180px;
+          background-color: #374151;
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 6px 0;
+          position: absolute;
+          z-index: 10;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -90px;
+          opacity: 0;
+          transition: opacity 0.3s;
+          font-size: 0.85rem;
+          pointer-events: none;
+        }
+        .custom-tooltip:focus .custom-tooltiptext,
+        .custom-tooltip:hover .custom-tooltiptext {
+          visibility: visible;
+          opacity: 1;
+        }
+        .custom-tooltip .custom-tooltiptext::after {
+          content: '';
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: #374151 transparent transparent transparent;
+        }
+      `}</style>
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full">
@@ -97,16 +137,24 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                 <td className="px-6 py-4">
                   <button
                     type="button"
-                    className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed group"
                     onClick={() => handleShowHistory(sp.id)}
                     disabled={!getHasHistory(sp)}
                     tabIndex={0}
                     onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(sp.id); }}
                   >
-                    <div>
+                    <div className="flex items-center gap-2">
                       <div className="text-sm font-medium text-gray-900">{formatAddress(sp)}</div>
-                      {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
+                      {getHasHistory(sp) && (
+                        <span className="ml-1 text-blue-500 cursor-pointer custom-tooltip" tabIndex={-1} aria-label="View price history">
+                          <svg className="w-4 h-4 inline-block align-text-bottom" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                          </svg>
+                          <span className="custom-tooltiptext">Click to view full price history for this property</span>
+                        </span>
+                      )}
                     </div>
+                    {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
                   </button>
                 </td>
                 <td className="px-6 py-4 text-sm text-gray-700">{sp.date_of_transfer.slice(0, 4)}</td>
@@ -132,7 +180,17 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
           <div key={sp.id} className="shadow-md rounded-xl border border-gray-200 bg-white p-4">
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">{formatAddress(sp)}</h3>
+                <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
+                  {formatAddress(sp)}
+                  {getHasHistory(sp) && (
+                    <span className="text-blue-500 cursor-pointer custom-tooltip" tabIndex={-1} aria-label="View price history">
+                      <svg className="w-4 h-4 inline-block align-text-bottom" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                      </svg>
+                      <span className="custom-tooltiptext">Tap to view full price history for this property</span>
+                    </span>
+                  )}
+                </h3>
               </div>
               <div className="text-right">
                 <div className="text-lg font-bold text-blue-700">{formatPrice(sp.price)}</div>
