@@ -474,7 +474,7 @@ export default function Home() {
         {/* Results block - always render the parent div, conditionally render content inside */}
         <div className="mt-8 min-h-[40vh]">
           {/* TEMP: Always show the growth chart with mock data for testing */}
-          <AreaPriceTrendChart title="Test Growth Chart" filteredTrendData={testTrendData} />
+          <AreaPriceTrendChart />
           {isLoading ? (
             <SkeletonLoader />
           ) : filteredSoldPrices.length > 0 ? (
@@ -491,10 +491,7 @@ export default function Home() {
                 </div>
                 {/* Right side: table and trend chart */}
                 <div className="lg:col-span-2 space-y-8">
-                  <AreaPriceTrendChart
-                    title={searchedPostcode ? `Price Trend for ${searchedPostcode}` : 'National Price Trend'}
-                    filteredTrendData={trendDataForChart}
-                  />
+                  <AreaPriceTrendChart />
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-2 text-gray-800">
                       Recent Sold Prices for {searchedPostcode}
