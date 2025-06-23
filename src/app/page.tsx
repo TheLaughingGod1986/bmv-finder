@@ -210,6 +210,21 @@ export default function Home() {
     };
   }, [filteredSoldPrices]);
 
+  // Calculate average price per year for the area
+  const trendData = useMemo(() => {
+    const yearMap: Record<string, number[]> = {};
+    filteredSoldPrices.forEach(sp => {
+      const year = sp.date_of_transfer.slice(0, 4);
+      if (!yearMap[year]) yearMap[year] = [];
+      yearMap[year].push(sp.price);
+    });
+    const years = Object.keys(yearMap).sort();
+    const avgPrices = years.map(year =>
+      Math.round(yearMap[year].reduce((a, b) => a + b, 0) / yearMap[year].length)
+    );
+    return { years, avgPrices };
+  }, [filteredSoldPrices]);
+
   const handleSearch = async (searchPostcode: string) => {
     if (!searchPostcode.trim()) {
       setError('Please enter a postcode.');
@@ -412,8 +427,6 @@ export default function Home() {
 
         {/* Results block - always render the parent div, conditionally render content inside */}
         <div className="mt-8 min-h-[40vh]">
-          {/* TEMP: Always show the growth chart with mock data for testing */}
-          <AreaPriceTrendChart />
           {isLoading ? (
             <SkeletonLoader />
           ) : filteredSoldPrices.length > 0 ? (
@@ -430,7 +443,9 @@ export default function Home() {
                 </div>
                 {/* Right side: table and trend chart */}
                 <div className="lg:col-span-2 space-y-8">
-                  <AreaPriceTrendChart />
+                  {filteredSoldPrices.length > 0 && (
+                    <AreaPriceTrendChart labels={trendData.years} data={trendData.avgPrices} />
+                  )}
                   <div className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-2 text-gray-800">
                       Recent Sold Prices for &quot;{postcode}&quot;

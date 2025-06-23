@@ -1,31 +1,36 @@
 import React from 'react';
 import { Line } from 'react-chartjs-2';
 
-const data = {
-  labels: ['2021', '2022', '2023', '2024'],
-  datasets: [
-    {
-      label: 'Average Price',
-      data: [380000, 410000, 425000, 440000],
-      borderColor: 'rgb(75, 192, 192)',
-      backgroundColor: 'rgba(75, 192, 192, 0.2)',
-      tension: 0.1,
-    },
-  ],
-};
+interface AreaPriceTrendChartProps {
+  labels: string[];
+  data: number[];
+}
 
 const options = {
   responsive: true,
   plugins: {
     legend: { position: 'top' as const },
-    title: { display: true, text: 'Test Minimal Growth Chart' },
+    title: { display: true, text: 'Average Price Growth by Year' },
   },
 };
 
-export default function AreaPriceTrendChart() {
+export default function AreaPriceTrendChart({ labels, data }: AreaPriceTrendChartProps) {
+  const chartData = {
+    labels,
+    datasets: [
+      {
+        label: 'Average Price',
+        data,
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.2)',
+        tension: 0.1,
+      },
+    ],
+  };
+
   return (
     <div className="mb-8 bg-white rounded-xl shadow p-4">
-      <Line data={data} options={options} height={120} />
+      <Line data={chartData} options={options} height={120} />
     </div>
   );
 } 
