@@ -357,6 +357,14 @@ export default function Home() {
     });
   };
 
+  // TEMP: Hardcoded mock data for growth chart testing
+  const testTrendData = [
+    { year: '2021', avgPrice: 380000, pctChange: null },
+    { year: '2022', avgPrice: 410000, pctChange: 7.9 },
+    { year: '2023', avgPrice: 425000, pctChange: 3.7 },
+    { year: '2024', avgPrice: 440000, pctChange: 3.5 },
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
@@ -465,6 +473,8 @@ export default function Home() {
 
         {/* Results block - always render the parent div, conditionally render content inside */}
         <div className="mt-8 min-h-[40vh]">
+          {/* TEMP: Always show the growth chart with mock data for testing */}
+          <AreaPriceTrendChart title="Test Growth Chart" filteredTrendData={testTrendData} />
           {isLoading ? (
             <SkeletonLoader />
           ) : filteredSoldPrices.length > 0 ? (
