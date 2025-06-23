@@ -3,6 +3,7 @@ import { kv } from '@vercel/kv';
 import { parse } from 'csv-parse';
 import fs from 'fs';
 import path from 'path';
+import type { SoldPrice } from '../../../types/sold-price';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ async function clearKeys(pattern: string) {
   if (deleted) console.log(`Cleared final ${deleted} keys for pattern ${pattern}`);
 }
 
-async function processBatch(batch: unknown[]) {
+async function processBatch(batch: SoldPrice[]) {
   const pipeline = kv.pipeline();
   batch.forEach(property => {
     pipeline.hset(`property:${property.id}`, property);
@@ -33,7 +34,7 @@ async function processBatch(batch: unknown[]) {
 // New function to handle CSV parsing
 async function parseCsv(csvPath: string): Promise<NextResponse> {
   return new Promise((resolve) => {
-    let batch: unknown[] = [];
+    let batch: SoldPrice[] = [];
     let processed = 0;
 
     const parser = parse({
@@ -55,11 +56,11 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
     parser.on('readable', async () => {
       let record;
       while ((record = parser.read()) !== null) {
-        batch.push(record);
+        batch.push(record as SoldPrice);
         if (batch.length >= BATCH_SIZE) {
           parser.pause();
           try {
-            await processBatch(batch as unknown[]);
+            await processBatch(batch);
             processed += batch.length;
             if (processed % 1000 === 0) console.log(`✅ Processed ${processed} properties...`);
           } catch (error) {
@@ -74,7 +75,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
     parser.on('end', async () => {
       if (batch.length > 0) {
         try {
-          await processBatch(batch as unknown[]);
+          await processBatch(batch);
           processed += batch.length;
         } catch (error) {
           console.error('Error processing final batch:', error);
