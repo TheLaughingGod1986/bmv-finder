@@ -62,6 +62,7 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   }, [soldPrices, page]);
   const handlePrev = () => setPage(p => Math.max(1, p - 1));
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
+  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   React.useEffect(() => { setPage(1); }, [soldPrices]);
 
   if (!soldPrices.length) {
@@ -125,54 +126,74 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
               <SortableHeader title="Date" sortKey="date_of_transfer" requestSort={requestSort} sortConfig={sortConfig} disabled={isDateSortDisabled} disabledTooltip="Sorting disabled: all results are from the same year" />
               <SortableHeader title="Price" sortKey="price" requestSort={requestSort} sortConfig={sortConfig} />
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Property Type</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Town/City</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">County</th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {paginatedSoldPrices.map((sp, idx) => (
-              <tr key={sp.id} className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
-                <td className="px-6 py-4">
-                  <button
-                    type="button"
-                    className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed group"
-                    onClick={() => handleShowHistory(sp.id)}
-                    disabled={!getHasHistory(sp)}
-                    tabIndex={0}
-                    onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(sp.id); }}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-gray-900">{formatAddress(sp)}</span>
-                      {getHasHistory(sp) && (
-                        <span className="relative group flex items-center">
-                          <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
-                          </svg>
-                          <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                            Click to view full price history for this property
-                            <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
+              <React.Fragment key={sp.id}>
+                <tr className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
+                  <td className="px-6 py-4">
+                    <button
+                      type="button"
+                      className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed group"
+                      onClick={() => handleShowHistory(sp.id)}
+                      disabled={!getHasHistory(sp)}
+                      tabIndex={0}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(sp.id); }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">{formatAddress(sp)}</span>
+                        {getHasHistory(sp) && (
+                          <span className="relative group flex items-center">
+                            <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                            </svg>
+                            <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
+                              Click to view full price history for this property
+                              <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
+                            </span>
                           </span>
-                        </span>
-                      )}
-                    </div>
-                    {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
-                  </button>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-700">{sp.date_of_transfer.slice(0, 4)}</td>
-                <td className="px-6 py-4">
-                  <div className="text-lg font-bold text-blue-700">{formatPrice(sp.price)}</div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-700">{formatDuration(sp.duration)}</td>
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {formatPropertyType(sp.property_type)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-700">{sp.town_city}</td>
-                <td className="px-6 py-4 text-sm text-gray-700">{sp.county}</td>
-              </tr>
+                        )}
+                      </div>
+                      {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
+                    </button>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{sp.date_of_transfer.slice(0, 4)}</td>
+                  <td className="px-6 py-4">
+                    <div className="text-lg font-bold text-blue-700">{formatPrice(sp.price)}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      {formatPropertyType(sp.property_type)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      className="text-blue-500 hover:underline text-xs"
+                      onClick={() => setExpandedRowId(expandedRowId === sp.id ? null : sp.id)}
+                      aria-expanded={expandedRowId === sp.id}
+                      aria-controls={`row-details-${sp.id}`}
+                    >
+                      {expandedRowId === sp.id ? 'Hide details' : 'Show details'}
+                    </button>
+                  </td>
+                </tr>
+                {expandedRowId === sp.id && (
+                  <tr id={`row-details-${sp.id}`}>
+                    <td colSpan={5} className="bg-blue-50 px-6 py-4 text-sm text-gray-700">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div><span className="font-semibold">Tenure:</span> {formatDuration(sp.duration)}</div>
+                        <div><span className="font-semibold">Town/City:</span> {sp.town_city}</div>
+                        <div><span className="font-semibold">County:</span> {sp.county}</div>
+                        <div><span className="font-semibold">Postcode:</span> {sp.postcode}</div>
+                        {/* Add more details as needed */}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>

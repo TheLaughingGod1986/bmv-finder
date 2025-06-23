@@ -64,54 +64,56 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
             <div className="mb-4 text-xs text-gray-500 text-center">Percentage growth is calculated from the first recorded sale to the most recent sale of this property.</div>
             <div className="flex justify-center items-center">
               <div className="relative">
-                <svg width="100%" height="120" viewBox="0 0 400 120">
+                <svg width="100%" height="140" viewBox="0 0 400 140">
                   {/* Y-axis ticks and labels */}
                   {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
                     const price = Math.round(history[0].price + t * (history[history.length-1].price - history[0].price));
-                    const y = 90 - t * 60;
+                    const y = 100 - t * 70;
                     return (
                       <g key={i}>
-                        <line x1={35} y1={y} x2={390} y2={y} stroke="#e5e7eb" strokeDasharray="2 2" />
-                        <text x={30} y={y+4} fontSize="10" textAnchor="end" fill="#6b7280">£{price.toLocaleString()}</text>
+                        <line x1={45} y1={y} x2={390} y2={y} stroke="#e5e7eb" strokeDasharray="2 2" />
+                        <text x={40} y={y+5} fontSize="13" fontWeight="bold" textAnchor="end" fill="#374151">£{(price >= 1000 ? (price/1000).toFixed(0) + 'k' : price.toLocaleString())}</text>
                       </g>
                     );
                   })}
                   {/* X-axis ticks and labels */}
                   {history.map((d, i) => {
-                    const x = (i / (history.length - 1)) * 340 + 50;
+                    const x = (i / (history.length - 1)) * 320 + 60;
                     return (
                       <g key={i}>
-                        <line x1={x} y1={90} x2={x} y2={95} stroke="#6b7280" />
-                        <text x={x} y={110} fontSize="10" textAnchor="middle" fill="#6b7280">{d.date_of_transfer.slice(0,4)}</text>
+                        <line x1={x} y1={100} x2={x} y2={110} stroke="#6b7280" />
+                        <text x={x} y={125} fontSize="13" fontWeight="bold" textAnchor="middle" fill="#374151">{d.date_of_transfer.slice(0,4)}</text>
                       </g>
                     );
                   })}
                   {/* Y-axis label */}
-                  <text x={10} y={60} fontSize="11" textAnchor="middle" fill="#374151" transform="rotate(-90 10 60)">Sale Price (£)</text>
+                  <text x={15} y={70} fontSize="13" fontWeight="bold" textAnchor="middle" fill="#374151" transform="rotate(-90 15 70)">Price (£)</text>
                   {/* X-axis label */}
-                  <text x={200} y={118} fontSize="11" textAnchor="middle" fill="#374151">Year</text>
+                  <text x={200} y={135} fontSize="13" fontWeight="bold" textAnchor="middle" fill="#374151">Year</text>
+                  {/* Chart background */}
+                  <rect x={45} y={30} width={345} height={70} fill="#f8fafc" rx={8} />
                   {/* Chart line */}
                   {history.map((d, i, arr) => {
                     if (i === 0) return null;
                     const prev = arr[i - 1];
-                    const x1 = ((i - 1) / (arr.length - 1)) * 340 + 50;
-                    const x2 = (i / (arr.length - 1)) * 340 + 50;
-                    const y1 = 90 - ((prev.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 60);
-                    const y2 = 90 - ((d.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 60);
+                    const x1 = ((i - 1) / (arr.length - 1)) * 320 + 60;
+                    const x2 = (i / (arr.length - 1)) * 320 + 60;
+                    const y1 = 100 - ((prev.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 70);
+                    const y2 = 100 - ((d.price - arr[0].price) / (arr[arr.length - 1].price - arr[0].price + 1) * 70);
                     return (
-                      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#16a34a" strokeWidth="2" />
+                      <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#6366f1" strokeWidth="3" />
                     );
                   })}
                   {/* Data points with tooltips */}
                   {history.map((d, i) => {
-                    const x = (i / (history.length - 1)) * 340 + 50;
-                    const y = 90 - ((d.price - history[0].price) / (history[history.length - 1].price - history[0].price + 1) * 60);
+                    const x = (i / (history.length - 1)) * 320 + 60;
+                    const y = 100 - ((d.price - history[0].price) / (history[history.length - 1].price - history[0].price + 1) * 70);
                     return (
                       <g key={i}>
-                        <circle cx={x} cy={y} r="4" fill="#16a34a">
+                        <circle cx={x} cy={y} r="6" fill="#6366f1" stroke="#fff" strokeWidth="2">
                           <title>£{d.price.toLocaleString()} on {d.date_of_transfer}</title>
                         </circle>
-                        <text x={x} y={y-8} fontSize="10" textAnchor="middle" fill="#16a34a">£{d.price.toLocaleString()}</text>
+                        <text x={x} y={y-12} fontSize="12" fontWeight="bold" textAnchor="middle" fill="#6366f1">£{(d.price >= 1000 ? (d.price/1000).toFixed(0) + 'k' : d.price.toLocaleString())}</text>
                       </g>
                     );
                   })}

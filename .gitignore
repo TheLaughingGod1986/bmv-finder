@@ -37,3 +37,6 @@ next-env.d.ts
 
 # Large CSV files
 pp-complete*.csv
+
+# env
+.env
