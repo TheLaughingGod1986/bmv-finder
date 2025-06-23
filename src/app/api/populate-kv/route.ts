@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { parse, Options } from 'csv-parse';
+import { parse, Options, CastingContext } from 'csv-parse';
 import fs from 'fs';
 import path from 'path';
 import type { SoldPrice } from '../../../../types/sold-price';
@@ -44,7 +44,7 @@ async function parseCsv(csvPath: string): Promise<NextResponse> {
         'town_city', 'county', 'ppd_category_type', 'record_status'
       ],
       skip_empty_lines: true,
-      cast: (value: string, context: { column?: string }) => {
+      cast: (value: string, context: CastingContext) => {
         if (context.column === 'price') {
           const price = parseInt(value, 10);
           return isNaN(price) ? 0 : price;
