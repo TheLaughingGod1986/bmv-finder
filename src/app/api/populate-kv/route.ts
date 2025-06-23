@@ -22,7 +22,7 @@ async function clearKeys(pattern: string) {
 async function processBatch(batch: SoldPrice[]) {
   const pipeline = kv.pipeline();
   batch.forEach(property => {
-    pipeline.hset(`property:${property.id}`, property);
+    pipeline.hset(`property:${property.id}`, property as Record<string, unknown>);
     if (property.postcode) {
       const cleanPostcode = property.postcode.replace(/\s/g, '').toUpperCase();
       pipeline.sadd(`postcode:${cleanPostcode}`, property.id);
