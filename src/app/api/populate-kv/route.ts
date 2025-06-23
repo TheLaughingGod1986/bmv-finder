@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
 import { parse } from 'csv-parse';
 import fs from 'fs';
