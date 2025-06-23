@@ -1,5 +1,6 @@
 import React from 'react';
 import { Line } from 'react-chartjs-2';
+import type { TooltipItem } from 'chart.js';
 
 interface AreaPriceTrendChartProps {
   labels: string[];
@@ -15,7 +16,7 @@ const options = {
       labels: {
         font: {
           size: 14,
-          weight: '600'
+          weight: 600
         }
       }
     },
@@ -24,7 +25,7 @@ const options = {
     },
     tooltip: {
       callbacks: {
-        label: function(context: any) {
+        label: function(context: TooltipItem<'line'>) {
           return `Average Price: £${context.parsed.y.toLocaleString()}`;
         }
       }
@@ -38,12 +39,13 @@ const options = {
         text: 'Average Sold Price (£)',
         font: {
           size: 12,
-          weight: '500'
+          weight: 500
         }
       },
       ticks: {
-        callback: function(value: any) {
-          return '£' + value.toLocaleString();
+        callback: function(value: string | number) {
+          const num = typeof value === 'number' ? value : Number(value);
+          return '£' + num.toLocaleString();
         }
       }
     },
@@ -53,7 +55,7 @@ const options = {
         text: 'Year',
         font: {
           size: 12,
-          weight: '500'
+          weight: 500
         }
       }
     }
