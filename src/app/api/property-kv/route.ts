@@ -9,13 +9,13 @@ export const dynamic = 'force-dynamic'; // Ensure the route is always dynamic
 // The library automatically picks up the environment variables from Vercel.
 
 export async function GET(request: NextRequest) {
-    // Use mock data in development to avoid hitting Vercel KV rate limits
-    if (process.env.NODE_ENV === 'development') {
-        console.log('[DEV MODE] Returning mock property data.');
+    // TEMP: Force mock data in all environments (including production) due to Upstash quota
+    if (true) {
+        console.log('[MOCK MODE] Returning mock property data (forced for all envs).');
         await new Promise(resolve => setTimeout(resolve, 500)); // Simulate network delay
         return NextResponse.json({
             data: mockSoldPrices,
-            message: 'Mock data for development',
+            message: 'Mock data for all environments',
         });
     }
 

@@ -60,7 +60,7 @@ export default function InstallPrompt() {
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-gray-900">Install BMV Finder</h3>
+          <h3 className="text-sm font-medium text-gray-900">Install Sold UK Property Prices</h3>
           <p className="text-sm text-gray-500 mt-1">
             Add this app to your home screen for quick access and offline use.
           </p>

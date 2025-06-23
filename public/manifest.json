@@ -1,6 +1,6 @@
 {
-  "name": "BMV Finder - UK Property Prices",
-  "short_name": "BMV Finder",
+  "name": "Sold UK Property Prices",
+  "short_name": "Sold UK Property Prices",
   "description": "Search and analyze UK sold property prices using Land Registry data",
   "start_url": "/",
   "display": "standalone",
