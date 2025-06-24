@@ -135,6 +135,7 @@ function HomeContent() {
       }
 
       const data = await response.json();
+      console.log('API response:', data);
       
       if (data.data && data.data.length > 0) {
         setSoldPrices(data.data);
@@ -240,17 +241,18 @@ function HomeContent() {
     
     // Duration filter
     if (filterDuration.length > 0) {
-      filtered = filtered.filter(sp => filterDuration.includes(sp.duration));
+      filtered = filtered.filter(sp => sp.duration && filterDuration.includes(sp.duration));
     }
     
     // Property type filter
     if (filterType.length > 0) {
-      filtered = filtered.filter(sp => filterType.includes(sp.property_type));
+      filtered = filtered.filter(sp => sp.property_type && filterType.includes(sp.property_type));
     }
     
     // Price range filter
     if (priceRange.min > 0 || priceRange.max < 10000000) {
       filtered = filtered.filter(sp => 
+        typeof sp.price === 'number' &&
         sp.price >= priceRange.min && sp.price <= priceRange.max
       );
     }
@@ -258,6 +260,7 @@ function HomeContent() {
     // Date range filter
     if (dateRange.start || dateRange.end) {
       filtered = filtered.filter(sp => {
+        if (!sp.date_of_transfer) return true;
         const saleDate = new Date(sp.date_of_transfer);
         const startDate = dateRange.start ? new Date(dateRange.start) : null;
         const endDate = dateRange.end ? new Date(dateRange.end) : null;
@@ -447,6 +450,14 @@ function HomeContent() {
   const formatDuration = (duration: string) => {
     return duration === 'F' ? 'Freehold' : 'Leasehold';
   };
+
+  useEffect(() => {
+    console.log('soldPrices state:', soldPrices);
+  }, [soldPrices]);
+
+  useEffect(() => {
+    console.log('filteredSoldPrices:', filteredSoldPrices);
+  }, [filteredSoldPrices]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
