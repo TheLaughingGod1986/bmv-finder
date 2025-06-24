@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { kv } from '@vercel/kv';
 import { parse } from 'csv-parse';
 import fs from 'fs';
@@ -34,7 +35,7 @@ async function populate() {
 
     console.log('🚀 Starting KV population from local script...');
     
-    const CSV_PATH = path.join(process.cwd(), 'pp-complete.csv');
+    const CSV_PATH = path.join(process.cwd(), 'pp-complete-new.csv');
     if (!fs.existsSync(CSV_PATH)) {
         throw new Error(`CSV file not found at ${CSV_PATH}. Make sure it's downloaded in the root.`);
     }
