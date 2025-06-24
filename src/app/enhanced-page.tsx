@@ -106,6 +106,66 @@ function HomeContent() {
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
 
+  const handleSearch = useCallback(async (searchPostcode: string) => {
+    if (!searchPostcode.trim()) {
+      showToast({
+        type: 'warning',
+        title: 'Search Required',
+        message: 'Please enter a postcode, street name, or town to search.',
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setHasSearched(true);
+    setShowPostcodeHint(false);
+
+    try {
+      const response = await fetch('/api/property-kv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ postcode: searchPostcode.trim() }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.data && data.data.length > 0) {
+        setSoldPrices(data.data);
+        showToast({
+          type: 'success',
+          title: 'Search Complete',
+          message: `Found ${data.data.length} properties in ${searchPostcode}`,
+        });
+      } else {
+        setSoldPrices([]);
+        setShowPostcodeHint(true);
+        showToast({
+          type: 'info',
+          title: 'No Results',
+          message: 'No properties found. Try a broader search area.',
+        });
+      }
+    } catch (err) {
+      console.error('Search error:', err);
+      setError('Failed to fetch property data. Please try again.');
+      setSoldPrices([]);
+      showToast({
+        type: 'error',
+        title: 'Search Failed',
+        message: 'Unable to fetch property data. Please check your connection and try again.',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
   useEffect(() => {
     const fetchLastUpdated = async () => {
       try {
@@ -164,7 +224,7 @@ function HomeContent() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [postcode]);
+  }, [postcode, handleSearch]);
 
   const requestSort = (key: keyof SoldPrice) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -283,66 +343,6 @@ function HomeContent() {
     
     return { years, avgPrices };
   }, [filteredSoldPrices]);
-
-  const handleSearch = async (searchPostcode: string) => {
-    if (!searchPostcode.trim()) {
-      showToast({
-        type: 'warning',
-        title: 'Search Required',
-        message: 'Please enter a postcode, street name, or town to search.',
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    setHasSearched(true);
-    setShowPostcodeHint(false);
-
-    try {
-      const response = await fetch('/api/property-kv', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ postcode: searchPostcode.trim() }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      if (data.soldPrices && data.soldPrices.length > 0) {
-        setSoldPrices(data.soldPrices);
-        showToast({
-          type: 'success',
-          title: 'Search Complete',
-          message: `Found ${data.soldPrices.length} properties in ${searchPostcode}`,
-        });
-      } else {
-        setSoldPrices([]);
-        setShowPostcodeHint(true);
-        showToast({
-          type: 'info',
-          title: 'No Results',
-          message: 'No properties found. Try a broader search area.',
-        });
-      }
-    } catch (err) {
-      console.error('Search error:', err);
-      setError('Failed to fetch property data. Please try again.');
-      setSoldPrices([]);
-      showToast({
-        type: 'error',
-        title: 'Search Failed',
-        message: 'Unable to fetch property data. Please check your connection and try again.',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleShowHistory = (id: string) => {
     const selectedProperty = soldPrices.find(p => p.id === id);
@@ -572,7 +572,6 @@ function HomeContent() {
                     <EnhancedSoldPricesTable
                       soldPrices={filteredSoldPrices}
                       formatAddress={formatAddress}
-                      formatPrice={formatPrice}
                       formatDuration={formatDuration}
                       formatPropertyType={formatPropertyType}
                       handleShowHistory={handleShowHistory}

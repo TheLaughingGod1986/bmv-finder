@@ -256,11 +256,15 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
               <div className="text-xs text-gray-500">
                 <div className="font-semibold mb-1">💡 Search Tips:</div>
                 <div className="space-y-1">
-                  <div>• Try partial postcodes (e.g., "SW1A")</div>
+                  <div>• Try partial postcodes (e.g., &quot;SW1A&quot;)</div>
                   <div>• Search by street name or town</div>
                   <div>• Use ⌘K to focus, Enter to search</div>
                 </div>
               </div>
+            </div>
+
+            <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-2 py-1 border border-gray-100 mt-2 block">
+              Try searching for a broader area (like just the first part of the postcode) or try a different nearby postcode to see more results. For example: &quot;SE3&quot; or &quot;Manchester&quot;.
             </div>
           </motion.div>
         )}
