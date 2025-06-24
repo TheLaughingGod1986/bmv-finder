@@ -7,8 +7,10 @@ import { cn } from '../../lib/utils';
 
 const DarkModeToggle: React.FC = () => {
   const [isDark, setIsDark] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Check for saved theme preference or default to light mode
     const savedTheme = localStorage.getItem('theme');
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -31,6 +33,8 @@ const DarkModeToggle: React.FC = () => {
       localStorage.setItem('theme', 'light');
     }
   };
+
+  if (!mounted) return null;
 
   return (
     <motion.button
