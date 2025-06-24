@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Search, 
   MapPin, 
@@ -27,7 +27,6 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
   onTryDifferentSearch,
   onSearchSuggestion 
 }) => {
-  const [showTips, setShowTips] = useState(false);
   const [selectedSuggestion, setSelectedSuggestion] = useState<string | null>(null);
 
   const popularAreas = getPopularAreas().slice(0, 8);

@@ -7,24 +7,18 @@ import {
   ChevronDown, 
   ChevronRight, 
   ChevronLeft, 
-  Info, 
   MapPin, 
   Calendar,
   PoundSterling,
   Home,
-  Building,
-  Layers,
-  Star,
-  TrendingUp,
-  TrendingDown
+  TrendingUp
 } from 'lucide-react';
 import { SoldPrice } from '../../../types/sold-price';
-import { cn, formatPrice, getPropertyTypeIcon, getPropertyTypeLabel, getPriceRangeColor, calculatePriceChange } from '../../lib/utils';
+import { cn, getPropertyTypeIcon, getPropertyTypeLabel, getPriceRangeColor } from '../../lib/utils';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
   formatAddress: (sp: SoldPrice) => string;
-  formatPrice: (price: number) => string;
   formatDuration: (duration: string) => string;
   formatPropertyType: (type: string) => string;
   handleShowHistory: (id: string) => void;
@@ -38,7 +32,6 @@ interface EnhancedSoldPricesTableProps {
 const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.memo(({
   soldPrices,
   formatAddress,
-  formatPrice,
   formatDuration,
   formatPropertyType,
   handleShowHistory,
@@ -130,7 +123,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="text-center">
             <div className={cn("text-lg font-bold", priceColor)}>
-              {formatPrice(property.price)}
+              {property.price}
             </div>
             <div className="text-xs text-gray-500">Price</div>
           </div>
@@ -356,7 +349,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                       </td>
                       <td className="px-4 py-4">
                         <div className={cn("text-lg font-bold", getPriceRangeColor(property.price, priceRange.min, priceRange.max))}>
-                          {formatPrice(property.price)}
+                          {property.price}
                         </div>
                       </td>
                       <td className="px-4 py-4">
@@ -445,5 +438,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
     </div>
   );
 });
+
+EnhancedSoldPricesTable.displayName = 'EnhancedSoldPricesTable';
 
 export default EnhancedSoldPricesTable; 

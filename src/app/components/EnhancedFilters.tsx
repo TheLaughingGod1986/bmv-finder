@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Filter, X, ChevronDown, ChevronUp, Home, Building, Layers } from 'lucide-react';
-import { cn, isMobile } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 
 interface EnhancedFiltersProps {
   isLoading: boolean;

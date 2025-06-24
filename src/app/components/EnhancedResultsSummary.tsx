@@ -6,8 +6,6 @@ import {
   TrendingUp, 
   TrendingDown, 
   Home, 
-  Building, 
-  Layers, 
   Calendar,
   PoundSterling,
   Info,

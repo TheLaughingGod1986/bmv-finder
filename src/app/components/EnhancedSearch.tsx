@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, X, MapPin, Clock, TrendingUp } from 'lucide-react';
-import { cn, getSearchSuggestions, validatePostcode, getPopularAreas } from '../../lib/utils';
+import { cn, getSearchSuggestions, validatePostcode } from '../../lib/utils';
 
 interface EnhancedSearchProps {
   value: string;

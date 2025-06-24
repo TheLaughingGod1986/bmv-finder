@@ -31,7 +31,7 @@ import { SkeletonLoader } from './components/SkeletonLoader';
 import PropertyHistoryModal from './components/PropertyHistoryModal';
 
 import { SoldPrice } from '../../types/sold-price';
-import { formatPrice, formatDate, debounce } from '../lib/utils';
+import { formatPrice } from '../lib/utils';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
