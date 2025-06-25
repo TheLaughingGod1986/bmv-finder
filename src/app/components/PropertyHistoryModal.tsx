@@ -3,9 +3,9 @@ import React from 'react';
 interface SoldPrice {
   id: string;
   price: number;
-  date_of_transfer: string;
+  dateOfTransfer: string;
   postcode: string;
-  property_type: string;
+  propertyType: string;
   street: string;
   town_city: string;
   county: string;
@@ -48,7 +48,7 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
               <tbody>
                 {history.map((h, i) => (
                   <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-blue-50/50"}>
-                    <td className="px-2 py-1 whitespace-nowrap">{h.date_of_transfer}</td>
+                    <td className="px-2 py-1 whitespace-nowrap">{h.dateOfTransfer}</td>
                     <td className="px-2 py-1 whitespace-nowrap">£{h.price.toLocaleString()}</td>
                   </tr>
                 ))}
@@ -82,7 +82,7 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
                     return (
                       <g key={i}>
                         <line x1={x} y1={100} x2={x} y2={110} stroke="#6b7280" />
-                        <text x={x} y={125} fontSize="13" fontWeight="bold" textAnchor="middle" fill="#374151">{d.date_of_transfer.slice(0,4)}</text>
+                        <text x={x} y={125} fontSize="13" fontWeight="bold" textAnchor="middle" fill="#374151">{d.dateOfTransfer.slice(0,4)}</text>
                       </g>
                     );
                   })}
@@ -111,7 +111,7 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
                     return (
                       <g key={i}>
                         <circle cx={x} cy={y} r="6" fill="#6366f1" stroke="#fff" strokeWidth="2">
-                          <title>£{d.price.toLocaleString()} on {d.date_of_transfer}</title>
+                          <title>£{d.price.toLocaleString()} on {d.dateOfTransfer}</title>
                         </circle>
                         <text x={x} y={y-12} fontSize="12" fontWeight="bold" textAnchor="middle" fill="#6366f1">£{(d.price >= 1000 ? (d.price/1000).toFixed(0) + 'k' : d.price.toLocaleString())}</text>
                       </g>

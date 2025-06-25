@@ -124,7 +124,7 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
           <thead>
             <tr className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-purple-50">
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
-              <SortableHeader title="Date" sortKey="date_of_transfer" requestSort={requestSort} sortConfig={sortConfig} disabled={isDateSortDisabled} disabledTooltip="Sorting disabled: all results are from the same year" />
+              <SortableHeader title="Date" sortKey="dateOfTransfer" requestSort={requestSort} sortConfig={sortConfig} disabled={isDateSortDisabled} disabledTooltip="Sorting disabled: all results are from the same year" />
               <SortableHeader title="Price" sortKey="price" requestSort={requestSort} sortConfig={sortConfig} />
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Property Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
@@ -160,13 +160,13 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                       {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{sp.date_of_transfer.slice(0, 4)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{sp.dateOfTransfer.slice(0, 4)}</td>
                   <td className="px-6 py-4">
                     <div className="text-lg font-bold text-blue-700">{formatPrice(sp.price)}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {formatPropertyType(sp.property_type)}
+                      {formatPropertyType(sp.propertyType)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -224,9 +224,9 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-xs border-b pb-3 mb-3">
-              <div><span className="text-gray-500">Date:</span> <span className="ml-1 font-medium">{sp.date_of_transfer.slice(0, 4)}</span></div>
+              <div><span className="text-gray-500">Date:</span> <span className="ml-1 font-medium">{sp.dateOfTransfer.slice(0, 4)}</span></div>
               <div><span className="text-gray-500">Type:</span> <span className="ml-1 font-medium">{formatDuration(sp.duration)}</span></div>
-              <div className="col-span-2"><span className="text-gray-500">Property Type:</span> <span className="ml-1 font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">{formatPropertyType(sp.property_type)}</span></div>
+              <div className="col-span-2"><span className="text-gray-500">Property Type:</span> <span className="ml-1 font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">{formatPropertyType(sp.propertyType)}</span></div>
               <div><span className="text-gray-500">Town:</span> <span className="ml-1 font-medium">{sp.town_city}</span></div>
               <div><span className="text-gray-500">County:</span> <span className="ml-1 font-medium">{sp.county}</span></div>
             </div>

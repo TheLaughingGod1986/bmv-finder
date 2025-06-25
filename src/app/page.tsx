@@ -46,8 +46,8 @@ export default function Home() {
 
   const isDateSortDisabled = useMemo(() => {
     if (soldPrices.length < 2) return true;
-    const firstYear = soldPrices[0].date_of_transfer.slice(0, 4);
-    return soldPrices.every(p => p.date_of_transfer.slice(0, 4) === firstYear);
+    const firstYear = soldPrices[0].dateOfTransfer.slice(0, 4);
+    return soldPrices.every(p => p.dateOfTransfer.slice(0, 4) === firstYear);
   }, [soldPrices]);
 
   // Create a map of how many times each unique address appears
@@ -158,7 +158,7 @@ export default function Home() {
       filtered = filtered.filter(sp => filterDuration.includes(sp.duration));
     }
     if (filterType.length > 0) {
-      filtered = filtered.filter(sp => filterType.includes(sp.property_type));
+      filtered = filtered.filter(sp => filterType.includes(sp.propertyType));
     }
     
     // Sorting
@@ -189,7 +189,7 @@ export default function Home() {
     const priceRange = maxPrice - minPrice;
     
     const propertyTypes = filteredSoldPrices.reduce((acc, sp) => {
-      acc[sp.property_type] = (acc[sp.property_type] || 0) + 1;
+      acc[sp.propertyType] = (acc[sp.propertyType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
@@ -204,8 +204,8 @@ export default function Home() {
       priceRange,
       mostCommonType: mostCommonType ? `${mostCommonType[0]} (${mostCommonType[1]})` : 'N/A',
       dateRange: {
-        earliest: filteredSoldPrices[filteredSoldPrices.length - 1]?.date_of_transfer,
-        latest: filteredSoldPrices[0]?.date_of_transfer
+        earliest: filteredSoldPrices[filteredSoldPrices.length - 1]?.dateOfTransfer,
+        latest: filteredSoldPrices[0]?.dateOfTransfer
       }
     };
   }, [filteredSoldPrices]);
@@ -214,7 +214,7 @@ export default function Home() {
   const trendData = useMemo(() => {
     const yearMap: Record<string, number[]> = {};
     filteredSoldPrices.forEach(sp => {
-      const year = sp.date_of_transfer.slice(0, 4);
+      const year = sp.dateOfTransfer.slice(0, 4);
       if (!yearMap[year]) yearMap[year] = [];
       yearMap[year].push(sp.price);
     });
@@ -236,13 +236,13 @@ export default function Home() {
     setShowPostcodeHint(false);
     setHasSearched(true);
     try {
-      // Construct the URL with query parameters
-      const params = new URLSearchParams();
-      params.append('postcode', searchPostcode);
-      // Add other params like limit/offset if needed in the future
-      // params.append('limit', '1000'); 
-
-      const response = await fetch(`/api/property-kv?${params.toString()}`);
+      const response = await fetch('/api/property-csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ postcode: searchPostcode }),
+      });
 
       let data: unknown = null;
       const contentType = response.headers.get('content-type');
@@ -310,7 +310,7 @@ export default function Home() {
         (typeof p.paon === 'string' ? p.paon.trim().toLowerCase() : '') === (typeof selectedProperty.paon === 'string' ? selectedProperty.paon.trim().toLowerCase() : '') &&
         (typeof p.saon === 'string' ? p.saon.trim().toLowerCase() : '') === (typeof selectedProperty.saon === 'string' ? selectedProperty.saon.trim().toLowerCase() : '')
       )
-      .sort((a, b) => new Date(a.date_of_transfer).getTime() - new Date(b.date_of_transfer).getTime());
+      .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
       
     setHistoryModal({
       open: true,

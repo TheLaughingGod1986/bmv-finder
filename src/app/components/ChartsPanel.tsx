@@ -33,7 +33,7 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices }) => {
   const pieData = useMemo(() => {
     const counts: Record<string, number> = {};
     for (const sp of soldPrices) {
-      counts[sp.property_type] = (counts[sp.property_type] || 0) + 1;
+      counts[sp.propertyType] = (counts[sp.propertyType] || 0) + 1;
     }
     const labels = Object.keys(counts).map(k => propertyTypeLabels[k] || k);
     const data = Object.values(counts);
@@ -54,7 +54,7 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({ soldPrices }) => {
   const barData = useMemo(() => {
     const yearCounts: Record<string, number> = {};
     for (const sp of soldPrices) {
-      const year = sp.date_of_transfer.slice(0, 4);
+      const year = sp.dateOfTransfer.slice(0, 4);
       yearCounts[year] = (yearCounts[year] || 0) + 1;
     }
     const years = Object.keys(yearCounts).sort();

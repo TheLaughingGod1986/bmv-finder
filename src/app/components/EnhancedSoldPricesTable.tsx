@@ -113,9 +113,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
             </div>
           </div>
           <div className="flex items-center gap-1">
-            {getPropertyTypeIcon(property.property_type)}
+            {getPropertyTypeIcon(property.propertyType)}
             <span className="text-xs text-gray-500">
-              {getPropertyTypeLabel(property.property_type)}
+              {getPropertyTypeLabel(property.propertyType)}
             </span>
           </div>
         </div>
@@ -129,7 +129,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
           </div>
           <div className="text-center">
             <div className="text-sm font-medium text-gray-700">
-              {property.date_of_transfer.slice(0, 4)}
+              {property.dateOfTransfer.slice(0, 4)}
             </div>
             <div className="text-xs text-gray-500">Year</div>
           </div>
@@ -179,8 +179,8 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                 <div><span className="font-medium">Town:</span> {property.town_city}</div>
                 <div><span className="font-medium">County:</span> {property.county}</div>
-                <div><span className="font-medium">Date:</span> {property.date_of_transfer}</div>
-                <div><span className="font-medium">Type:</span> {formatPropertyType(property.property_type)}</div>
+                <div><span className="font-medium">Date:</span> {property.dateOfTransfer}</div>
+                <div><span className="font-medium">Type:</span> {formatPropertyType(property.propertyType)}</div>
               </div>
             </motion.div>
           )}
@@ -278,7 +278,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                   />
                   <SortableHeader 
                     title="Date" 
-                    sortKey="date_of_transfer" 
+                    sortKey="dateOfTransfer" 
                     requestSort={requestSort} 
                     sortConfig={sortConfig}
                     disabled={isDateSortDisabled}
@@ -345,7 +345,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                         </button>
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-700">
-                        {property.date_of_transfer.slice(0, 4)}
+                        {property.dateOfTransfer.slice(0, 4)}
                       </td>
                       <td className="px-4 py-4">
                         <div className={cn("text-lg font-bold", getPriceRangeColor(property.price, priceRange.min, priceRange.max))}>
@@ -354,9 +354,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                       </td>
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">{getPropertyTypeIcon(property.property_type)}</span>
+                          <span className="text-lg">{getPropertyTypeIcon(property.propertyType)}</span>
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {formatPropertyType(property.property_type)}
+                            {formatPropertyType(property.propertyType)}
                           </span>
                         </div>
                       </td>

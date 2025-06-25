@@ -69,8 +69,8 @@ function HomeContent() {
 
   const isDateSortDisabled = useMemo(() => {
     if (soldPrices.length < 2) return true;
-    const firstYear = soldPrices[0].date_of_transfer.slice(0, 4);
-    return soldPrices.every(p => p.date_of_transfer.slice(0, 4) === firstYear);
+    const firstYear = soldPrices[0].dateOfTransfer.slice(0, 4);
+    return soldPrices.every(p => p.dateOfTransfer.slice(0, 4) === firstYear);
   }, [soldPrices]);
 
   // Create a map of how many times each unique address appears
@@ -122,7 +122,7 @@ function HomeContent() {
     setShowPostcodeHint(false);
 
     try {
-      const response = await fetch('/api/property-kv', {
+      const response = await fetch('/api/property-csv', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -246,7 +246,7 @@ function HomeContent() {
     
     // Property type filter
     if (filterType.length > 0) {
-      filtered = filtered.filter(sp => sp.property_type && filterType.includes(sp.property_type));
+      filtered = filtered.filter(sp => sp.propertyType && filterType.includes(sp.propertyType));
     }
     
     // Price range filter
@@ -260,8 +260,8 @@ function HomeContent() {
     // Date range filter
     if (dateRange.start || dateRange.end) {
       filtered = filtered.filter(sp => {
-        if (!sp.date_of_transfer) return true;
-        const saleDate = new Date(sp.date_of_transfer);
+        if (!sp.dateOfTransfer) return true;
+        const saleDate = new Date(sp.dateOfTransfer);
         const startDate = dateRange.start ? new Date(dateRange.start) : null;
         const endDate = dateRange.end ? new Date(dateRange.end) : null;
         
@@ -304,14 +304,14 @@ function HomeContent() {
     const priceRange = maxPrice - minPrice;
     
     const propertyTypes = filteredSoldPrices.reduce((acc, sp) => {
-      acc[sp.property_type] = (acc[sp.property_type] || 0) + 1;
+      acc[sp.propertyType] = (acc[sp.propertyType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
     const mostCommonType = Object.entries(propertyTypes)
       .sort(([,a], [,b]) => b - a)[0];
     
-    const dates = filteredSoldPrices.map(sp => sp.date_of_transfer).sort();
+    const dates = filteredSoldPrices.map(sp => sp.dateOfTransfer).sort();
     
     return {
       totalProperties: filteredSoldPrices.length,
@@ -332,7 +332,7 @@ function HomeContent() {
     if (filteredSoldPrices.length === 0) return { years: [], avgPrices: [] };
     
     const yearData = filteredSoldPrices.reduce((acc, sp) => {
-      const year = sp.date_of_transfer.slice(0, 4);
+      const year = sp.dateOfTransfer.slice(0, 4);
       if (!acc[year]) {
         acc[year] = { total: 0, count: 0 };
       }
@@ -358,7 +358,7 @@ function HomeContent() {
         (typeof p.paon === 'string' ? p.paon.trim().toLowerCase() : '') === (typeof selectedProperty.paon === 'string' ? selectedProperty.paon.trim().toLowerCase() : '') &&
         (typeof p.saon === 'string' ? p.saon.trim().toLowerCase() : '') === (typeof selectedProperty.saon === 'string' ? selectedProperty.saon.trim().toLowerCase() : '')
       )
-      .sort((a, b) => new Date(a.date_of_transfer).getTime() - new Date(b.date_of_transfer).getTime());
+      .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
       
     setHistoryModal({
       open: true,
@@ -387,8 +387,8 @@ function HomeContent() {
       ...filteredSoldPrices.map(sp => [
         formatAddress(sp),
         formatPrice(sp.price),
-        sp.date_of_transfer,
-        formatPropertyType(sp.property_type),
+        sp.dateOfTransfer,
+        formatPropertyType(sp.propertyType),
         formatDuration(sp.duration),
         sp.postcode,
         sp.town_city,
