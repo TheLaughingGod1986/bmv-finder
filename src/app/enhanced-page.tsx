@@ -59,6 +59,7 @@ function HomeContent() {
   const [filterType, setFilterType] = useState<string[]>([]);
   const [priceRange, setPriceRange] = useState<{ min: number; max: number }>({ min: 0, max: 10000000 });
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>({ start: '', end: '' });
+  const [filterYear, setFilterYear] = useState<string[]>([]);
   
   const [sortConfig, setSortConfig] = useState<{ key: keyof SoldPrice; direction: 'ascending' | 'descending' }>({
     key: 'price',
@@ -235,8 +236,16 @@ function HomeContent() {
     setSortConfig({ key, direction });
   };
 
+  // Extract available years from soldPrices
+  const availableYears = useMemo(() => {
+    const years = Array.from(new Set(soldPrices.map(sp => sp.dateOfTransfer.slice(0, 4))));
+    return years.sort((a, b) => b.localeCompare(a)); // Descending order
+  }, [soldPrices]);
+
   // Enhanced filtering with price and date ranges
   const filteredSoldPrices = useMemo(() => {
+    console.log('DEBUG: filterType:', filterType);
+    console.log('DEBUG: propertyTypes in soldPrices:', soldPrices.map(sp => sp.propertyType));
     let filtered = [...soldPrices];
     
     // Duration filter
@@ -276,6 +285,11 @@ function HomeContent() {
       });
     }
     
+    // Year filter
+    if (filterYear.length > 0) {
+      filtered = filtered.filter(sp => filterYear.includes(sp.dateOfTransfer.slice(0, 4)));
+    }
+    
     // Sorting
     filtered.sort((a, b) => {
       const aValue = a[sortConfig.key];
@@ -291,19 +305,36 @@ function HomeContent() {
     });
 
     return filtered;
-  }, [soldPrices, filterDuration, filterType, priceRange, dateRange, sortConfig]);
+  }, [soldPrices, filterDuration, filterType, priceRange, dateRange, filterYear, sortConfig]);
+
+  // Deduplicate by address, keep only the latest sale
+  const dedupedSoldPrices = useMemo(() => {
+    const map = new Map();
+    for (const sp of filteredSoldPrices) {
+      const addressKey = [
+        sp.postcode,
+        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
+      ].filter(Boolean).join('|');
+      if (!map.has(addressKey) || new Date(sp.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
+        map.set(addressKey, sp);
+      }
+    }
+    return Array.from(map.values());
+  }, [filteredSoldPrices]);
 
   // Results summary statistics
   const resultsSummary = useMemo(() => {
-    if (filteredSoldPrices.length === 0) return null;
+    if (dedupedSoldPrices.length === 0) return null;
     
-    const prices = filteredSoldPrices.map(sp => sp.price);
+    const prices = dedupedSoldPrices.map(sp => sp.price);
     const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const priceRange = maxPrice - minPrice;
     
-    const propertyTypes = filteredSoldPrices.reduce((acc, sp) => {
+    const propertyTypes = dedupedSoldPrices.reduce((acc, sp) => {
       acc[sp.propertyType] = (acc[sp.propertyType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -311,10 +342,10 @@ function HomeContent() {
     const mostCommonType = Object.entries(propertyTypes)
       .sort(([,a], [,b]) => b - a)[0];
     
-    const dates = filteredSoldPrices.map(sp => sp.dateOfTransfer).sort();
+    const dates = dedupedSoldPrices.map(sp => sp.dateOfTransfer).sort();
     
     return {
-      totalProperties: filteredSoldPrices.length,
+      totalProperties: dedupedSoldPrices.length,
       avgPrice,
       minPrice,
       maxPrice,
@@ -325,13 +356,13 @@ function HomeContent() {
         latest: dates[dates.length - 1],
       },
     };
-  }, [filteredSoldPrices]);
+  }, [dedupedSoldPrices]);
 
   // Trend data for charts
   const trendData = useMemo(() => {
-    if (filteredSoldPrices.length === 0) return { years: [], avgPrices: [] };
+    if (dedupedSoldPrices.length === 0) return { years: [], avgPrices: [] };
     
-    const yearData = filteredSoldPrices.reduce((acc, sp) => {
+    const yearData = dedupedSoldPrices.reduce((acc, sp) => {
       const year = sp.dateOfTransfer.slice(0, 4);
       if (!acc[year]) {
         acc[year] = { total: 0, count: 0 };
@@ -345,7 +376,7 @@ function HomeContent() {
     const avgPrices = years.map(year => Math.round(yearData[year].total / yearData[year].count));
     
     return { years, avgPrices };
-  }, [filteredSoldPrices]);
+  }, [dedupedSoldPrices]);
 
   const handleShowHistory = (id: string) => {
     const selectedProperty = soldPrices.find(p => p.id === id);
@@ -373,7 +404,7 @@ function HomeContent() {
   };
 
   const handleExport = () => {
-    if (filteredSoldPrices.length === 0) {
+    if (dedupedSoldPrices.length === 0) {
       showToast({
         type: 'warning',
         title: 'No Data to Export',
@@ -384,7 +415,7 @@ function HomeContent() {
 
     const csvContent = [
       ['Address', 'Price', 'Date', 'Property Type', 'Tenure', 'Postcode', 'Town/City', 'County'],
-      ...filteredSoldPrices.map(sp => [
+      ...dedupedSoldPrices.map(sp => [
         formatAddress(sp),
         formatPrice(sp.price),
         sp.dateOfTransfer,
@@ -409,7 +440,7 @@ function HomeContent() {
     showToast({
       type: 'success',
       title: 'Export Complete',
-      message: `Exported ${filteredSoldPrices.length} properties to CSV`,
+      message: `Exported ${dedupedSoldPrices.length} properties to CSV`,
     });
   };
 
@@ -417,7 +448,7 @@ function HomeContent() {
     if (navigator.share) {
       navigator.share({
         title: `Property Prices in ${postcode}`,
-        text: `Check out property prices in ${postcode} - ${filteredSoldPrices.length} properties found!`,
+        text: `Check out property prices in ${postcode} - ${dedupedSoldPrices.length} properties found!`,
         url: window.location.href,
       });
     } else {
@@ -536,14 +567,19 @@ function HomeContent() {
             setPriceRange={setPriceRange}
             dateRange={dateRange}
             setDateRange={setDateRange}
+            filterYear={filterYear}
+            setFilterYear={setFilterYear}
+            availableYears={availableYears}
           />
         )}
 
         {/* Results block */}
         <div className="mt-8 min-h-[40vh]">
           {isLoading ? (
-            <SkeletonLoader />
-          ) : filteredSoldPrices.length > 0 ? (
+            <div className="text-center py-8 text-blue-700 font-semibold animate-pulse">
+              Loading property data, this may take a few seconds...
+            </div>
+          ) : dedupedSoldPrices.length > 0 ? (
             <div>
               {resultsSummary && (
                 <div className="mb-8">
@@ -559,7 +595,7 @@ function HomeContent() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left side: charts */}
                 <div className="lg:col-span-1 space-y-8">
-                  <ChartsPanel soldPrices={filteredSoldPrices} />
+                  <ChartsPanel soldPrices={dedupedSoldPrices} />
                 </div>
                 
                 {/* Right side: table and trend chart */}
@@ -581,7 +617,7 @@ function HomeContent() {
                       Sold Property Prices in {postcode}
                     </h2>
                     <EnhancedSoldPricesTable
-                      soldPrices={filteredSoldPrices}
+                      soldPrices={dedupedSoldPrices}
                       formatAddress={formatAddress}
                       formatDuration={formatDuration}
                       formatPropertyType={formatPropertyType}

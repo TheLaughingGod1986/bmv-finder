@@ -39,6 +39,7 @@ export default function Home() {
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string[]>([]);
+  const [filterYear, setFilterYear] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: keyof SoldPrice; direction: 'ascending' | 'descending' }>({
     key: 'price',
     direction: 'descending',
@@ -82,6 +83,12 @@ export default function Home() {
     ].filter(Boolean).join('|');
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
+
+  // Extract available years from soldPrices
+  const availableYears = useMemo(() => {
+    const years = Array.from(new Set(soldPrices.map(sp => sp.dateOfTransfer.slice(0, 4))));
+    return years.sort((a, b) => b.localeCompare(a)); // Descending order
+  }, [soldPrices]);
 
   useEffect(() => {
     const fetchLastUpdated = async () => {
@@ -160,23 +167,39 @@ export default function Home() {
     if (filterType.length > 0) {
       filtered = filtered.filter(sp => filterType.includes(sp.propertyType));
     }
-    
+    if (filterYear.length > 0) {
+      filtered = filtered.filter(sp => filterYear.includes(sp.dateOfTransfer.slice(0, 4)));
+    }
     // Sorting
     filtered.sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
-
       if (aValue == null && bValue == null) return 0;
       if (aValue == null) return 1;
       if (bValue == null) return -1;
-
       if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
       return 0;
     });
-
     return filtered;
-  }, [soldPrices, filterDuration, filterType, sortConfig]);
+  }, [soldPrices, filterDuration, filterType, filterYear, sortConfig]);
+
+  // Deduplicate by address, keep only the latest sale
+  const dedupedSoldPrices = useMemo(() => {
+    const map = new Map();
+    for (const sp of filteredSoldPrices) {
+      const addressKey = [
+        sp.postcode,
+        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
+      ].filter(Boolean).join('|');
+      if (!map.has(addressKey) || new Date(sp.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
+        map.set(addressKey, sp);
+      }
+    }
+    return Array.from(map.values());
+  }, [filteredSoldPrices]);
 
   // Results summary statistics
   const resultsSummary = useMemo(() => {
@@ -363,6 +386,9 @@ export default function Home() {
             setFilterDuration={setFilterDuration}
             filterType={filterType}
             setFilterType={setFilterType}
+            filterYear={filterYear}
+            setFilterYear={setFilterYear}
+            availableYears={availableYears}
           />
           <div className="mb-4 pt-6 border-t">
             <div className="flex justify-between items-center mb-2">
@@ -428,7 +454,9 @@ export default function Home() {
         {/* Results block - always render the parent div, conditionally render content inside */}
         <div className="mt-8 min-h-[40vh]">
           {isLoading ? (
-            <SkeletonLoader />
+            <div className="text-center py-8 text-blue-700 font-semibold animate-pulse">
+              Loading property data, this may take a few seconds...
+            </div>
           ) : filteredSoldPrices.length > 0 ? (
             <div>
               {resultsSummary && (
@@ -460,7 +488,7 @@ export default function Home() {
                       Sold Property Prices in {postcode}
                     </h2>
                     <SoldPricesTable
-                      soldPrices={filteredSoldPrices}
+                      soldPrices={dedupedSoldPrices}
                       formatAddress={formatAddress}
                       formatPrice={formatPrice}
                       formatDuration={formatDuration}

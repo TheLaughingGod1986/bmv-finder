@@ -15,13 +15,14 @@ import {
 } from 'lucide-react';
 import { SoldPrice } from '../../../types/sold-price';
 import { cn, getPropertyTypeIcon, getPropertyTypeLabel, getPriceRangeColor } from '../../lib/utils';
+import PropertyHistoryModal from './PropertyHistoryModal';
+import Tooltip from './Tooltip';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
   formatAddress: (sp: SoldPrice) => string;
   formatDuration: (duration: string) => string;
   formatPropertyType: (type: string) => string;
-  handleShowHistory: (id: string) => void;
   requestSort: (key: keyof SoldPrice) => void;
   sortConfig: { key: keyof SoldPrice; direction: string };
   getHasHistory: (property: SoldPrice) => boolean;
@@ -34,7 +35,6 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   formatAddress,
   formatDuration,
   formatPropertyType,
-  handleShowHistory,
   requestSort,
   sortConfig,
   getHasHistory,
@@ -45,6 +45,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   const [pageSize, setPageSize] = useState(10);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalProperty, setModalProperty] = useState<SoldPrice | null>(null);
+  const [modalHistory, setModalHistory] = useState<SoldPrice[]>([]);
 
   const totalPages = Math.ceil(soldPrices.length / pageSize);
   
@@ -59,6 +62,21 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
 
   const handlePrev = () => setPage(p => Math.max(1, p - 1));
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
+
+  const handleShowHistory = (property: SoldPrice) => {
+    setModalProperty(property);
+    // Find all sales for this property (by address key)
+    const history = soldPrices.filter(sp =>
+      sp.postcode === property.postcode &&
+      sp.street === property.street &&
+      sp.paon === property.paon &&
+      sp.saon === property.saon
+    );
+    setModalHistory(history);
+    setModalOpen(true);
+  };
+
+  const formatPrice = (price: number) => price ? `£${price.toLocaleString()}` : 'N/A';
 
   const SortableHeader: React.FC<{
     title: string;
@@ -123,15 +141,15 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
         <div className="grid grid-cols-2 gap-3 mb-3">
           <div className="text-center">
             <div className={cn("text-lg font-bold", priceColor)}>
-              {property.price}
+              {formatPrice(property.price)}
             </div>
             <div className="text-xs text-gray-500">Price</div>
           </div>
           <div className="text-center">
             <div className="text-sm font-medium text-gray-700">
-              {property.dateOfTransfer.slice(0, 4)}
+              {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
             </div>
-            <div className="text-xs text-gray-500">Year</div>
+            <div className="text-xs text-gray-500">Date</div>
           </div>
         </div>
 
@@ -150,7 +168,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
           <div className="flex items-center gap-2">
             {hasHistory && (
               <button
-                onClick={() => handleShowHistory(property.id)}
+                onClick={() => handleShowHistory(property)}
                 className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
                 title="View price history"
               >
@@ -179,7 +197,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
                 <div><span className="font-medium">Town:</span> {property.town_city}</div>
                 <div><span className="font-medium">County:</span> {property.county}</div>
-                <div><span className="font-medium">Date:</span> {property.dateOfTransfer}</div>
+                <div><span className="font-medium">Date:</span> {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}</div>
                 <div><span className="font-medium">Type:</span> {formatPropertyType(property.propertyType)}</div>
               </div>
             </motion.div>
@@ -257,7 +275,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
       {viewMode === 'cards' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {paginatedSoldPrices.map((property, index) => (
-            <PropertyCard key={property.id} property={property} index={index} />
+            <PropertyCard key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')} property={property} index={index} />
           ))}
         </div>
       )}
@@ -307,7 +325,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                 <AnimatePresence>
                   {paginatedSoldPrices.map((property, index) => (
                     <motion.tr
-                      key={property.id}
+                      key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
@@ -320,10 +338,10 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                         <button
                           type="button"
                           className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed group"
-                          onClick={() => handleShowHistory(property.id)}
+                          onClick={() => handleShowHistory(property)}
                           disabled={!getHasHistory(property)}
                           tabIndex={0}
-                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(property.id); }}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(property); }}
                         >
                           <div className="flex items-center gap-2">
                             <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
@@ -332,10 +350,11 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                             {getHasHistory(property) && (
                               <span className="relative group flex items-center">
                                 <TrendingUp className="w-4 h-4 text-blue-500 cursor-pointer" />
-                                <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                                  Click to view full price history for this property
-                                  <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
-                                </span>
+                                <Tooltip content="Click to view full price history for this property">
+                                  <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
+                                    <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
+                                  </span>
+                                </Tooltip>
                               </span>
                             )}
                           </div>
@@ -345,11 +364,11 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                         </button>
                       </td>
                       <td className="px-4 py-4 text-sm text-gray-700">
-                        {property.dateOfTransfer.slice(0, 4)}
+                        {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
                       </td>
                       <td className="px-4 py-4">
                         <div className={cn("text-lg font-bold", getPriceRangeColor(property.price, priceRange.min, priceRange.max))}>
-                          {property.price}
+                          {formatPrice(property.price)}
                         </div>
                       </td>
                       <td className="px-4 py-4">
@@ -435,6 +454,14 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
           </div>
         </div>
       )}
+
+      <PropertyHistoryModal
+        open={modalOpen}
+        property={modalProperty}
+        history={modalHistory}
+        formatAddress={formatAddress}
+        onClose={() => setModalOpen(false)}
+      />
     </div>
   );
 });

@@ -29,6 +29,13 @@ interface PropertyHistoryModalProps {
 
 const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ open, property, history, formatAddress, onClose }) => {
   if (!open || !property) return null;
+
+  // Sort history by date descending
+  const sortedHistory = React.useMemo(() =>
+    [...history].sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime()),
+    [history]
+  );
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl p-6 max-w-lg w-full relative">
@@ -46,9 +53,11 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
                 </tr>
               </thead>
               <tbody>
-                {history.map((h, i) => (
-                  <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-blue-50/50"}>
-                    <td className="px-2 py-1 whitespace-nowrap">{h.dateOfTransfer}</td>
+                {sortedHistory.map((h, i) => (
+                  <tr key={i} className={
+                    (h.id === property.id ? 'bg-yellow-100 ' : '') + (i % 2 === 0 ? 'bg-white' : 'bg-blue-50/50')
+                  }>
+                    <td className="px-2 py-1 whitespace-nowrap">{new Date(h.dateOfTransfer).toLocaleDateString('en-GB')}</td>
                     <td className="px-2 py-1 whitespace-nowrap">£{h.price.toLocaleString()}</td>
                   </tr>
                 ))}

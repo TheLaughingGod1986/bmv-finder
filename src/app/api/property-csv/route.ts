@@ -28,6 +28,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Postcode is required' }, { status: 400 });
   }
 
+  // Normalize input: remove spaces and uppercase
+  const normalizedInput = postcode.replace(/\s+/g, '').toUpperCase();
+
   try {
     // SPARQL query to get property data from Land Registry
     const sparqlQuery = `
@@ -36,7 +39,8 @@ export async function POST(req: NextRequest) {
       
       SELECT ?paon ?saon ?street ?locality ?town ?district ?county ?postcode ?pricePaid ?transactionDate ?propertyType ?newBuild ?estateType ?transactionId
       WHERE {
-        ?addr lrcommon:postcode "${postcode.toUpperCase()}" .
+        ?addr lrcommon:postcode ?postcode .
+        FILTER STRSTARTS(REPLACE(UCASE(?postcode), " ", ""), UCASE("${normalizedInput}"))
         ?transx lrppi:propertyAddress ?addr ;
                 lrppi:pricePaid ?pricePaid ;
                 lrppi:transactionDate ?transactionDate ;
@@ -52,7 +56,6 @@ export async function POST(req: NextRequest) {
         ?addr lrcommon:town ?town .
         ?addr lrcommon:district ?district .
         ?addr lrcommon:county ?county .
-        ?addr lrcommon:postcode ?postcode .
       }
       ORDER BY DESC(?transactionDate)
       LIMIT 1000
@@ -82,7 +85,7 @@ export async function POST(req: NextRequest) {
       price: parseInt(binding.pricePaid?.value) || 0,
       dateOfTransfer: binding.transactionDate?.value || '',
       postcode: binding.postcode?.value || '',
-      propertyType: PROPERTY_TYPES[binding.propertyType?.value as keyof typeof PROPERTY_TYPES] || binding.propertyType?.value || '',
+      propertyType: PROPERTY_TYPES[binding.propertyType?.value as keyof typeof PROPERTY_TYPES] || 'Other',
       propertyTypeCode: binding.propertyType?.value || '',
       newBuild: NEW_BUILD_TYPES[binding.newBuild?.value as keyof typeof NEW_BUILD_TYPES] || binding.newBuild?.value || '',
       newBuildCode: binding.newBuild?.value || '',

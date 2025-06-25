@@ -6,6 +6,9 @@ interface FiltersProps {
   setFilterDuration: React.Dispatch<React.SetStateAction<string[]>>;
   filterType: string[];
   setFilterType: React.Dispatch<React.SetStateAction<string[]>>;
+  filterYear: string[];
+  setFilterYear: React.Dispatch<React.SetStateAction<string[]>>;
+  availableYears: string[];
 }
 
 const Filters: React.FC<FiltersProps> = ({
@@ -14,6 +17,9 @@ const Filters: React.FC<FiltersProps> = ({
   setFilterDuration,
   filterType,
   setFilterType,
+  filterYear,
+  setFilterYear,
+  availableYears,
 }) => (
   <fieldset disabled={isLoading} className="flex flex-col sm:flex-row sm:items-start sm:gap-4 gap-2 mb-2 group p-2">
     <div className="flex-1 min-w-[140px]">
@@ -52,6 +58,27 @@ const Filters: React.FC<FiltersProps> = ({
         <label htmlFor="prop-other" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
           <input type="checkbox" id="prop-other" checked={filterType.includes('O')} onChange={() => setFilterType((ft: string[]) => ft.includes('O') ? ft.filter(x => x !== 'O') : [...ft, 'O'])} className="mr-1" /> Other
         </label>
+      </div>
+    </div>
+    <div className="hidden sm:block w-px bg-gray-200 mx-2 self-stretch" />
+    <div className="flex-1 min-w-[120px]">
+      <label className="block text-xs font-semibold text-gray-600 mb-1 group-disabled:opacity-50">Year</label>
+      <div className="flex flex-col gap-1 max-h-40 overflow-y-auto">
+        <label htmlFor="year-all" className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+          <input type="checkbox" id="year-all" checked={filterYear.length === 0} onChange={() => setFilterYear([])} className="mr-1" /> All
+        </label>
+        {availableYears.map(year => (
+          <label key={year} htmlFor={`year-${year}`} className="inline-flex items-center group-disabled:opacity-50 text-gray-800">
+            <input
+              type="checkbox"
+              id={`year-${year}`}
+              checked={filterYear.includes(year)}
+              onChange={() => setFilterYear((fy: string[]) => fy.includes(year) ? fy.filter(x => x !== year) : [...fy, year])}
+              className="mr-1"
+            />
+            {year}
+          </label>
+        ))}
       </div>
     </div>
   </fieldset>

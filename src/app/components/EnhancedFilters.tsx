@@ -15,6 +15,9 @@ interface EnhancedFiltersProps {
   setPriceRange: React.Dispatch<React.SetStateAction<{ min: number; max: number }>>;
   dateRange: { start: string; end: string };
   setDateRange: React.Dispatch<React.SetStateAction<{ start: string; end: string }>>;
+  filterYear: string[];
+  setFilterYear: React.Dispatch<React.SetStateAction<string[]>>;
+  availableYears: string[];
   className?: string;
 }
 
@@ -28,6 +31,9 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
   setPriceRange,
   dateRange,
   setDateRange,
+  filterYear,
+  setFilterYear,
+  availableYears,
   className
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -185,34 +191,54 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                     />
                     <FilterChip
                       label="Detached"
-                      isActive={filterType.includes('D')}
-                      onClick={() => handleTypeToggle('D')}
-                      icon={getPropertyTypeIcon('D')}
+                      isActive={filterType.includes('Detached')}
+                      onClick={() => handleTypeToggle('Detached')}
+                      icon={getPropertyTypeIcon('Detached')}
                     />
                     <FilterChip
                       label="Semi-detached"
-                      isActive={filterType.includes('S')}
-                      onClick={() => handleTypeToggle('S')}
-                      icon={getPropertyTypeIcon('S')}
+                      isActive={filterType.includes('Semi-detached')}
+                      onClick={() => handleTypeToggle('Semi-detached')}
+                      icon={getPropertyTypeIcon('Semi-detached')}
                     />
                     <FilterChip
                       label="Terraced"
-                      isActive={filterType.includes('T')}
-                      onClick={() => handleTypeToggle('T')}
-                      icon={getPropertyTypeIcon('T')}
+                      isActive={filterType.includes('Terraced')}
+                      onClick={() => handleTypeToggle('Terraced')}
+                      icon={getPropertyTypeIcon('Terraced')}
                     />
                     <FilterChip
                       label="Flat/Maisonette"
-                      isActive={filterType.includes('F')}
-                      onClick={() => handleTypeToggle('F')}
-                      icon={getPropertyTypeIcon('F')}
+                      isActive={filterType.includes('Flat/Maisonette')}
+                      onClick={() => handleTypeToggle('Flat/Maisonette')}
+                      icon={getPropertyTypeIcon('Flat/Maisonette')}
                     />
                     <FilterChip
                       label="Other"
-                      isActive={filterType.includes('O')}
-                      onClick={() => handleTypeToggle('O')}
-                      icon={getPropertyTypeIcon('O')}
+                      isActive={filterType.includes('Other')}
+                      onClick={() => handleTypeToggle('Other')}
+                      icon={getPropertyTypeIcon('Other')}
                     />
+                  </div>
+                </div>
+
+                {/* Year Filter */}
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-3">Year</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <FilterChip
+                      label="All"
+                      isActive={filterYear.length === 0}
+                      onClick={() => setFilterYear([])}
+                    />
+                    {availableYears.map(year => (
+                      <FilterChip
+                        key={year}
+                        label={year}
+                        isActive={filterYear.includes(year)}
+                        onClick={() => setFilterYear((fy: string[]) => fy.includes(year) ? fy.filter(x => x !== year) : [...fy, year])}
+                      />
+                    ))}
                   </div>
                 </div>
 
@@ -401,34 +427,54 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                 />
                 <FilterChip
                   label="Detached"
-                  isActive={filterType.includes('D')}
-                  onClick={() => handleTypeToggle('D')}
-                  icon={getPropertyTypeIcon('D')}
+                  isActive={filterType.includes('Detached')}
+                  onClick={() => handleTypeToggle('Detached')}
+                  icon={getPropertyTypeIcon('Detached')}
                 />
                 <FilterChip
                   label="Semi-detached"
-                  isActive={filterType.includes('S')}
-                  onClick={() => handleTypeToggle('S')}
-                  icon={getPropertyTypeIcon('S')}
+                  isActive={filterType.includes('Semi-detached')}
+                  onClick={() => handleTypeToggle('Semi-detached')}
+                  icon={getPropertyTypeIcon('Semi-detached')}
                 />
                 <FilterChip
                   label="Terraced"
-                  isActive={filterType.includes('T')}
-                  onClick={() => handleTypeToggle('T')}
-                  icon={getPropertyTypeIcon('T')}
+                  isActive={filterType.includes('Terraced')}
+                  onClick={() => handleTypeToggle('Terraced')}
+                  icon={getPropertyTypeIcon('Terraced')}
                 />
                 <FilterChip
                   label="Flat/Maisonette"
-                  isActive={filterType.includes('F')}
-                  onClick={() => handleTypeToggle('F')}
-                  icon={getPropertyTypeIcon('F')}
+                  isActive={filterType.includes('Flat/Maisonette')}
+                  onClick={() => handleTypeToggle('Flat/Maisonette')}
+                  icon={getPropertyTypeIcon('Flat/Maisonette')}
                 />
                 <FilterChip
                   label="Other"
-                  isActive={filterType.includes('O')}
-                  onClick={() => handleTypeToggle('O')}
-                  icon={getPropertyTypeIcon('O')}
+                  isActive={filterType.includes('Other')}
+                  onClick={() => handleTypeToggle('Other')}
+                  icon={getPropertyTypeIcon('Other')}
                 />
+              </div>
+            </div>
+
+            {/* Year Filter */}
+            <div>
+              <h4 className="font-semibold text-gray-800 mb-3">Year</h4>
+              <div className="flex flex-wrap gap-2">
+                <FilterChip
+                  label="All"
+                  isActive={filterYear.length === 0}
+                  onClick={() => setFilterYear([])}
+                />
+                {availableYears.map(year => (
+                  <FilterChip
+                    key={year}
+                    label={year}
+                    isActive={filterYear.includes(year)}
+                    onClick={() => setFilterYear((fy: string[]) => fy.includes(year) ? fy.filter(x => x !== year) : [...fy, year])}
+                  />
+                ))}
               </div>
             </div>
           </div>
