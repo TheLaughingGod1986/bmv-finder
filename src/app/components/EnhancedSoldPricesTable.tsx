@@ -16,7 +16,6 @@ import {
 import { SoldPrice } from '../../../types/sold-price';
 import { cn, getPropertyTypeIcon, getPropertyTypeLabel, getPriceRangeColor } from '../../lib/utils';
 import PropertyHistoryModal from './PropertyHistoryModal';
-import Tooltip from './Tooltip';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
@@ -348,11 +347,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                               {formatAddress(property)}
                             </span>
                             {getHasHistory(property) && (
-                              <Tooltip content="Click to view full price history for this property">
-                                <span className="flex items-center">
-                                  <TrendingUp className="w-4 h-4 text-blue-500 cursor-pointer" />
-                                </span>
-                              </Tooltip>
+                              <span title="Click to view full price history for this property" className="flex items-center">
+                                <TrendingUp className="w-4 h-4 text-blue-500 cursor-pointer" />
+                              </span>
                             )}
                           </div>
                           {!getHasHistory(property) && (

@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { SoldPrice } from '../../../types/sold-price';
 import PropertyHistoryModal from './PropertyHistoryModal';
-import Tooltip from './Tooltip';
 
 interface SoldPricesTableProps {
   soldPrices: SoldPrice[];
@@ -122,13 +121,11 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-900">{formatAddress(sp)}</span>
                         {getHasHistory(sp) && (
-                          <Tooltip content="Click to view full price history for this property">
-                            <span className="flex items-center">
-                              <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
-                              </svg>
-                            </span>
-                          </Tooltip>
+                          <span title="Click to view full price history for this property" className="flex items-center">
+                            <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                            </svg>
+                          </span>
                         )}
                       </div>
                       {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
@@ -182,13 +179,11 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                 <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
                   {formatAddress(sp)}
                   {getHasHistory(sp) && (
-                    <Tooltip content="Click to view full price history for this property">
-                      <span className="flex items-center">
-                        <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
-                        </svg>
-                      </span>
-                    </Tooltip>
+                    <span title="Click to view full price history for this property" className="flex items-center">
+                      <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                      </svg>
+                    </span>
                   )}
                 </h3>
               </div>
