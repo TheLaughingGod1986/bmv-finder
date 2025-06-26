@@ -41,6 +41,8 @@ const SortableHeader: React.FC<{
   );
 };
 
+const normalize = (str: string | undefined | null) => (str ?? '').trim().toUpperCase();
+
 const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   soldPrices,
   formatAddress,
@@ -69,12 +71,12 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
 
   const handleShowHistory = (property: SoldPrice) => {
     setModalProperty(property);
-    // Find all sales for this property (by address key)
+    // Find all sales for this property (by normalized address key, treating missing/empty saon as equivalent)
     const history = soldPrices.filter(sp =>
-      sp.postcode === property.postcode &&
-      sp.street === property.street &&
-      sp.paon === property.paon &&
-      sp.saon === property.saon
+      normalize(sp.postcode) === normalize(property.postcode) &&
+      normalize(sp.street) === normalize(property.street) &&
+      normalize(sp.paon) === normalize(property.paon) &&
+      normalize(sp.saon) === normalize(property.saon)
     );
     setModalHistory(history);
     setModalOpen(true);
@@ -93,6 +95,40 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   }
   return (
     <div>
+      {/* Add Legend above the table/cards */}
+      <div className="mb-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-wrap gap-4 items-center text-xs">
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+            <span>Average price / Info</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-green-600 inline-block"></span>
+            <span>Lowest price / Positive trend</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
+            <span>Highest price</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
+            <span>Price range</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>🏠</span><span>Detached</span>
+            <span>🏡</span><span>Semi-detached</span>
+            <span>🏘️</span><span>Terraced</span>
+            <span>🏢</span><span>Flat/Maisonette</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-green-600">▲</span><span>Price up</span>
+            <span className="text-red-600">▼</span><span>Price down</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-blue-600">i</span><span>Info</span>
+          </div>
+        </div>
+      </div>
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full">
@@ -102,7 +138,6 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
               <SortableHeader title="Date" sortKey="dateOfTransfer" requestSort={requestSort} sortConfig={sortConfig} disabled={isDateSortDisabled} disabledTooltip="Sorting disabled: all results are from the same year" />
               <SortableHeader title="Price" sortKey="price" requestSort={requestSort} sortConfig={sortConfig} />
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Property Type</th>
-              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -140,31 +175,7 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                       {formatPropertyType(sp.propertyType)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      className="text-blue-500 hover:underline text-xs"
-                      onClick={() => setExpandedRowId(expandedRowId === sp.id ? null : sp.id)}
-                      aria-expanded={expandedRowId === sp.id}
-                      aria-controls={`row-details-${sp.id}`}
-                    >
-                      {expandedRowId === sp.id ? 'Hide details' : 'Show details'}
-                    </button>
-                  </td>
                 </tr>
-                {expandedRowId === sp.id && (
-                  <tr id={`row-details-${sp.id}`}>
-                    <td colSpan={5} className="bg-blue-50 px-6 py-4 text-sm text-gray-700">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div><span className="font-semibold">Tenure:</span> {formatDuration(sp.duration)}</div>
-                        <div><span className="font-semibold">Town/City:</span> {sp.town_city}</div>
-                        <div><span className="font-semibold">County:</span> {sp.county}</div>
-                        <div><span className="font-semibold">Postcode:</span> {sp.postcode}</div>
-                        <div><span className="font-semibold">Price:</span> {formatPrice(sp.price)}</div>
-                        {/* Add more details as needed */}
-                      </div>
-                    </td>
-                  </tr>
-                )}
               </React.Fragment>
             ))}
           </tbody>

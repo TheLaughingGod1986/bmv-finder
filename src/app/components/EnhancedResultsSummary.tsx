@@ -8,7 +8,6 @@ import {
   Home, 
   Calendar,
   PoundSterling,
-  Info,
   Share2,
   Download,
   BarChart3
@@ -54,15 +53,13 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
     value, 
     icon, 
     color, 
-    trend, 
-    tooltip 
+    trend
   }: {
     title: string;
     value: string | number;
     icon: React.ReactNode;
     color: string;
     trend?: { value: number; isPositive: boolean };
-    tooltip?: string;
   }) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -81,15 +78,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           )}>
             {icon}
           </div>
-          {tooltip && (
-            <button
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-              title={tooltip}
-              aria-label={`Info about ${title}`}
-            >
-              <Info className="h-4 w-4" />
-            </button>
-          )}
         </div>
         <div className="space-y-2">
           <div className="text-2xl font-bold text-gray-900">
@@ -220,28 +208,24 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
               value={summary.avgPrice}
               icon={<PoundSterling className="h-6 w-6" />}
               color="blue"
-              tooltip="The average price of all properties sold in this area during the selected period."
             />
             <StatCard
               title="Lowest Price"
               value={summary.minPrice}
               icon={<TrendingDown className="h-6 w-6" />}
               color="green"
-              tooltip="The lowest price paid for a property in this area during the selected period."
             />
             <StatCard
               title="Highest Price"
               value={summary.maxPrice}
               icon={<TrendingUp className="h-6 w-6" />}
               color="purple"
-              tooltip="The highest price paid for a property in this area during the selected period."
             />
             <StatCard
               title="Price Range"
               value={summary.priceRange}
               icon={<BarChart3 className="h-6 w-6" />}
               color="orange"
-              tooltip="The difference between the highest and lowest property prices in this area."
             />
           </div>
         </motion.section>
