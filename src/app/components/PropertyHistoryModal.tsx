@@ -29,7 +29,7 @@ interface PropertyHistoryModalProps {
 }
 
 const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ open, property, history, formatAddress, onClose }) => {
-  // Sort history by date descending
+  // Move all hooks to the top of the component, before any return or conditional logic
   const sortedHistory = React.useMemo(() =>
     [...history].sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime()),
     [history]

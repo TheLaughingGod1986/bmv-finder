@@ -63,7 +63,6 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   }, [soldPrices, page]);
   const handlePrev = () => setPage(p => Math.max(1, p - 1));
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [modalProperty, setModalProperty] = useState<SoldPrice | null>(null);
   const [modalHistory, setModalHistory] = useState<SoldPrice[]>([]);

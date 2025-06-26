@@ -353,7 +353,7 @@ function HomeContent() {
         latest: dates[dates.length - 1],
       },
     };
-  }, [dedupedSoldPrices]);
+  }, [filteredSoldPrices]);
 
   // Trend data for charts
   const trendData = useMemo(() => {
