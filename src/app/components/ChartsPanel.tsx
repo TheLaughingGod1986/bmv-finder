@@ -112,8 +112,10 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({
             return data.labels.map((label, i) => {
               const isSelected = selectedPropertyTypes.includes(Object.keys(propertyTypeLabels)[i]);
               return {
-                text: label,
-                fillStyle: data.datasets[0].backgroundColor[i],
+                text: String(label),
+                fillStyle: Array.isArray(data.datasets[0]?.backgroundColor)
+                  ? data.datasets[0].backgroundColor[i]
+                  : '#2563eb',
                 strokeStyle: isSelected ? '#2563eb' : '#fff', // blue border if selected
                 lineWidth: isSelected ? 4 : 1,
                 hidden: false,
