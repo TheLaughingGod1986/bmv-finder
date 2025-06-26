@@ -62,14 +62,16 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   const handlePrev = () => setPage(p => Math.max(1, p - 1));
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
 
+  const normalize = (str: string | undefined | null) => (str ?? '').trim().toUpperCase();
+
   const handleShowHistory = (property: SoldPrice) => {
     setModalProperty(property);
-    // Find all sales for this property (by address key)
+    // Find all sales for this property (by normalized address key, treating missing/empty saon as equivalent)
     const history = soldPrices.filter(sp =>
-      sp.postcode === property.postcode &&
-      sp.street === property.street &&
-      sp.paon === property.paon &&
-      sp.saon === property.saon
+      normalize(sp.postcode) === normalize(property.postcode) &&
+      normalize(sp.street) === normalize(property.street) &&
+      normalize(sp.paon) === normalize(property.paon) &&
+      normalize(sp.saon) === normalize(property.saon)
     );
     setModalHistory(history);
     setModalOpen(true);
@@ -270,6 +272,41 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
         </div>
       </div>
 
+      {/* Add Legend above the table/cards */}
+      <div className="mb-4">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-wrap gap-4 items-center text-xs">
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+            <span>Average price / Info</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-green-600 inline-block"></span>
+            <span>Lowest price / Positive trend</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
+            <span>Highest price</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
+            <span>Price range</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span>🏠</span><span>Detached</span>
+            <span>🏡</span><span>Semi-detached</span>
+            <span>🏘️</span><span>Terraced</span>
+            <span>🏢</span><span>Flat/Maisonette</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-green-600">▲</span><span>Price up</span>
+            <span className="text-red-600">▼</span><span>Price down</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="text-blue-600">i</span><span>Info</span>
+          </div>
+        </div>
+      </div>
+
       {/* Cards View */}
       {viewMode === 'cards' && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -315,9 +352,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                       <span>Type</span>
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenure</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -373,16 +408,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-4 text-right">
-                        <button
-                          className="text-blue-500 hover:text-blue-700 text-xs font-medium transition-colors"
-                          onClick={() => setExpandedRowId(expandedRowId === property.id ? null : property.id)}
-                          aria-expanded={expandedRowId === property.id}
-                          aria-controls={`row-details-${property.id}`}
-                        >
-                          {expandedRowId === property.id ? 'Hide details' : 'Show details'}
-                        </button>
-                      </td>
+                      <td className="px-4 py-4">{formatDuration(property.duration)}</td>
                     </motion.tr>
                   ))}
                 </AnimatePresence>

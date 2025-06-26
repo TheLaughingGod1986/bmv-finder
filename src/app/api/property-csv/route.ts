@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+// import { mockSoldPrices } from '../mock-data';
 
 // Property type mapping
 const PROPERTY_TYPES = {
@@ -80,22 +81,7 @@ export async function POST(req: NextRequest) {
     console.log('Land Registry API response:', JSON.stringify(data, null, 2));
     
     // Transform SPARQL results to our format
-    const results = data.results.bindings.map((binding: {
-      transactionId?: { value: string };
-      pricePaid?: { value: string };
-      transactionDate?: { value: string };
-      postcode?: { value: string };
-      propertyType?: { value: string };
-      newBuild?: { value: string };
-      estateType?: { value: string };
-      paon?: { value: string };
-      saon?: { value: string };
-      street?: { value: string };
-      locality?: { value: string };
-      town?: { value: string };
-      district?: { value: string };
-      county?: { value: string };
-    }) => ({
+    const results = data.results.bindings.map((binding: Record<string, { value: string }>) => ({
       transactionId: binding.transactionId?.value || '',
       price: parseInt(binding.pricePaid?.value || '0') || 0,
       dateOfTransfer: binding.transactionDate?.value || '',
@@ -113,7 +99,6 @@ export async function POST(req: NextRequest) {
       town: binding.town?.value || '',
       district: binding.district?.value || '',
       county: binding.county?.value || '',
-      // Add formatted address
       fullAddress: [
         binding.paon?.value || '',
         binding.saon?.value || '',

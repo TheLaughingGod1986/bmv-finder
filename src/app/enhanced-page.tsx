@@ -81,12 +81,11 @@ function HomeContent() {
     for (const sp of soldPrices) {
       // Create a consistent key for each unique address
       const addressKey = [
-        sp.postcode,
-        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
-        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
-        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
+        typeof sp.postcode === 'string' ? sp.postcode.trim().toUpperCase() : '',
+        typeof sp.street === 'string' ? sp.street.trim().toUpperCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toUpperCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toUpperCase() : ''
       ].filter(Boolean).join('|');
-      
       if(addressKey) {
         counts.set(addressKey, (counts.get(addressKey) || 0) + 1);
       }
@@ -97,10 +96,10 @@ function HomeContent() {
   // Check if a property has more than one sale record
   const getHasHistory = useCallback((property: SoldPrice) => {
     const addressKey = [
-      property.postcode,
-      typeof property.street === 'string' ? property.street.trim().toLowerCase() : '',
-      typeof property.paon === 'string' ? property.paon.trim().toLowerCase() : '',
-      typeof property.saon === 'string' ? property.saon.trim().toLowerCase() : ''
+      typeof property.postcode === 'string' ? property.postcode.trim().toUpperCase() : '',
+      typeof property.street === 'string' ? property.street.trim().toUpperCase() : '',
+      typeof property.paon === 'string' ? property.paon.trim().toUpperCase() : '',
+      typeof property.saon === 'string' ? property.saon.trim().toUpperCase() : ''
     ].filter(Boolean).join('|');
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
@@ -310,10 +309,10 @@ function HomeContent() {
     const map = new Map();
     for (const sp of filteredSoldPrices) {
       const addressKey = [
-        sp.postcode,
-        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
-        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
-        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
+        typeof sp.postcode === 'string' ? sp.postcode.trim().toUpperCase() : '',
+        typeof sp.street === 'string' ? sp.street.trim().toUpperCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toUpperCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toUpperCase() : ''
       ].filter(Boolean).join('|');
       if (!map.has(addressKey) || new Date(sp.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
         map.set(addressKey, sp);
@@ -324,15 +323,15 @@ function HomeContent() {
 
   // Results summary statistics
   const resultsSummary = useMemo(() => {
-    if (dedupedSoldPrices.length === 0) return null;
+    if (filteredSoldPrices.length === 0) return null;
     
-    const prices = dedupedSoldPrices.map(sp => sp.price);
+    const prices = filteredSoldPrices.map(sp => sp.price);
     const avgPrice = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const priceRange = maxPrice - minPrice;
     
-    const propertyTypes = dedupedSoldPrices.reduce((acc, sp) => {
+    const propertyTypes = filteredSoldPrices.reduce((acc, sp) => {
       acc[sp.propertyType] = (acc[sp.propertyType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
@@ -340,10 +339,10 @@ function HomeContent() {
     const mostCommonType = Object.entries(propertyTypes)
       .sort(([,a], [,b]) => (b as number) - (a as number))[0];
     
-    const dates = dedupedSoldPrices.map(sp => sp.dateOfTransfer).sort();
+    const dates = filteredSoldPrices.map(sp => sp.dateOfTransfer).sort();
     
     return {
-      totalProperties: dedupedSoldPrices.length,
+      totalProperties: filteredSoldPrices.length,
       avgPrice,
       minPrice,
       maxPrice,

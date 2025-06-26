@@ -32,7 +32,6 @@ export default function Home() {
   const [soldPrices, setSoldPrices] = useState<SoldPrice[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [showPostcodeHint, setShowPostcodeHint] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
@@ -59,12 +58,11 @@ export default function Home() {
     for (const sp of soldPrices) {
       // Create a consistent key for each unique address
       const addressKey = [
-        sp.postcode,
-        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
-        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
-        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
+        typeof sp.postcode === 'string' ? sp.postcode.trim().toUpperCase() : '',
+        typeof sp.street === 'string' ? sp.street.trim().toUpperCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toUpperCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toUpperCase() : ''
       ].filter(Boolean).join('|');
-      
       if(addressKey) {
         counts.set(addressKey, (counts.get(addressKey) || 0) + 1);
       }
@@ -75,10 +73,10 @@ export default function Home() {
   // Check if a property has more than one sale record
   const getHasHistory = useCallback((property: SoldPrice) => {
     const addressKey = [
-      property.postcode,
-      typeof property.street === 'string' ? property.street.trim().toLowerCase() : '',
-      typeof property.paon === 'string' ? property.paon.trim().toLowerCase() : '',
-      typeof property.saon === 'string' ? property.saon.trim().toLowerCase() : ''
+      typeof property.postcode === 'string' ? property.postcode.trim().toUpperCase() : '',
+      typeof property.street === 'string' ? property.street.trim().toUpperCase() : '',
+      typeof property.paon === 'string' ? property.paon.trim().toUpperCase() : '',
+      typeof property.saon === 'string' ? property.saon.trim().toUpperCase() : ''
     ].filter(Boolean).join('|');
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
@@ -88,36 +86,6 @@ export default function Home() {
     const years = Array.from(new Set(soldPrices.map(sp => sp.dateOfTransfer.slice(0, 4))));
     return years.sort((a, b) => b.localeCompare(a)); // Descending order
   }, [soldPrices]);
-
-  useEffect(() => {
-    const fetchLastUpdated = async () => {
-      try {
-        console.log('Fetching last updated timestamp...');
-        const response = await fetch('/api/last-updated');
-        const data = await response.json();
-        console.log('Last updated response:', data);
-        if (data.lastUpdated) {
-          const formattedDate = new Date(data.lastUpdated).toLocaleString(
-            'en-GB',
-            {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            }
-          );
-          console.log('Setting last updated to:', formattedDate);
-          setLastUpdated(formattedDate);
-        } else {
-          console.log('No lastUpdated timestamp found in response');
-        }
-      } catch (err) {
-        console.error('Failed to fetch last updated timestamp', err);
-      }
-    };
-    fetchLastUpdated();
-  }, []);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -188,10 +156,10 @@ export default function Home() {
     const map = new Map();
     for (const sp of filteredSoldPrices) {
       const addressKey = [
-        sp.postcode,
-        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
-        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
-        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
+        typeof sp.postcode === 'string' ? sp.postcode.trim().toUpperCase() : '',
+        typeof sp.street === 'string' ? sp.street.trim().toUpperCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toUpperCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toUpperCase() : ''
       ].filter(Boolean).join('|');
       if (!map.has(addressKey) || new Date(sp.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
         map.set(addressKey, sp);
@@ -337,14 +305,6 @@ export default function Home() {
                   Sold Property Prices
                 </h1>
                 <p className="text-sm text-gray-600">UK Land Registry Data</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <p className="text-sm font-medium text-gray-700">Land Registry Data Last Updated</p>
-                <p className="text-xs text-gray-500">
-                  {lastUpdated ? lastUpdated : 'Not available'}
-                </p>
               </div>
             </div>
           </div>
