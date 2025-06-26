@@ -40,7 +40,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
   onShare 
 }) => {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
-  const [showTooltip, setShowTooltip] = useState<string | null>(null);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -96,9 +95,9 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           </div>
           {tooltip && (
             <button
-              onMouseEnter={() => setShowTooltip(title)}
-              onMouseLeave={() => setShowTooltip(null)}
               className="text-gray-400 hover:text-gray-600 transition-colors"
+              title={tooltip}
+              aria-label={`Info about ${title}`}
             >
               <Info className="h-4 w-4" />
             </button>
@@ -125,21 +124,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           )}
         </div>
       </div>
-
-      {/* Tooltip */}
-      <AnimatePresence>
-        {showTooltip === title && tooltip && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-20"
-          >
-            {tooltip}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 
