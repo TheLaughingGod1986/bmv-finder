@@ -155,10 +155,11 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={isLoading}
+          style={{ color: '#111' }}
           className={cn(
             "w-full pl-10 pr-12 py-3 border-2 rounded-lg text-lg font-medium",
             "focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200",
-            "placeholder-gray-400 bg-white shadow-sm",
+            "placeholder-gray-400 bg-white text-gray-900 shadow-sm",
             isPostcodeValid ? "border-gray-300" : "border-red-300 focus:ring-red-400",
             isLoading && "opacity-50 cursor-not-allowed"
           )}
@@ -213,13 +214,13 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
                     key={`recent-${search}`}
                     onClick={() => handleSuggestionClick(search)}
                     className={cn(
-                      "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-md transition-colors",
+                      "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-md transition-colors text-gray-900 dark:text-gray-100",
                       selectedIndex === index && "bg-blue-50 text-blue-700"
                     )}
                   >
                     <div className="flex items-center gap-2">
                       <Clock className="h-4 w-4 text-gray-400" />
-                      <span>{search}</span>
+                      <span style={{ color: '#222', fontWeight: 500 }}>{search}</span>
                     </div>
                   </button>
                 ))}

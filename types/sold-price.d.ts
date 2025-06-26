@@ -1,9 +1,9 @@
 export interface SoldPrice {
   id: string;
   price: number;
-  date_of_transfer: string;
+  dateOfTransfer: string;
   postcode: string;
-  property_type: string;
+  propertyType: string;
   street: string;
   town_city: string;
   county: string;

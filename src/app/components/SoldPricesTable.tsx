@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { SoldPrice } from '../../../types/sold-price';
+import PropertyHistoryModal from './PropertyHistoryModal';
+import Tooltip from './Tooltip';
 
 interface SoldPricesTableProps {
   soldPrices: SoldPrice[];
@@ -7,7 +9,6 @@ interface SoldPricesTableProps {
   formatPrice: (price: number) => string;
   formatDuration: (duration: string) => string;
   formatPropertyType: (type: string) => string;
-  handleShowHistory: (id: string) => void;
   requestSort: (key: keyof SoldPrice) => void;
   sortConfig: { key: keyof SoldPrice; direction: string };
   getHasHistory: (property: SoldPrice) => boolean;
@@ -47,7 +48,6 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   formatPrice,
   formatDuration,
   formatPropertyType,
-  handleShowHistory,
   requestSort,
   sortConfig,
   getHasHistory,
@@ -63,7 +63,23 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   const handlePrev = () => setPage(p => Math.max(1, p - 1));
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalProperty, setModalProperty] = useState<SoldPrice | null>(null);
+  const [modalHistory, setModalHistory] = useState<SoldPrice[]>([]);
   React.useEffect(() => { setPage(1); }, [soldPrices]);
+
+  const handleShowHistory = (property: SoldPrice) => {
+    setModalProperty(property);
+    // Find all sales for this property (by address key)
+    const history = soldPrices.filter(sp =>
+      sp.postcode === property.postcode &&
+      sp.street === property.street &&
+      sp.paon === property.paon &&
+      sp.saon === property.saon
+    );
+    setModalHistory(history);
+    setModalOpen(true);
+  };
 
   if (!soldPrices.length) {
     return (
@@ -78,53 +94,13 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
   }
   return (
     <div>
-      {/* Tooltip styles */}
-      <style>{`
-        .custom-tooltip {
-          position: relative;
-          display: inline-block;
-        }
-        .custom-tooltip .custom-tooltiptext {
-          visibility: hidden;
-          width: 180px;
-          background-color: #374151;
-          color: #fff;
-          text-align: center;
-          border-radius: 6px;
-          padding: 6px 0;
-          position: absolute;
-          z-index: 10;
-          bottom: 125%;
-          left: 50%;
-          margin-left: -90px;
-          opacity: 0;
-          transition: opacity 0.3s;
-          font-size: 0.85rem;
-          pointer-events: none;
-        }
-        .custom-tooltip:focus .custom-tooltiptext,
-        .custom-tooltip:hover .custom-tooltiptext {
-          visibility: visible;
-          opacity: 1;
-        }
-        .custom-tooltip .custom-tooltiptext::after {
-          content: '';
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          margin-left: -5px;
-          border-width: 5px;
-          border-style: solid;
-          border-color: #374151 transparent transparent transparent;
-        }
-      `}</style>
       {/* Desktop Table */}
       <div className="hidden md:block overflow-x-auto">
         <table className="min-w-full">
           <thead>
             <tr className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-purple-50">
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Address</th>
-              <SortableHeader title="Date" sortKey="date_of_transfer" requestSort={requestSort} sortConfig={sortConfig} disabled={isDateSortDisabled} disabledTooltip="Sorting disabled: all results are from the same year" />
+              <SortableHeader title="Date" sortKey="dateOfTransfer" requestSort={requestSort} sortConfig={sortConfig} disabled={isDateSortDisabled} disabledTooltip="Sorting disabled: all results are from the same year" />
               <SortableHeader title="Price" sortKey="price" requestSort={requestSort} sortConfig={sortConfig} />
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Property Type</th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider"></th>
@@ -132,41 +108,39 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {paginatedSoldPrices.map((sp, idx) => (
-              <React.Fragment key={sp.id}>
+              <React.Fragment key={sp.id || [sp.paon, sp.saon, sp.street, sp.postcode, sp.dateOfTransfer].join('-')}>
                 <tr className={`${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50 transition-colors duration-150`}>
                   <td className="px-6 py-4">
                     <button
                       type="button"
                       className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed group"
-                      onClick={() => handleShowHistory(sp.id)}
+                      onClick={() => handleShowHistory(sp)}
                       disabled={!getHasHistory(sp)}
                       tabIndex={0}
-                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(sp.id); }}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(sp); }}
                     >
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-900">{formatAddress(sp)}</span>
                         {getHasHistory(sp) && (
-                          <span className="relative group flex items-center">
-                            <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
-                            </svg>
-                            <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                              Click to view full price history for this property
-                              <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
+                          <Tooltip content="Click to view full price history for this property">
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                              </svg>
                             </span>
-                          </span>
+                          </Tooltip>
                         )}
                       </div>
                       {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
                     </button>
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-700">{sp.date_of_transfer.slice(0, 4)}</td>
+                  <td className="px-6 py-4 text-sm text-gray-700">{new Date(sp.dateOfTransfer).toLocaleDateString('en-GB')}</td>
                   <td className="px-6 py-4">
                     <div className="text-lg font-bold text-blue-700">{formatPrice(sp.price)}</div>
                   </td>
                   <td className="px-6 py-4">
                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {formatPropertyType(sp.property_type)}
+                      {formatPropertyType(sp.propertyType)}
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -188,6 +162,7 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                         <div><span className="font-semibold">Town/City:</span> {sp.town_city}</div>
                         <div><span className="font-semibold">County:</span> {sp.county}</div>
                         <div><span className="font-semibold">Postcode:</span> {sp.postcode}</div>
+                        <div><span className="font-semibold">Price:</span> {formatPrice(sp.price)}</div>
                         {/* Add more details as needed */}
                       </div>
                     </td>
@@ -201,21 +176,19 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
       {/* Mobile Cards */}
       <div className="md:hidden space-y-4">
         {paginatedSoldPrices.map((sp) => (
-          <div key={sp.id} className="shadow-md rounded-xl border border-gray-200 bg-white p-4">
+          <div key={sp.id || [sp.paon, sp.saon, sp.street, sp.postcode, sp.dateOfTransfer].join('-')} className="shadow-md rounded-xl border border-gray-200 bg-white p-4">
             <div className="flex justify-between items-start mb-3">
               <div className="flex-1">
                 <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
                   {formatAddress(sp)}
                   {getHasHistory(sp) && (
-                    <span className="relative group flex items-center">
-                      <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
-                      </svg>
-                      <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                        Click to view full price history for this property
-                        <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
+                    <Tooltip content="Click to view full price history for this property">
+                      <span className="flex items-center">
+                        <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                        </svg>
                       </span>
-                    </span>
+                    </Tooltip>
                   )}
                 </h3>
               </div>
@@ -224,16 +197,16 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3 text-xs border-b pb-3 mb-3">
-              <div><span className="text-gray-500">Date:</span> <span className="ml-1 font-medium">{sp.date_of_transfer.slice(0, 4)}</span></div>
+              <div><span className="text-gray-500">Date:</span> <span className="ml-1 font-medium">{new Date(sp.dateOfTransfer).toLocaleDateString('en-GB')}</span></div>
               <div><span className="text-gray-500">Type:</span> <span className="ml-1 font-medium">{formatDuration(sp.duration)}</span></div>
-              <div className="col-span-2"><span className="text-gray-500">Property Type:</span> <span className="ml-1 font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">{formatPropertyType(sp.property_type)}</span></div>
+              <div className="col-span-2"><span className="text-gray-500">Property Type:</span> <span className="ml-1 font-medium bg-blue-100 text-blue-800 px-2.5 py-0.5 rounded-full font-medium">{formatPropertyType(sp.propertyType)}</span></div>
               <div><span className="text-gray-500">Town:</span> <span className="ml-1 font-medium">{sp.town_city}</span></div>
               <div><span className="text-gray-500">County:</span> <span className="ml-1 font-medium">{sp.county}</span></div>
             </div>
              <button
               type="button"
               className="w-full text-center focus:outline-none focus:ring-2 focus:ring-blue-400 rounded text-sm text-blue-600 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
-              onClick={() => handleShowHistory(sp.id)}
+              onClick={() => handleShowHistory(sp)}
               disabled={!getHasHistory(sp)}
              >
               {getHasHistory(sp) ? 'View History' : 'No History Found'}
@@ -269,6 +242,13 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
         <div><b>PPD Category Type:</b> A = Standard, B = Additional (e.g. repossession, buy-to-let, etc.)</div>
         <div><b>Record Status:</b> A = Addition, C = Change, D = Deletion</div>
       </div>
+      <PropertyHistoryModal
+        open={modalOpen}
+        property={modalProperty}
+        history={modalHistory}
+        formatAddress={formatAddress}
+        onClose={() => setModalOpen(false)}
+      />
     </div>
   );
 });
