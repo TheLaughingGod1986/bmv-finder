@@ -10,6 +10,7 @@ import {
   LinearScale,
   Tooltip,
   Legend,
+  Chart
 } from 'chart.js';
 import type { ChartEvent, ActiveElement, TooltipItem } from 'chart.js';
 
@@ -105,7 +106,7 @@ const ChartsPanel: React.FC<ChartsPanelProps> = ({
       legend: {
         position: 'top' as const,
         labels: {
-          generateLabels: (chart) => {
+          generateLabels: (chart: Chart<'pie'>) => {
             const data = chart.data;
             if (!data.labels) return [];
             return data.labels.map((label, i) => {
