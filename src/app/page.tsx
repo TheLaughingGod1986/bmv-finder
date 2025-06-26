@@ -17,16 +17,15 @@ import dynamic from 'next/dynamic';
 import ChartsPanel from './components/ChartsPanel';
 import InstallPrompt from './components/InstallPrompt';
 import ResultsSummary from './components/ResultsSummary';
-import { SkeletonLoader } from './components/SkeletonLoader';
 import EmptyState from './components/EmptyState';
 import { SoldPrice } from '../../types/sold-price';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import PropertyHistoryModal from './components/PropertyHistoryModal';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const AreaPriceTrendChart = dynamic(() => import('./components/AreaPriceTrendChart'), { ssr: false, loading: () => <div className="mb-8 bg-white rounded-xl shadow p-4 text-center text-gray-400">Loading chart…</div> });
-const PropertyHistoryModal = dynamic(() => import('./components/PropertyHistoryModal'), { ssr: false, loading: () => null });
 
 export default function Home() {
   const [postcode, setPostcode] = useState('');
@@ -322,26 +321,6 @@ export default function Home() {
     return price ? `£${price.toLocaleString()}` : 'N/A';
   }, []);
 
-  const handleShowHistory = (id: string) => {
-    const selectedProperty = soldPrices.find(p => p.id === id);
-    if (!selectedProperty) return;
-
-    const propertyHistory = soldPrices
-      .filter(p =>
-        p.postcode === selectedProperty.postcode &&
-        (typeof p.street === 'string' ? p.street.trim().toLowerCase() : '') === (typeof selectedProperty.street === 'string' ? selectedProperty.street.trim().toLowerCase() : '') &&
-        (typeof p.paon === 'string' ? p.paon.trim().toLowerCase() : '') === (typeof selectedProperty.paon === 'string' ? selectedProperty.paon.trim().toLowerCase() : '') &&
-        (typeof p.saon === 'string' ? p.saon.trim().toLowerCase() : '') === (typeof selectedProperty.saon === 'string' ? selectedProperty.saon.trim().toLowerCase() : '')
-      )
-      .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
-      
-    setHistoryModal({
-      open: true,
-      property: selectedProperty,
-      history: propertyHistory,
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
@@ -360,11 +339,13 @@ export default function Home() {
                 <p className="text-sm text-gray-600">UK Land Registry Data</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-700">Database Last Updated</p>
-              <p className="text-xs text-gray-500">
-                {lastUpdated ? lastUpdated : 'Not available'}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-700">Land Registry Data Last Updated</p>
+                <p className="text-xs text-gray-500">
+                  {lastUpdated ? lastUpdated : 'Not available'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -493,7 +474,6 @@ export default function Home() {
                       formatPrice={formatPrice}
                       formatDuration={formatDuration}
                       formatPropertyType={formatPropertyType}
-                      handleShowHistory={handleShowHistory}
                       requestSort={requestSort}
                       sortConfig={sortConfig}
                       getHasHistory={getHasHistory}

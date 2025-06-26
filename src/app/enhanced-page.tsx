@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,19 +18,17 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 // Enhanced Components
 import EnhancedSearch from './components/EnhancedSearch';
 import EnhancedFilters from './components/EnhancedFilters';
-import EnhancedSoldPricesTable from './components/EnhancedSoldPricesTable';
 import EnhancedResultsSummary from './components/EnhancedResultsSummary';
-import EnhancedEmptyState from './components/EnhancedEmptyState';
+import EnhancedSoldPricesTable from './components/EnhancedSoldPricesTable';
+import PropertyHistoryModal from './components/PropertyHistoryModal';
 import { ToastProvider, useToast } from './components/ToastProvider';
-import DarkModeToggle from './components/DarkModeToggle';
+import { SoldPrice } from '../../types/sold-price';
 
 // Original Components (keeping for compatibility)
 import ChartsPanel from './components/ChartsPanel';
 import InstallPrompt from './components/InstallPrompt';
-import { SkeletonLoader } from './components/SkeletonLoader';
-import PropertyHistoryModal from './components/PropertyHistoryModal';
+import EnhancedEmptyState from './components/EnhancedEmptyState';
 
-import { SoldPrice } from '../../types/sold-price';
 import { formatPrice } from '../lib/utils';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -340,7 +338,7 @@ function HomeContent() {
     }, {} as Record<string, number>);
     
     const mostCommonType = Object.entries(propertyTypes)
-      .sort(([,a], [,b]) => b - a)[0];
+      .sort(([,a], [,b]) => (b as number) - (a as number))[0];
     
     const dates = dedupedSoldPrices.map(sp => sp.dateOfTransfer).sort();
     
@@ -377,26 +375,6 @@ function HomeContent() {
     
     return { years, avgPrices };
   }, [dedupedSoldPrices]);
-
-  const handleShowHistory = (id: string) => {
-    const selectedProperty = soldPrices.find(p => p.id === id);
-    if (!selectedProperty) return;
-
-    const propertyHistory = soldPrices
-      .filter(p =>
-        p.postcode === selectedProperty.postcode &&
-        (typeof p.street === 'string' ? p.street.trim().toLowerCase() : '') === (typeof selectedProperty.street === 'string' ? selectedProperty.street.trim().toLowerCase() : '') &&
-        (typeof p.paon === 'string' ? p.paon.trim().toLowerCase() : '') === (typeof selectedProperty.paon === 'string' ? selectedProperty.paon.trim().toLowerCase() : '') &&
-        (typeof p.saon === 'string' ? p.saon.trim().toLowerCase() : '') === (typeof selectedProperty.saon === 'string' ? selectedProperty.saon.trim().toLowerCase() : '')
-      )
-      .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
-      
-    setHistoryModal({
-      open: true,
-      property: selectedProperty,
-      history: propertyHistory,
-    });
-  };
 
   const handleSearchSuggestion = (suggestion: string) => {
     setPostcode(suggestion);
@@ -492,7 +470,7 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50 dark:bg-gray-900/80 dark:border-gray-700/50">
+      <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
@@ -505,17 +483,16 @@ function HomeContent() {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                   Sold Property Prices
                 </h1>
-                <p className="text-sm text-gray-600 dark:text-gray-400">UK Land Registry Data</p>
+                <p className="text-sm text-gray-600">UK Land Registry Data</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-gray-700 dark:text-gray-300">Database Last Updated</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-sm font-medium text-gray-700">Land Registry Data Last Updated</p>
+                <p className="text-xs text-gray-500">
                   {lastUpdated ? lastUpdated : 'Not available'}
                 </p>
               </div>
-              <DarkModeToggle />
             </div>
           </div>
         </div>
@@ -595,7 +572,11 @@ function HomeContent() {
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 {/* Left side: charts */}
                 <div className="lg:col-span-1 space-y-8">
-                  <ChartsPanel soldPrices={dedupedSoldPrices} />
+                  <ChartsPanel 
+                    soldPrices={dedupedSoldPrices} 
+                    onPropertyTypeFilter={setFilterType}
+                    selectedPropertyTypes={filterType}
+                  />
                 </div>
                 
                 {/* Right side: table and trend chart */}
@@ -617,11 +598,10 @@ function HomeContent() {
                       Sold Property Prices in {postcode}
                     </h2>
                     <EnhancedSoldPricesTable
-                      soldPrices={dedupedSoldPrices}
+                      soldPrices={dedupedSoldPrices.filter(sp => filterType.length === 0 || filterType.includes(sp.propertyType))}
                       formatAddress={formatAddress}
                       formatDuration={formatDuration}
                       formatPropertyType={formatPropertyType}
-                      handleShowHistory={handleShowHistory}
                       requestSort={requestSort}
                       sortConfig={sortConfig}
                       getHasHistory={getHasHistory}

@@ -348,14 +348,11 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                               {formatAddress(property)}
                             </span>
                             {getHasHistory(property) && (
-                              <span className="relative group flex items-center">
-                                <TrendingUp className="w-4 h-4 text-blue-500 cursor-pointer" />
-                                <Tooltip content="Click to view full price history for this property">
-                                  <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                                    <span className="absolute top-0 left-1/2 -translate-x-1/2 -mt-2 w-3 h-3 bg-gray-900 rotate-45 z-10"></span>
-                                  </span>
-                                </Tooltip>
-                              </span>
+                              <Tooltip content="Click to view full price history for this property">
+                                <span className="flex items-center">
+                                  <TrendingUp className="w-4 h-4 text-blue-500 cursor-pointer" />
+                                </span>
+                              </Tooltip>
                             )}
                           </div>
                           {!getHasHistory(property) && (

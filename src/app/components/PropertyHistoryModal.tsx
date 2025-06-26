@@ -28,13 +28,13 @@ interface PropertyHistoryModalProps {
 }
 
 const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ open, property, history, formatAddress, onClose }) => {
-  if (!open || !property) return null;
-
   // Sort history by date descending
   const sortedHistory = React.useMemo(() =>
     [...history].sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime()),
     [history]
   );
+
+  if (!open || !property) return null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">

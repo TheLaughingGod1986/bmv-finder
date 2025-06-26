@@ -122,16 +122,13 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-900">{formatAddress(sp)}</span>
                         {getHasHistory(sp) && (
-                          <span className="relative group flex items-center">
-                            <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
-                            </svg>
-                            <Tooltip content="Click to view full price history for this property">
-                              <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                                {formatAddress(sp)}
-                              </span>
-                            </Tooltip>
-                          </span>
+                          <Tooltip content="Click to view full price history for this property">
+                            <span className="flex items-center">
+                              <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                              </svg>
+                            </span>
+                          </Tooltip>
                         )}
                       </div>
                       {!getHasHistory(sp) && <div className="text-xs text-gray-400 mt-1">No other sales found</div>}
@@ -185,16 +182,13 @@ const SoldPricesTable: React.FC<SoldPricesTableProps> = React.memo(({
                 <h3 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
                   {formatAddress(sp)}
                   {getHasHistory(sp) && (
-                    <span className="relative group flex items-center">
-                      <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
-                      </svg>
-                      <Tooltip content="Click to view full price history for this property">
-                        <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 z-20 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity pointer-events-none shadow-lg whitespace-normal text-center" role="tooltip">
-                          {formatAddress(sp)}
-                        </span>
-                      </Tooltip>
-                    </span>
+                    <Tooltip content="Click to view full price history for this property">
+                      <span className="flex items-center">
+                        <svg className="w-4 h-4 text-blue-500 ml-1 cursor-pointer" fill="none" stroke="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 8v.01M12 12v.01M12 16v.01" />
+                        </svg>
+                      </span>
+                    </Tooltip>
                   )}
                 </h3>
               </div>

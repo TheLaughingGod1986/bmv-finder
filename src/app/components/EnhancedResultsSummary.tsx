@@ -14,6 +14,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { cn, formatPrice, getPropertyTypeIcon, getPropertyTypeLabel } from '../../lib/utils';
+import Tooltip from './Tooltip';
 
 interface EnhancedResultsSummaryProps {
   summary: {
@@ -68,21 +69,9 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className={cn(
-        "bg-white rounded-xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-300",
-        "relative overflow-hidden group"
-      )}
-      whileHover={{ y: -5 }}
+      transition={{ duration: 0.6 }}
+      className="bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center"
     >
-      {/* Background gradient */}
-      <div className={cn(
-        "absolute inset-0 opacity-5 group-hover:opacity-10 transition-opacity duration-300",
-        color === 'blue' && "bg-gradient-to-br from-blue-400 to-blue-600",
-        color === 'green' && "bg-gradient-to-br from-green-400 to-green-600",
-        color === 'purple' && "bg-gradient-to-br from-purple-400 to-purple-600",
-        color === 'orange' && "bg-gradient-to-br from-orange-400 to-orange-600"
-      )} />
-      
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-4">
           <div className={cn(
@@ -95,22 +84,22 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
             {icon}
           </div>
           {tooltip && (
-            <button
-              onMouseEnter={() => setShowTooltip(title)}
-              onMouseLeave={() => setShowTooltip(null)}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <Info className="h-4 w-4" />
-            </button>
+            <Tooltip content={tooltip}>
+              <button
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                tabIndex={0}
+                aria-label={`Info about ${title}`}
+              >
+                <Info className="h-4 w-4" />
+              </button>
+            </Tooltip>
           )}
         </div>
-        
         <div className="space-y-2">
           <div className="text-2xl font-bold text-gray-900">
             {typeof value === 'number' ? formatPrice(value) : value}
           </div>
           <div className="text-sm text-gray-600">{title}</div>
-          
           {trend && (
             <div className="flex items-center gap-1 text-xs">
               {trend.isPositive ? (
@@ -125,21 +114,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           )}
         </div>
       </div>
-
-      {/* Tooltip */}
-      <AnimatePresence>
-        {showTooltip === title && tooltip && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap z-20"
-          >
-            {tooltip}
-            <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900" />
-          </motion.div>
-        )}
-      </AnimatePresence>
     </motion.div>
   );
 
@@ -172,14 +146,13 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           <TrendingDown className="h-5 w-5 text-gray-400" />
         </motion.div>
       </button>
-      
       <AnimatePresence>
         {isExpanded && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
+            animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
             className="overflow-hidden"
           >
             <div className="px-6 pb-4 border-t border-gray-100">
@@ -192,91 +165,94 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
   );
 
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6 }}
-      className="space-y-6"
-      aria-labelledby="results-summary-title"
-    >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <BarChart3 className="h-6 w-6 text-blue-600" />
+    <div className="relative">
+      {/* Sticky Summary Cards Container - No Fixed Height */}
+      <div className="sticky top-0 z-20 bg-gradient-to-b from-white to-transparent pb-4">
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-lg"
+          aria-labelledby="results-summary-title"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h2 id="results-summary-title" className="text-xl font-bold text-gray-800">
+                  📊 Results Summary for {postcode}
+                </h2>
+                <p className="text-sm text-gray-600">Market insights and property analysis</p>
+              </div>
             </div>
-            <div>
-              <h2 id="results-summary-title" className="text-xl font-bold text-gray-800">
-                📊 Results Summary for {postcode}
-              </h2>
-              <p className="text-sm text-gray-600">Market insights and property analysis</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-semibold">
-              {summary.totalProperties} properties
-            </span>
             
-            <div className="flex items-center gap-1">
-              {onShare && (
-                <button
-                  onClick={onShare}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Share results"
-                >
-                  <Share2 className="h-4 w-4" />
-                </button>
-              )}
-              {onExport && (
-                <button
-                  onClick={onExport}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Export data"
-                >
-                  <Download className="h-4 w-4" />
-                </button>
-              )}
+            <div className="flex items-center gap-2">
+              <span className="bg-blue-100 px-3 py-1 rounded-full text-sm font-semibold">
+                {summary.totalProperties} properties
+              </span>
+              
+              <div className="flex items-center gap-1">
+                {onShare && (
+                  <button
+                    onClick={onShare}
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Share results"
+                  >
+                    <Share2 className="h-4 w-4" />
+                  </button>
+                )}
+                {onExport && (
+                  <button
+                    onClick={onExport}
+                    className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                    title="Export data"
+                  >
+                    <Download className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Key Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <StatCard
-            title="Average Price"
-            value={summary.avgPrice}
-            icon={<PoundSterling className="h-6 w-6" />}
-            color="blue"
-            tooltip="The average price of all properties sold in this area during the selected period."
-          />
-          <StatCard
-            title="Lowest Price"
-            value={summary.minPrice}
-            icon={<TrendingDown className="h-6 w-6" />}
-            color="green"
-            tooltip="The lowest price paid for a property in this area during the selected period."
-          />
-          <StatCard
-            title="Highest Price"
-            value={summary.maxPrice}
-            icon={<TrendingUp className="h-6 w-6" />}
-            color="purple"
-            tooltip="The highest price paid for a property in this area during the selected period."
-          />
-          <StatCard
-            title="Price Range"
-            value={summary.priceRange}
-            icon={<BarChart3 className="h-6 w-6" />}
-            color="orange"
-            tooltip="The difference between the highest and lowest property prices in this area."
-          />
-        </div>
+          {/* Key Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatCard
+              title="Average Price"
+              value={summary.avgPrice}
+              icon={<PoundSterling className="h-6 w-6" />}
+              color="blue"
+              tooltip="The average price of all properties sold in this area during the selected period."
+            />
+            <StatCard
+              title="Lowest Price"
+              value={summary.minPrice}
+              icon={<TrendingDown className="h-6 w-6" />}
+              color="green"
+              tooltip="The lowest price paid for a property in this area during the selected period."
+            />
+            <StatCard
+              title="Highest Price"
+              value={summary.maxPrice}
+              icon={<TrendingUp className="h-6 w-6" />}
+              color="purple"
+              tooltip="The highest price paid for a property in this area during the selected period."
+            />
+            <StatCard
+              title="Price Range"
+              value={summary.priceRange}
+              icon={<BarChart3 className="h-6 w-6" />}
+              color="orange"
+              tooltip="The difference between the highest and lowest property prices in this area."
+            />
+          </div>
+        </motion.section>
       </div>
 
-      {/* Expandable Sections */}
-      <div className="space-y-4">
+      {/* Scrollable Accordion Content Section */}
+      <div className="pt-4 space-y-4">
         {/* Property Type Analysis */}
         <ExpandableSection
           title="Property Type Analysis"
@@ -309,23 +285,23 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
                       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
                         <div className="flex items-center gap-1">
                           <span>🏠</span>
-                          <span>D = Detached</span>
+                          <span className="text-gray-700">D = Detached</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span>🏡</span>
-                          <span>S = Semi-detached</span>
+                          <span className="text-gray-700">S = Semi-detached</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span>🏘️</span>
-                          <span>T = Terraced</span>
+                          <span className="text-gray-700">T = Terraced</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span>🏢</span>
-                          <span>F = Flat/Maisonette</span>
+                          <span className="text-gray-700">F = Flat/Maisonette</span>
                         </div>
                         <div className="flex items-center gap-1">
                           <span>🏭</span>
-                          <span>O = Other</span>
+                          <span className="text-gray-700">O = Other</span>
                         </div>
                       </div>
                     </div>
@@ -409,7 +385,7 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           </div>
         </ExpandableSection>
       </div>
-    </motion.section>
+    </div>
   );
 };
 

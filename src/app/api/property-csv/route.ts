@@ -80,9 +80,24 @@ export async function POST(req: NextRequest) {
     console.log('Land Registry API response:', JSON.stringify(data, null, 2));
     
     // Transform SPARQL results to our format
-    const results = data.results.bindings.map((binding: any) => ({
+    const results = data.results.bindings.map((binding: {
+      transactionId?: { value: string };
+      pricePaid?: { value: string };
+      transactionDate?: { value: string };
+      postcode?: { value: string };
+      propertyType?: { value: string };
+      newBuild?: { value: string };
+      estateType?: { value: string };
+      paon?: { value: string };
+      saon?: { value: string };
+      street?: { value: string };
+      locality?: { value: string };
+      town?: { value: string };
+      district?: { value: string };
+      county?: { value: string };
+    }) => ({
       transactionId: binding.transactionId?.value || '',
-      price: parseInt(binding.pricePaid?.value) || 0,
+      price: parseInt(binding.pricePaid?.value || '0') || 0,
       dateOfTransfer: binding.transactionDate?.value || '',
       postcode: binding.postcode?.value || '',
       propertyType: PROPERTY_TYPES[binding.propertyType?.value as keyof typeof PROPERTY_TYPES] || 'Other',
