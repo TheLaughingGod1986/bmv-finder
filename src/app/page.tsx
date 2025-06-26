@@ -17,16 +17,15 @@ import dynamic from 'next/dynamic';
 import ChartsPanel from './components/ChartsPanel';
 import InstallPrompt from './components/InstallPrompt';
 import ResultsSummary from './components/ResultsSummary';
-import { SkeletonLoader } from './components/SkeletonLoader';
 import EmptyState from './components/EmptyState';
 import { SoldPrice } from '../../types/sold-price';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import PropertyHistoryModal from './components/PropertyHistoryModal';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const AreaPriceTrendChart = dynamic(() => import('./components/AreaPriceTrendChart'), { ssr: false, loading: () => <div className="mb-8 bg-white rounded-xl shadow p-4 text-center text-gray-400">Loading chart…</div> });
-const PropertyHistoryModal = dynamic(() => import('./components/PropertyHistoryModal'), { ssr: false, loading: () => null });
 
 export default function Home() {
   const [postcode, setPostcode] = useState('');
@@ -39,6 +38,7 @@ export default function Home() {
   const [historyModal, setHistoryModal] = useState<{ open: boolean; property: SoldPrice | null; history: SoldPrice[] }>({ open: false, property: null, history: [] });
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
   const [filterType, setFilterType] = useState<string[]>([]);
+  const [filterYear, setFilterYear] = useState<string[]>([]);
   const [sortConfig, setSortConfig] = useState<{ key: keyof SoldPrice; direction: 'ascending' | 'descending' }>({
     key: 'price',
     direction: 'descending',
@@ -46,8 +46,8 @@ export default function Home() {
 
   const isDateSortDisabled = useMemo(() => {
     if (soldPrices.length < 2) return true;
-    const firstYear = soldPrices[0].date_of_transfer.slice(0, 4);
-    return soldPrices.every(p => p.date_of_transfer.slice(0, 4) === firstYear);
+    const firstYear = soldPrices[0].dateOfTransfer.slice(0, 4);
+    return soldPrices.every(p => p.dateOfTransfer.slice(0, 4) === firstYear);
   }, [soldPrices]);
 
   // Create a map of how many times each unique address appears
@@ -82,6 +82,12 @@ export default function Home() {
     ].filter(Boolean).join('|');
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
+
+  // Extract available years from soldPrices
+  const availableYears = useMemo(() => {
+    const years = Array.from(new Set(soldPrices.map(sp => sp.dateOfTransfer.slice(0, 4))));
+    return years.sort((a, b) => b.localeCompare(a)); // Descending order
+  }, [soldPrices]);
 
   useEffect(() => {
     const fetchLastUpdated = async () => {
@@ -158,25 +164,41 @@ export default function Home() {
       filtered = filtered.filter(sp => filterDuration.includes(sp.duration));
     }
     if (filterType.length > 0) {
-      filtered = filtered.filter(sp => filterType.includes(sp.property_type));
+      filtered = filtered.filter(sp => filterType.includes(sp.propertyType));
     }
-    
+    if (filterYear.length > 0) {
+      filtered = filtered.filter(sp => filterYear.includes(sp.dateOfTransfer.slice(0, 4)));
+    }
     // Sorting
     filtered.sort((a, b) => {
       const aValue = a[sortConfig.key];
       const bValue = b[sortConfig.key];
-
       if (aValue == null && bValue == null) return 0;
       if (aValue == null) return 1;
       if (bValue == null) return -1;
-
       if (aValue < bValue) return sortConfig.direction === 'ascending' ? -1 : 1;
       if (aValue > bValue) return sortConfig.direction === 'ascending' ? 1 : -1;
       return 0;
     });
-
     return filtered;
-  }, [soldPrices, filterDuration, filterType, sortConfig]);
+  }, [soldPrices, filterDuration, filterType, filterYear, sortConfig]);
+
+  // Deduplicate by address, keep only the latest sale
+  const dedupedSoldPrices = useMemo(() => {
+    const map = new Map();
+    for (const sp of filteredSoldPrices) {
+      const addressKey = [
+        sp.postcode,
+        typeof sp.street === 'string' ? sp.street.trim().toLowerCase() : '',
+        typeof sp.paon === 'string' ? sp.paon.trim().toLowerCase() : '',
+        typeof sp.saon === 'string' ? sp.saon.trim().toLowerCase() : ''
+      ].filter(Boolean).join('|');
+      if (!map.has(addressKey) || new Date(sp.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
+        map.set(addressKey, sp);
+      }
+    }
+    return Array.from(map.values());
+  }, [filteredSoldPrices]);
 
   // Results summary statistics
   const resultsSummary = useMemo(() => {
@@ -189,7 +211,7 @@ export default function Home() {
     const priceRange = maxPrice - minPrice;
     
     const propertyTypes = filteredSoldPrices.reduce((acc, sp) => {
-      acc[sp.property_type] = (acc[sp.property_type] || 0) + 1;
+      acc[sp.propertyType] = (acc[sp.propertyType] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
     
@@ -204,8 +226,8 @@ export default function Home() {
       priceRange,
       mostCommonType: mostCommonType ? `${mostCommonType[0]} (${mostCommonType[1]})` : 'N/A',
       dateRange: {
-        earliest: filteredSoldPrices[filteredSoldPrices.length - 1]?.date_of_transfer,
-        latest: filteredSoldPrices[0]?.date_of_transfer
+        earliest: filteredSoldPrices[filteredSoldPrices.length - 1]?.dateOfTransfer,
+        latest: filteredSoldPrices[0]?.dateOfTransfer
       }
     };
   }, [filteredSoldPrices]);
@@ -214,7 +236,7 @@ export default function Home() {
   const trendData = useMemo(() => {
     const yearMap: Record<string, number[]> = {};
     filteredSoldPrices.forEach(sp => {
-      const year = sp.date_of_transfer.slice(0, 4);
+      const year = sp.dateOfTransfer.slice(0, 4);
       if (!yearMap[year]) yearMap[year] = [];
       yearMap[year].push(sp.price);
     });
@@ -236,13 +258,13 @@ export default function Home() {
     setShowPostcodeHint(false);
     setHasSearched(true);
     try {
-      // Construct the URL with query parameters
-      const params = new URLSearchParams();
-      params.append('postcode', searchPostcode);
-      // Add other params like limit/offset if needed in the future
-      // params.append('limit', '1000'); 
-
-      const response = await fetch(`/api/property-kv?${params.toString()}`);
+      const response = await fetch('/api/property-csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ postcode: searchPostcode }),
+      });
 
       let data: unknown = null;
       const contentType = response.headers.get('content-type');
@@ -299,26 +321,6 @@ export default function Home() {
     return price ? `£${price.toLocaleString()}` : 'N/A';
   }, []);
 
-  const handleShowHistory = (id: string) => {
-    const selectedProperty = soldPrices.find(p => p.id === id);
-    if (!selectedProperty) return;
-
-    const propertyHistory = soldPrices
-      .filter(p =>
-        p.postcode === selectedProperty.postcode &&
-        (typeof p.street === 'string' ? p.street.trim().toLowerCase() : '') === (typeof selectedProperty.street === 'string' ? selectedProperty.street.trim().toLowerCase() : '') &&
-        (typeof p.paon === 'string' ? p.paon.trim().toLowerCase() : '') === (typeof selectedProperty.paon === 'string' ? selectedProperty.paon.trim().toLowerCase() : '') &&
-        (typeof p.saon === 'string' ? p.saon.trim().toLowerCase() : '') === (typeof selectedProperty.saon === 'string' ? selectedProperty.saon.trim().toLowerCase() : '')
-      )
-      .sort((a, b) => new Date(a.date_of_transfer).getTime() - new Date(b.date_of_transfer).getTime());
-      
-    setHistoryModal({
-      open: true,
-      property: selectedProperty,
-      history: propertyHistory,
-    });
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200/50 sticky top-0 z-50">
@@ -337,11 +339,13 @@ export default function Home() {
                 <p className="text-sm text-gray-600">UK Land Registry Data</p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-700">Database Last Updated</p>
-              <p className="text-xs text-gray-500">
-                {lastUpdated ? lastUpdated : 'Not available'}
-              </p>
+            <div className="flex items-center gap-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-700">Land Registry Data Last Updated</p>
+                <p className="text-xs text-gray-500">
+                  {lastUpdated ? lastUpdated : 'Not available'}
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -363,6 +367,9 @@ export default function Home() {
             setFilterDuration={setFilterDuration}
             filterType={filterType}
             setFilterType={setFilterType}
+            filterYear={filterYear}
+            setFilterYear={setFilterYear}
+            availableYears={availableYears}
           />
           <div className="mb-4 pt-6 border-t">
             <div className="flex justify-between items-center mb-2">
@@ -428,7 +435,9 @@ export default function Home() {
         {/* Results block - always render the parent div, conditionally render content inside */}
         <div className="mt-8 min-h-[40vh]">
           {isLoading ? (
-            <SkeletonLoader />
+            <div className="text-center py-8 text-blue-700 font-semibold animate-pulse">
+              Loading property data, this may take a few seconds...
+            </div>
           ) : filteredSoldPrices.length > 0 ? (
             <div>
               {resultsSummary && (
@@ -460,12 +469,11 @@ export default function Home() {
                       Sold Property Prices in {postcode}
                     </h2>
                     <SoldPricesTable
-                      soldPrices={filteredSoldPrices}
+                      soldPrices={dedupedSoldPrices}
                       formatAddress={formatAddress}
                       formatPrice={formatPrice}
                       formatDuration={formatDuration}
                       formatPropertyType={formatPropertyType}
-                      handleShowHistory={handleShowHistory}
                       requestSort={requestSort}
                       sortConfig={sortConfig}
                       getHasHistory={getHasHistory}

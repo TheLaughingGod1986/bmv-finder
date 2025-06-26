@@ -64,14 +64,13 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} font-sans antialiased bg-white text-gray-900`}>
         <a href="#main-content" className="sr-only focus:not-sr-only absolute left-2 top-2 bg-blue-600 text-white px-3 py-1 rounded z-50">Skip to main content</a>
         <main id="main-content" tabIndex={-1}>
           {children}
         </main>
         <Analytics />
         <SpeedInsights />
-        
         {/* Service Worker Registration */}
         <script
           dangerouslySetInnerHTML={{
