@@ -594,7 +594,7 @@ function HomeContent() {
                       Sold Property Prices in {postcode}
                     </h2>
                     <EnhancedSoldPricesTable
-                      soldPrices={dedupedSoldPrices.filter(sp => filterType.length === 0 || filterType.includes(sp.propertyType))}
+                      soldPrices={soldPrices.filter(sp => filterType.length === 0 || filterType.includes(sp.propertyType))}
                       formatAddress={formatAddress}
                       formatDuration={formatDuration}
                       formatPropertyType={formatPropertyType}
