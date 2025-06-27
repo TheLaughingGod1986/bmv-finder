@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, MapPin, Clock, TrendingUp } from 'lucide-react';
+import { Search, X, MapPin, Clock } from 'lucide-react';
 import { cn, getSearchSuggestions, validatePostcode } from '../../lib/utils';
 
 interface EnhancedSearchProps {
@@ -139,133 +139,121 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   const hasSuggestions = suggestions.length > 0 || recentSearches.length > 0;
 
   return (
-    <div className={cn("relative", className)}>
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
-        </div>
-        
-        <input
-          ref={inputRef}
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          onFocus={handleFocus}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          placeholder={placeholder}
-          disabled={isLoading}
-          style={{ color: '#111' }}
-          className={cn(
-            "w-full pl-10 pr-12 py-3 border-2 rounded-lg text-lg font-medium",
-            "focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200",
-            "placeholder-gray-400 bg-white text-gray-900 shadow-sm",
-            isPostcodeValid ? "border-gray-300" : "border-red-300 focus:ring-red-400",
-            isLoading && "opacity-50 cursor-not-allowed"
-          )}
-        />
-
-        {value && (
-          <button
-            onClick={handleClear}
-            className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
-            type="button"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-
-        {/* Validation indicator */}
-        {value.trim() && (
-          <div className="absolute -bottom-6 left-0 text-xs">
-            {isPostcodeValid ? (
-              <span className="text-green-600 flex items-center gap-1">
-                ✓ Valid format
-              </span>
-            ) : (
-              <span className="text-red-600 flex items-center gap-1">
-                ⚠ Invalid postcode format
-              </span>
+    <div className={cn("relative w-full max-w-2xl mx-auto animate-fade-in", className)}>
+      <form
+        className="flex flex-col sm:flex-row gap-2 items-stretch bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-blue-100 px-4 py-3 transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400"
+        onSubmit={e => { e.preventDefault(); if (value.trim()) { onSearch(value.trim()); saveRecentSearch(value.trim()); setShowSuggestions(false); } }}
+        role="search"
+        aria-label="Property search"
+      >
+        <div className="relative flex-1">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-blue-400" />
+          </span>
+          <input
+            id="postcode"
+            ref={inputRef}
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            onFocus={handleFocus}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            placeholder={placeholder}
+            disabled={isLoading}
+            autoComplete="off"
+            className={cn(
+              "w-full pl-10 pr-12 py-3 border-2 rounded-xl text-lg font-medium bg-white/80 backdrop-blur-md",
+              "focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200",
+              "placeholder-gray-400 text-gray-900 shadow-sm",
+              isPostcodeValid ? "border-slate-300" : "border-red-300 focus:ring-red-400",
+              isLoading && "opacity-50 cursor-not-allowed"
             )}
-          </div>
-        )}
-      </div>
-
-      {/* Suggestions dropdown */}
+            aria-label="Search for sold property prices"
+          />
+          {value && (
+            <button
+              onClick={handleClear}
+              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
+              type="button"
+              tabIndex={-1}
+              aria-label="Clear search"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+        <button
+          type="submit"
+          disabled={isLoading || !value.trim()}
+          className="flex items-center justify-center px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold text-lg shadow hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95"
+          aria-label="Search"
+        >
+          {isLoading ? (
+            <span className="animate-spin mr-2"><Clock className="h-5 w-5" /></span>
+          ) : (
+            <Search className="h-5 w-5 mr-2" />
+          )}
+          <span className="hidden sm:inline">Search</span>
+        </button>
+      </form>
+      {/* Validation indicator */}
+      {value.trim() && (
+        <div className="mt-1 text-xs pl-2">
+          {isPostcodeValid ? (
+            <span className="text-green-600 flex items-center gap-1">✓ Valid format</span>
+          ) : (
+            <span className="text-red-600 flex items-center gap-1">⚠ Invalid postcode format</span>
+          )}
+        </div>
+      )}
+      {/* Suggestions Dropdown */}
       <AnimatePresence>
         {showSuggestions && hasSuggestions && (
           <motion.div
-            ref={suggestionsRef}
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
+            exit={{ opacity: 0, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="absolute z-50 w-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 max-h-80 overflow-y-auto"
+            ref={suggestionsRef}
+            className="absolute left-0 right-0 mt-2 z-30 bg-white/90 backdrop-blur-md border border-blue-100 rounded-xl shadow-2xl overflow-hidden"
           >
-            {/* Recent searches */}
-            {recentSearches.length > 0 && (
-              <div className="p-2">
-                <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <Clock className="h-3 w-3" />
-                  Recent Searches
-                </div>
-                {recentSearches.map((search, index) => (
-                  <button
-                    key={`recent-${search}`}
-                    onClick={() => handleSuggestionClick(search)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-md transition-colors text-gray-900 dark:text-gray-100",
-                      selectedIndex === index && "bg-blue-50 text-blue-700"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-gray-400" />
-                      <span style={{ color: '#222', fontWeight: 500 }}>{search}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Suggestions */}
-            {suggestions.length > 0 && (
-              <div className="p-2">
-                <div className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <TrendingUp className="h-3 w-3" />
-                  Popular Areas
-                </div>
-                {suggestions.map((suggestion, index) => (
-                  <button
-                    key={`suggestion-${suggestion}`}
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    className={cn(
-                      "w-full text-left px-3 py-2 text-sm hover:bg-gray-50 rounded-md transition-colors",
-                      selectedIndex === (recentSearches.length + index) && "bg-blue-50 text-blue-700"
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <MapPin className="h-4 w-4 text-gray-400" />
-                      <span>{suggestion}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Quick search tips */}
-            <div className="border-t border-gray-100 p-3 bg-gray-50 rounded-b-lg">
-              <div className="text-xs text-gray-500">
-                <div className="font-semibold mb-1">💡 Search Tips:</div>
-                <div className="space-y-1">
-                  <div>• Try partial postcodes (e.g., &quot;SW1A&quot;)</div>
-                  <div>• Search by street name or town</div>
-                  <div>• Use ⌘K to focus, Enter to search</div>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-xs text-gray-400 bg-gray-50 rounded-lg px-2 py-1 border border-gray-100 mt-2 block">
-              Try searching for a broader area (like just the first part of the postcode) or try a different nearby postcode to see more results. For example: &quot;SE3&quot; or &quot;Manchester&quot;.
+            <div className="divide-y divide-blue-50">
+              {suggestions.map((suggestion, i) => (
+                <button
+                  key={suggestion}
+                  className={cn(
+                    "w-full text-left px-5 py-3 text-base hover:bg-blue-50 focus:bg-blue-100 transition-colors",
+                    selectedIndex === i && "bg-blue-100 text-blue-800"
+                  )}
+                  onMouseDown={() => handleSuggestionClick(suggestion)}
+                  tabIndex={-1}
+                >
+                  <span className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-blue-400" />
+                    {suggestion}
+                  </span>
+                </button>
+              ))}
+              {recentSearches.length > 0 && (
+                <div className="px-5 py-2 text-xs text-slate-500 bg-blue-50 font-semibold">Recent Searches</div>
+              )}
+              {recentSearches.map((recent, i) => (
+                <button
+                  key={recent}
+                  className={cn(
+                    "w-full text-left px-5 py-3 text-base hover:bg-blue-50 focus:bg-blue-100 transition-colors",
+                    selectedIndex === (suggestions.length + i) && "bg-blue-100 text-blue-800"
+                  )}
+                  onMouseDown={() => handleSuggestionClick(recent)}
+                  tabIndex={-1}
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-blue-400" />
+                    {recent}
+                  </span>
+                </button>
+              ))}
             </div>
           </motion.div>
         )}

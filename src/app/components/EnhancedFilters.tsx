@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, X, ChevronDown, ChevronUp, Home, Building, Layers } from 'lucide-react';
+import { Filter, X, Home, Building, Layers } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface EnhancedFiltersProps {
@@ -36,7 +36,6 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
   availableYears,
   className
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [activeFilters, setActiveFilters] = useState(0);
 
@@ -306,187 +305,111 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
     </AnimatePresence>
   );
 
-  return (
-    <>
-      {/* Desktop Filters */}
-      <div className={cn("hidden md:block", className)}>
-        <div className="bg-white rounded-xl shadow-lg p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-              <Filter className="h-5 w-5" />
-              Filters
-              {activeFilters > 0 && (
-                <span className="bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-full">
-                  {activeFilters}
-                </span>
-              )}
-            </h3>
-            <div className="flex items-center gap-2">
-              {activeFilters > 0 && (
-                <button
-                  onClick={clearAllFilters}
-                  className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-                >
-                  Clear all
-                </button>
-              )}
-              <button
-                onClick={() => setIsExpanded(!isExpanded)}
-                className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
-              </button>
-            </div>
-          </div>
-
-          <AnimatePresence>
-            {isExpanded && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
-                  {/* Price Range */}
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-3">Price Range</h4>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        placeholder="Min"
-                        value={priceRange.min || ''}
-                        onChange={(e) => setPriceRange(prev => ({ ...prev, min: Number(e.target.value) || 0 }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Max"
-                        value={priceRange.max === 10000000 ? '' : priceRange.max}
-                        onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) || 10000000 }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Date Range */}
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-3">Date Range</h4>
-                    <div className="flex gap-2">
-                      <input
-                        type="date"
-                        value={dateRange.start}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                      <input
-                        type="date"
-                        value={dateRange.end}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="space-y-4">
-            {/* Duration Filter */}
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Tenure Type</h4>
-              <div className="flex flex-wrap gap-2">
-                <FilterChip
-                  label="All"
-                  isActive={filterDuration.length === 0}
-                  onClick={() => setFilterDuration([])}
-                />
-                <FilterChip
-                  label="Freehold"
-                  isActive={filterDuration.includes('F')}
-                  onClick={() => handleDurationToggle('F')}
-                />
-                <FilterChip
-                  label="Leasehold"
-                  isActive={filterDuration.includes('L')}
-                  onClick={() => handleDurationToggle('L')}
-                />
-              </div>
-            </div>
-
-            {/* Property Type Filter */}
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Property Type</h4>
-              <div className="flex flex-wrap gap-2">
-                <FilterChip
-                  label="All"
-                  isActive={filterType.length === 0}
-                  onClick={() => setFilterType([])}
-                />
-                <FilterChip
-                  label="Detached"
-                  isActive={filterType.includes('Detached')}
-                  onClick={() => handleTypeToggle('Detached')}
-                  icon={getPropertyTypeIcon('Detached')}
-                />
-                <FilterChip
-                  label="Semi-detached"
-                  isActive={filterType.includes('Semi-detached')}
-                  onClick={() => handleTypeToggle('Semi-detached')}
-                  icon={getPropertyTypeIcon('Semi-detached')}
-                />
-                <FilterChip
-                  label="Terraced"
-                  isActive={filterType.includes('Terraced')}
-                  onClick={() => handleTypeToggle('Terraced')}
-                  icon={getPropertyTypeIcon('Terraced')}
-                />
-                <FilterChip
-                  label="Flat/Maisonette"
-                  isActive={filterType.includes('Flat/Maisonette')}
-                  onClick={() => handleTypeToggle('Flat/Maisonette')}
-                  icon={getPropertyTypeIcon('Flat/Maisonette')}
-                />
-                <FilterChip
-                  label="Other"
-                  isActive={filterType.includes('Other')}
-                  onClick={() => handleTypeToggle('Other')}
-                  icon={getPropertyTypeIcon('Other')}
-                />
-              </div>
-            </div>
-
-            {/* Year Filter */}
-            <div>
-              <h4 className="font-semibold text-gray-800 mb-3">Year</h4>
-              <div className="flex flex-wrap gap-2">
-                <FilterChip
-                  label="All"
-                  isActive={filterYear.length === 0}
-                  onClick={() => setFilterYear([])}
-                />
-                {availableYears.map(year => (
-                  <FilterChip
-                    key={year}
-                    label={year}
-                    isActive={filterYear.includes(year)}
-                    onClick={() => setFilterYear((fy: string[]) => fy.includes(year) ? fy.filter(x => x !== year) : [...fy, year])}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
+  // Desktop filter bar
+  const DesktopFilters = () => (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className={cn(
+        "hidden md:flex sticky top-20 z-30 bg-white/90 backdrop-blur-md border border-slate-200 rounded-2xl shadow-lg px-6 py-4 mb-8 gap-8 items-center flex-wrap",
+        className
+      )}
+      role="region"
+      aria-label="Filters"
+    >
+      {/* Tenure Type */}
+      <div className="flex flex-col gap-2 min-w-[120px]">
+        <span className="text-xs font-semibold text-slate-500 mb-1">Tenure</span>
+        <div className="flex gap-2 flex-wrap">
+          <FilterChip label="All" isActive={filterDuration.length === 0} onClick={() => setFilterDuration([])} />
+          <FilterChip label="Freehold" isActive={filterDuration.includes('F')} onClick={() => handleDurationToggle('F')} />
+          <FilterChip label="Leasehold" isActive={filterDuration.includes('L')} onClick={() => handleDurationToggle('L')} />
         </div>
       </div>
+      {/* Property Type */}
+      <div className="flex flex-col gap-2 min-w-[140px]">
+        <span className="text-xs font-semibold text-slate-500 mb-1">Type</span>
+        <div className="flex gap-2 flex-wrap">
+          <FilterChip label="All" isActive={filterType.length === 0} onClick={() => setFilterType([])} />
+          <FilterChip label="Detached" isActive={filterType.includes('D')} onClick={() => handleTypeToggle('D')} icon={getPropertyTypeIcon('D')} />
+          <FilterChip label="Semi-detached" isActive={filterType.includes('S')} onClick={() => handleTypeToggle('S')} icon={getPropertyTypeIcon('S')} />
+          <FilterChip label="Terraced" isActive={filterType.includes('T')} onClick={() => handleTypeToggle('T')} icon={getPropertyTypeIcon('T')} />
+          <FilterChip label="Flat/Maisonette" isActive={filterType.includes('F')} onClick={() => handleTypeToggle('F')} icon={getPropertyTypeIcon('F')} />
+          <FilterChip label="Other" isActive={filterType.includes('O')} onClick={() => handleTypeToggle('O')} icon={getPropertyTypeIcon('O')} />
+        </div>
+      </div>
+      {/* Price Range */}
+      <div className="flex flex-col gap-2 min-w-[160px]">
+        <span className="text-xs font-semibold text-slate-500 mb-1">Price (£)</span>
+        <div className="flex gap-2 items-center">
+          <input
+            type="number"
+            min={0}
+            max={priceRange.max}
+            value={priceRange.min}
+            onChange={e => setPriceRange(pr => ({ ...pr, min: Number(e.target.value) }))}
+            className="w-20 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:ring-blue-400"
+            placeholder="Min"
+            aria-label="Min price"
+            disabled={isLoading}
+          />
+          <span className="text-slate-400">–</span>
+          <input
+            type="number"
+            min={priceRange.min}
+            value={priceRange.max}
+            onChange={e => setPriceRange(pr => ({ ...pr, max: Number(e.target.value) }))}
+            className="w-20 px-2 py-1 border border-slate-300 rounded-lg text-sm focus:ring-blue-400"
+            placeholder="Max"
+            aria-label="Max price"
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+      {/* Date Range */}
+      <div className="flex flex-col gap-2 min-w-[180px]">
+        <span className="text-xs font-semibold text-slate-500 mb-1">Sale Date</span>
+        <div className="flex gap-2 items-center">
+          <input
+            type="date"
+            value={dateRange.start}
+            onChange={e => setDateRange(dr => ({ ...dr, start: e.target.value }))}
+            className="px-2 py-1 border border-slate-300 rounded-lg text-sm focus:ring-blue-400"
+            aria-label="Start date"
+            disabled={isLoading}
+          />
+          <span className="text-slate-400">–</span>
+          <input
+            type="date"
+            value={dateRange.end}
+            onChange={e => setDateRange(dr => ({ ...dr, end: e.target.value }))}
+            className="px-2 py-1 border border-slate-300 rounded-lg text-sm focus:ring-blue-400"
+            aria-label="End date"
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+      {/* Clear All */}
+      <div className="flex flex-col gap-2 min-w-[100px] items-end">
+        <button
+          type="button"
+          onClick={clearAllFilters}
+          disabled={isLoading}
+          className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-blue-100 text-blue-700 font-semibold text-sm shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-50"
+        >
+          Clear All
+        </button>
+      </div>
+    </motion.div>
+  );
 
-      {/* Mobile Filter Button */}
+  return (
+    <div className={cn("w-full", className)}>
+      <DesktopFilters />
       <MobileFilterButton />
-
-      {/* Mobile Filter Modal */}
       <MobileFilterModal />
-    </>
+    </div>
   );
 };
 

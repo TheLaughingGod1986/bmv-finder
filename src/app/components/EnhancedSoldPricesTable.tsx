@@ -11,11 +11,12 @@ import {
   Calendar,
   PoundSterling,
   Home,
-  TrendingUp
+  TrendingUp,
+  Building,
+  Layers
 } from 'lucide-react';
 import { SoldPrice } from '../../../types/sold-price';
-import { cn, getPropertyTypeIcon, getPropertyTypeLabel, getPriceRangeColor } from '../../lib/utils';
-import PropertyHistoryModal from './PropertyHistoryModal';
+import { cn, getPriceRangeColor } from '../../lib/utils';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
@@ -28,6 +29,7 @@ interface EnhancedSoldPricesTableProps {
   getHasHistory: (property: SoldPrice) => boolean;
   isDateSortDisabled: boolean;
   priceRange: { min: number; max: number };
+  onShowHistory: (property: SoldPrice, history: SoldPrice[]) => void;
 }
 
 const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.memo(({
@@ -40,18 +42,15 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   sortConfig,
   getHasHistory,
   isDateSortDisabled,
-  priceRange
+  priceRange,
+  onShowHistory
 }) => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [modalOpen, setModalOpen] = useState(false);
-  const [modalProperty, setModalProperty] = useState<SoldPrice | null>(null);
-  const [modalHistory, setModalHistory] = useState<SoldPrice[]>([]);
+  const [expandedRowId] = useState<string | null>(null);
 
   const totalPages = Math.ceil(soldPrices.length / pageSize);
-  
   const paginatedSoldPrices = useMemo(() => {
     const start = (page - 1) * pageSize;
     return soldPrices.slice(start, start + pageSize);
@@ -65,16 +64,20 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
 
   const normalize = (str: string | undefined | null) => (str ?? '').trim().toUpperCase();
+  const normalizeSaon = (saon: string | undefined | null) => {
+    const val = (saon ?? '').trim().toUpperCase();
+    return val === '' ? '-' : val;
+  };
 
   const handleShowHistory = (property: SoldPrice) => {
-    setModalProperty(property);
-    // Loosened: match only on postcode and street
+    // Improved: match on postcode, street, paon, and treat empty/missing saon as equivalent
     const history = allSoldPrices.filter(sp =>
       normalize(sp.postcode) === normalize(property.postcode) &&
-      normalize(sp.street) === normalize(property.street)
+      normalize(sp.street) === normalize(property.street) &&
+      normalize(sp.paon) === normalize(property.paon) &&
+      normalizeSaon(sp.saon) === normalizeSaon(property.saon)
     );
-    setModalHistory(history);
-    setModalOpen(true);
+    onShowHistory(property, history);
   };
 
   const formatPrice = (price: number) => price ? `£${price.toLocaleString()}` : 'N/A';
@@ -110,102 +113,252 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
     );
   };
 
-  const PropertyCard = ({ property, index }: { property: SoldPrice; index: number }) => {
-    const hasHistory = getHasHistory(property);
-    const priceColor = getPriceRangeColor(property.price, priceRange.min, priceRange.max);
-    
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.1 }}
-        className="bg-white rounded-lg shadow-md border border-gray-200 p-4 hover:shadow-lg transition-all duration-200"
-      >
-        <div className="flex items-start justify-between mb-3">
-          <div className="flex-1">
-            <h3 className="font-semibold text-gray-900 text-sm mb-1 line-clamp-2">
-              {formatAddress(property)}
-            </h3>
-            <div className="flex items-center gap-2 text-xs text-gray-500">
-              <MapPin className="h-3 w-3" />
-              <span>{property.postcode}</span>
+  // Table View
+  const TableView = () => (
+    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+      <div className="overflow-x-auto">
+        <table className="min-w-full">
+          <thead className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-slate-200 shadow-sm">
+            <tr>
+              <SortableHeader 
+                title="Address" 
+                sortKey="street" 
+                requestSort={requestSort} 
+                sortConfig={sortConfig}
+                icon={<MapPin className="h-4 w-4" />}
+              />
+              <SortableHeader 
+                title="Date" 
+                sortKey="dateOfTransfer" 
+                requestSort={requestSort} 
+                sortConfig={sortConfig}
+                disabled={isDateSortDisabled}
+                disabledTooltip="Sorting disabled: all results are from the same year"
+                icon={<Calendar className="h-4 w-4" />}
+              />
+              <SortableHeader 
+                title="Price" 
+                sortKey="price" 
+                requestSort={requestSort} 
+                sortConfig={sortConfig}
+                icon={<PoundSterling className="h-4 w-4" />}
+              />
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                <div className="flex items-center gap-1">
+                  <Home className="h-4 w-4" />
+                  <span>Type</span>
+                </div>
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenure</th>
+              <th className="px-4 py-3"></th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            <AnimatePresence>
+              {paginatedSoldPrices.map((property, index) => (
+                <motion.tr
+                  key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className={cn(
+                    "hover:bg-blue-50 transition-colors duration-150",
+                    index % 2 === 0 ? "bg-white" : "bg-slate-50"
+                  )}
+                  tabIndex={0}
+                  aria-label={`Property at ${formatAddress(property)}, sold for ${formatPrice(property.price)}`}
+                >
+                  <td className="px-4 py-4 text-base font-medium text-slate-900 max-w-xs truncate">
+                    {formatAddress(property)}
+                  </td>
+                  <td className="px-4 py-4 text-base text-slate-700 whitespace-nowrap">
+                    {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
+                  </td>
+                  <td className={cn("px-4 py-4 text-lg font-bold whitespace-nowrap", getPriceRangeColor(property.price, priceRange.min, priceRange.max))}>
+                    {formatPrice(property.price)}
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{getPropertyTypeIcon(property.propertyType)}</span>
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {formatPropertyType(property.propertyType)}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                      property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                    )}>
+                      {formatDuration(property.duration)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4 text-right">
+                    {getHasHistory(property) && (
+                      <button
+                        onClick={() => handleShowHistory(property)}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200 active:scale-95"
+                        title="View price history"
+                        aria-label="View price history"
+                      >
+                        <TrendingUp className="h-4 w-4" /> History
+                      </button>
+                    )}
+                  </td>
+                </motion.tr>
+              ))}
+            </AnimatePresence>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
+  // Cards View for mobile
+  const MobileCardsView = () => (
+    <div className="grid grid-cols-1 gap-4 sm:hidden">
+      <AnimatePresence>
+        {paginatedSoldPrices.map((property, index) => (
+          <motion.div
+            key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.05 }}
+            className="bg-white rounded-xl shadow-lg border border-blue-100 p-4 flex flex-col gap-2"
+            tabIndex={0}
+            aria-label={`Property at ${formatAddress(property)}, sold for ${formatPrice(property.price)}`}
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex-1">
+                <h3 className="font-semibold text-gray-900 text-base mb-1 line-clamp-2">
+                  {formatAddress(property)}
+                </h3>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  <MapPin className="h-3 w-3" />
+                  <span>{property.postcode}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-lg">{getPropertyTypeIcon(property.propertyType)}</span>
+                <span className="text-xs text-gray-500">
+                  {formatPropertyType(property.propertyType)}
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-lg font-bold text-blue-800">{formatPrice(property.price)}</div>
+              <div className="text-xs text-gray-500">{new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}</div>
+            </div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className={cn(
+                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+              )}>
+                {formatDuration(property.duration)}
+              </span>
+              {getHasHistory(property) && (
+                <button
+                  onClick={() => handleShowHistory(property)}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200 active:scale-95"
+                  title="View price history"
+                  aria-label="View price history"
+                >
+                  <TrendingUp className="h-4 w-4" /> History
+                </button>
+              )}
+            </div>
+          </motion.div>
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+
+  // Cards View for desktop
+  const CardsViewDesktop = () => (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {paginatedSoldPrices.map((property, index) => (
+        <motion.div
+          key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.08 }}
+          className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 flex flex-col gap-3 hover:shadow-2xl transition-all duration-200"
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1">
+              <h3 className="font-bold text-lg text-slate-900 mb-1 line-clamp-2">
+                {formatAddress(property)}
+              </h3>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <MapPin className="h-3 w-3" />
+                <span>{property.postcode}</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1">
+              {getPropertyTypeIcon(property.propertyType)}
+              <span className="text-xs text-slate-500">
+                {formatPropertyType(property.propertyType)}
+              </span>
             </div>
           </div>
-          <div className="flex items-center gap-1">
-            {getPropertyTypeIcon(property.propertyType)}
-            <span className="text-xs text-gray-500">
-              {getPropertyTypeLabel(property.propertyType)}
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 mb-3">
-          <div className="text-center">
-            <div className={cn("text-lg font-bold", priceColor)}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-2xl font-extrabold text-blue-700">
               {formatPrice(property.price)}
             </div>
-            <div className="text-xs text-gray-500">Price</div>
-          </div>
-          <div className="text-center">
-            <div className="text-sm font-medium text-gray-700">
+            <div className="text-sm font-medium text-slate-700">
               {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
             </div>
-            <div className="text-xs text-gray-500">Date</div>
           </div>
-        </div>
-
-        <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className={cn(
-              "inline-flex items-center px-2 py-1 rounded-full text-xs font-medium",
-              property.duration === 'F' 
-                ? "bg-green-100 text-green-800" 
-                : "bg-blue-100 text-blue-800"
+              "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+              property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
             )}>
               {formatDuration(property.duration)}
             </span>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {hasHistory && (
+            {getHasHistory(property) && (
               <button
                 onClick={() => handleShowHistory(property)}
-                className="p-1 text-blue-600 hover:text-blue-800 transition-colors"
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200"
                 title="View price history"
+                aria-label="View price history"
               >
-                <TrendingUp className="h-4 w-4" />
+                <TrendingUp className="h-4 w-4" /> History
               </button>
             )}
-            <button
-              onClick={() => setExpandedRowId(expandedRowId === property.id ? null : property.id)}
-              className="p-1 text-gray-400 hover:text-gray-600 transition-colors"
-              title="View details"
-            >
-              {expandedRowId === property.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </button>
           </div>
-        </div>
+          <AnimatePresence>
+            {expandedRowId === property.id && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+                className="pt-3 border-t border-slate-100 overflow-hidden"
+              >
+                <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
+                  <div><span className="font-medium">Town:</span> {property.town_city}</div>
+                  <div><span className="font-medium">County:</span> {property.county}</div>
+                  <div><span className="font-medium">Date:</span> {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}</div>
+                  <div><span className="font-medium">Type:</span> {formatPropertyType(property.propertyType)}</div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      ))}
+    </div>
+  );
 
-        <AnimatePresence>
-          {expandedRowId === property.id && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-              className="mt-3 pt-3 border-t border-gray-100 overflow-hidden"
-            >
-              <div className="grid grid-cols-2 gap-2 text-xs text-gray-600">
-                <div><span className="font-medium">Town:</span> {property.town_city}</div>
-                <div><span className="font-medium">County:</span> {property.county}</div>
-                <div><span className="font-medium">Date:</span> {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}</div>
-                <div><span className="font-medium">Type:</span> {formatPropertyType(property.propertyType)}</div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    );
+  const getPropertyTypeIcon = (type: string) => {
+    const icons = {
+      'D': <Home className="h-4 w-4" />,
+      'S': <Building className="h-4 w-4" />,
+      'T': <Layers className="h-4 w-4" />,
+      'F': <Building className="h-4 w-4" />,
+      'O': <Home className="h-4 w-4" />,
+    };
+    return icons[type as keyof typeof icons] || <Home className="h-4 w-4" />;
   };
 
   if (!soldPrices.length) {
@@ -227,196 +380,101 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
 
   return (
     <div className="space-y-6">
-      {/* Table Controls */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setViewMode('table')}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                viewMode === 'table' 
-                  ? "bg-blue-100 text-blue-800" 
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              )}
+      {/* Mobile Cards View (always shown on mobile) */}
+      <MobileCardsView />
+
+      {/* Desktop View Controls and Content */}
+      <div className="hidden sm:block">
+        {/* Table Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode('table')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  viewMode === 'table' 
+                    ? "bg-blue-100 text-blue-800" 
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                )}
+              >
+                Table
+              </button>
+              <button
+                onClick={() => setViewMode('cards')}
+                className={cn(
+                  "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                  viewMode === 'cards' 
+                    ? "bg-blue-100 text-blue-800" 
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                )}
+              >
+                Cards
+              </button>
+            </div>
+            
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
             >
-              Table
-            </button>
-            <button
-              onClick={() => setViewMode('cards')}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
-                viewMode === 'cards' 
-                  ? "bg-blue-100 text-blue-800" 
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              )}
-            >
-              Cards
-            </button>
+              <option value={5}>5 per page</option>
+              <option value={10}>10 per page</option>
+              <option value={20}>20 per page</option>
+              <option value={50}>50 per page</option>
+            </select>
           </div>
-          
-          <select
-            value={pageSize}
-            onChange={(e) => setPageSize(Number(e.target.value))}
-            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-          >
-            <option value={5}>5 per page</option>
-            <option value={10}>10 per page</option>
-            <option value={20}>20 per page</option>
-            <option value={50}>50 per page</option>
-          </select>
+
+          <div className="text-sm text-gray-600">
+            Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, soldPrices.length)} of {soldPrices.length} results
+          </div>
         </div>
 
-        <div className="text-sm text-gray-600">
-          Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, soldPrices.length)} of {soldPrices.length} results
+        {/* Add Legend above the table/cards */}
+        <div className="mb-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-wrap gap-4 items-center text-xs">
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+              <span>Average price / Info</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-green-600 inline-block"></span>
+              <span>Lowest price / Positive trend</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
+              <span>Highest price</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
+              <span>Price range</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span>🏠</span><span>Detached</span>
+              <span>🏡</span><span>Semi-detached</span>
+              <span>🏘️</span><span>Terraced</span>
+              <span>🏢</span><span>Flat/Maisonette</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-green-600">▲</span><span>Price up</span>
+              <span className="text-red-600">▼</span><span>Price down</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <span className="text-blue-600">i</span><span>Info</span>
+            </div>
+          </div>
         </div>
+
+        {/* Cards View */}
+        {viewMode === 'cards' && (
+          <CardsViewDesktop />
+        )}
+
+        {/* Table View */}
+        {viewMode === 'table' && (
+          <TableView />
+        )}
       </div>
-
-      {/* Add Legend above the table/cards */}
-      <div className="mb-4">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-wrap gap-4 items-center text-xs">
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
-            <span>Average price / Info</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-green-600 inline-block"></span>
-            <span>Lowest price / Positive trend</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
-            <span>Highest price</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
-            <span>Price range</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span>🏠</span><span>Detached</span>
-            <span>🏡</span><span>Semi-detached</span>
-            <span>🏘️</span><span>Terraced</span>
-            <span>🏢</span><span>Flat/Maisonette</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-green-600">▲</span><span>Price up</span>
-            <span className="text-red-600">▼</span><span>Price down</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <span className="text-blue-600">i</span><span>Info</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Cards View */}
-      {viewMode === 'cards' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {paginatedSoldPrices.map((property, index) => (
-            <PropertyCard key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')} property={property} index={index} />
-          ))}
-        </div>
-      )}
-
-      {/* Table View */}
-      {viewMode === 'table' && (
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead>
-                <tr className="bg-gradient-to-r from-blue-50 to-purple-50 border-b border-gray-200">
-                  <SortableHeader 
-                    title="Address" 
-                    sortKey="street" 
-                    requestSort={requestSort} 
-                    sortConfig={sortConfig}
-                    icon={<MapPin className="h-4 w-4" />}
-                  />
-                  <SortableHeader 
-                    title="Date" 
-                    sortKey="dateOfTransfer" 
-                    requestSort={requestSort} 
-                    sortConfig={sortConfig}
-                    disabled={isDateSortDisabled}
-                    disabledTooltip="Sorting disabled: all results are from the same year"
-                    icon={<Calendar className="h-4 w-4" />}
-                  />
-                  <SortableHeader 
-                    title="Price" 
-                    sortKey="price" 
-                    requestSort={requestSort} 
-                    sortConfig={sortConfig}
-                    icon={<PoundSterling className="h-4 w-4" />}
-                  />
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    <div className="flex items-center gap-1">
-                      <Home className="h-4 w-4" />
-                      <span>Type</span>
-                    </div>
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Tenure</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                <AnimatePresence>
-                  {paginatedSoldPrices.map((property, index) => (
-                    <motion.tr
-                      key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      className={cn(
-                        "hover:bg-blue-50 transition-colors duration-150",
-                        index % 2 === 0 ? "bg-white" : "bg-gray-50"
-                      )}
-                    >
-                      <td className="px-4 py-4">
-                        <button
-                          type="button"
-                          className="w-full text-left focus:outline-none focus:ring-2 focus:ring-blue-400 rounded disabled:opacity-50 disabled:cursor-not-allowed group"
-                          onClick={() => handleShowHistory(property)}
-                          disabled={!getHasHistory(property)}
-                          tabIndex={0}
-                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(property); }}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium text-gray-900 group-hover:text-blue-600 transition-colors">
-                              {formatAddress(property)}
-                            </span>
-                            {getHasHistory(property) && (
-                              <span title="Click to view full price history for this property" className="flex items-center">
-                                <TrendingUp className="w-4 h-4 text-blue-500 cursor-pointer" />
-                              </span>
-                            )}
-                          </div>
-                          {!getHasHistory(property) && (
-                            <div className="text-xs text-gray-400 mt-1">No other sales found</div>
-                          )}
-                        </button>
-                      </td>
-                      <td className="px-4 py-4 text-sm text-gray-700">
-                        {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className={cn("text-lg font-bold", getPriceRangeColor(property.price, priceRange.min, priceRange.max))}>
-                          {formatPrice(property.price)}
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{getPropertyTypeIcon(property.propertyType)}</span>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {formatPropertyType(property.propertyType)}
-                          </span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-4">{formatDuration(property.duration)}</td>
-                    </motion.tr>
-                  ))}
-                </AnimatePresence>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -474,14 +532,6 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
           </div>
         </div>
       )}
-
-      <PropertyHistoryModal
-        open={modalOpen}
-        property={modalProperty}
-        history={modalHistory}
-        formatAddress={formatAddress}
-        onClose={() => setModalOpen(false)}
-      />
     </div>
   );
 });

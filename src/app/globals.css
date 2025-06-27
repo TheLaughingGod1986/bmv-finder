@@ -2,20 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
+  --foreground-rgb: 30, 41, 59;
+  --background-start-rgb: 245, 247, 250;
   --background-end-rgb: 255, 255, 255;
+  --accent: #2563eb;
+  --accent-light: #dbeafe;
 }
 
 body {
+  font-family: 'Inter', system-ui, sans-serif;
   color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button, [type="button"], [type="submit"] {
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  border-radius: 0.5rem;
+  font-weight: 500;
+}
+
+input, select, textarea {
+  border-radius: 0.5rem;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  transition: border 0.2s, box-shadow 0.2s;
+}
+input:focus, select:focus, textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-light);
 }
 
 /* Custom utilities */

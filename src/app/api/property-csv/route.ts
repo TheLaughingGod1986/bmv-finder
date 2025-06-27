@@ -50,6 +50,9 @@ export async function POST(req: NextRequest) {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Land Registry API error:', response.status, response.statusText, errorText);
+      console.error('SPARQL Query:', sparqlQuery);
       throw new Error(`Land Registry API error: ${response.status} ${response.statusText}`);
     }
 
@@ -82,7 +85,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('Error fetching property data:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch property data' },
+      { error: 'Failed to fetch property data', details: String(error) },
       { status: 500 }
     );
   }
