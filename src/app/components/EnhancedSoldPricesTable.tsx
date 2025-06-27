@@ -19,6 +19,7 @@ import PropertyHistoryModal from './PropertyHistoryModal';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
+  allSoldPrices: SoldPrice[];
   formatAddress: (sp: SoldPrice) => string;
   formatDuration: (duration: string) => string;
   formatPropertyType: (type: string) => string;
@@ -31,6 +32,7 @@ interface EnhancedSoldPricesTableProps {
 
 const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.memo(({
   soldPrices,
+  allSoldPrices,
   formatAddress,
   formatDuration,
   formatPropertyType,
@@ -63,15 +65,17 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
 
   const normalize = (str: string | undefined | null) => (str ?? '').trim().toUpperCase();
+  const normalizeSaon = (saon: string | undefined | null) => {
+    const val = (saon ?? '').trim().toUpperCase();
+    return val === '' ? '-' : val;
+  };
 
   const handleShowHistory = (property: SoldPrice) => {
     setModalProperty(property);
-    // Find all sales for this property (by normalized address key, treating missing/empty saon as equivalent)
-    const history = soldPrices.filter(sp =>
+    // Loosened: match only on postcode and street
+    const history = allSoldPrices.filter(sp =>
       normalize(sp.postcode) === normalize(property.postcode) &&
-      normalize(sp.street) === normalize(property.street) &&
-      normalize(sp.paon) === normalize(property.paon) &&
-      normalize(sp.saon) === normalize(property.saon)
+      normalize(sp.street) === normalize(property.street)
     );
     setModalHistory(history);
     setModalOpen(true);

@@ -31,31 +31,15 @@ interface PropertyHistoryModalProps {
 const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ open, property, history, formatAddress, onClose }) => {
   // All hooks must be called before any return
   const sortedHistory = React.useMemo(() =>
-    [...history].sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime()),
+    [...history].sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()),
     [history]
   );
-  const chronologicalHistory = React.useMemo(() => sortedHistory.slice().reverse(), [sortedHistory]);
-  const dedupedHistory = React.useMemo(() => {
-    const map = new Map();
-    for (const h of chronologicalHistory) {
-      const addressKey = [
-        (h.postcode || '').trim().toUpperCase(),
-        (h.street || '').trim().toUpperCase(),
-        (h.paon || '').trim().toUpperCase(),
-        (h.saon || '').trim().toUpperCase()
-      ].join('|');
-      if (!map.has(addressKey) || new Date(h.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
-        map.set(addressKey, h);
-      }
-    }
-    return Array.from(map.values());
-  }, [chronologicalHistory]);
   // Only return null after all hooks
   if (!open || !property) return null;
 
   // Ensure chronological order for chart and summary
-  const oldest = chronologicalHistory[0];
-  const latest = chronologicalHistory[chronologicalHistory.length - 1];
+  const oldest = sortedHistory[0];
+  const latest = sortedHistory[sortedHistory.length - 1];
   const growthAbs = latest.price - oldest.price;
   const growthPct = ((latest.price / oldest.price) - 1) * 100;
 
@@ -89,8 +73,8 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
               </tr>
             </thead>
             <tbody>
-              {dedupedHistory.map((sale, i) => {
-                const prev = i > 0 ? dedupedHistory[i - 1] : null;
+              {sortedHistory.map((sale, i) => {
+                const prev = i > 0 ? sortedHistory[i - 1] : null;
                 let growth = null;
                 if (prev) {
                   const abs = sale.price - prev.price;
@@ -135,7 +119,7 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
               <rect x={45} y={30} width={340} height={100} fill="#f8fafc" rx={8} className="dark:fill-gray-800" />
               {/* Y-axis ticks and labels */}
               {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-                const price = Math.round(dedupedHistory[0].price + t * (dedupedHistory[dedupedHistory.length-1].price - dedupedHistory[0].price));
+                const price = Math.round(sortedHistory[0].price + t * (sortedHistory[sortedHistory.length-1].price - sortedHistory[0].price));
                 const y = 130 - t * 100;
                 return (
                   <g key={i}>
@@ -149,9 +133,9 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
                 fill="none"
                 stroke="#2563eb"
                 strokeWidth="3"
-                points={dedupedHistory.map((sale, i) => {
-                  const x = 45 + (i * (340 / (dedupedHistory.length - 1 || 1)));
-                  const y = 130 - ((sale.price - dedupedHistory[0].price) / (dedupedHistory[dedupedHistory.length-1].price - dedupedHistory[0].price || 1)) * 100;
+                points={sortedHistory.map((sale, i) => {
+                  const x = 45 + (i * (340 / (sortedHistory.length - 1 || 1)));
+                  const y = 130 - ((sale.price - sortedHistory[0].price) / (sortedHistory[sortedHistory.length-1].price - sortedHistory[0].price || 1)) * 100;
                   return `${x},${y}`;
                 }).join(' ')}
               />
@@ -164,14 +148,14 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
                 points={avgPricesByYear.map((avg, i) => {
                   if (avg === null) return '';
                   const x = 45 + (i * (340 / (avgPricesByYear.length - 1 || 1)));
-                  const y = 130 - ((avg - dedupedHistory[0].price) / (dedupedHistory[dedupedHistory.length-1].price - dedupedHistory[0].price || 1)) * 100;
+                  const y = 130 - ((avg - sortedHistory[0].price) / (sortedHistory[sortedHistory.length-1].price - sortedHistory[0].price || 1)) * 100;
                   return `${x},${y}`;
                 }).filter(Boolean).join(' ')}
               />
               {/* Data points and year labels */}
-              {dedupedHistory.map((sale, i) => {
-                const x = 45 + (i * (340 / (dedupedHistory.length - 1 || 1)));
-                const y = 130 - ((sale.price - dedupedHistory[0].price) / (dedupedHistory[dedupedHistory.length-1].price - dedupedHistory[0].price || 1)) * 100;
+              {sortedHistory.map((sale, i) => {
+                const x = 45 + (i * (340 / (sortedHistory.length - 1 || 1)));
+                const y = 130 - ((sale.price - sortedHistory[0].price) / (sortedHistory[sortedHistory.length-1].price - sortedHistory[0].price || 1)) * 100;
                 return (
                   <g key={i}>
                     <circle cx={x} cy={y} r={7} fill="#2563eb" stroke="#fff" strokeWidth="2" />

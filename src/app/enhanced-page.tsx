@@ -595,6 +595,7 @@ function HomeContent() {
                     </h2>
                     <EnhancedSoldPricesTable
                       soldPrices={soldPrices.filter(sp => filterType.length === 0 || filterType.includes(sp.propertyType))}
+                      allSoldPrices={soldPrices}
                       formatAddress={formatAddress}
                       formatDuration={formatDuration}
                       formatPropertyType={formatPropertyType}
