@@ -355,11 +355,10 @@ function HomeContent() {
     };
   }, [filteredSoldPrices]);
 
-  // Trend data for charts
+  // Trend data for charts (no filters, use all soldPrices)
   const trendData = useMemo(() => {
-    if (dedupedSoldPrices.length === 0) return { years: [], avgPrices: [] };
-    
-    const yearData = dedupedSoldPrices.reduce((acc, sp) => {
+    if (soldPrices.length === 0) return { years: [], avgPrices: [] };
+    const yearData = soldPrices.reduce((acc, sp) => {
       const year = sp.dateOfTransfer.slice(0, 4);
       if (!acc[year]) {
         acc[year] = { total: 0, count: 0 };
@@ -368,12 +367,10 @@ function HomeContent() {
       acc[year].count += 1;
       return acc;
     }, {} as Record<string, { total: number; count: number }>);
-    
     const years = Object.keys(yearData).sort();
     const avgPrices = years.map(year => Math.round(yearData[year].total / yearData[year].count));
-    
     return { years, avgPrices };
-  }, [dedupedSoldPrices]);
+  }, [soldPrices]);
 
   const handleSearchSuggestion = (suggestion: string) => {
     setPostcode(suggestion);

@@ -10,11 +10,12 @@ import {
   LinearScale,
   Tooltip,
   Legend,
-  Chart
+  Chart,
+  Filler
 } from 'chart.js';
 import type { ChartEvent, ActiveElement, TooltipItem } from 'chart.js';
 
-ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend);
+ChartJS.register(ArcElement, BarElement, CategoryScale, LinearScale, Tooltip, Legend, Filler);
 
 import { SoldPrice } from '../../../types/sold-price';
 
