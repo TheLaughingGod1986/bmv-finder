@@ -65,10 +65,6 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
 
   const normalize = (str: string | undefined | null) => (str ?? '').trim().toUpperCase();
-  const normalizeSaon = (saon: string | undefined | null) => {
-    const val = (saon ?? '').trim().toUpperCase();
-    return val === '' ? '-' : val;
-  };
 
   const handleShowHistory = (property: SoldPrice) => {
     setModalProperty(property);

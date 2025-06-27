@@ -1,14 +1,12 @@
 import { NextResponse } from 'next/server';
 import { kv } from '@vercel/kv';
-import { mockTrendData } from '../mock-data';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
     if (process.env.NODE_ENV === 'development') {
-        console.log('[DEV MODE] Returning mock summary data.');
         await new Promise(resolve => setTimeout(resolve, 300)); // Simulate network delay
-        return NextResponse.json(mockTrendData);
+        return NextResponse.json({}); // Return empty object or fallback
     }
 
     try {
@@ -22,7 +20,6 @@ export async function GET() {
         return NextResponse.json(JSON.parse(summaryData as string));
 
     } catch (error) {
-        console.error('Error fetching summary:', error);
         return NextResponse.json(
             { message: 'Error fetching summary', error: (error as Error).message }, 
             { status: 500 }

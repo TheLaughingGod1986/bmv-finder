@@ -1,26 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// import { mockSoldPrices } from '../mock-data';
-
-// Property type mapping
-const PROPERTY_TYPES = {
-  'http://landregistry.data.gov.uk/def/common/detached': 'Detached',
-  'http://landregistry.data.gov.uk/def/common/semi-detached': 'Semi-detached', 
-  'http://landregistry.data.gov.uk/def/common/terraced': 'Terraced',
-  'http://landregistry.data.gov.uk/def/common/flat-maisonette': 'Flat/Maisonette',
-  'http://landregistry.data.gov.uk/def/common/other': 'Other'
-};
-
-// Estate type mapping
-const ESTATE_TYPES = {
-  'http://landregistry.data.gov.uk/def/common/freehold': 'Freehold',
-  'http://landregistry.data.gov.uk/def/common/leasehold': 'Leasehold'
-};
-
-// New build mapping
-const NEW_BUILD_TYPES = {
-  'true': 'Yes',
-  'false': 'No'
-};
 
 export async function POST(req: NextRequest) {
   const { postcode } = await req.json();
@@ -30,7 +8,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Normalize input: remove spaces and uppercase
-  const normalizedInput = postcode.replace(/\s+/g, '').toUpperCase();
+  const normalizedInput = postcode.replace(/\s/g, '').toUpperCase();
 
   try {
     // SPARQL query to get property data from Land Registry
@@ -62,8 +40,6 @@ export async function POST(req: NextRequest) {
       LIMIT 1000
     `;
 
-    console.log('Querying Land Registry API for postcode:', postcode);
-
     const response = await fetch('https://landregistry.data.gov.uk/landregistry/query', {
       method: 'POST',
       headers: {
@@ -78,51 +54,36 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await response.json();
-    console.log('Land Registry API response:', JSON.stringify(data, null, 2));
-    
-    // Transform SPARQL results to our format
-    const results = data.results.bindings.map((binding: Record<string, { value: string }>) => ({
-      transactionId: binding.transactionId?.value || '',
-      price: parseInt(binding.pricePaid?.value || '0') || 0,
-      dateOfTransfer: binding.transactionDate?.value || '',
+
+    if (!data.results || !data.results.bindings) {
+      return NextResponse.json({ data: [] });
+    }
+
+    const properties = data.results.bindings.map((binding: Record<string, { value: string }>) => ({
+      id: binding.transactionId?.value || '',
+      price: parseInt(binding.pricePaid?.value || '0'),
+      dateOfTransfer: binding.transactionDate?.value?.split('T')[0] || '',
       postcode: binding.postcode?.value || '',
-      propertyType: PROPERTY_TYPES[binding.propertyType?.value as keyof typeof PROPERTY_TYPES] || 'Other',
-      propertyTypeCode: binding.propertyType?.value || '',
-      newBuild: NEW_BUILD_TYPES[binding.newBuild?.value as keyof typeof NEW_BUILD_TYPES] || binding.newBuild?.value || '',
-      newBuildCode: binding.newBuild?.value || '',
-      estateType: ESTATE_TYPES[binding.estateType?.value as keyof typeof ESTATE_TYPES] || binding.estateType?.value || '',
-      estateTypeCode: binding.estateType?.value || '',
+      propertyType: binding.propertyType?.value?.split('/').pop() || '',
+      street: binding.street?.value || '',
+      town_city: binding.town?.value || '',
+      county: binding.county?.value || '',
       paon: binding.paon?.value || '',
       saon: binding.saon?.value || '',
-      street: binding.street?.value || '',
+      duration: binding.estateType?.value?.split('/').pop() || '',
+      old_new: binding.newBuild?.value?.split('/').pop() || '',
       locality: binding.locality?.value || '',
-      town: binding.town?.value || '',
-      district: binding.district?.value || '',
-      county: binding.county?.value || '',
-      fullAddress: [
-        binding.paon?.value || '',
-        binding.saon?.value || '',
-        binding.street?.value || '',
-        binding.locality?.value || '',
-        binding.town?.value || '',
-        binding.postcode?.value || ''
-      ].filter(Boolean).join(', ')
+      ppd_category_type: 'A',
+      record_status: 'A'
     }));
 
-    return NextResponse.json({ 
-      data: results, 
-      totalFound: results.length,
-      source: 'Land Registry SPARQL API',
-      query: postcode,
-      note: results.length === 0 ? 'No properties found. The Land Registry API may require full postcodes (e.g., "OX3 0JA" instead of "OX3").' : null
-    });
+    return NextResponse.json({ data: properties });
 
   } catch (error) {
-    console.error('Error fetching from Land Registry API:', error);
-    return NextResponse.json({ 
-      error: 'Failed to fetch property data from Land Registry',
-      details: error instanceof Error ? error.message : 'Unknown error',
-      note: 'The Land Registry API may be temporarily unavailable or the postcode format may need adjustment.'
-    }, { status: 500 });
+    console.error('Error fetching property data:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch property data' },
+      { status: 500 }
+    );
   }
 } 
