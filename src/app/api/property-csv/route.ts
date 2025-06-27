@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Simple in-memory cache
+const cache = new Map<string, { data: any, timestamp: number }>();
+const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
+
 export async function POST(req: NextRequest) {
   const { postcode } = await req.json();
   
@@ -9,6 +13,15 @@ export async function POST(req: NextRequest) {
 
   // Normalize input: remove spaces and uppercase
   const normalizedInput = postcode.replace(/\s/g, '').toUpperCase();
+
+  // Check cache first
+  const cacheKey = normalizedInput;
+  if (cache.has(cacheKey)) {
+    const { data, timestamp } = cache.get(cacheKey)!;
+    if (Date.now() - timestamp < CACHE_TTL) {
+      return NextResponse.json({ data, cache: true });
+    }
+  }
 
   try {
     // SPARQL query to get property data from Land Registry
@@ -53,6 +66,11 @@ export async function POST(req: NextRequest) {
       const errorText = await response.text();
       console.error('Land Registry API error:', response.status, response.statusText, errorText);
       console.error('SPARQL Query:', sparqlQuery);
+      // If 503 and cache exists, serve stale cache
+      if (response.status === 503 && cache.has(cacheKey)) {
+        const { data } = cache.get(cacheKey)!;
+        return NextResponse.json({ data, cache: 'stale', warning: 'Land Registry API is rate limited. Showing cached results.' });
+      }
       throw new Error(`Land Registry API error: ${response.status} ${response.statusText}`);
     }
 
@@ -80,9 +98,17 @@ export async function POST(req: NextRequest) {
       record_status: 'A'
     }));
 
+    // Set cache
+    cache.set(cacheKey, { data: properties, timestamp: Date.now() });
+
     return NextResponse.json({ data: properties });
 
   } catch (error) {
+    // On error, serve stale cache if available
+    if (cache.has(cacheKey)) {
+      const { data } = cache.get(cacheKey)!;
+      return NextResponse.json({ data, cache: 'stale', warning: 'Land Registry API is unavailable. Showing cached results.' });
+    }
     console.error('Error fetching property data:', error);
     return NextResponse.json(
       { error: 'Failed to fetch property data', details: String(error) },
