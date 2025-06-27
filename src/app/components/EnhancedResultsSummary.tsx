@@ -192,12 +192,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
               color="blue"
             />
             <StatCard
-              title="Min Price"
-              value={summary.minPrice}
-              icon={<TrendingDown className="h-6 w-6" />}
-              color="green"
-            />
-            <StatCard
               title="Max Price"
               value={summary.maxPrice}
               icon={<TrendingUp className="h-6 w-6" />}
@@ -245,32 +239,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
                         </div>
                         <div className="text-sm text-gray-600">
                           Most frequently sold property type in this area
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <div className="text-xs text-gray-600 mb-2">Property Type Legend:</div>
-                      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs">
-                        <div className="flex items-center gap-1">
-                          <span>🏠</span>
-                          <span className="text-gray-700">D = Detached</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>🏡</span>
-                          <span className="text-gray-700">S = Semi-detached</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>🏘️</span>
-                          <span className="text-gray-700">T = Terraced</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>🏢</span>
-                          <span className="text-gray-700">F = Flat/Maisonette</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <span>🏭</span>
-                          <span className="text-gray-700">O = Other</span>
                         </div>
                       </div>
                     </div>
