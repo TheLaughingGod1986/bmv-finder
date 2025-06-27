@@ -29,16 +29,31 @@ interface PropertyHistoryModalProps {
 }
 
 const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ open, property, history, formatAddress, onClose }) => {
-  // Move all hooks to the top of the component, before any return or conditional logic
+  // All hooks must be called before any return
   const sortedHistory = React.useMemo(() =>
     [...history].sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime()),
     [history]
   );
-
+  const chronologicalHistory = React.useMemo(() => sortedHistory.slice().reverse(), [sortedHistory]);
+  const dedupedHistory = React.useMemo(() => {
+    const map = new Map();
+    for (const h of chronologicalHistory) {
+      const addressKey = [
+        (h.postcode || '').trim().toUpperCase(),
+        (h.street || '').trim().toUpperCase(),
+        (h.paon || '').trim().toUpperCase(),
+        (h.saon || '').trim().toUpperCase()
+      ].join('|');
+      if (!map.has(addressKey) || new Date(h.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
+        map.set(addressKey, h);
+      }
+    }
+    return Array.from(map.values());
+  }, [chronologicalHistory]);
+  // Only return null after all hooks
   if (!open || !property) return null;
 
   // Ensure chronological order for chart and summary
-  const chronologicalHistory = sortedHistory.slice().reverse(); // oldest to latest
   const oldest = chronologicalHistory[0];
   const latest = chronologicalHistory[chronologicalHistory.length - 1];
   const growthAbs = latest.price - oldest.price;
@@ -56,23 +71,6 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
     const prices = yearToPrices[year] || [];
     return prices.length ? prices.reduce((a, b) => a + b, 0) / prices.length : null;
   });
-
-  // Deduplicate history by address (postcode, street, paon, saon), keep only the latest sale
-  const dedupedHistory = React.useMemo(() => {
-    const map = new Map();
-    for (const h of chronologicalHistory) {
-      const addressKey = [
-        (h.postcode || '').trim().toUpperCase(),
-        (h.street || '').trim().toUpperCase(),
-        (h.paon || '').trim().toUpperCase(),
-        (h.saon || '').trim().toUpperCase()
-      ].join('|');
-      if (!map.has(addressKey) || new Date(h.dateOfTransfer) > new Date(map.get(addressKey).dateOfTransfer)) {
-        map.set(addressKey, h);
-      }
-    }
-    return Array.from(map.values());
-  }, [chronologicalHistory]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50 dark:bg-black dark:bg-opacity-80">
