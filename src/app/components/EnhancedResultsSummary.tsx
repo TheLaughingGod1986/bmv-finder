@@ -135,84 +135,81 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
 
   return (
     <div className="relative w-full max-w-4xl mx-auto animate-fade-in mb-12">
-      {/* Sticky Summary Cards Container - Only sticky on desktop */}
-      <div className="md:sticky md:top-20 z-20 bg-white/90 backdrop-blur-lg pb-6 rounded-2xl shadow-2xl border border-blue-100 mx-2">
-        <motion.section
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-8 shadow-xl"
-          aria-labelledby="results-summary-title"
-        >
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 rounded-xl shadow">
-                <BarChart3 className="h-7 w-7 text-blue-600" />
-              </div>
-              <div>
-                <h2 id="results-summary-title" className="text-2xl font-extrabold gradient-text leading-tight mb-1">
-                  Results Summary for <span className="text-blue-700">{postcode}</span>
-                </h2>
-                <p className="text-sm text-slate-600">Market insights and property analysis</p>
-              </div>
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6 }}
+        className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-8 shadow-xl"
+        aria-labelledby="results-summary-title"
+      >
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-blue-100 rounded-xl shadow">
+              <BarChart3 className="h-7 w-7 text-blue-600" />
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="bg-blue-100 px-3 py-1 rounded-full text-sm font-semibold">
-                {summary.totalProperties} properties
-              </span>
-              {onShare && (
-                <button
-                  onClick={onShare}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-blue-100 text-blue-700 font-semibold text-sm shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200 active:scale-95"
-                  title="Share results"
-                  aria-label="Share results"
-                >
-                  <Share2 className="h-5 w-5" /> Share
-                </button>
-              )}
-              {onExport && (
-                <button
-                  onClick={onExport}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-blue-100 text-blue-700 font-semibold text-sm shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200 active:scale-95"
-                  title="Export data"
-                  aria-label="Export data"
-                >
-                  <Download className="h-5 w-5" /> Export
-                </button>
-              )}
+            <div>
+              <h2 id="results-summary-title" className="text-2xl font-extrabold gradient-text leading-tight mb-1">
+                Results Summary for <span className="text-blue-700">{postcode}</span>
+              </h2>
+              <p className="text-sm text-slate-600">Market insights and property analysis</p>
             </div>
           </div>
-          {/* Stat Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 mb-6">
-            <StatCard
-              title="Average Price"
-              value={summary.avgPrice}
-              icon={<PoundSterling className="h-6 w-6" />}
-              color="blue"
-            />
-            <StatCard
-              title="Max Price"
-              value={summary.maxPrice}
-              icon={<TrendingUp className="h-6 w-6" />}
-              color="purple"
-            />
-            <StatCard
-              title="Most Common Type"
-              value={getPropertyTypeLabel(summary.mostCommonType)}
-              icon={getPropertyTypeIcon(summary.mostCommonType)}
-              color="orange"
-            />
-          </div>
-          {/* Date Range */}
-          <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-slate-600">
-            <Calendar className="h-5 w-5 text-blue-400 mr-1" />
-            <span>
-              Data from <span className="font-semibold text-blue-700">{summary.dateRange.earliest ? formatDate(summary.dateRange.earliest) : 'N/A'}</span> to <span className="font-semibold text-blue-700">{summary.dateRange.latest ? formatDate(summary.dateRange.latest) : 'N/A'}</span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="bg-blue-100 px-3 py-1 rounded-full text-sm font-semibold">
+              {summary.totalProperties} properties
             </span>
+            {onShare && (
+              <button
+                onClick={onShare}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-blue-100 text-blue-700 font-semibold text-sm shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200 active:scale-95"
+                title="Share results"
+                aria-label="Share results"
+              >
+                <Share2 className="h-5 w-5" /> Share
+              </button>
+            )}
+            {onExport && (
+              <button
+                onClick={onExport}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-blue-100 text-blue-700 font-semibold text-sm shadow focus:ring-2 focus:ring-blue-400 transition-all duration-200 active:scale-95"
+                title="Export data"
+                aria-label="Export data"
+              >
+                <Download className="h-5 w-5" /> Export
+              </button>
+            )}
           </div>
-        </motion.section>
-      </div>
+        </div>
+        {/* Stat Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-6">
+          <StatCard
+            title="Average Price"
+            value={summary.avgPrice}
+            icon={<PoundSterling className="h-6 w-6" />}
+            color="blue"
+          />
+          <StatCard
+            title="Max Price"
+            value={summary.maxPrice}
+            icon={<TrendingUp className="h-6 w-6" />}
+            color="purple"
+          />
+          <StatCard
+            title="Most Common Type"
+            value={getPropertyTypeLabel(summary.mostCommonType)}
+            icon={getPropertyTypeIcon(summary.mostCommonType)}
+            color="orange"
+          />
+        </div>
+        {/* Date Range */}
+        <div className="mt-2 flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-slate-600">
+          <Calendar className="h-5 w-5 text-blue-400 mr-1" />
+          <span>
+            Data from <span className="font-semibold text-blue-700">{summary.dateRange.earliest ? formatDate(summary.dateRange.earliest) : 'N/A'}</span> to <span className="font-semibold text-blue-700">{summary.dateRange.latest ? formatDate(summary.dateRange.latest) : 'N/A'}</span>
+          </span>
+        </div>
+      </motion.section>
 
       {/* Scrollable Accordion Content Section */}
       <div className="pt-4 space-y-4">

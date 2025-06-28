@@ -5,7 +5,7 @@ const cache = new Map<string, { data: any, timestamp: number }>();
 const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
 
 export async function POST(req: NextRequest) {
-  const { postcode } = await req.json();
+  const { postcode, page = 1, pageSize = 20 } = await req.json();
   
   if (!postcode) {
     return NextResponse.json({ error: 'Postcode is required' }, { status: 400 });
@@ -14,12 +14,16 @@ export async function POST(req: NextRequest) {
   // Normalize input: remove spaces and uppercase
   const normalizedInput = postcode.replace(/\s/g, '').toUpperCase();
 
-  // Check cache first
-  const cacheKey = normalizedInput;
+  // Pagination
+  const limit = Math.max(1, Math.min(pageSize, 100)); // Max 100 per page
+  const offset = (Math.max(1, page) - 1) * limit;
+
+  // Check cache first (cache key includes page/size)
+  const cacheKey = `${normalizedInput}|${page}|${limit}`;
   if (cache.has(cacheKey)) {
     const { data, timestamp } = cache.get(cacheKey)!;
     if (Date.now() - timestamp < CACHE_TTL) {
-      return NextResponse.json({ data, cache: true });
+      return NextResponse.json({ data, page, pageSize: limit, cache: true });
     }
   }
 
@@ -50,7 +54,8 @@ export async function POST(req: NextRequest) {
         ?addr lrcommon:county ?county .
       }
       ORDER BY DESC(?transactionDate)
-      LIMIT 1000
+      LIMIT ${limit + 1}
+      OFFSET ${offset}
     `;
 
     const response = await fetch('https://landregistry.data.gov.uk/landregistry/query', {
@@ -69,7 +74,7 @@ export async function POST(req: NextRequest) {
       // If 503 and cache exists, serve stale cache
       if (response.status === 503 && cache.has(cacheKey)) {
         const { data } = cache.get(cacheKey)!;
-        return NextResponse.json({ data, cache: 'stale', warning: 'Land Registry API is rate limited. Showing cached results.' });
+        return NextResponse.json({ data, page, pageSize: limit, cache: 'stale', warning: 'Land Registry API is rate limited. Showing cached results.' });
       }
       throw new Error(`Land Registry API error: ${response.status} ${response.statusText}`);
     }
@@ -77,10 +82,14 @@ export async function POST(req: NextRequest) {
     const data = await response.json();
 
     if (!data.results || !data.results.bindings) {
-      return NextResponse.json({ data: [] });
+      return NextResponse.json({ data: [], page, pageSize: limit });
     }
 
-    const properties = data.results.bindings.map((binding: Record<string, { value: string }>) => ({
+    // Check if there are more results
+    const hasMore = data.results.bindings.length > limit;
+    const bindings = hasMore ? data.results.bindings.slice(0, limit) : data.results.bindings;
+
+    const properties = bindings.map((binding: Record<string, { value: string }>) => ({
       id: binding.transactionId?.value || '',
       price: parseInt(binding.pricePaid?.value || '0'),
       dateOfTransfer: binding.transactionDate?.value?.split('T')[0] || '',
@@ -101,13 +110,13 @@ export async function POST(req: NextRequest) {
     // Set cache
     cache.set(cacheKey, { data: properties, timestamp: Date.now() });
 
-    return NextResponse.json({ data: properties });
+    return NextResponse.json({ data: properties, page, pageSize: limit, hasMore });
 
   } catch (error) {
     // On error, serve stale cache if available
     if (cache.has(cacheKey)) {
       const { data } = cache.get(cacheKey)!;
-      return NextResponse.json({ data, cache: 'stale', warning: 'Land Registry API is unavailable. Showing cached results.' });
+      return NextResponse.json({ data, page, pageSize: limit, cache: 'stale', warning: 'Land Registry API is unavailable. Showing cached results.' });
     }
     console.error('Error fetching property data:', error);
     return NextResponse.json(

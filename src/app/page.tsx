@@ -37,6 +37,13 @@ function HomeContent() {
     property: null, 
     history: [] 
   });
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(20); // You can make this user-configurable if desired
+  const [hasMore, setHasMore] = useState(false);
+  // Progress state
+  const [progress, setProgress] = useState(0);
+  const [progressMessage, setProgressMessage] = useState('');
   
   // Enhanced filter states
   const [filterDuration, setFilterDuration] = useState<string[]>([]);
@@ -90,7 +97,7 @@ function HomeContent() {
     return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
   }, [propertySaleCounts]);
 
-  const handleSearch = useCallback(async (searchPostcode: string) => {
+  const handleSearch = useCallback(async (searchPostcode: string, pageNum = 1) => {
     if (!searchPostcode.trim()) {
       showToast({
         type: 'warning',
@@ -103,24 +110,46 @@ function HomeContent() {
     setIsLoading(true);
     setError(null);
     setHasSearched(true);
+    setPage(pageNum); // update page state
+    setProgress(0);
+    setProgressMessage('Initializing search...');
+
+    // Simulate progress updates
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + Math.random() * 10;
+      });
+    }, 500);
 
     try {
+      setProgressMessage('Connecting to Land Registry...');
+      setProgress(10);
+
       const response = await fetch('/api/property-csv', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ postcode: searchPostcode.trim() }),
+        body: JSON.stringify({ postcode: searchPostcode.trim(), page: pageNum, pageSize }),
       });
+
+      setProgress(50);
+      setProgressMessage('Processing results...');
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      
+      setProgress(90);
+      setProgressMessage('Finalizing results...');
+
+      setHasMore(!!data.hasMore);
       if (data.data && data.data.length > 0) {
         setSoldPrices(data.data);
+        setProgress(100);
+        setProgressMessage('Search complete!');
         showToast({
           type: 'success',
           title: 'Search Complete',
@@ -128,6 +157,8 @@ function HomeContent() {
         });
       } else {
         setSoldPrices([]);
+        setProgress(100);
+        setProgressMessage('No results found');
         showToast({
           type: 'info',
           title: 'No Results',
@@ -137,6 +168,9 @@ function HomeContent() {
     } catch {
       setError('Failed to fetch property data. Please try again.');
       setSoldPrices([]);
+      setHasMore(false);
+      setProgress(0);
+      setProgressMessage('Search failed');
       showToast({
         type: 'error',
         title: 'Search Failed',
@@ -144,8 +178,14 @@ function HomeContent() {
       });
     } finally {
       setIsLoading(false);
+      clearInterval(progressInterval);
+      // Reset progress after a delay
+      setTimeout(() => {
+        setProgress(0);
+        setProgressMessage('');
+      }, 2000);
     }
-  }, [showToast]);
+  }, [showToast, pageSize]);
 
   useEffect(() => {
     const fetchLastUpdated = async () => {
@@ -201,6 +241,11 @@ function HomeContent() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [postcode, handleSearch]);
+
+  // When postcode changes, reset to page 1
+  useEffect(() => {
+    setPage(1);
+  }, [postcode]);
 
   const requestSort = (key: keyof SoldPrice) => {
     let direction: 'ascending' | 'descending' = 'ascending';
@@ -469,6 +514,27 @@ function HomeContent() {
           className="mb-8"
         />
 
+        {/* Progress Bar */}
+        {isLoading && (
+          <div className="mb-8 bg-white rounded-xl shadow-lg p-6 border border-blue-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-gray-700">{progressMessage}</span>
+              <span className="text-sm font-medium text-blue-600">{Math.round(progress)}%</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <div className="mt-2 text-xs text-gray-500">
+              {progress < 50 && "Connecting to Land Registry database..."}
+              {progress >= 50 && progress < 90 && "Processing property data..."}
+              {progress >= 90 && "Finalizing results..."}
+            </div>
+          </div>
+        )}
+
         {error && (
           <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p className="text-red-800">{error}</p>
@@ -539,6 +605,24 @@ function HomeContent() {
                 setHistoryModal({ open: true, property, history });
               }}
             />
+            {/* Pagination Controls */}
+            <div className="flex justify-center items-center gap-4 my-8">
+              <button
+                className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold disabled:opacity-50"
+                onClick={() => handleSearch(postcode, page - 1)}
+                disabled={page <= 1 || isLoading}
+              >
+                Previous
+              </button>
+              <span className="text-sm font-medium">Page {page}</span>
+              <button
+                className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold disabled:opacity-50"
+                onClick={() => handleSearch(postcode, page + 1)}
+                disabled={!hasMore || isLoading}
+              >
+                Next
+              </button>
+            </div>
           </>
         )}
       </main>
