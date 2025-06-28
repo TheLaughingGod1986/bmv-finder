@@ -632,7 +632,6 @@ function HomeContent() {
                 sortConfig={sortConfig}
                 getHasHistory={getHasHistory}
                 isDateSortDisabled={isDateSortDisabled}
-                priceRange={priceRange}
                 onShowHistory={(property, history) => {
                   setHistoryModal({ open: true, property, history });
                 }}
