@@ -1,16 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { 
   TrendingUp, 
   TrendingDown, 
   Home, 
-  Calendar,
-  PoundSterling,
-  Share2,
-  Download,
-  BarChart3
+  Calendar
 } from 'lucide-react';
 import { cn, formatPrice, getPropertyTypeIcon, getPropertyTypeLabel } from '../../lib/utils';
 
@@ -33,10 +28,7 @@ interface EnhancedResultsSummaryProps {
 }
 
 const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({ 
-  summary, 
-  postcode, 
-  onExport, 
-  onShare 
+  summary
 }) => {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
@@ -47,56 +39,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
       year: 'numeric',
     });
   };
-
-  const StatCard = ({ 
-    title, 
-    value, 
-    icon, 
-    color, 
-    trend
-  }: {
-    title: string;
-    value: string | number;
-    icon: React.ReactNode;
-    color: string;
-    trend?: { value: number; isPositive: boolean };
-  }) => (
-    <div
-      className="bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center"
-    >
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-4">
-          <div className={cn(
-            "p-3 rounded-lg",
-            color === 'blue' && "bg-blue-100 text-blue-600",
-            color === 'green' && "bg-green-100 text-green-600",
-            color === 'purple' && "bg-purple-100 text-purple-600",
-            color === 'orange' && "bg-orange-100 text-orange-600"
-          )}>
-            {icon}
-          </div>
-        </div>
-        <div className="space-y-2">
-          <div className="text-2xl font-bold text-gray-900">
-            {typeof value === 'number' ? formatPrice(value) : value}
-          </div>
-          <div className="text-sm text-gray-600">{title}</div>
-          {trend && (
-            <div className="flex items-center gap-1 text-xs">
-              {trend.isPositive ? (
-                <TrendingUp className="h-3 w-3 text-green-500" />
-              ) : (
-                <TrendingDown className="h-3 w-3 text-red-500" />
-              )}
-              <span className={trend.isPositive ? "text-green-600" : "text-red-600"}>
-                {trend.value}% from last year
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
 
   const ExpandableSection = ({ 
     title, 

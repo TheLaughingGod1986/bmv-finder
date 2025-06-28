@@ -30,11 +30,6 @@ const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
 const MAX_RETRIES = 3;
 const TIMEOUT_MS = 30000; // 30 seconds timeout
 
-// Helper function to create a timeout promise
-const timeoutPromise = (ms: number) => new Promise<never>((_, reject) => 
-  setTimeout(() => reject(new Error('Request timeout')), ms)
-);
-
 // Helper function to fetch with timeout and retries
 async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> {
   for (let i = 0; i <= retries; i++) {
@@ -49,8 +44,8 @@ async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_R
       
       clearTimeout(timeoutId);
       return response;
-    } catch (error) {
-      if (i === retries) throw error;
+    } catch {
+      if (i === retries) throw new Error('Max retries exceeded');
       // Exponential backoff: wait 1s, 2s, 4s
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
     }
