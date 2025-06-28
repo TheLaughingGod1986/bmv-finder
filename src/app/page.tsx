@@ -38,9 +38,9 @@ function HomeContent() {
     history: [] 
   });
   // Pagination state
-  const [page, setPage] = useState(1);
   const pageSize = 10; // Always 10 results per page
-  const [hasMore, setHasMore] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   // Progress state
   const [progress, setProgress] = useState(0);
   const [progressMessage, setProgressMessage] = useState('');
@@ -145,7 +145,7 @@ function HomeContent() {
       setProgress(90);
       setProgressMessage('Finalizing results...');
 
-      setHasMore(!!data.hasMore);
+      setTotalCount(data.totalCount || 0);
       if (data.data && data.data.length > 0) {
         setSoldPrices(data.data);
         setProgress(100);
@@ -168,7 +168,7 @@ function HomeContent() {
     } catch {
       setError('Failed to fetch property data. Please try again.');
       setSoldPrices([]);
-      setHasMore(false);
+      setTotalCount(0);
       setProgress(0);
       setProgressMessage('Search failed');
       showToast({
@@ -606,21 +606,39 @@ function HomeContent() {
               </div>
             </div>
 
-            <EnhancedSoldPricesTable
-              soldPrices={sortedSoldPrices}
-              allSoldPrices={soldPrices}
-              formatAddress={formatAddress}
-              formatDuration={formatDuration}
-              formatPropertyType={formatPropertyType}
-              requestSort={requestSort}
-              sortConfig={sortConfig}
-              getHasHistory={getHasHistory}
-              isDateSortDisabled={isDateSortDisabled}
-              priceRange={priceRange}
-              onShowHistory={(property, history) => {
-                setHistoryModal({ open: true, property, history });
-              }}
-            />
+            {/* Legend above table/cards */}
+            <div className="flex justify-center mb-6">
+              <div className="border border-blue-100 bg-white rounded-xl px-6 py-3 flex flex-wrap gap-4 items-center text-xs shadow-sm">
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span> Average price / Info</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-600 inline-block"></span> Lowest price / Positive trend</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-purple-600 inline-block"></span> Highest price</span>
+                <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span> Price range</span>
+                <span className="flex items-center gap-1">🏠 Detached 🏡 Semi-detached 🏘️ Terraced 🏢 Flat/Maisonette</span>
+                <span className="flex items-center gap-1 text-green-600">▲ Price up</span>
+                <span className="flex items-center gap-1 text-red-600">▼ Price down</span>
+                <span className="flex items-center gap-1 text-blue-600">i Info</span>
+              </div>
+            </div>
+
+            {/* Table/cards full width */}
+            <div className="mb-10 w-full">
+              <EnhancedSoldPricesTable
+                soldPrices={sortedSoldPrices}
+                allSoldPrices={soldPrices}
+                formatAddress={formatAddress}
+                formatDuration={formatDuration}
+                formatPropertyType={formatPropertyType}
+                requestSort={requestSort}
+                sortConfig={sortConfig}
+                getHasHistory={getHasHistory}
+                isDateSortDisabled={isDateSortDisabled}
+                priceRange={priceRange}
+                onShowHistory={(property, history) => {
+                  setHistoryModal({ open: true, property, history });
+                }}
+              />
+            </div>
+
             {/* Pagination Controls */}
             <div className="flex justify-center items-center gap-6 my-12 p-4 bg-white rounded-2xl shadow-md border border-blue-100">
               <button
@@ -630,11 +648,16 @@ function HomeContent() {
               >
                 Previous
               </button>
-              <span className="text-base font-medium">Page {page}</span>
+              <div className="text-center">
+                <div className="text-base font-medium">Page {page}</div>
+                <div className="text-sm text-gray-600">
+                  {totalCount > 0 ? `Showing ${((page - 1) * pageSize) + 1}-${Math.min(page * pageSize, totalCount)} of ${totalCount} results` : ''}
+                </div>
+              </div>
               <button
                 className="px-5 py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold disabled:opacity-50 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 onClick={() => handleSearch(postcode, page + 1)}
-                disabled={!hasMore || isLoading}
+                disabled={page * pageSize >= totalCount || isLoading}
               >
                 Next
               </button>

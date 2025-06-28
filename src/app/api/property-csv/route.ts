@@ -45,11 +45,46 @@ export async function POST(req: NextRequest) {
   if (cache.has(cacheKey)) {
     const { data, timestamp } = cache.get(cacheKey)!;
     if (Date.now() - timestamp < CACHE_TTL) {
-      return NextResponse.json({ data, page, pageSize: limit, cache: true });
+      return NextResponse.json({ data, page, pageSize: limit, cache: true, totalCount: data.length });
     }
   }
 
   try {
+    // First, get the total count
+    const countQuery = `
+      PREFIX lrppi: <http://landregistry.data.gov.uk/def/ppi/>
+      PREFIX lrcommon: <http://landregistry.data.gov.uk/def/common/>
+      PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+      
+      SELECT (COUNT(?transx) AS ?totalCount)
+      WHERE {
+        ?transx lrppi:propertyAddress ?addr ;
+                lrppi:pricePaid ?pricePaid ;
+                lrppi:transactionDate ?transactionDate .
+        ?addr lrcommon:postcode ?postcode .
+        FILTER STRSTARTS(REPLACE(UCASE(?postcode), " ", ""), UCASE("${normalizedInput}"))
+        FILTER (?transactionDate >= "1995-01-01"^^xsd:date)
+      }
+    `;
+
+    // Get total count
+    const countResponse = await fetch('https://landregistry.data.gov.uk/landregistry/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/sparql-query',
+        'Accept': 'application/sparql-results+json'
+      },
+      body: countQuery
+    });
+
+    let totalCount = 0;
+    if (countResponse.ok) {
+      const countData = await countResponse.json();
+      if (countData.results && countData.results.bindings && countData.results.bindings.length > 0) {
+        totalCount = parseInt(countData.results.bindings[0].totalCount.value);
+      }
+    }
+
     // Main SPARQL query only
     const sparqlQuery = `
       PREFIX lrppi: <http://landregistry.data.gov.uk/def/ppi/>
@@ -63,7 +98,7 @@ export async function POST(req: NextRequest) {
                 lrppi:transactionDate ?transactionDate .
         ?addr lrcommon:postcode ?postcode .
         FILTER STRSTARTS(REPLACE(UCASE(?postcode), " ", ""), UCASE("${normalizedInput}"))
-        FILTER (?transactionDate >= "2015-01-01"^^xsd:date)
+        FILTER (?transactionDate >= "1995-01-01"^^xsd:date)
         OPTIONAL { ?transx lrppi:propertyType ?propertyType . }
         OPTIONAL { ?transx lrppi:newBuild ?newBuild . }
         OPTIONAL { ?transx lrppi:estateType ?estateType . }
@@ -102,6 +137,7 @@ export async function POST(req: NextRequest) {
           page, 
           pageSize: limit, 
           cache: 'stale', 
+          totalCount: data.length,
           warning: 'Land Registry API is rate limited. Showing cached results.' 
         });
       }
@@ -143,7 +179,8 @@ export async function POST(req: NextRequest) {
       data: properties, 
       page, 
       pageSize: limit, 
-      hasMore
+      hasMore,
+      totalCount
     });
 
   } catch (error) {
@@ -155,6 +192,7 @@ export async function POST(req: NextRequest) {
         page, 
         pageSize: limit, 
         cache: 'stale', 
+        totalCount: data.length,
         warning: 'Land Registry API is unavailable. Showing cached results.' 
       });
     }

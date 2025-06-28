@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronUp, 
   ChevronDown, 
   ChevronRight, 
-  ChevronLeft, 
   MapPin, 
   Calendar,
   PoundSterling,
@@ -45,6 +44,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   priceRange,
   onShowHistory
 }) => {
+  // Add missing state variables
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  
   // Remove internal pagination state and logic
   // const [page, setPage] = useState(1);
   // const [pageSize, setPageSize] = useState(10);
@@ -109,10 +111,10 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
 
   // Table View
   const TableView = () => (
-    <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-      <div className="overflow-x-auto">
-        <table className="min-w-full">
-          <thead className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-purple-50 border-b border-slate-200 shadow-sm">
+    <div className="w-full bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100 mt-2">
+      <div className="overflow-x-auto w-full">
+        <table className="min-w-full w-full">
+          <thead className="sticky top-0 z-10 bg-white border-b border-slate-100">
             <tr>
               <SortableHeader 
                 title="Address" 
@@ -147,7 +149,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
               <th className="px-4 py-3"></th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-50">
             <AnimatePresence>
               {paginatedSoldPrices.map((property, index) => (
                 <motion.tr
@@ -156,7 +158,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.05 }}
                   className={cn(
-                    "hover:bg-blue-50 transition-colors duration-150",
+                    "hover:bg-blue-50/60 transition-colors duration-150",
                     index % 2 === 0 ? "bg-white" : "bg-slate-50"
                   )}
                   tabIndex={0}
@@ -168,13 +170,13 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                   <td className="px-4 py-4 text-base text-slate-700 whitespace-nowrap">
                     {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
                   </td>
-                  <td className={cn("px-4 py-4 text-lg font-bold whitespace-nowrap", getPriceRangeColor(property.price, priceRange.min, priceRange.max))}>
+                  <td className="px-4 py-4 text-lg font-bold whitespace-nowrap text-right text-green-700">
                     {formatPrice(property.price)}
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{getPropertyTypeIcon(property.propertyType)}</span>
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">
                         {formatPropertyType(property.propertyType)}
                       </span>
                     </div>
@@ -182,7 +184,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                   <td className="px-4 py-4">
                     <span className={cn(
                       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                      property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                      property.duration === 'F' ? "bg-green-50 text-green-800" : "bg-blue-50 text-blue-800"
                     )}>
                       {formatDuration(property.duration)}
                     </span>
@@ -276,7 +278,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.08 }}
-          className="bg-white rounded-2xl shadow-xl border border-gray-100 p-5 flex flex-col gap-3 hover:shadow-2xl transition-all duration-200"
+          className="bg-white rounded-2xl shadow-md hover:shadow-xl border border-slate-100 p-5 flex flex-col gap-3 transition-all duration-200 hover:scale-[1.02]"
         >
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1">
@@ -296,17 +298,17 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
             </div>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <div className="text-2xl font-extrabold text-blue-700">
+            <div className="text-2xl font-extrabold text-green-700 text-right flex-1">
               {formatPrice(property.price)}
             </div>
-            <div className="text-sm font-medium text-slate-700">
+            <div className="text-sm font-medium text-slate-700 whitespace-nowrap">
               {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 mt-2">
             <span className={cn(
               "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-              property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+              property.duration === 'F' ? "bg-green-50 text-green-800" : "bg-blue-50 text-blue-800"
             )}>
               {formatDuration(property.duration)}
             </span>
@@ -321,24 +323,6 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
               </button>
             )}
           </div>
-          <AnimatePresence>
-            {expandedRowId === property.id && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-                className="pt-3 border-t border-slate-100 overflow-hidden"
-              >
-                <div className="grid grid-cols-2 gap-2 text-xs text-slate-600">
-                  <div><span className="font-medium">Town:</span> {property.town_city}</div>
-                  <div><span className="font-medium">County:</span> {property.county}</div>
-                  <div><span className="font-medium">Date:</span> {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}</div>
-                  <div><span className="font-medium">Type:</span> {formatPropertyType(property.propertyType)}</div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </motion.div>
       ))}
     </div>
