@@ -15,7 +15,7 @@ import {
   Layers
 } from 'lucide-react';
 import { SoldPrice } from '../../../types/sold-price';
-import { cn, getPriceRangeColor } from '../../lib/utils';
+import { cn } from '../../lib/utils';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
@@ -27,7 +27,6 @@ interface EnhancedSoldPricesTableProps {
   sortConfig: { key: keyof SoldPrice; direction: string };
   getHasHistory: (property: SoldPrice) => boolean;
   isDateSortDisabled: boolean;
-  priceRange: { min: number; max: number };
   onShowHistory: (property: SoldPrice, history: SoldPrice[]) => void;
 }
 
@@ -41,7 +40,6 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   sortConfig,
   getHasHistory,
   isDateSortDisabled,
-  priceRange,
   onShowHistory
 }) => {
   // Add missing state variables
