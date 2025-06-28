@@ -154,7 +154,7 @@ export async function POST(req: NextRequest) {
         },
         body: sparqlQuery
       });
-    } catch (error) {
+    } catch {
       console.log('Main query failed, trying fallback query...');
       usedFallback = true;
       response = await fetchWithRetry('https://landregistry.data.gov.uk/landregistry/query', {
