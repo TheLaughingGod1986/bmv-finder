@@ -26,33 +26,6 @@ interface CacheData {
 const cache = new Map<string, CacheData>();
 const CACHE_TTL = 1000 * 60 * 10; // 10 minutes
 
-// Retry configuration
-const MAX_RETRIES = 3;
-const TIMEOUT_MS = 30000; // 30 seconds timeout
-
-// Helper function to fetch with timeout and retries
-async function fetchWithRetry(url: string, options: RequestInit, retries = MAX_RETRIES): Promise<Response> {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-      
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal
-      });
-      
-      clearTimeout(timeoutId);
-      return response;
-    } catch {
-      if (i === retries) throw new Error('Max retries exceeded');
-      // Exponential backoff: wait 1s, 2s, 4s
-      await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
-    }
-  }
-  throw new Error('Max retries exceeded');
-}
-
 export async function POST(req: NextRequest) {
   const { postcode, page = 1, pageSize = 20 } = await req.json();
   
@@ -64,7 +37,7 @@ export async function POST(req: NextRequest) {
   const normalizedInput = postcode.replace(/\s/g, '').toUpperCase();
 
   // Pagination
-  const limit = Math.max(1, Math.min(pageSize, 50)); // Reduced max to 50 for better performance
+  const limit = Math.max(1, Math.min(pageSize, 50)); // Max 50 per page
   const offset = (Math.max(1, page) - 1) * limit;
 
   // Check cache first (cache key includes page/size)
@@ -77,7 +50,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Optimized SPARQL query - more efficient and less likely to timeout
+    // Main SPARQL query only
     const sparqlQuery = `
       PREFIX lrppi: <http://landregistry.data.gov.uk/def/ppi/>
       PREFIX lrcommon: <http://landregistry.data.gov.uk/def/common/>
@@ -88,11 +61,9 @@ export async function POST(req: NextRequest) {
         ?transx lrppi:propertyAddress ?addr ;
                 lrppi:pricePaid ?pricePaid ;
                 lrppi:transactionDate ?transactionDate .
-        
         ?addr lrcommon:postcode ?postcode .
         FILTER STRSTARTS(REPLACE(UCASE(?postcode), " ", ""), UCASE("${normalizedInput}"))
         FILTER (?transactionDate >= "2015-01-01"^^xsd:date)
-        
         OPTIONAL { ?transx lrppi:propertyType ?propertyType . }
         OPTIONAL { ?transx lrppi:newBuild ?newBuild . }
         OPTIONAL { ?transx lrppi:estateType ?estateType . }
@@ -110,68 +81,19 @@ export async function POST(req: NextRequest) {
       OFFSET ${offset}
     `;
 
-    // Fallback query for when main query fails
-    const fallbackQuery = `
-      PREFIX lrppi: <http://landregistry.data.gov.uk/def/ppi/>
-      PREFIX lrcommon: <http://landregistry.data.gov.uk/def/common/>
-      
-      SELECT ?paon ?saon ?street ?locality ?town ?district ?county ?postcode ?pricePaid ?transactionDate ?propertyType ?newBuild ?estateType ?transactionId
-      WHERE {
-        ?transx lrppi:propertyAddress ?addr ;
-                lrppi:pricePaid ?pricePaid ;
-                lrppi:transactionDate ?transactionDate .
-        
-        ?addr lrcommon:postcode ?postcode .
-        FILTER STRSTARTS(REPLACE(UCASE(?postcode), " ", ""), UCASE("${normalizedInput}"))
-        
-        OPTIONAL { ?transx lrppi:propertyType ?propertyType . }
-        OPTIONAL { ?transx lrppi:newBuild ?newBuild . }
-        OPTIONAL { ?transx lrppi:estateType ?estateType . }
-        OPTIONAL { ?transx lrppi:transactionId ?transactionId . }
-        OPTIONAL { ?addr lrcommon:paon ?paon . }
-        OPTIONAL { ?addr lrcommon:saon ?saon . }
-        OPTIONAL { ?addr lrcommon:street ?street . }
-        OPTIONAL { ?addr lrcommon:locality ?locality . }
-        OPTIONAL { ?addr lrcommon:town ?town . }
-        OPTIONAL { ?addr lrcommon:district ?district . }
-        OPTIONAL { ?addr lrcommon:county ?county . }
-      }
-      ORDER BY DESC(?transactionDate)
-      LIMIT ${limit + 1}
-      OFFSET ${offset}
-    `;
-
-    let response: Response;
-    let usedFallback = false;
-
-    try {
-      // Try main query first
-      response = await fetchWithRetry('https://landregistry.data.gov.uk/landregistry/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/sparql-query',
-          'Accept': 'application/sparql-results+json'
-        },
-        body: sparqlQuery
-      });
-    } catch {
-      console.log('Main query failed, trying fallback query...');
-      usedFallback = true;
-      response = await fetchWithRetry('https://landregistry.data.gov.uk/landregistry/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/sparql-query',
-          'Accept': 'application/sparql-results+json'
-        },
-        body: fallbackQuery
-      });
-    }
+    const response = await fetch('https://landregistry.data.gov.uk/landregistry/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/sparql-query',
+        'Accept': 'application/sparql-results+json'
+      },
+      body: sparqlQuery
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Land Registry API error:', response.status, response.statusText, errorText);
-      console.error('SPARQL Query:', usedFallback ? fallbackQuery : sparqlQuery);
-      
+      console.error('SPARQL Query:', sparqlQuery);
       // If 503 and cache exists, serve stale cache
       if (response.status === 503 && cache.has(cacheKey)) {
         const { data } = cache.get(cacheKey)!;
@@ -221,8 +143,7 @@ export async function POST(req: NextRequest) {
       data: properties, 
       page, 
       pageSize: limit, 
-      hasMore,
-      usedFallback 
+      hasMore
     });
 
   } catch (error) {
