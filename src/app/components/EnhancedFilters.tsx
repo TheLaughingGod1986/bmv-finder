@@ -93,11 +93,12 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
       onClick={onClick}
       disabled={isLoading}
       className={cn(
-        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200",
+        "inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200",
         "border-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2",
+        "hover:scale-105 active:scale-95",
         isActive
-          ? "bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200"
-          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400",
+          ? "bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200 shadow-md"
+          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm",
         isLoading && "opacity-50 cursor-not-allowed"
       )}
     >
@@ -114,13 +115,14 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
         "md:hidden fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3",
         "bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200",
         "focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2",
+        "hover:scale-105 active:scale-95",
         isLoading && "opacity-50 cursor-not-allowed"
       )}
     >
       <Filter className="h-5 w-5" />
       <span className="font-medium">Filters</span>
       {activeFilters > 0 && (
-        <span className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-full min-w-[20px]">
+        <span className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-full min-w-[20px] shadow-sm">
           {activeFilters}
         </span>
       )}
@@ -135,7 +137,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden"
+            className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden backdrop-blur-sm"
             onClick={() => setShowMobileFilters(false)}
           />
           <motion.div
@@ -143,14 +145,14 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl z-50 md:hidden max-h-[80vh] overflow-y-auto"
+            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 md:hidden max-h-[85vh] overflow-y-auto shadow-2xl border-t border-gray-200"
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-900">Filters</h3>
+                <h3 className="text-xl font-bold text-gray-900">Filters</h3>
                 <button
                   onClick={() => setShowMobileFilters(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600"
+                  className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
                 >
                   <X className="h-6 w-6" />
                 </button>

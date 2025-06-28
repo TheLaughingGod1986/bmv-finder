@@ -39,7 +39,7 @@ function HomeContent() {
   });
   // Pagination state
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20); // You can make this user-configurable if desired
+  const pageSize = 10; // Always 10 results per page
   const [hasMore, setHasMore] = useState(false);
   // Progress state
   const [progress, setProgress] = useState(0);
@@ -482,8 +482,8 @@ function HomeContent() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
-        <div className="container flex flex-col sm:flex-row justify-between items-center py-4 gap-2">
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/60 shadow-sm">
+        <div className="container flex flex-col sm:flex-row justify-between items-center py-3 gap-2">
           <div className="flex items-center gap-3">
             <div className="w-11 h-11 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center shadow-md">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -491,7 +491,7 @@ function HomeContent() {
               </svg>
             </div>
             <div>
-              <span className="text-2xl sm:text-3xl font-extrabold gradient-text leading-tight sr-only">Sold Property Prices</span>
+              <span className="text-2xl sm:text-3xl font-extrabold gradient-text leading-tight text-gray-900">Sold Property Prices</span>
             </div>
           </div>
           {lastUpdated && (
@@ -501,29 +501,31 @@ function HomeContent() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <h1 className="text-3xl sm:text-4xl font-extrabold gradient-text leading-tight mb-2 text-center">UK Sold Property Price Search & Analysis</h1>
-        <p className="mb-8 text-base text-slate-700 max-w-3xl mx-auto text-center">
+        <h1 className="text-4xl sm:text-5xl font-extrabold gradient-text leading-tight mb-3 text-center">UK Sold Property Price Search & Analysis</h1>
+        <p className="mb-10 text-lg text-slate-600 max-w-2xl mx-auto text-center font-medium">
           Instantly search and analyze millions of sold house prices from the official HM Land Registry. Whether you&apos;re buying, selling, or just curious, our tool provides detailed property data, market trends, and regional analysis to help you make informed decisions.
         </p>
-        <EnhancedSearch
-          value={postcode}
-          onChange={setPostcode}
-          onSearch={handleSearch}
-          isLoading={isLoading}
-          placeholder="Enter postcode, street name, or town..."
-          className="mb-8"
-        />
+        <div className="mb-10 max-w-xl mx-auto">
+          <EnhancedSearch
+            value={postcode}
+            onChange={setPostcode}
+            onSearch={handleSearch}
+            isLoading={isLoading}
+            placeholder="Enter postcode, street name, or town..."
+            className="shadow-lg rounded-xl"
+          />
+        </div>
 
         {/* Progress Bar */}
         {isLoading && (
-          <div className="mb-8 bg-white rounded-xl shadow-lg p-6 border border-blue-100">
+          <div className="mb-10 bg-white rounded-2xl shadow-xl p-6 border border-blue-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium text-gray-700">{progressMessage}</span>
               <span className="text-sm font-medium text-blue-600">{Math.round(progress)}%</span>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-3 shadow-inner">
               <div 
-                className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-300 ease-out"
+                className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 h-3 rounded-full transition-all duration-300 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -536,8 +538,12 @@ function HomeContent() {
         )}
 
         {error && (
-          <div className="mb-8 p-4 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-800">{error}</p>
+          <div className="mb-10 p-6 bg-red-50 border border-red-200 rounded-2xl flex flex-col items-center shadow-md">
+            <svg className="w-10 h-10 text-red-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+            </svg>
+            <p className="text-red-800 text-lg font-semibold mb-1">Something went wrong</p>
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
 
@@ -552,42 +558,52 @@ function HomeContent() {
 
         {soldPrices.length > 0 && (
           <>
-            <EnhancedResultsSummary
-              summary={summary}
-              postcode={postcode}
-              onExport={handleExport}
-              onShare={handleShare}
-            />
+            <div className="mb-8">
+              <EnhancedResultsSummary
+                summary={summary}
+                postcode={postcode}
+                onExport={handleExport}
+                onShare={handleShare}
+                className="rounded-2xl shadow-xl bg-white p-6"
+              />
+            </div>
 
             {hasSearched && (
-              <EnhancedFilters
-                isLoading={isLoading}
-                filterDuration={filterDuration}
-                setFilterDuration={setFilterDuration}
-                filterType={filterType}
-                setFilterType={setFilterType}
-                priceRange={priceRange}
-                setPriceRange={setPriceRange}
-                dateRange={dateRange}
-                setDateRange={setDateRange}
-                filterYear={filterYear}
-                setFilterYear={setFilterYear}
-                availableYears={availableYears}
-                className="mb-8"
-              />
+              <div className="mb-8">
+                <EnhancedFilters
+                  isLoading={isLoading}
+                  filterDuration={filterDuration}
+                  setFilterDuration={setFilterDuration}
+                  filterType={filterType}
+                  setFilterType={setFilterType}
+                  priceRange={priceRange}
+                  setPriceRange={setPriceRange}
+                  dateRange={dateRange}
+                  setDateRange={setDateRange}
+                  filterYear={filterYear}
+                  setFilterYear={setFilterYear}
+                  availableYears={availableYears}
+                  className="mb-0"
+                />
+              </div>
             )}
 
-            <div className="mb-8">
+            <div className="mb-10">
               <AreaPriceTrendChart
                 labels={sortedSoldPrices.map((sp) => sp.dateOfTransfer.slice(0, 4))}
                 data={sortedSoldPrices.map((sp) => sp.price)}
                 areaName={postcode}
+                className="rounded-2xl shadow-xl bg-white p-6"
               />
             </div>
 
-            <div className="mb-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-              <SalesPerYearBarChart soldPrices={sortedSoldPrices} />
-              <PropertyTypePieChart soldPrices={sortedSoldPrices} />
+            <div className="mb-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="rounded-2xl shadow-xl bg-white p-6">
+                <SalesPerYearBarChart soldPrices={sortedSoldPrices} />
+              </div>
+              <div className="rounded-2xl shadow-xl bg-white p-6">
+                <PropertyTypePieChart soldPrices={sortedSoldPrices} />
+              </div>
             </div>
 
             <EnhancedSoldPricesTable
@@ -606,17 +622,17 @@ function HomeContent() {
               }}
             />
             {/* Pagination Controls */}
-            <div className="flex justify-center items-center gap-4 my-8">
+            <div className="flex justify-center items-center gap-6 my-12 p-4 bg-white rounded-2xl shadow-md border border-blue-100">
               <button
-                className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold disabled:opacity-50"
+                className="px-5 py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold disabled:opacity-50 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 onClick={() => handleSearch(postcode, page - 1)}
                 disabled={page <= 1 || isLoading}
               >
                 Previous
               </button>
-              <span className="text-sm font-medium">Page {page}</span>
+              <span className="text-base font-medium">Page {page}</span>
               <button
-                className="px-4 py-2 rounded bg-blue-100 text-blue-700 font-semibold disabled:opacity-50"
+                className="px-5 py-2 rounded-lg bg-blue-100 text-blue-700 font-semibold disabled:opacity-50 transition-colors hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
                 onClick={() => handleSearch(postcode, page + 1)}
                 disabled={!hasMore || isLoading}
               >

@@ -25,10 +25,12 @@ interface EnhancedResultsSummaryProps {
   postcode: string;
   onExport?: () => void;
   onShare?: () => void;
+  className?: string;
 }
 
 const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({ 
-  summary
+  summary,
+  className
 }) => {
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
 
@@ -53,22 +55,22 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
     isExpanded: boolean;
     onToggle: () => void;
   }) => (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
       <button
         onClick={onToggle}
-        className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full px-4 sm:px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-inset"
       >
         <div className="flex items-center gap-3">
           {icon}
-          <h3 className="font-semibold text-gray-800">{title}</h3>
+          <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{title}</h3>
         </div>
         <span className={cn("transition-transform duration-200", isExpanded ? "rotate-180" : "rotate-0")}
         >
-          <TrendingDown className="h-5 w-5 text-gray-400" />
+          <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
         </span>
       </button>
       {isExpanded && (
-        <div className="overflow-hidden px-6 pb-4 border-t border-gray-100">
+        <div className="overflow-hidden px-4 sm:px-6 pb-4 border-t border-gray-100">
           {children}
         </div>
       )}
@@ -76,9 +78,9 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
   );
 
   return (
-    <div className="relative w-full max-w-4xl mx-auto animate-fade-in mb-12">
+    <div className={cn("relative w-full max-w-4xl mx-auto animate-fade-in", className)}>
       {/* Scrollable Accordion Content Section */}
-      <div className="pt-4 space-y-4">
+      <div className="pt-4 space-y-3 sm:space-y-4">
         {/* Property Type Analysis */}
         <ExpandableSection
           title="Property Type Analysis"

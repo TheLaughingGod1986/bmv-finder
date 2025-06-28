@@ -45,23 +45,17 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   priceRange,
   onShowHistory
 }) => {
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [expandedRowId] = useState<string | null>(null);
+  // Remove internal pagination state and logic
+  // const [page, setPage] = useState(1);
+  // const [pageSize, setPageSize] = useState(10);
+  // const totalPages = Math.ceil(soldPrices.length / pageSize);
+  // const paginatedSoldPrices = useMemo(() => {
+  //   const start = (page - 1) * pageSize;
+  //   return soldPrices.slice(start, start + pageSize);
+  // }, [soldPrices, page, pageSize]);
 
-  const totalPages = Math.ceil(soldPrices.length / pageSize);
-  const paginatedSoldPrices = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return soldPrices.slice(start, start + pageSize);
-  }, [soldPrices, page, pageSize]);
-
-  React.useEffect(() => { 
-    setPage(1); 
-  }, [soldPrices]);
-
-  const handlePrev = () => setPage(p => Math.max(1, p - 1));
-  const handleNext = () => setPage(p => Math.min(totalPages, p + 1));
+  // Use soldPrices directly (already paginated by API)
+  const paginatedSoldPrices = soldPrices;
 
   const normalize = (str: string | undefined | null) => (str ?? '').trim().toUpperCase();
   const normalizeSaon = (saon: string | undefined | null) => {
@@ -412,126 +406,54 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                 Cards
               </button>
             </div>
-            
-            <select
-              value={pageSize}
-              onChange={(e) => setPageSize(Number(e.target.value))}
-              className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
-            >
-              <option value={5}>5 per page</option>
-              <option value={10}>10 per page</option>
-              <option value={20}>20 per page</option>
-              <option value={50}>50 per page</option>
-            </select>
           </div>
 
-          <div className="text-sm text-gray-600">
-            Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, soldPrices.length)} of {soldPrices.length} results
+          {/* Add Legend above the table/cards */}
+          <div className="mb-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-wrap gap-4 items-center text-xs">
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
+                <span>Average price / Info</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-green-600 inline-block"></span>
+                <span>Lowest price / Positive trend</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
+                <span>Highest price</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
+                <span>Price range</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span>🏠</span><span>Detached</span>
+                <span>🏡</span><span>Semi-detached</span>
+                <span>🏘️</span><span>Terraced</span>
+                <span>🏢</span><span>Flat/Maisonette</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-green-600">▲</span><span>Price up</span>
+                <span className="text-red-600">▼</span><span>Price down</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-blue-600">i</span><span>Info</span>
+              </div>
+            </div>
           </div>
+
+          {/* Cards View */}
+          {viewMode === 'cards' && (
+            <CardsViewDesktop />
+          )}
+
+          {/* Table View */}
+          {viewMode === 'table' && (
+            <TableView />
+          )}
         </div>
-
-        {/* Add Legend above the table/cards */}
-        <div className="mb-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 flex flex-wrap gap-4 items-center text-xs">
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-blue-600 inline-block"></span>
-              <span>Average price / Info</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-green-600 inline-block"></span>
-              <span>Lowest price / Positive trend</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-purple-600 inline-block"></span>
-              <span>Highest price</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-3 h-3 rounded-full bg-orange-500 inline-block"></span>
-              <span>Price range</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span>🏠</span><span>Detached</span>
-              <span>🏡</span><span>Semi-detached</span>
-              <span>🏘️</span><span>Terraced</span>
-              <span>🏢</span><span>Flat/Maisonette</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-green-600">▲</span><span>Price up</span>
-              <span className="text-red-600">▼</span><span>Price down</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="text-blue-600">i</span><span>Info</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Cards View */}
-        {viewMode === 'cards' && (
-          <CardsViewDesktop />
-        )}
-
-        {/* Table View */}
-        {viewMode === 'table' && (
-          <TableView />
-        )}
       </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handlePrev}
-              disabled={page === 1}
-              className={cn(
-                "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                page === 1
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-              )}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            
-            <span className="text-sm text-gray-600">
-              Page {page} of {totalPages}
-            </span>
-            
-            <button
-              onClick={handleNext}
-              disabled={page === totalPages}
-              className={cn(
-                "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                page === totalPages
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-              )}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = i + 1;
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={cn(
-                    "px-3 py-2 text-sm font-medium rounded-lg transition-colors",
-                    page === pageNum
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-300"
-                  )}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 });

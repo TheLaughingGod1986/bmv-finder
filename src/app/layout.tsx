@@ -15,7 +15,6 @@ export const metadata: Metadata = {
   keywords: "sold property prices, uk house prices, land registry data, property price check, house price trends, property market analysis, property valuation, real estate data",
   manifest: "/manifest.json",
   themeColor: "#3b82f6",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -24,6 +23,13 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false
   }
+};
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: "no"
 };
 
 export default function RootLayout({

@@ -72,21 +72,23 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
   const growthPct = ((latest.price / oldest.price) - 1) * 100;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-2 sm:px-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-2 sm:px-0">
       <div
         ref={modalRef}
-        className="relative w-full max-w-lg sm:rounded-2xl bg-white/90 shadow-2xl border border-blue-100 overflow-y-auto max-h-[95vh] flex flex-col"
+        className="relative w-full max-w-lg sm:rounded-2xl bg-white shadow-2xl border border-blue-100 overflow-y-auto max-h-[95vh] flex flex-col"
         tabIndex={-1}
         aria-modal="true"
         role="dialog"
       >
         {/* Close button, sticky on mobile */}
         <button
-          className="absolute top-2 right-2 z-10 rounded-full bg-white/80 hover:bg-blue-100 text-gray-500 hover:text-blue-700 shadow p-2 transition sm:static sm:ml-auto sm:mt-0"
+          className="absolute top-4 right-4 z-10 rounded-full bg-white/90 hover:bg-blue-100 text-gray-500 hover:text-blue-700 shadow-lg p-2 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-400"
           aria-label="Close"
           onClick={onClose}
         >
-          <span className="text-xl">✕</span>
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
         <div className="px-4 pt-8 pb-4 sm:p-8 flex-1 flex flex-col">
           <h3 className="font-bold text-xl mb-1 text-blue-900">Price History</h3>
@@ -95,7 +97,7 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
           </div>
           <div className="mb-4">
             <h4 className="font-semibold text-base mb-2 text-blue-800">Sale History by Year</h4>
-            <div className="overflow-x-auto rounded-lg border border-blue-50">
+            <div className="overflow-x-auto rounded-lg border border-blue-50 shadow-sm">
               <table className="min-w-full text-xs sm:text-sm bg-white">
                 <thead>
                   <tr className="bg-blue-50">
@@ -132,7 +134,7 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
             </div>
           </div>
           <div className="my-6 flex justify-center">
-            <div className="bg-green-50 border border-green-200 rounded-lg px-6 py-4 flex flex-col items-center w-full max-w-md shadow-sm">
+            <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 flex flex-col items-center w-full max-w-md shadow-sm">
               <div className={
                 growthAbs >= 0 ? "text-green-800 font-semibold text-lg" : "text-red-800 font-semibold text-lg"
               }>
@@ -146,8 +148,8 @@ const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ 
           <hr className="my-6 border-blue-100" />
           <div className="mb-4 text-xs text-gray-500 text-center">Percentage growth is calculated from the first recorded sale to the most recent sale of this property.</div>
           <div className="flex justify-center items-center">
-            <div className="relative w-full max-w-[400px] mx-auto">
-              <svg width="100%" height="180" viewBox="0 0 400 180" className="w-full h-auto">
+            <div className="relative w-full max-w-[400px] mx-auto overflow-x-auto">
+              <svg width="100%" height="180" viewBox="0 0 400 180" className="w-full h-auto min-w-[400px]">
                 {/* Chart background */}
                 <rect x={45} y={30} width={340} height={100} fill="#f8fafc" rx={8} />
                 {/* Y-axis ticks and labels */}

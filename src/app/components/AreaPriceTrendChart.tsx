@@ -14,6 +14,7 @@ import {
 } from 'chart.js';
 import type { TooltipItem } from 'chart.js';
 import type { SoldPrice } from '../../../types/sold-price';
+import { cn } from '../../lib/utils';
 
 // Register Chart.js components
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement);
@@ -22,6 +23,7 @@ interface AreaPriceTrendChartProps {
   labels: string[];
   data: number[];
   areaName?: string;
+  className?: string;
 }
 
 const cardClass = "bg-white rounded-2xl shadow-xl p-6 border border-gray-100 mb-8 w-full";
@@ -83,7 +85,7 @@ const chartOptions = {
   interaction: { intersect: false, mode: 'index' as const },
 };
 
-export default function AreaPriceTrendChart({ labels, data, areaName }: AreaPriceTrendChartProps) {
+export default function AreaPriceTrendChart({ labels, data, areaName, className }: AreaPriceTrendChartProps) {
   // Sort labels and data chronologically (earliest year first)
   const combined = labels.map((label, i) => ({ label, value: data[i] }));
   combined.sort((a, b) => a.label.localeCompare(b.label));
@@ -116,7 +118,7 @@ export default function AreaPriceTrendChart({ labels, data, areaName }: AreaPric
   };
 
   return (
-    <div className={cardClass + " min-h-[400px] flex flex-col"}>
+    <div className={cn(cardClass + " min-h-[400px] flex flex-col", className)}>
       {/* Header with title and info icon */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">

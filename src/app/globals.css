@@ -69,6 +69,23 @@ input:focus, select:focus, textarea:focus {
     overflow: hidden;
   }
 
+  /* Mobile-specific utilities */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .mobile-safe-area {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Enhanced focus styles for better accessibility */
+  .focus-visible-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-2;
+  }
+
   /* Custom animations */
   .animate-fade-in {
     animation: fadeIn 0.6s ease-out;
