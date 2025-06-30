@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { esClient } from '../../../lib/esClient';
+import esClient from '../../../lib/esClient';
 
 export const dynamic = 'force-dynamic';
 
