@@ -1,0 +1,35 @@
+name: Daily Land Registry Update
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (adjust timezone as needed)
+    - cron: '0 2 * * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Download and import Land Registry data
+      run: node import_land_registry.js
+      
+    - name: Commit and push updated data
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add land_registry.db
+        git commit -m "🤖 Automated daily Land Registry data update" || echo "No changes to commit"
+        git push 
