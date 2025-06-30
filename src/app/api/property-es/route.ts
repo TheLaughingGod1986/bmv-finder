@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { esClient } from '../../../lib/esClient';
+import esClient from '../../../lib/esClient';
 
 export async function POST(req: NextRequest) {
   const { searchTerm, page = 1, pageSize = 20 } = await req.json();
