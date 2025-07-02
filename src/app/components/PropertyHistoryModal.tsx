@@ -12,6 +12,14 @@ interface PropertyHistoryModalProps {
   onClose: () => void;
 }
 
+const TABS = [
+  { key: 'details', label: 'Details' },
+  { key: 'similar', label: 'Similar Sales' },
+  { key: 'growth', label: 'Price Growth' },
+  { key: 'calculator', label: 'Investment Calculator' },
+  { key: 'myproperty', label: 'My Property' },
+];
+
 export default function PropertyHistoryModal({ 
   open, 
   property, 
@@ -21,7 +29,7 @@ export default function PropertyHistoryModal({
   const [isLoading, setIsLoading] = useState(false);
   const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'growth' | 'details' | 'similar'>('growth');
+  const [activeTab, setActiveTab] = useState('details');
 
   useEffect(() => {
     if (open && property && history.length > 0) {
@@ -96,229 +104,96 @@ export default function PropertyHistoryModal({
     .filter(sp => sp.postcode === property.postcode && sp.id !== property.id)
     .sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime());
 
+  // Overlay click handler
+  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center px-2 py-6 overflow-y-auto">
-      {/* Overlay background for click-to-close */}
-      <div
-        className="fixed inset-0 bg-black/40"
-        aria-hidden="true"
-        onClick={onClose}
-      />
-      <div
-        className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-auto animate-fade-in"
-        onClick={e => e.stopPropagation()}
-      >
-        {/* Close Button */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30" onClick={handleOverlayClick}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto relative">
+        {/* Modal header and close button */}
         <button
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400"
           aria-label="Close"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
+          ×
         </button>
-
-        <div className="p-6 sm:p-8 pb-4">
-          {/* Tabs */}
-          <div className="flex gap-2 mb-6 border-b border-gray-200">
-            <button
-              className={`px-4 py-2 font-semibold text-base rounded-t-lg focus:outline-none transition-colors ${activeTab === 'growth' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-700'}`}
-              onClick={() => setActiveTab('growth')}
-            >
-              Price Growth
-            </button>
-            <button
-              className={`px-4 py-2 font-semibold text-base rounded-t-lg focus:outline-none transition-colors ${activeTab === 'details' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-700'}`}
-              onClick={() => setActiveTab('details')}
-            >
-              Details
-            </button>
-            <button
-              className={`px-4 py-2 font-semibold text-base rounded-t-lg focus:outline-none transition-colors ${activeTab === 'similar' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-700'}`}
-              onClick={() => setActiveTab('similar')}
-            >
-              Similar Sales
-            </button>
+        {/* Modal body with scroll and sticky tabs */}
+        <div className="relative">
+          <div className="sticky top-0 z-10 bg-white">
+            <div className="flex border-b mb-8 bg-slate-50 rounded-t-lg overflow-x-auto">
+              {TABS.map(tab => (
+                <button
+                  key={tab.key}
+                  className={`px-6 py-3 font-semibold text-base transition-colors whitespace-nowrap border-b-2 focus:outline-none
+                    ${activeTab === tab.key
+                      ? 'border-blue-600 text-blue-700 bg-white shadow-sm'
+                      : 'border-transparent text-slate-500 hover:text-blue-600 hover:bg-slate-100'}
+                  `}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
-
-          {/* Tab Content */}
-          {activeTab === 'growth' && (
-            <Fragment>
-              {/* --- Price History Section --- */}
-              <h3 className="text-2xl font-bold text-blue-900 mb-1">Price History</h3>
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-lg font-semibold text-gray-800 uppercase tracking-wide">{formatAddress(property)}</span>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">{property.postcode}</span>
-              </div>
-              {/* Sale History Table */}
-              {!isLoading && !error && fullHistory.length > 0 && (
-                <div className="overflow-x-auto mb-4">
-                  <div className="text-lg font-semibold text-blue-800 mb-2">Sale History by Year</div>
-                  <table className="min-w-[420px] w-full text-base border-separate border-spacing-y-1">
-                    <thead>
-                      <tr className="text-xs text-blue-900 uppercase bg-blue-50">
-                        <th className="px-4 py-2 text-left whitespace-nowrap">Latest Sale Date</th>
-                        <th className="px-4 py-2 text-right whitespace-nowrap">Sale Price</th>
-                        <th className="px-4 py-2 text-right whitespace-nowrap">Growth</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...historyWithChanges].reverse().map((sale, index, arr) => {
-                        const isLatest = index === 0;
-                        return (
-                          <tr key={sale.id} className={isLatest ? 'bg-yellow-50/80' : 'bg-white'}>
-                            <td className="px-4 py-2 whitespace-nowrap font-medium">{formatDate(sale.dateOfTransfer)}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-right font-semibold text-gray-900">{formatPrice(sale.price)}</td>
-                            <td className="px-4 py-2 whitespace-nowrap text-right">
-                              {arr.length - index === arr.length ? (
-                                <span className="text-gray-400">—</span>
-                              ) : (
-                                <span className={`font-medium ${sale.priceChange > 0 ? 'text-green-600' : sale.priceChange < 0 ? 'text-red-600' : 'text-gray-500'}`}> 
-                                  {sale.priceChange > 0 ? '+' : ''}{formatPrice(sale.priceChange)}
-                                  <span className="ml-1 text-xs">
-                                    ({sale.priceChangePercent > 0 ? '+' : ''}{sale.priceChangePercent.toFixed(1)}%)
-                                  </span>
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {/* Summary Growth Box */}
-              {!isLoading && !error && fullHistory.length > 1 && (
-                <div className="my-4 flex justify-center">
-                  {(() => {
-                    const first = sortedHistory[0];
-                    const last = sortedHistory[sortedHistory.length - 1];
-                    const growth = last.price - first.price;
-                    const growthPct = (growth / first.price) * 100;
-                    return (
-                      <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 text-center w-full max-w-md mx-auto">
-                        <div className="text-2xl font-bold text-green-700">{growth > 0 ? '+' : ''}{formatPrice(growth)} ({growthPct > 0 ? '+' : ''}{growthPct.toFixed(1)}%)</div>
-                        <div className="text-sm text-green-900 mt-1">Growth from {new Date(first.dateOfTransfer).getFullYear()} to {new Date(last.dateOfTransfer).getFullYear()}</div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-              {/* Explanatory Text */}
-              <div className="text-sm text-gray-500 mb-4 text-center">
-                Percentage growth is calculated from the first recorded sale to the most recent sale of this property.
-              </div>
-              {/* Chart */}
-              {!isLoading && !error && fullHistory.length > 0 && (
-                <div className="mb-6">
-                  <div className="min-w-[320px] max-w-full max-w-[600px] mx-auto pb-4">
-                    <div className="mb-2 text-sm font-semibold text-blue-700 truncate" title={formatAddress(property)}>
-                      Price Growth
-                    </div>
-                    <div className="w-full max-w-[600px] h-[220px] sm:h-[260px] bg-white rounded-2xl shadow border border-gray-100 overflow-hidden p-4">
-                      <AreaPriceTrendChart
-                        labels={sortedHistory.map(sale => formatDate(sale.dateOfTransfer))}
-                        data={sortedHistory.map(sale => sale.price)}
-                        areaName={formatAddress(property).length > 40 ? formatAddress(property).slice(0, 40) + '…' : formatAddress(property)}
-                        className="h-full w-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-              {/* Error State */}
-              {error && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                  <div className="flex items-center gap-2 text-yellow-800">
-                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          <div className="overflow-y-auto max-h-[80vh] px-2 pb-8">
+            {/* Tab Content */}
+            {activeTab === 'details' && (
+              <div className="bg-white rounded-xl shadow p-8 mb-8 border border-slate-100 max-w-2xl mx-auto">
+                <div className="mb-8">
+                  <div className="text-4xl font-extrabold text-gray-900 mb-2">{formatPrice(property.price)}</div>
+                  <div className="flex items-center text-base text-gray-500 mb-4">
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 4h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2z" />
                     </svg>
-                    <span>{error}</span>
+                    Sold {formatDate(property.dateOfTransfer)}
+                  </div>
+                  <div className="mb-2">
+                    <div className="font-bold text-lg text-gray-800 uppercase tracking-wide">{[property.paon, property.street].filter(Boolean).join(' ')}</div>
+                    <div className="text-gray-600 text-base font-medium">{property.town_city}</div>
+                    <div className="text-gray-400 text-sm font-mono tracking-widest">{property.postcode}</div>
                   </div>
                 </div>
-              )}
-              {/* Loading State */}
-              {isLoading && (
-                <div className="text-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                  <p className="mt-2 text-gray-600">Loading property history...</p>
-                </div>
-              )}
-            </Fragment>
-          )}
-
-          {activeTab === 'details' && (
-            <Fragment>
-              {/* No History */}
-              {!isLoading && !error && fullHistory.length === 0 && (
-                <div className="text-center py-8">
-                  <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  <p className="text-gray-500">No additional sale history found for this property.</p>
-                </div>
-              )}
-              {/* --- Divider --- */}
-              <div className="my-8 border-t border-gray-200"></div>
-              {/* --- Property Details Card --- */}
-              <div className="mb-8">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="text-3xl font-bold text-gray-900">{formatPrice(property.price)}</div>
-                </div>
-                <div className="flex items-center text-sm text-gray-600 mb-2">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 4h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2z" />
-                  </svg>
-                  Sold {formatDate(property.dateOfTransfer)}
-                </div>
-                <div className="flex items-start mb-2">
-                  <svg className="w-5 h-5 text-gray-400 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2h5" />
-                  </svg>
+                <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                   <div>
-                    <p className="font-medium text-gray-900">{[property.paon, property.street].filter(Boolean).join(' ')}</p>
-                    <p className="text-gray-600">{property.town_city}</p>
-                    <p className="text-gray-500 font-mono">{property.postcode}</p>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <p className="text-xs text-gray-500">Type</p>
-                    <p className="font-medium">{formatPropertyType(property.propertyType)}</p>
+                    <p className="text-xs text-gray-500 mb-1">Type</p>
+                    <p className="font-semibold text-gray-900">{formatPropertyType(property.propertyType)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Tenure</p>
-                    <p className="font-medium">{formatDuration(property.duration)}</p>
+                    <p className="text-xs text-gray-500 mb-1">Tenure</p>
+                    <p className="font-semibold text-gray-900">{formatDuration(property.duration)}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Year</p>
-                    <p className="font-medium">{new Date(property.dateOfTransfer).getFullYear()}</p>
+                    <p className="text-xs text-gray-500 mb-1">Year</p>
+                    <p className="font-semibold text-gray-900">{new Date(property.dateOfTransfer).getFullYear()}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Month</p>
-                    <p className="font-medium">{new Date(property.dateOfTransfer).toLocaleString('en-GB', { month: 'long' })}</p>
+                    <p className="text-xs text-gray-500 mb-1">Month</p>
+                    <p className="font-semibold text-gray-900">{new Date(property.dateOfTransfer).toLocaleString('en-GB', { month: 'long' })}</p>
                   </div>
                 </div>
               </div>
-            </Fragment>
-          )}
+            )}
 
-          {/* Similar Sales Tab */}
-          {activeTab === 'similar' && (
-            <Fragment>
-              {similarProperties.length > 0 ? (
-                <div className="mt-2">
-                  <div className="mb-2 text-base font-semibold text-blue-700">Similar Properties in {property.postcode}</div>
-                  <div className="flex flex-col gap-3">
+            {activeTab === 'similar' && (
+              <div className="max-w-2xl mx-auto">
+                {similarProperties.length > 0 ? (
+                  <div className="mt-2">
+                    <div className="mb-2 text-base font-semibold text-blue-700">Similar Properties in {property.postcode}</div>
                     {similarProperties.map((sp) => (
                       <div
                         key={sp.id}
                         className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
                       >
                         <div>
-                          <div className="font-semibold text-gray-900 uppercase">{[sp.saon, sp.paon, sp.street].filter(Boolean).join(' ')}</div>
+                          <div className="font-semibold text-gray-900 uppercase">
+                            <span className="font-bold">{[sp.saon, sp.paon].filter(Boolean).join(', ')}</span>{sp.street ? ` ${sp.street}` : ''}
+                          </div>
                           <div className="text-sm text-gray-500">
                             {formatDate(sp.dateOfTransfer)}
                             {sp.propertyType ? ` • ${formatPropertyType(sp.propertyType)}` : ''}
@@ -330,12 +205,141 @@ export default function PropertyHistoryModal({
                       </div>
                     ))}
                   </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">No similar properties found in this postcode.</div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'growth' && (
+              <div className="max-w-2xl mx-auto">
+                {/* --- Price History Section --- */}
+                <h3 className="text-2xl font-bold text-blue-900 mb-1">Price History</h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="text-lg font-semibold text-gray-800 uppercase tracking-wide">{formatAddress(property)}</span>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">{property.postcode}</span>
                 </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">No similar properties found in this postcode.</div>
-              )}
-            </Fragment>
-          )}
+                {/* Sale History Table */}
+                {!isLoading && !error && fullHistory.length > 0 && (
+                  <div className="overflow-x-auto mb-4">
+                    <div className="text-lg font-semibold text-blue-800 mb-2">Sale History by Year</div>
+                    <table className="min-w-[420px] w-full text-base border-separate border-spacing-y-1">
+                      <thead>
+                        <tr className="text-xs text-blue-900 uppercase bg-blue-50">
+                          <th className="px-4 py-2 text-left whitespace-nowrap">Latest Sale Date</th>
+                          <th className="px-4 py-2 text-right whitespace-nowrap">Sale Price</th>
+                          <th className="px-4 py-2 text-right whitespace-nowrap">Growth</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[...historyWithChanges].reverse().map((sale, index, arr) => {
+                          const isLatest = index === 0;
+                          return (
+                            <tr key={sale.id} className={isLatest ? 'bg-yellow-50/80' : 'bg-white'}>
+                              <td className="px-4 py-2 whitespace-nowrap font-medium">{formatDate(sale.dateOfTransfer)}</td>
+                              <td className="px-4 py-2 whitespace-nowrap text-right font-semibold text-gray-900">{formatPrice(sale.price)}</td>
+                              <td className="px-4 py-2 whitespace-nowrap text-right">
+                                {arr.length - index === arr.length ? (
+                                  <span className="text-gray-400">—</span>
+                                ) : (
+                                  <span className={`font-medium ${sale.priceChange > 0 ? 'text-green-600' : sale.priceChange < 0 ? 'text-red-600' : 'text-gray-500'}`}> 
+                                    {sale.priceChange > 0 ? '+' : ''}{formatPrice(sale.priceChange)}
+                                    <span className="ml-1 text-xs">
+                                      ({sale.priceChangePercent > 0 ? '+' : ''}{sale.priceChangePercent.toFixed(1)}%)
+                                    </span>
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {/* Summary Growth Box */}
+                {!isLoading && !error && fullHistory.length > 1 && (
+                  <div className="my-4 flex justify-center">
+                    {(() => {
+                      const first = sortedHistory[0];
+                      const last = sortedHistory[sortedHistory.length - 1];
+                      const growth = last.price - first.price;
+                      const growthPct = (growth / first.price) * 100;
+                      return (
+                        <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 text-center w-full max-w-md mx-auto">
+                          <div className="text-2xl font-bold text-green-700">{growth > 0 ? '+' : ''}{formatPrice(growth)} ({growthPct > 0 ? '+' : ''}{growthPct.toFixed(1)}%)</div>
+                          <div className="text-sm text-green-900 mt-1">Growth from {new Date(first.dateOfTransfer).getFullYear()} to {new Date(last.dateOfTransfer).getFullYear()}</div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+                {/* Explanatory Text */}
+                <div className="text-sm text-gray-500 mb-4 text-center">
+                  Percentage growth is calculated from the first recorded sale to the most recent sale of this property.
+                </div>
+                {/* Chart */}
+                {!isLoading && !error && fullHistory.length > 0 && (
+                  <div className="mb-6">
+                    <div className="min-w-[320px] max-w-full max-w-[600px] mx-auto pb-4">
+                      <div className="mb-2 text-sm font-semibold text-blue-700 truncate" title={formatAddress(property)}>
+                        Price Growth
+                      </div>
+                      <div className="w-full max-w-[600px] h-[220px] sm:h-[260px] bg-white rounded-2xl shadow border border-gray-100 overflow-hidden p-4">
+                        <AreaPriceTrendChart
+                          labels={sortedHistory.map(sale => formatDate(sale.dateOfTransfer))}
+                          data={sortedHistory.map(sale => sale.price)}
+                          areaName={formatAddress(property).length > 40 ? formatAddress(property).slice(0, 40) + '…' : formatAddress(property)}
+                          className="h-full w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {/* Error State */}
+                {error && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+                    <div className="flex items-center gap-2 text-yellow-800">
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                      <span>{error}</span>
+                    </div>
+                  </div>
+                )}
+                {/* Loading State */}
+                {isLoading && (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="mt-2 text-gray-600">Loading property history...</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === 'calculator' && (
+              <div className="p-4 max-w-2xl mx-auto">
+                <h3 className="text-lg font-semibold mb-2">Investment Calculator</h3>
+                <p className="text-slate-600">Coming soon: Calculate rental yield, ROI, and more for this property.</p>
+              </div>
+            )}
+            {activeTab === 'myproperty' && (
+              <div className="p-8 max-w-2xl mx-auto text-center">
+                <h3 className="text-2xl font-bold mb-2">My Property</h3>
+                <p className="text-slate-600 mb-4">Save this property, add notes, or track future sales here. <br /> <span className="font-semibold">Coming soon!</span></p>
+                {/* Future: Add save button, notes input, etc. */}
+              </div>
+            )}
+            {/* Footer Close Button */}
+            <div className="flex justify-center mt-8">
+              <button
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors"
+                onClick={onClose}
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -310,118 +310,90 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
 
   // Desktop filter bar
   const DesktopFilters = () => (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      className={cn(
-        "hidden md:block bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-8",
-        className
-      )}
-      role="region"
-      aria-label="Filters"
-    >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-slate-900">Filter Results</h3>
-        {activeFilters > 0 && (
-          <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded-full">
-            {activeFilters} active
-          </span>
-        )}
+    <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 p-4 mt-8 flex flex-col gap-4 md:flex-row md:items-end md:gap-4 transition-all">
+      {/* Tenure Type Dropdown */}
+      <div className="flex flex-col w-full md:w-auto">
+        <label className="font-semibold text-sm mb-1">Tenure</label>
+        <select
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          value={filterDuration[0] || ''}
+          onChange={e => setFilterDuration(e.target.value ? [e.target.value] : [])}
+          disabled={isLoading}
+        >
+          <option value="">All</option>
+          <option value="F">Freehold</option>
+          <option value="L">Leasehold</option>
+        </select>
       </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Tenure Type */}
-        <div className="space-y-3">
-          <label className="text-sm font-semibold text-slate-700">Tenure Type</label>
-          <div className="flex flex-wrap gap-2">
-            <FilterChip label="All" isActive={filterDuration.length === 0} onClick={() => setFilterDuration([])} />
-            <FilterChip label="Freehold" isActive={filterDuration.includes('F')} onClick={() => handleDurationToggle('F')} />
-            <FilterChip label="Leasehold" isActive={filterDuration.includes('L')} onClick={() => handleDurationToggle('L')} />
-          </div>
-        </div>
-
-        {/* Property Type */}
-        <div className="space-y-3">
-          <label className="text-sm font-semibold text-slate-700">Property Type</label>
-          <div className="flex flex-wrap gap-2">
-            <FilterChip label="All" isActive={filterType.length === 0} onClick={() => setFilterType([])} />
-            <FilterChip label="Detached" isActive={filterType.includes('D')} onClick={() => handleTypeToggle('D')} icon={getPropertyTypeIcon('D')} />
-            <FilterChip label="Semi-detached" isActive={filterType.includes('S')} onClick={() => handleTypeToggle('S')} icon={getPropertyTypeIcon('S')} />
-            <FilterChip label="Terraced" isActive={filterType.includes('T')} onClick={() => handleTypeToggle('T')} icon={getPropertyTypeIcon('T')} />
-            <FilterChip label="Flat/Maisonette" isActive={filterType.includes('F')} onClick={() => handleTypeToggle('F')} icon={getPropertyTypeIcon('F')} />
-            <FilterChip label="Other" isActive={filterType.includes('O')} onClick={() => handleTypeToggle('O')} icon={getPropertyTypeIcon('O')} />
-          </div>
-        </div>
-
-        {/* Price Range */}
-        <div className="space-y-3">
-          <label className="text-sm font-semibold text-slate-700">Price Range (£)</label>
-          <div className="flex gap-2 items-center">
-            <input
-              type="number"
-              min={0}
-              max={priceRange.max}
-              value={priceRange.min || ''}
-              onChange={e => setPriceRange(pr => ({ ...pr, min: Number(e.target.value) || 0 }))}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-              placeholder="Min"
-              aria-label="Min price"
-              disabled={isLoading}
-            />
-            <span className="text-slate-400">–</span>
-            <input
-              type="number"
-              min={priceRange.min}
-              value={priceRange.max === 10000000 ? '' : priceRange.max}
-              onChange={e => setPriceRange(pr => ({ ...pr, max: Number(e.target.value) || 10000000 }))}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-              placeholder="Max"
-              aria-label="Max price"
-              disabled={isLoading}
-            />
-          </div>
-        </div>
-
-        {/* Date Range */}
-        <div className="space-y-3">
-          <label className="text-sm font-semibold text-slate-700">Sale Date</label>
-          <div className="flex gap-2 items-center">
-            <input
-              type="date"
-              value={dateRange.start}
-              onChange={e => setDateRange(dr => ({ ...dr, start: e.target.value }))}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-              aria-label="Start date"
-              disabled={isLoading}
-            />
-            <span className="text-slate-400">–</span>
-            <input
-              type="date"
-              value={dateRange.end}
-              onChange={e => setDateRange(dr => ({ ...dr, end: e.target.value }))}
-              className="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-              aria-label="End date"
-              disabled={isLoading}
-            />
-          </div>
-        </div>
+      {/* Property Type Dropdown */}
+      <div className="flex flex-col w-full md:w-auto">
+        <label className="font-semibold text-sm mb-1">Property Type</label>
+        <select
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          value={filterType[0] || ''}
+          onChange={e => setFilterType(e.target.value ? [e.target.value] : [])}
+          disabled={isLoading}
+        >
+          <option value="">All</option>
+          <option value="D">Detached</option>
+          <option value="S">Semi-detached</option>
+          <option value="T">Terraced</option>
+          <option value="F">Flat/Maisonette</option>
+          <option value="O">Other</option>
+        </select>
       </div>
-
-      {/* Clear All Button */}
-      {activeFilters > 0 && (
-        <div className="flex justify-end mt-4 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={clearAllFilters}
+      {/* Price Range */}
+      <div className="flex flex-col w-full md:w-auto">
+        <label className="font-semibold text-sm mb-1">Price Range (£)</label>
+        <div className="flex gap-2">
+          <input
+            type="number"
+            min={0}
+            max={priceRange.max}
+            value={priceRange.min || ''}
+            onChange={e => setPriceRange(pr => ({ ...pr, min: Number(e.target.value) || 0 }))}
+            className="w-20 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+            placeholder="Min"
+            aria-label="Min price"
             disabled={isLoading}
-            className="px-4 py-2 text-sm font-medium text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
-          >
-            Clear All Filters
-          </button>
+          />
+          <span className="text-slate-400">–</span>
+          <input
+            type="number"
+            min={priceRange.min}
+            value={priceRange.max === 10000000 ? '' : priceRange.max}
+            onChange={e => setPriceRange(pr => ({ ...pr, max: Number(e.target.value) || 10000000 }))}
+            className="w-20 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+            placeholder="Max"
+            aria-label="Max price"
+            disabled={isLoading}
+          />
         </div>
-      )}
-    </motion.div>
+      </div>
+      {/* Sale Date */}
+      <div className="flex flex-col w-full md:w-auto">
+        <label className="font-semibold text-sm mb-1">Sale Date</label>
+        <div className="flex gap-2">
+          <input
+            type="date"
+            value={dateRange.start}
+            onChange={e => setDateRange(dr => ({ ...dr, start: e.target.value }))}
+            className="w-36 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+            aria-label="Start date"
+            disabled={isLoading}
+          />
+          <span className="text-slate-400">–</span>
+          <input
+            type="date"
+            value={dateRange.end}
+            onChange={e => setDateRange(dr => ({ ...dr, end: e.target.value }))}
+            className="w-36 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+            aria-label="End date"
+            disabled={isLoading}
+          />
+        </div>
+      </div>
+    </div>
   );
 
   return (
