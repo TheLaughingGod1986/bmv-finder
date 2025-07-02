@@ -20,6 +20,7 @@ import { SoldPrice } from '../../types/sold-price';
 import EnhancedEmptyState from './components/EnhancedEmptyState';
 import PaginationLoadingOverlay from './components/PaginationLoadingOverlay';
 import BMVLegend from './components/BMVLegend';
+import AreaPriceTrendChart, { SalesPerYearBarChart, PropertyTypePieChart } from './components/AreaPriceTrendChart';
 
 import type { PropertyData } from './components/PropertyModal';
 
@@ -306,6 +307,42 @@ export default function Home() {
     return Array.from(labels).sort();
   }, [soldPrices]);
 
+  // Chart data for price trends
+  const priceTrendData = useMemo(() => {
+    if (!chartLabels.length) return [];
+    
+    return chartLabels.map(year => {
+      const yearPrices = soldPrices
+        .filter(sp => sp.dateOfTransfer.slice(0, 4) === year)
+        .map(sp => sp.price);
+      return yearPrices.length > 0 
+        ? yearPrices.reduce((sum, price) => sum + price, 0) / yearPrices.length
+        : 0;
+    });
+  }, [soldPrices, chartLabels]);
+
+  // Sales count data per year
+  const salesCountData = useMemo(() => {
+    if (!chartLabels.length) return [];
+    
+    return chartLabels.map(year => {
+      return soldPrices.filter(sp => sp.dateOfTransfer.slice(0, 4) === year).length;
+    });
+  }, [soldPrices, chartLabels]);
+
+  // Property type data for pie chart
+  const propertyTypeData = useMemo(() => {
+    const typeCounts: Record<string, number> = {};
+    soldPrices.forEach(sp => {
+      const type = sp.propertyType || 'Unknown';
+      typeCounts[type] = (typeCounts[type] || 0) + 1;
+    });
+    return {
+      labels: Object.keys(typeCounts),
+      data: Object.values(typeCounts)
+    };
+  }, [soldPrices]);
+
   // Compute summary for EnhancedResultsSummary
   const summary = useMemo(() => {
     if (!filteredSoldPrices || filteredSoldPrices.length === 0) {
@@ -420,7 +457,11 @@ export default function Home() {
 
   // Utility functions
   const formatAddress = (sp: SoldPrice) => {
-    const parts = [sp.paon, sp.saon, sp.street].filter(Boolean);
+    // If there's a flat/saon, include it first
+    const parts = [];
+    if (sp.saon) parts.push(sp.saon); // Flat number
+    if (sp.paon) parts.push(sp.paon); // House number/name
+    if (sp.street) parts.push(sp.street);
     return parts.length > 0 ? parts.join(' ') : 'Address not available';
   };
 
@@ -665,9 +706,12 @@ export default function Home() {
                           <TrendingUp className="w-5 h-5 text-blue-600" />
                           Price Trends
                         </h3>
-                        <div className="h-64 flex items-center justify-center text-gray-500">
-                          Chart component temporarily disabled
-                        </div>
+                        <AreaPriceTrendChart
+                          labels={chartLabels}
+                          data={priceTrendData}
+                          areaName={searchTerm}
+                          className="w-full"
+                        />
                       </div>
                       
                       <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
@@ -676,12 +720,8 @@ export default function Home() {
                           Market Analysis
                         </h3>
                         <div className="grid grid-cols-1 gap-6">
-                          <div className="h-32 flex items-center justify-center text-gray-500">
-                            Sales chart temporarily disabled
-                          </div>
-                          <div className="h-32 flex items-center justify-center text-gray-500">
-                            Property type chart temporarily disabled
-                          </div>
+                          <SalesPerYearBarChart soldPrices={soldPrices} />
+                          <PropertyTypePieChart soldPrices={soldPrices} />
                         </div>
                       </div>
                     </div>
