@@ -1,15 +1,52 @@
-import { Client } from '@elastic/elasticsearch';
+import { Client, ClientOptions } from '@elastic/elasticsearch';
+import fs from 'fs';
+import path from 'path';
 
-// Elasticsearch client configuration for Elastic Cloud
-const client = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
-  auth: {
-    apiKey: process.env.ELASTICSEARCH_API_KEY || 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
-  },
-  // Always allow self-signed certs for Elastic Cloud
-  tls: {
-    rejectUnauthorized: false
+// Configuration for different environments
+const isDevelopment = process.env.NODE_ENV === 'development';
+const isVercel = process.env.VERCEL === '1';
+
+// Base client configuration
+const clientConfig: ClientOptions = {
+  node: process.env.ELASTICSEARCH_URL || 'https://localhost:9200',
+};
+
+// Prefer API key authentication if available
+if (process.env.ELASTICSEARCH_API_KEY) {
+  clientConfig.auth = {
+    apiKey: process.env.ELASTICSEARCH_API_KEY
+  };
+} else if (process.env.ELASTICSEARCH_USERNAME && process.env.ELASTICSEARCH_PASSWORD) {
+  clientConfig.auth = {
+    username: process.env.ELASTICSEARCH_USERNAME,
+    password: process.env.ELASTICSEARCH_PASSWORD
+  };
+} else if (isDevelopment) {
+  // Fallback for local development
+  clientConfig.auth = {
+    username: 'elastic',
+    password: 'TIRv--dMe*rHmuRMm-b4'
+  };
+}
+
+// TLS configuration - only use local certs in development
+if (isDevelopment && !isVercel) {
+  try {
+    const certPath = path.join(process.cwd(), 'elasticsearch-8.13.0/config/certs/http_ca.crt');
+    if (fs.existsSync(certPath)) {
+      clientConfig.tls = {
+        ca: fs.readFileSync(certPath),
+        rejectUnauthorized: true
+      };
+    }
+  } catch (error) {
+    console.warn('Could not load Elasticsearch certificate:', error);
   }
-});
+} else {
+  // In production/Vercel, use default TLS settings (no custom cert)
+  clientConfig.tls = {
+    rejectUnauthorized: false // Allow self-signed certs for managed services
+  };
+}
 
-export default client; 
+export const esClient = new Client(clientConfig); 

@@ -1,6 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { formatPrice } from '../../lib/utils';
+'use client';
+
+import React, { useState, useEffect, Fragment } from 'react';
 import { SoldPrice } from '../../../types/sold-price';
+import { formatPrice } from '../../lib/utils';
+import AreaPriceTrendChart from './AreaPriceTrendChart';
 
 interface PropertyHistoryModalProps {
   open: boolean;
@@ -9,262 +12,332 @@ interface PropertyHistoryModalProps {
   onClose: () => void;
 }
 
-const PropertyHistoryModal: React.FC<PropertyHistoryModalProps> = React.memo(({ open, property, history, onClose }) => {
-  const modalRef = useRef<HTMLDivElement>(null);
-  const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
+export default function PropertyHistoryModal({ 
+  open, 
+  property, 
+  history, 
+  onClose 
+}: PropertyHistoryModalProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'growth' | 'details' | 'similar'>('growth');
 
-  // Fetch full property history when modal opens
   useEffect(() => {
-    if (!open || !property) {
-      setFullHistory([]);
+    if (open && property && history.length > 0) {
+      setIsLoading(false);
       setError(null);
-      return;
+      setFullHistory(history);
     }
-
-    const fetchFullHistory = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        const response = await fetch('/api/property-history', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            postcode: property.postcode,
-            street: property.street,
-            paon: property.paon,
-            saon: property.saon,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const data = await response.json();
-        setFullHistory(data.data || []);
-      } catch (err) {
-        console.error('Failed to fetch property history:', err);
-        setError('Failed to load full property history. Showing available data only.');
-        // Fallback to the history passed as prop
-        setFullHistory(history);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchFullHistory();
   }, [open, property, history]);
 
-  // Focus trap and ESC close
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      onClose();
+    }
+  };
+
   useEffect(() => {
-    if (!open) return;
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'Tab' && modalRef.current) {
-        const focusable = modalRef.current.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        );
-        if (!focusable.length) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (e.shiftKey) {
-          if (document.activeElement === first) {
-            last.focus();
-            e.preventDefault();
-          }
-        } else {
-          if (document.activeElement === last) {
-            first.focus();
-            e.preventDefault();
-          }
-        }
-      }
-    };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
-
-  const sortedHistory = React.useMemo(() =>
-    [...fullHistory].sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()),
-    [fullHistory]
-  );
+  }, []);
 
   if (!open || !property) return null;
 
-  const oldest = sortedHistory[0];
-  const latest = sortedHistory[sortedHistory.length - 1];
-  const growthAbs = latest ? latest.price - oldest.price : 0;
-  const growthPct = oldest && latest ? ((latest.price / oldest.price) - 1) * 100 : 0;
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const formatPropertyType = (type: string) => {
+    const typeMap: Record<string, string> = {
+      'D': 'Detached',
+      'S': 'Semi-detached',
+      'T': 'Terraced',
+      'F': 'Flat/Maisonette',
+      'O': 'Other'
+    };
+    return typeMap[type] || type;
+  };
+
+  const formatDuration = (duration: string) => {
+    return duration === 'F' ? 'Freehold' : 'Leasehold';
+  };
+
+  const formatAddress = (sp: SoldPrice) => {
+    const addressParts = [];
+    if (sp.saon && sp.saon.trim()) addressParts.push(sp.saon.trim());
+    if (sp.paon && sp.paon.trim()) addressParts.push(sp.paon.trim());
+    if (sp.street && sp.street.trim()) addressParts.push(sp.street.trim());
+    if (sp.town_city && sp.town_city.trim()) addressParts.push(sp.town_city.trim());
+    return addressParts.join(', ');
+  };
+
+  // Sort history by date (oldest first)
+  const sortedHistory = [...fullHistory].sort((a, b) => 
+    new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()
+  );
+
+  // Calculate price changes
+  const historyWithChanges = sortedHistory.map((sale, index) => {
+    if (index === 0) return { ...sale, priceChange: 0, priceChangePercent: 0 };
+    const previousPrice = sortedHistory[index - 1].price;
+    const currentPrice = sale.price;
+    const priceChange = currentPrice - previousPrice;
+    const priceChangePercent = (priceChange / previousPrice) * 100;
+    return { ...sale, priceChange, priceChangePercent };
+  });
+
+  // Find similar properties in the same postcode (excluding the current property)
+  const similarProperties = fullHistory
+    .filter(sp => sp.postcode === property.postcode && sp.id !== property.id)
+    .sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime());
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md px-2 sm:px-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-2 py-6 overflow-y-auto">
+      {/* Overlay background for click-to-close */}
       <div
-        ref={modalRef}
-        className="relative w-full max-w-lg sm:rounded-2xl bg-white shadow-2xl border border-blue-100 overflow-y-auto max-h-[95vh] flex flex-col"
-        tabIndex={-1}
-        aria-modal="true"
-        role="dialog"
+        className="fixed inset-0 bg-black/40"
+        aria-hidden="true"
+        onClick={onClose}
+      />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-auto animate-fade-in"
+        onClick={e => e.stopPropagation()}
       >
-        {/* Close button, sticky on mobile */}
+        {/* Close Button */}
         <button
-          className="absolute top-4 right-4 z-10 rounded-full bg-white/90 hover:bg-blue-100 text-gray-500 hover:text-blue-700 shadow-lg p-2 transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-400"
-          aria-label="Close"
           onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+          aria-label="Close"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
-        <div className="px-4 pt-8 pb-4 sm:p-8 flex-1 flex flex-col">
-          <h3 className="font-bold text-xl mb-1 text-blue-900">Price History</h3>
-          <div className="mb-2 text-sm text-gray-600 break-words">
-            {[property.paon, property.street].filter(Boolean).join(' ')}, {property.town_city} <span className="text-gray-400">({property.postcode})</span>
+
+        <div className="p-6 sm:p-8 pb-4">
+          {/* Tabs */}
+          <div className="flex gap-2 mb-6 border-b border-gray-200">
+            <button
+              className={`px-4 py-2 font-semibold text-base rounded-t-lg focus:outline-none transition-colors ${activeTab === 'growth' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-700'}`}
+              onClick={() => setActiveTab('growth')}
+            >
+              Price Growth
+            </button>
+            <button
+              className={`px-4 py-2 font-semibold text-base rounded-t-lg focus:outline-none transition-colors ${activeTab === 'details' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-700'}`}
+              onClick={() => setActiveTab('details')}
+            >
+              Details
+            </button>
+            <button
+              className={`px-4 py-2 font-semibold text-base rounded-t-lg focus:outline-none transition-colors ${activeTab === 'similar' ? 'bg-blue-50 text-blue-700 border-b-2 border-blue-600' : 'text-gray-500 hover:text-blue-700'}`}
+              onClick={() => setActiveTab('similar')}
+            >
+              Similar Sales
+            </button>
           </div>
 
-          {error && (
-            <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <p className="text-yellow-800 text-sm">{error}</p>
-            </div>
-          )}
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading full property history...</p>
+          {/* Tab Content */}
+          {activeTab === 'growth' && (
+            <Fragment>
+              {/* --- Price History Section --- */}
+              <h3 className="text-2xl font-bold text-blue-900 mb-1">Price History</h3>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg font-semibold text-gray-800 uppercase tracking-wide">{formatAddress(property)}</span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">{property.postcode}</span>
               </div>
-            </div>
-          ) : (
-            <>
-              <div className="mb-4">
-                <h4 className="font-semibold text-base mb-2 text-blue-800">
-                  Sale History by Year ({sortedHistory.length} sales)
-                </h4>
-                <div className="overflow-x-auto rounded-lg border border-blue-50 shadow-sm">
-                  <table className="min-w-full text-xs sm:text-sm bg-white">
+              {/* Sale History Table */}
+              {!isLoading && !error && fullHistory.length > 0 && (
+                <div className="overflow-x-auto mb-4">
+                  <div className="text-lg font-semibold text-blue-800 mb-2">Sale History by Year</div>
+                  <table className="min-w-[420px] w-full text-base border-separate border-spacing-y-1">
                     <thead>
-                      <tr className="bg-blue-50">
-                        <th className="text-left px-2 py-2 font-semibold text-gray-700 whitespace-nowrap sticky left-0 bg-blue-50">Sale Date</th>
-                        <th className="text-left px-2 py-2 font-semibold text-gray-700 whitespace-nowrap">Sale Price</th>
-                        <th className="text-left px-2 py-2 font-semibold text-gray-700 whitespace-nowrap">Growth</th>
+                      <tr className="text-xs text-blue-900 uppercase bg-blue-50">
+                        <th className="px-4 py-2 text-left whitespace-nowrap">Latest Sale Date</th>
+                        <th className="px-4 py-2 text-right whitespace-nowrap">Sale Price</th>
+                        <th className="px-4 py-2 text-right whitespace-nowrap">Growth</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedHistory.map((sale, i) => {
-                        const prev = i > 0 ? sortedHistory[i - 1] : null;
-                        let growth = null;
-                        if (prev) {
-                          const abs = sale.price - prev.price;
-                          const pct = ((sale.price / prev.price) - 1) * 100;
-                          growth = (
-                            <span className={abs >= 0 ? "text-green-700" : "text-red-700"}>
-                              {abs >= 0 ? '+' : ''}{formatPrice(abs)} ({abs >= 0 ? '+' : ''}{pct.toFixed(1)}%)
-                            </span>
-                          );
-                        } else {
-                          growth = '—';
-                        }
+                      {[...historyWithChanges].reverse().map((sale, index, arr) => {
+                        const isLatest = index === 0;
                         return (
-                          <tr key={sale.id} className={i % 2 === 0 ? "bg-yellow-50" : "bg-white"}>
-                            <td className="px-2 py-2 font-semibold whitespace-nowrap">{new Date(sale.dateOfTransfer).toLocaleDateString()}</td>
-                            <td className="px-2 py-2 whitespace-nowrap">{formatPrice(sale.price)}</td>
-                            <td className="px-2 py-2 whitespace-nowrap">{growth}</td>
+                          <tr key={sale.id} className={isLatest ? 'bg-yellow-50/80' : 'bg-white'}>
+                            <td className="px-4 py-2 whitespace-nowrap font-medium">{formatDate(sale.dateOfTransfer)}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-right font-semibold text-gray-900">{formatPrice(sale.price)}</td>
+                            <td className="px-4 py-2 whitespace-nowrap text-right">
+                              {arr.length - index === arr.length ? (
+                                <span className="text-gray-400">—</span>
+                              ) : (
+                                <span className={`font-medium ${sale.priceChange > 0 ? 'text-green-600' : sale.priceChange < 0 ? 'text-red-600' : 'text-gray-500'}`}> 
+                                  {sale.priceChange > 0 ? '+' : ''}{formatPrice(sale.priceChange)}
+                                  <span className="ml-1 text-xs">
+                                    ({sale.priceChangePercent > 0 ? '+' : ''}{sale.priceChangePercent.toFixed(1)}%)
+                                  </span>
+                                </span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
                 </div>
-              </div>
-
-              {sortedHistory.length > 1 && (
-                <>
-                  <div className="my-6 flex justify-center">
-                    <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 flex flex-col items-center w-full max-w-md shadow-sm">
-                      <div className={
-                        growthAbs >= 0 ? "text-green-800 font-semibold text-lg" : "text-red-800 font-semibold text-lg"
-                      }>
-                        {growthAbs >= 0 ? '+' : ''}{formatPrice(growthAbs)} ({growthAbs >= 0 ? '+' : ''}{growthPct.toFixed(1)}%)
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        Growth from {oldest ? new Date(oldest.dateOfTransfer).getFullYear() : ''} to {latest ? new Date(latest.dateOfTransfer).getFullYear() : ''}
-                      </div>
-                    </div>
-                  </div>
-                  <hr className="my-6 border-blue-100" />
-                  <div className="mb-4 text-xs text-gray-500 text-center">Percentage growth is calculated from the first recorded sale to the most recent sale of this property.</div>
-                  
-                  <div className="flex justify-center items-center">
-                    <div className="relative w-full max-w-[400px] mx-auto overflow-x-auto">
-                      <svg width="100%" height="180" viewBox="0 0 400 180" className="w-full h-auto min-w-[400px]">
-                        {/* Chart background */}
-                        <rect x={45} y={30} width={340} height={100} fill="#f8fafc" rx={8} />
-                        {/* Y-axis ticks and labels */}
-                        {[0, 0.25, 0.5, 0.75, 1].map((t, i) => {
-                          const price = Math.round(sortedHistory[0].price + t * (sortedHistory[sortedHistory.length-1].price - sortedHistory[0].price));
-                          const y = 130 - t * 100;
-                          return (
-                            <g key={i}>
-                              <line x1={45} y1={y} x2={385} y2={y} stroke="#e5e7eb" strokeDasharray="2 2" />
-                              <text x={35} y={y + 4} fontSize="11" fill="#888" textAnchor="end">{formatPrice(price)}</text>
-                            </g>
-                          );
-                        })}
-                        {/* Price line for property */}
-                        <polyline
-                          fill="none"
-                          stroke="#2563eb"
-                          strokeWidth="3"
-                          points={sortedHistory.map((sale, i) => {
-                            const x = 45 + (i * (340 / (sortedHistory.length - 1 || 1)));
-                            const y = 130 - ((sale.price - sortedHistory[0].price) / (sortedHistory[sortedHistory.length-1].price - sortedHistory[0].price || 1)) * 100;
-                            return `${x},${y}`;
-                          }).join(' ')}
-                        />
-                        {/* Data points and year labels */}
-                        {sortedHistory.map((sale, i) => {
-                          const x = 45 + (i * (340 / (sortedHistory.length - 1 || 1)));
-                          const y = 130 - ((sale.price - sortedHistory[0].price) / (sortedHistory[sortedHistory.length-1].price - sortedHistory[0].price || 1)) * 100;
-                          return (
-                            <g key={i}>
-                              <circle cx={x} cy={y} r={7} fill="#2563eb" stroke="#fff" strokeWidth="2" />
-                              <text x={x} y={y - 12} fontSize="12" fontWeight="bold" textAnchor="middle" fill="#2563eb">{formatPrice(sale.price)}</text>
-                              <text x={x} y={150} fontSize="12" textAnchor="middle" fill="#374151">{new Date(sale.dateOfTransfer).getFullYear()}</text>
-                            </g>
-                          );
-                        })}
-                        {/* Y-axis label */}
-                        <text x={10} y={80} fontSize="13" fontWeight="bold" textAnchor="middle" fill="#374151" transform="rotate(-90 10 80)">Price (£)</text>
-                        {/* X-axis label */}
-                        <text x={200} y={170} fontSize="13" fontWeight="bold" textAnchor="middle" fill="#374151">Year</text>
-                        {/* Legend - Only Property */}
-                        <rect x={250} y={40} width={90} height={28} fill="#fff" stroke="#e5e7eb" rx={8} />
-                        <circle cx={265} cy={56} r={6} fill="#2563eb" />
-                        <text x={280} y={60} fontSize="12" fill="#2563eb">Property</text>
-                      </svg>
-                    </div>
-                  </div>
-                </>
               )}
-
-              {sortedHistory.length === 1 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-600">Only one sale recorded for this property.</p>
+              {/* Summary Growth Box */}
+              {!isLoading && !error && fullHistory.length > 1 && (
+                <div className="my-4 flex justify-center">
+                  {(() => {
+                    const first = sortedHistory[0];
+                    const last = sortedHistory[sortedHistory.length - 1];
+                    const growth = last.price - first.price;
+                    const growthPct = (growth / first.price) * 100;
+                    return (
+                      <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 text-center w-full max-w-md mx-auto">
+                        <div className="text-2xl font-bold text-green-700">{growth > 0 ? '+' : ''}{formatPrice(growth)} ({growthPct > 0 ? '+' : ''}{growthPct.toFixed(1)}%)</div>
+                        <div className="text-sm text-green-900 mt-1">Growth from {new Date(first.dateOfTransfer).getFullYear()} to {new Date(last.dateOfTransfer).getFullYear()}</div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
-            </>
+              {/* Explanatory Text */}
+              <div className="text-sm text-gray-500 mb-4 text-center">
+                Percentage growth is calculated from the first recorded sale to the most recent sale of this property.
+              </div>
+              {/* Chart */}
+              {!isLoading && !error && fullHistory.length > 0 && (
+                <div className="mb-6">
+                  <div className="min-w-[320px] max-w-full max-w-[600px] mx-auto pb-4">
+                    <div className="mb-2 text-sm font-semibold text-blue-700 truncate" title={formatAddress(property)}>
+                      Price Growth
+                    </div>
+                    <div className="w-full max-w-[600px] h-[220px] sm:h-[260px] bg-white rounded-2xl shadow border border-gray-100 overflow-hidden p-4">
+                      <AreaPriceTrendChart
+                        labels={sortedHistory.map(sale => formatDate(sale.dateOfTransfer))}
+                        data={sortedHistory.map(sale => sale.price)}
+                        areaName={formatAddress(property).length > 40 ? formatAddress(property).slice(0, 40) + '…' : formatAddress(property)}
+                        className="h-full w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+              {/* Error State */}
+              {error && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-center gap-2 text-yellow-800">
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                    <span>{error}</span>
+                  </div>
+                </div>
+              )}
+              {/* Loading State */}
+              {isLoading && (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Loading property history...</p>
+                </div>
+              )}
+            </Fragment>
+          )}
+
+          {activeTab === 'details' && (
+            <Fragment>
+              {/* No History */}
+              {!isLoading && !error && fullHistory.length === 0 && (
+                <div className="text-center py-8">
+                  <svg className="w-12 h-12 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-gray-500">No additional sale history found for this property.</p>
+                </div>
+              )}
+              {/* --- Divider --- */}
+              <div className="my-8 border-t border-gray-200"></div>
+              {/* --- Property Details Card --- */}
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="text-3xl font-bold text-gray-900">{formatPrice(property.price)}</div>
+                </div>
+                <div className="flex items-center text-sm text-gray-600 mb-2">
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 4h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2z" />
+                  </svg>
+                  Sold {formatDate(property.dateOfTransfer)}
+                </div>
+                <div className="flex items-start mb-2">
+                  <svg className="w-5 h-5 text-gray-400 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2h5" />
+                  </svg>
+                  <div>
+                    <p className="font-medium text-gray-900">{[property.paon, property.street].filter(Boolean).join(' ')}</p>
+                    <p className="text-gray-600">{property.town_city}</p>
+                    <p className="text-gray-500 font-mono">{property.postcode}</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-2">
+                  <div>
+                    <p className="text-xs text-gray-500">Type</p>
+                    <p className="font-medium">{formatPropertyType(property.propertyType)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Tenure</p>
+                    <p className="font-medium">{formatDuration(property.duration)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Year</p>
+                    <p className="font-medium">{new Date(property.dateOfTransfer).getFullYear()}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-500">Month</p>
+                    <p className="font-medium">{new Date(property.dateOfTransfer).toLocaleString('en-GB', { month: 'long' })}</p>
+                  </div>
+                </div>
+              </div>
+            </Fragment>
+          )}
+
+          {/* Similar Sales Tab */}
+          {activeTab === 'similar' && (
+            <Fragment>
+              {similarProperties.length > 0 ? (
+                <div className="mt-2">
+                  <div className="mb-2 text-base font-semibold text-blue-700">Similar Properties in {property.postcode}</div>
+                  <div className="flex flex-col gap-3">
+                    {similarProperties.map((sp) => (
+                      <div
+                        key={sp.id}
+                        className="flex items-center justify-between p-4 bg-gray-50 rounded-xl"
+                      >
+                        <div>
+                          <div className="font-semibold text-gray-900 uppercase">{[sp.saon, sp.paon, sp.street].filter(Boolean).join(' ')}</div>
+                          <div className="text-sm text-gray-500">
+                            {formatDate(sp.dateOfTransfer)}
+                            {sp.propertyType ? ` • ${formatPropertyType(sp.propertyType)}` : ''}
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-lg text-gray-900">{formatPrice(sp.price)}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">No similar properties found in this postcode.</div>
+              )}
+            </Fragment>
           )}
         </div>
       </div>
     </div>
   );
-});
-
-PropertyHistoryModal.displayName = 'PropertyHistoryModal';
-
-export default PropertyHistoryModal; 
+} 

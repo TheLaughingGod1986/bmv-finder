@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   TrendingUp, 
-  TrendingDown, 
   Home, 
   Calendar
 } from 'lucide-react';
@@ -32,8 +31,6 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
   summary,
   className
 }) => {
-  const [expandedSection, setExpandedSection] = useState<string | null>(null);
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -42,150 +39,105 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
     });
   };
 
-  const ExpandableSection = ({ 
-    title, 
-    children, 
-    icon, 
-    isExpanded, 
-    onToggle 
-  }: {
-    title: string;
-    children: React.ReactNode;
-    icon: React.ReactNode;
-    isExpanded: boolean;
-    onToggle: () => void;
-  }) => (
-    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-      <button
-        onClick={onToggle}
-        className="w-full px-4 sm:px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-inset"
-      >
-        <div className="flex items-center gap-3">
-          {icon}
-          <h3 className="font-semibold text-gray-800 text-sm sm:text-base">{title}</h3>
-        </div>
-        <span className={cn("transition-transform duration-200", isExpanded ? "rotate-180" : "rotate-0")}
-        >
-          <TrendingDown className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-        </span>
-      </button>
-      {isExpanded && (
-        <div className="overflow-hidden px-4 sm:px-6 pb-4 border-t border-gray-100">
-          {children}
-        </div>
-      )}
-    </div>
-  );
+  const cardBase = "flex flex-col justify-center items-center min-h-[220px] bg-white rounded-2xl border border-gray-100 shadow-md hover:shadow-lg transition-shadow p-6 relative overflow-hidden";
+  const cardTitle = "flex items-center gap-3 mb-3 text-xl font-bold text-gray-900 tracking-tight";
+  const cardSubtitle = "text-sm text-gray-500 mb-2";
+  const cardMetric = "text-3xl font-extrabold mb-1";
+  const cardLabel = "text-base font-medium text-gray-700";
+  const cardBadge = "inline-block px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 mt-2";
 
   return (
-    <div className={cn("relative w-full max-w-4xl mx-auto animate-fade-in", className)}>
-      {/* Scrollable Accordion Content Section */}
-      <div className="pt-4 space-y-3 sm:space-y-4">
-        {/* Property Type Analysis */}
-        <ExpandableSection
-          title="Property Type Analysis"
-          icon={<Home className="h-5 w-5 text-blue-600" />}
-          isExpanded={expandedSection === 'property-type'}
-          onToggle={() => setExpandedSection(expandedSection === 'property-type' ? null : 'property-type')}
-        >
-          <div className="space-y-4">
+    <div className={cn("relative w-full max-w-6xl mx-auto animate-fade-in", className)}>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Property Types Card */}
+        <div className={cardBase + " group"}>
+          <div className={cardTitle}>
+            <Home className="h-8 w-8 text-blue-600 drop-shadow-md" />
+            Property Types
+          </div>
+          <div className="flex flex-col items-center flex-1 justify-center w-full">
             {(() => {
-              const match = summary.mostCommonType.match(/^(\w) \((\d+)\)$/);
+              const match = summary.mostCommonType.match(/^([A-Z]) ?\((\d+)\)$/);
               if (match) {
                 const abbr = match[1];
                 const count = match[2];
                 return (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      <span className="text-2xl">{getPropertyTypeIcon(abbr)}</span>
-                      <div>
-                        <div className="font-semibold text-gray-800">
-                          {getPropertyTypeLabel(abbr)} - {count} sales
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          Most frequently sold property type in this area
-                        </div>
-                      </div>
+                  <>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-4xl">{getPropertyTypeIcon(abbr)}</span>
+                      <span className="text-2xl font-bold text-blue-700">{getPropertyTypeLabel(abbr)}</span>
                     </div>
-                  </div>
+                    <div className="text-lg text-gray-600 mb-1">{count} sales</div>
+                    <div className={cardBadge}>Most common in this area</div>
+                  </>
                 );
               }
-              return <span className="text-gray-600">{summary.mostCommonType}</span>;
+              // Fallback if no match
+              return (
+                <div className="flex flex-col items-center justify-center w-full h-full">
+                  <span className="text-4xl text-gray-300 mb-2">{getPropertyTypeIcon('O')}</span>
+                  <span className="text-lg text-gray-400">No data</span>
+                </div>
+              );
             })()}
           </div>
-        </ExpandableSection>
+        </div>
 
-        {/* Date Range Analysis */}
-        <ExpandableSection
-          title="Date Range Analysis"
-          icon={<Calendar className="h-5 w-5 text-green-600" />}
-          isExpanded={expandedSection === 'date-range'}
-          onToggle={() => setExpandedSection(expandedSection === 'date-range' ? null : 'date-range')}
-        >
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-green-50 rounded-lg p-4">
-                <div className="text-sm font-medium text-green-800 mb-1">Earliest Sale</div>
-                <div className="text-lg font-semibold text-green-900">
-                  {formatDate(summary.dateRange.earliest)}
-                </div>
+        {/* Time Period Card */}
+        <div className={cardBase + " group"}>
+          <div className={cardTitle}>
+            <Calendar className="h-8 w-8 text-green-600 drop-shadow-md" />
+            Time Period
+          </div>
+          <div className="flex flex-col items-center flex-1 justify-center w-full gap-2">
+            <div className="flex flex-col md:flex-row gap-2 w-full mb-2">
+              <div className="flex-1 bg-green-50 rounded-lg p-4 text-center">
+                <div className="text-xs text-green-800 mb-1">Earliest Sale</div>
+                <div className="text-lg font-semibold text-green-900">{summary.dateRange.earliest ? formatDate(summary.dateRange.earliest) : '--'}</div>
               </div>
-              <div className="bg-blue-50 rounded-lg p-4">
-                <div className="text-sm font-medium text-blue-800 mb-1">Latest Sale</div>
-                <div className="text-lg font-semibold text-blue-900">
-                  {formatDate(summary.dateRange.latest)}
-                </div>
+              <div className="flex-1 bg-blue-50 rounded-lg p-4 text-center">
+                <div className="text-xs text-blue-800 mb-1">Latest Sale</div>
+                <div className="text-lg font-semibold text-blue-900">{summary.dateRange.latest ? formatDate(summary.dateRange.latest) : '--'}</div>
               </div>
             </div>
-            
-            <div className="text-sm text-gray-600">
-              Data covers a {(() => {
+            <div className="text-xs text-gray-600 bg-gray-50 rounded-lg p-2 w-full text-center">
+              <strong>Coverage:</strong> {(() => {
+                if (!summary.dateRange.earliest || !summary.dateRange.latest) return '--';
                 const start = new Date(summary.dateRange.earliest);
                 const end = new Date(summary.dateRange.latest);
                 const years = end.getFullYear() - start.getFullYear();
                 return `${years} year${years !== 1 ? 's' : ''} period`;
-              })()} of property sales in this area.
+              })()} of property sales
             </div>
           </div>
-        </ExpandableSection>
+        </div>
 
-        {/* Market Insights */}
-        <ExpandableSection
-          title="Market Insights"
-          icon={<TrendingUp className="h-5 w-5 text-purple-600" />}
-          isExpanded={expandedSection === 'market-insights'}
-          onToggle={() => setExpandedSection(expandedSection === 'market-insights' ? null : 'market-insights')}
-        >
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="text-center p-4 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600">
-                  {formatPrice(summary.avgPrice)}
-                </div>
-                <div className="text-sm text-purple-700">Average Price</div>
+        {/* Market Overview Card */}
+        <div className={cardBase + " group"}>
+          <div className={cardTitle}>
+            <TrendingUp className="h-8 w-8 text-purple-600 drop-shadow-md" />
+            Market Overview
+          </div>
+          <div className="flex flex-col items-center flex-1 justify-center w-full gap-2">
+            <div className="grid grid-cols-1 gap-2 w-full mb-2">
+              <div className="bg-purple-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-purple-600">{formatPrice(summary.avgPrice)}</div>
+                <div className="text-xs text-purple-700">Average Price</div>
               </div>
-              <div className="text-center p-4 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-600">
-                  {summary.totalProperties}
-                </div>
-                <div className="text-sm text-orange-700">Total Sales</div>
+              <div className="bg-orange-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-orange-600">{summary.totalProperties}</div>
+                <div className="text-xs text-orange-700">Total Sales</div>
               </div>
-              <div className="text-center p-4 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-600">
-                  {formatPrice(summary.priceRange)}
-                </div>
-                <div className="text-sm text-green-700">Price Range</div>
+              <div className="bg-green-50 rounded-lg p-4 text-center">
+                <div className="text-2xl font-bold text-green-600">{formatPrice(summary.priceRange)}</div>
+                <div className="text-xs text-green-700">Price Range</div>
               </div>
             </div>
-            
-            <div className="bg-gray-50 rounded-lg p-4">
-              <div className="text-sm text-gray-700">
-                <strong>Market Summary:</strong> This area shows a diverse property market with prices ranging from {formatPrice(summary.minPrice)} to {formatPrice(summary.maxPrice)}. 
-                The average property price of {formatPrice(summary.avgPrice)} indicates {summary.avgPrice > 500000 ? 'a premium market' : summary.avgPrice > 300000 ? 'a mid-range market' : 'an affordable market'}.
-              </div>
+            <div className="bg-gray-50 rounded-lg p-2 w-full text-xs text-gray-700 text-center">
+              <strong>Market Type:</strong> {summary.avgPrice > 500000 ? 'Premium market' : summary.avgPrice > 300000 ? 'Mid-range market' : 'Affordable market'} with prices from {formatPrice(summary.minPrice)} to {formatPrice(summary.maxPrice)}.
             </div>
           </div>
-        </ExpandableSection>
+        </div>
       </div>
     </div>
   );

@@ -4,13 +4,11 @@ const path = require('path');
 
 // Elasticsearch client configuration
 const client = new Client({
-  node: 'https://localhost:9200',
+  node: 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
   auth: {
-    username: 'elastic',
-    password: 'TIRv--dMe*rHmuRMm-b4'
+    apiKey: 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
   },
   tls: {
-    ca: fs.readFileSync(path.join(__dirname, '../elasticsearch-8.13.0/config/certs/http_ca.crt')),
     rejectUnauthorized: false
   }
 });

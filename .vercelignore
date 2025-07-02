@@ -1,6 +1,46 @@
-*.csv
-elasticsearch.tar.gz
+# Elasticsearch and Logstash (too large for deployment)
 elasticsearch-8.13.0/
+logstash-9.0.3/
+
+# Large CSV files
+*.csv
+
+# Node modules (will be installed on Vercel)
 node_modules/
+
+# Build artifacts
 .next/
-.git/ 
+out/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE files
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Import checkpoint
+import_checkpoint.txt
+
+# Logstash config
+logstash-csv-to-es.conf
+import-csv-to-es.js 

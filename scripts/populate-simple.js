@@ -3,14 +3,12 @@ const readline = require('readline');
 const { Client } = require('@elastic/elasticsearch');
 
 const esClient = new Client({
-  node: 'https://localhost:9200',
+  node: 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
   auth: {
-    username: 'elastic',
-    password: 'TIRv--dMe*rHmuRMm-b4'
+    apiKey: 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
   },
   tls: {
-    ca: fs.readFileSync('elasticsearch-8.13.0/config/certs/http_ca.crt'),
-    rejectUnauthorized: true
+    rejectUnauthorized: false
   }
 });
 
@@ -65,8 +63,8 @@ function parseCSVLine(line) {
 
   const [
     transactionId, price, dateOfTransfer, postcode, propertyType,
-    duration, paon, saon, street, locality, town_city, county,
-    transactionCategory, building, street2, locality2
+    old_new, duration, paon, saon, street, locality, town_city,
+    district, county, transactionCategory, recordStatus
   ] = values;
 
   // Clean up the values (remove quotes)
@@ -75,17 +73,17 @@ function parseCSVLine(line) {
   const cleanDateOfTransfer = dateOfTransfer.replace(/"/g, '').split(' ')[0]; // Take only the date part
   const cleanPostcode = postcode.replace(/"/g, '');
   const cleanPropertyType = propertyType.replace(/"/g, '');
+  const cleanOldNew = old_new.replace(/"/g, '');
   const cleanDuration = duration.replace(/"/g, '');
   const cleanPaon = paon.replace(/"/g, '');
   const cleanSaon = saon.replace(/"/g, '');
   const cleanStreet = street.replace(/"/g, '');
   const cleanLocality = locality.replace(/"/g, '');
   const cleanTownCity = town_city.replace(/"/g, '');
+  const cleanDistrict = district.replace(/"/g, '');
   const cleanCounty = county.replace(/"/g, '');
   const cleanTransactionCategory = transactionCategory.replace(/"/g, '');
-  const cleanBuilding = building.replace(/"/g, '');
-  const cleanStreet2 = street2.replace(/"/g, '');
-  const cleanLocality2 = locality2.replace(/"/g, '');
+  const cleanRecordStatus = recordStatus.replace(/"/g, '');
 
   // Skip if price is not a valid number
   const priceNum = parseInt(cleanPrice);
@@ -98,6 +96,7 @@ function parseCSVLine(line) {
     postcode: cleanPostcode,
     propertyType: cleanPropertyType,
     propertyTypeLabel: PROPERTY_TYPE_MAP[cleanPropertyType] || 'Unknown',
+    old_new: cleanOldNew,
     duration: cleanDuration,
     durationLabel: DURATION_MAP[cleanDuration] || 'Unknown',
     paon: cleanPaon,
@@ -105,12 +104,11 @@ function parseCSVLine(line) {
     street: cleanStreet,
     locality: cleanLocality,
     town_city: cleanTownCity,
+    district: cleanDistrict,
     county: cleanCounty,
     transactionCategory: cleanTransactionCategory,
     transactionCategoryLabel: TRANSACTION_CATEGORY_MAP[cleanTransactionCategory] || 'Unknown',
-    building: cleanBuilding,
-    street2: cleanStreet2,
-    locality2: cleanLocality2
+    recordStatus: cleanRecordStatus
   };
 }
 

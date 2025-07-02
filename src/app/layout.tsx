@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
+import { ToastProvider } from './components/ToastProvider';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -10,15 +11,14 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Sold UK Property Prices | Search House Prices & Market Trends",
+  title: "UK Property Prices | Search House Prices & Market Trends",
   description: "Instantly search and analyze UK sold house prices using the latest Land Registry data. View historical property data, market trends, and regional price analysis for free. Your go-to tool for property research.",
   keywords: "sold property prices, uk house prices, land registry data, property price check, house price trends, property market analysis, property valuation, real estate data",
   manifest: "/manifest.json",
-  themeColor: "#3b82f6",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Sold UK Property Prices"
+    title: "UK Property Prices"
   },
   formatDetection: {
     telephone: false
@@ -29,7 +29,8 @@ export const viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: "no"
+  userScalable: "no",
+  themeColor: "#3b82f6"
 };
 
 export default function RootLayout({
@@ -40,21 +41,21 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta property="og:title" content="Sold Property Prices" />
+        <meta property="og:title" content="UK Property Prices" />
         <meta property="og:description" content="View UK Land Registry sold property prices, trends, and analytics in a modern, mobile-friendly interface." />
         <meta property="og:type" content="website" />
         <meta property="og:url" content="https://yourdomain.com/" />
         <meta property="og:image" content="/og-image.png" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Sold Property Prices" />
+        <meta name="twitter:title" content="UK Property Prices" />
         <meta name="twitter:description" content="View UK Land Registry sold property prices, trends, and analytics in a modern, mobile-friendly interface." />
         <meta name="twitter:image" content="/og-image.png" />
         
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="Sold UK Property Prices" />
+        <meta name="application-name" content="UK Property Prices" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="Sold UK Property Prices" />
+        <meta name="apple-mobile-web-app-title" content="UK Property Prices" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#3b82f6" />
         <meta name="msapplication-tap-highlight" content="no" />
@@ -73,7 +74,9 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased bg-white text-gray-900`}>
         <a href="#main-content" className="sr-only focus:not-sr-only absolute left-2 top-2 bg-blue-600 text-white px-3 py-1 rounded z-50">Skip to main content</a>
         <main id="main-content" tabIndex={-1}>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </main>
         <Analytics />
         <SpeedInsights />

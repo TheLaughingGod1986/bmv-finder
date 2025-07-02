@@ -5,14 +5,12 @@ require('dotenv').config();
 
 // Elasticsearch client
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'https://localhost:9200',
+  node: process.env.ELASTICSEARCH_URL || 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
   auth: {
-    username: 'elastic',
-    password: 'TIRv--dMe*rHmuRMm-b4'
+    apiKey: process.env.ELASTICSEARCH_API_KEY || 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
   },
   tls: {
-    ca: fs.readFileSync('elasticsearch-8.13.0/config/certs/http_ca.crt'),
-    rejectUnauthorized: true
+    rejectUnauthorized: false
   },
   requestTimeout: 60000, // 60 seconds timeout
   maxRetries: 3,
@@ -20,7 +18,10 @@ const esClient = new Client({
 });
 
 const INDEX_NAME = 'properties';
-const BATCH_SIZE = 25; // Reduced batch size for better memory management
+const BATCH_SIZE = 10; // Very small batch size to prevent memory issues
+const CHECKPOINT_FILE = 'import_checkpoint.txt';
+const SKIPPED_LOG = 'skipped_records.log';
+const FAILED_LOG = 'failed_records.log';
 
 // Property type mapping
 const PROPERTY_TYPE_MAP = {
@@ -52,14 +53,33 @@ const TRANSACTION_CATEGORY_MAP = {
   'E': 'Price Paid for Transfers of a Share - Full Market Value'
 };
 
+function saveCheckpoint(lineNumber) {
+  fs.writeFileSync(CHECKPOINT_FILE, String(lineNumber));
+}
+
+function loadCheckpoint() {
+  if (fs.existsSync(CHECKPOINT_FILE)) {
+    return parseInt(fs.readFileSync(CHECKPOINT_FILE, 'utf8'), 10) || 0;
+  }
+  return 0;
+}
+
+function logSkipped(lineNumber, reason, line) {
+  fs.appendFileSync(SKIPPED_LOG, `Line ${lineNumber}: ${reason} | ${line}\n`);
+}
+
+function logFailed(lineNumber, error, doc) {
+  fs.appendFileSync(FAILED_LOG, `Line ${lineNumber}: ${error} | ${JSON.stringify(doc)}\n`);
+}
+
 async function createIndex() {
   try {
     // Check if index exists
     const indexExists = await esClient.indices.exists({ index: INDEX_NAME });
     
     if (indexExists) {
-      console.log(`Index '${INDEX_NAME}' already exists. Deleting...`);
-      await esClient.indices.delete({ index: INDEX_NAME });
+      console.log(`Index '${INDEX_NAME}' already exists. Skipping creation.`);
+      return;
     }
 
     console.log(`Creating index '${INDEX_NAME}'...`);
@@ -94,18 +114,20 @@ async function createIndex() {
             },
             propertyType: { type: 'keyword' },
             propertyTypeLabel: { type: 'text' },
+            old_new: { type: 'keyword' },
+            newBuildLabel: { type: 'text' },
             street: { type: 'text' },
             town_city: { type: 'text' },
-            county: { type: 'text' },
+            district: { type: 'text' },
+            county: { type: 'keyword' },
             paon: { type: 'text' },
             saon: { type: 'text' },
             duration: { type: 'keyword' },
             durationLabel: { type: 'text' },
-            old_new: { type: 'keyword' },
-            newBuildLabel: { type: 'text' },
             locality: { type: 'text' },
-            ppd_category_type: { type: 'keyword' },
-            record_status: { type: 'keyword' },
+            transactionCategory: { type: 'keyword' },
+            transactionCategoryLabel: { type: 'text' },
+            recordStatus: { type: 'keyword' },
             // Computed fields for better search
             fullAddress: { type: 'text' },
             year: { type: 'integer' },
@@ -132,7 +154,7 @@ function getPriceRange(price) {
   return 'Over £1M';
 }
 
-function parseCSVLine(line) {
+function parseCSVLine(line, lineNumber) {
   // Handle quoted CSV format
   const values = [];
   let current = '';
@@ -152,12 +174,15 @@ function parseCSVLine(line) {
   }
   values.push(current.trim()); // Add the last value
   
-  if (values.length < 16) return null;
+  if (values.length < 16) {
+    logSkipped(lineNumber, 'Too few columns', line);
+    return null;
+  }
 
   const [
     transactionId, price, dateOfTransfer, postcode, propertyType,
-    duration, paon, saon, street, locality, town_city, county,
-    transactionCategory, building, street2, locality2
+    old_new, duration, paon, saon, street, locality, town_city,
+    district, county, transactionCategory, recordStatus
   ] = values;
 
   // Clean up the values (remove quotes)
@@ -166,21 +191,24 @@ function parseCSVLine(line) {
   const cleanDateOfTransfer = dateOfTransfer.replace(/"/g, '').split(' ')[0]; // Take only the date part
   const cleanPostcode = postcode.replace(/"/g, '');
   const cleanPropertyType = propertyType.replace(/"/g, '');
+  const cleanOldNew = old_new.replace(/"/g, '');
   const cleanDuration = duration.replace(/"/g, '');
   const cleanPaon = paon.replace(/"/g, '');
   const cleanSaon = saon.replace(/"/g, '');
   const cleanStreet = street.replace(/"/g, '');
   const cleanLocality = locality.replace(/"/g, '');
   const cleanTownCity = town_city.replace(/"/g, '');
+  const cleanDistrict = district.replace(/"/g, '');
   const cleanCounty = county.replace(/"/g, '');
   const cleanTransactionCategory = transactionCategory.replace(/"/g, '');
-  const cleanBuilding = building.replace(/"/g, '');
-  const cleanStreet2 = street2.replace(/"/g, '');
-  const cleanLocality2 = locality2.replace(/"/g, '');
+  const cleanRecordStatus = recordStatus.replace(/"/g, '');
 
   // Skip if price is not a valid number
   const priceNum = parseInt(cleanPrice);
-  if (isNaN(priceNum) || priceNum <= 0) return null;
+  if (isNaN(priceNum) || priceNum <= 0) {
+    logSkipped(lineNumber, 'Invalid price', line);
+    return null;
+  }
 
   return {
     id: cleanTransactionId,
@@ -189,6 +217,8 @@ function parseCSVLine(line) {
     postcode: cleanPostcode,
     propertyType: cleanPropertyType,
     propertyTypeLabel: PROPERTY_TYPE_MAP[cleanPropertyType] || 'Unknown',
+    old_new: cleanOldNew,
+    newBuildLabel: NEW_BUILD_MAP[cleanOldNew] || 'Unknown',
     duration: cleanDuration,
     durationLabel: DURATION_MAP[cleanDuration] || 'Unknown',
     paon: cleanPaon,
@@ -196,12 +226,11 @@ function parseCSVLine(line) {
     street: cleanStreet,
     locality: cleanLocality,
     town_city: cleanTownCity,
+    district: cleanDistrict,
     county: cleanCounty,
     transactionCategory: cleanTransactionCategory,
     transactionCategoryLabel: TRANSACTION_CATEGORY_MAP[cleanTransactionCategory] || 'Unknown',
-    building: cleanBuilding,
-    street2: cleanStreet2,
-    locality2: cleanLocality2,
+    recordStatus: cleanRecordStatus,
     // Computed fields
     fullAddress: `${cleanPaon || ''} ${cleanSaon || ''} ${cleanStreet || ''} ${cleanTownCity || ''}`.trim(),
     year: new Date(cleanDateOfTransfer).getFullYear(),
@@ -210,14 +239,14 @@ function parseCSVLine(line) {
   };
 }
 
-async function indexBatch(batch) {
+async function indexBatch(batch, batchLineNumbers) {
   const maxRetries = 3;
   let attempt = 0;
   
   while (attempt < maxRetries) {
     try {
-      const body = batch.flatMap(doc => [
-        { index: { _index: INDEX_NAME } },
+      const body = batch.flatMap((doc, idx) => [
+        { index: { _index: INDEX_NAME, _id: doc.id } },
         doc
       ]);
 
@@ -229,7 +258,13 @@ async function indexBatch(batch) {
       
       // Check for errors in bulk response
       if (result.errors) {
-        const errors = result.items.filter(item => item.index?.error);
+        const errors = result.items.filter((item, idx) => {
+          if (item.index?.error) {
+            logFailed(batchLineNumbers[idx], item.index.error.reason, batch[idx]);
+            return true;
+          }
+          return false;
+        });
         if (errors.length > 0) {
           console.warn(`Bulk operation had ${errors.length} errors, but continuing...`);
         }
@@ -257,12 +292,13 @@ async function populateElasticsearch() {
   let batch = [];
   let lineCount = 0;
   let isFirstLine = true;
+  const startFromLine = loadCheckpoint();
 
   try {
-    // Create the index
+    // Create the index if needed
     await createIndex();
 
-    console.log(`Starting to index CSV data (no record limit)...`);
+    console.log(`Starting to index CSV data (resuming from line ${startFromLine})...`);
     console.log('This may take a while for the full dataset...');
 
     return new Promise((resolve, reject) => {
@@ -275,22 +311,25 @@ async function populateElasticsearch() {
         if (batch.length === 0) return;
         
         const currentBatch = [...batch];
+        const currentLineNumbers = batch.lineNumbers ? [...batch.lineNumbers] : [];
         batch = [];
+        batch.lineNumbers = [];
         
         try {
-          const indexedCount = await indexBatch(currentBatch);
+          const indexedCount = await indexBatch(currentBatch, currentLineNumbers);
           totalIndexed += indexedCount;
+          saveCheckpoint(lineCount); // Save progress after each batch
           
           // Progress reporting
-          if (totalIndexed % 500 === 0) {
+          if (totalIndexed % 100 === 0) {
             const elapsed = (Date.now() - startTime) / 1000;
             const rate = Math.round(totalIndexed / elapsed);
-            console.log(`Indexed ${totalIndexed.toLocaleString()} records (${rate} records/sec)`);
-            
-            // Force garbage collection if available
-            if (global.gc) {
-              global.gc();
-            }
+            console.log(`Indexed ${totalIndexed.toLocaleString()} records (${rate} records/sec) [Line: ${lineCount}]`);
+          }
+          
+          // Force garbage collection if available
+          if (global.gc) {
+            global.gc();
           }
         } catch (error) {
           reject(error);
@@ -300,6 +339,7 @@ async function populateElasticsearch() {
 
       rl.on('line', async (line) => {
         lineCount++;
+        if (lineCount <= startFromLine) return; // Skip already imported lines
         
         // Skip header line
         if (isFirstLine) {
@@ -308,21 +348,21 @@ async function populateElasticsearch() {
         }
         
         try {
-          const record = parseCSVLine(line);
-          
+          const record = parseCSVLine(line, lineCount);
           // Skip invalid records
           if (record === null) {
             return;
           }
-
           batch.push(record);
-
+          if (!batch.lineNumbers) batch.lineNumbers = [];
+          batch.lineNumbers.push(lineCount);
+          
           // Process batch when it reaches the batch size
           if (batch.length >= BATCH_SIZE) {
             await processBatch();
           }
         } catch (error) {
-          console.warn(`Error processing line ${lineCount}:`, error.message);
+          logSkipped(lineCount, `Exception: ${error.message}`, line);
         }
       });
 
@@ -332,18 +372,18 @@ async function populateElasticsearch() {
           if (batch.length > 0) {
             await processBatch();
           }
-
+          
+          saveCheckpoint(lineCount); // Save final checkpoint
           const totalTime = (Date.now() - startTime) / 1000;
           console.log('\n🎉 Indexing completed successfully!');
           console.log(`📊 Total records indexed: ${totalIndexed.toLocaleString()}`);
           console.log(`⏱️  Total time: ${totalTime.toFixed(2)} seconds`);
           console.log(`🚀 Average rate: ${Math.round(totalIndexed / totalTime)} records/second`);
           console.log(`📁 Lines processed: ${lineCount.toLocaleString()}`);
-
+          
           // Refresh the index
           await esClient.indices.refresh({ index: INDEX_NAME });
           console.log('✅ Index refreshed and ready for search!');
-
           resolve();
         } catch (error) {
           reject(error);

@@ -86,9 +86,17 @@ const chartOptions = {
 };
 
 export default function AreaPriceTrendChart({ labels, data, areaName, className }: AreaPriceTrendChartProps) {
-  // Sort labels and data chronologically (earliest year first)
+  // Sort labels and data chronologically (earliest date first)
   const combined = labels.map((label, i) => ({ label, value: data[i] }));
-  combined.sort((a, b) => a.label.localeCompare(b.label));
+  combined.sort((a, b) => {
+    // Try to parse as dates; fallback to string compare
+    const dateA = Date.parse(a.label);
+    const dateB = Date.parse(b.label);
+    if (!isNaN(dateA) && !isNaN(dateB)) {
+      return dateA - dateB;
+    }
+    return a.label.localeCompare(b.label);
+  });
   const sortedLabels = combined.map(item => item.label);
   const sortedData = combined.map(item => item.value);
 

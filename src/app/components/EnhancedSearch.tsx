@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, X, MapPin, Clock } from 'lucide-react';
-import { cn, getSearchSuggestions, validatePostcode } from '../../lib/utils';
+import React, { useState, useRef, useEffect } from 'react';
+import { Search, MapPin, TrendingUp, Building, Home, Sparkles } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface EnhancedSearchProps {
   value: string;
@@ -21,254 +20,203 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   className
 }) => {
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [recentSearches, setRecentSearches] = useState<string[]>([]);
-  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [focused, setFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
 
-  // Load recent searches from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('recentSearches');
-    if (saved) {
-      try {
-        setRecentSearches(JSON.parse(saved));
-      } catch (error) {
-        console.error('Failed to parse recent searches:', error);
-      }
-    }
-  }, []);
+  const suggestions = [
+    { 
+      icon: <MapPin className="w-4 h-4" />, 
+      text: 'SW1A 1AA', 
+      description: 'Buckingham Palace, London',
+      category: 'Famous Address'
+    },
+    { 
+      icon: <Building className="w-4 h-4" />, 
+      text: 'M1 1AA', 
+      description: 'Manchester City Centre',
+      category: 'City Centre'
+    },
+    { 
+      icon: <Home className="w-4 h-4" />, 
+      text: 'B1 1AA', 
+      description: 'Birmingham City Centre',
+      category: 'City Centre'
+    },
+    { 
+      icon: <TrendingUp className="w-4 h-4" />, 
+      text: 'L1 1AA', 
+      description: 'Liverpool City Centre',
+      category: 'City Centre'
+    },
+    { 
+      icon: <Sparkles className="w-4 h-4" />, 
+      text: 'SE22 0HP', 
+      description: 'East Dulwich, London',
+      category: 'Popular Area'
+    },
+    { 
+      icon: <Sparkles className="w-4 h-4" />, 
+      text: 'W11 1AA', 
+      description: 'Notting Hill, London',
+      category: 'Popular Area'
+    },
+  ];
 
-  // Save recent searches to localStorage
-  const saveRecentSearch = useCallback((search: string) => {
-    const trimmed = search.trim();
-    if (!trimmed) return;
-
-    setRecentSearches(prev => {
-      const filtered = prev.filter(s => s !== trimmed);
-      const newSearches = [trimmed, ...filtered].slice(0, 5);
-      localStorage.setItem('recentSearches', JSON.stringify(newSearches));
-      return newSearches;
-    });
-  }, []);
-
-  // Generate suggestions based on input
-  useEffect(() => {
-    if (!value.trim()) {
-      setSuggestions([]);
-      return;
-    }
-
-    const newSuggestions = getSearchSuggestions(value);
-    setSuggestions(newSuggestions);
-  }, [value]);
-
-  // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    const totalItems = suggestions.length + recentSearches.length;
-    
-    switch (e.key) {
-      case 'ArrowDown':
-        e.preventDefault();
-        setSelectedIndex(prev => Math.min(prev + 1, totalItems - 1));
-        break;
-      case 'ArrowUp':
-        e.preventDefault();
-        setSelectedIndex(prev => Math.max(prev - 1, -1));
-        break;
-      case 'Enter':
-        e.preventDefault();
-        if (selectedIndex >= 0) {
-          const allItems = [...suggestions, ...recentSearches];
-          const selectedItem = allItems[selectedIndex];
-          if (selectedItem) {
-            onChange(selectedItem);
-            onSearch(selectedItem);
-            saveRecentSearch(selectedItem);
-            setShowSuggestions(false);
-            setSelectedIndex(-1);
-          }
-        } else if (value.trim()) {
-          onSearch(value.trim());
-          saveRecentSearch(value.trim());
-          setShowSuggestions(false);
-        }
-        break;
-      case 'Escape':
-        setShowSuggestions(false);
-        setSelectedIndex(-1);
-        inputRef.current?.blur();
-        break;
-    }
-  }, [value, suggestions, recentSearches, selectedIndex, onChange, onSearch, saveRecentSearch]);
-
-  // Handle input focus
-  const handleFocus = () => {
-    setShowSuggestions(true);
-  };
-
-  // Handle input blur
-  const handleBlur = () => {
-    // Delay to allow for clicks on suggestions
-    setTimeout(() => {
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (value.trim() && !isLoading) {
+      onSearch(value.trim());
       setShowSuggestions(false);
-      setSelectedIndex(-1);
-    }, 200);
+    }
   };
 
-  // Handle suggestion click
   const handleSuggestionClick = (suggestion: string) => {
     onChange(suggestion);
     onSearch(suggestion);
-    saveRecentSearch(suggestion);
     setShowSuggestions(false);
-    setSelectedIndex(-1);
+    inputRef.current?.blur();
   };
 
-  // Handle clear button
+  const handleFocus = () => {
+    setFocused(true);
+    setShowSuggestions(true);
+  };
+
+  const handleBlur = () => {
+    setFocused(false);
+    // Delay hiding suggestions to allow for clicks
+    setTimeout(() => setShowSuggestions(false), 200);
+  };
+
   const handleClear = () => {
     onChange('');
-    setShowSuggestions(false);
-    setSelectedIndex(-1);
     inputRef.current?.focus();
   };
 
-  const isPostcodeValid = value.trim() ? validatePostcode(value.trim()) : true;
-  const hasSuggestions = suggestions.length > 0 || recentSearches.length > 0;
-
-  // Enhanced placeholder text based on input
   const getPlaceholder = () => {
-    if (value.trim()) {
-      const input = value.trim().toUpperCase();
-      if (/^[A-Z]{1,2}[0-9]/.test(input)) {
-        return "Enter full postcode (e.g., SW1A 1AA)";
-      } else if (/^[A-Z]/.test(input)) {
-        return "Enter town or street name";
-      }
-    }
-    return "Search by postcode, town, or street name";
+    if (isLoading) return 'Searching...';
+    return 'Enter postcode, street name, or town...';
   };
 
   return (
-    <div className={cn("relative w-full max-w-2xl mx-auto animate-fade-in", className)}>
-      <form
-        className="flex flex-col sm:flex-row gap-2 items-stretch bg-white/80 backdrop-blur-md rounded-2xl shadow-2xl border border-blue-100 px-4 py-3 transition-all duration-300 focus-within:ring-2 focus-within:ring-blue-400"
-        onSubmit={e => { e.preventDefault(); if (value.trim()) { onSearch(value.trim()); saveRecentSearch(value.trim()); setShowSuggestions(false); } }}
-        role="search"
-        aria-label="Property search"
-      >
-        <div className="relative flex-1">
-          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-blue-400" />
-          </span>
+    <div className={cn("relative w-full", className)}>
+      <form onSubmit={handleSubmit} className="relative">
+        <div className={cn(
+          "relative flex items-center bg-white rounded-2xl shadow-lg border-2 transition-all duration-200",
+          focused 
+            ? "border-blue-500 shadow-blue-100" 
+            : "border-slate-200 hover:border-slate-300 hover:shadow-xl"
+        )}>
+          {/* Search Icon */}
+          <div className="absolute left-4 text-slate-400">
+            <Search className="w-5 h-5" />
+          </div>
+
+          {/* Input Field */}
           <input
-            id="postcode"
             ref={inputRef}
             type="text"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={handleFocus}
             onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
             placeholder={getPlaceholder()}
             disabled={isLoading}
-            autoComplete="off"
             className={cn(
-              "w-full pl-10 pr-12 py-3 border-2 rounded-xl text-lg font-medium bg-white/80 backdrop-blur-md",
-              "focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all duration-200",
-              "placeholder-gray-400 text-gray-900 shadow-sm",
-              "border-slate-300", // Remove postcode validation styling since we support multiple search types
-              isLoading && "opacity-50 cursor-not-allowed"
+              "w-full pl-12 pr-12 py-4 text-lg font-medium text-slate-900 placeholder-slate-500",
+              "bg-transparent border-none outline-none focus:ring-0",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
             )}
-            aria-label="Search for sold property prices"
           />
-          {value && (
+
+          {/* Clear Button */}
+          {value && !isLoading && (
             <button
-              onClick={handleClear}
-              className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
               type="button"
-              tabIndex={-1}
+              onClick={handleClear}
+              className="absolute right-4 p-1 text-slate-400 hover:text-slate-600 transition-colors"
               aria-label="Clear search"
             >
-              <X className="h-5 w-5" />
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           )}
-        </div>
-        <button
-          type="submit"
-          disabled={isLoading || !value.trim()}
-          className="flex items-center justify-center px-6 py-3 rounded-xl bg-blue-600 text-white font-semibold text-lg shadow hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed active:scale-95"
-          aria-label="Search"
-        >
-          {isLoading ? (
-            <span className="animate-spin mr-2"><Clock className="h-5 w-5" /></span>
-          ) : (
-            <Search className="h-5 w-5 mr-2" />
-          )}
-          <span className="hidden sm:inline">Search</span>
-        </button>
-      </form>
-      {/* Validation indicator */}
-      {value.trim() && (
-        <div className="mt-1 text-xs pl-2">
-          {isPostcodeValid ? (
-            <span className="text-green-600 flex items-center gap-1">✓ Valid format</span>
-          ) : (
-            <span className="text-red-600 flex items-center gap-1">⚠ Invalid postcode format</span>
-          )}
-        </div>
-      )}
-      {/* Suggestions Dropdown */}
-      <AnimatePresence>
-        {showSuggestions && hasSuggestions && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 10 }}
-            transition={{ duration: 0.2 }}
-            ref={suggestionsRef}
-            className="absolute left-0 right-0 mt-2 z-30 bg-white/90 backdrop-blur-md border border-blue-100 rounded-xl shadow-2xl overflow-hidden"
+
+          {/* Search Button */}
+          <button
+            type="submit"
+            disabled={!value.trim() || isLoading}
+            className={cn(
+              "absolute right-2 p-2 rounded-xl transition-all duration-200",
+              "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+              value.trim() && !isLoading
+                ? "bg-blue-600 text-white hover:bg-blue-700 hover:scale-105 active:scale-95"
+                : "bg-slate-100 text-slate-400 cursor-not-allowed"
+            )}
+            aria-label="Search properties"
           >
-            <div className="divide-y divide-blue-50">
-              {suggestions.map((suggestion, i) => (
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <Search className="w-5 h-5" />
+            )}
+          </button>
+        </div>
+      </form>
+
+      {/* Suggestions Dropdown */}
+      {showSuggestions && !isLoading && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50">
+          <div className="p-4">
+            <h3 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-blue-500" />
+              Popular Searches
+            </h3>
+            <div className="space-y-2">
+              {suggestions.map((suggestion, index) => (
                 <button
-                  key={suggestion}
-                  className={cn(
-                    "w-full text-left px-5 py-3 text-base hover:bg-blue-50 focus:bg-blue-100 transition-colors",
-                    selectedIndex === i && "bg-blue-100 text-blue-800"
-                  )}
-                  onMouseDown={() => handleSuggestionClick(suggestion)}
-                  tabIndex={-1}
+                  key={index}
+                  onClick={() => handleSuggestionClick(suggestion.text)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors text-left group"
                 >
-                  <span className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-blue-400" />
-                    {suggestion}
-                  </span>
-                </button>
-              ))}
-              {recentSearches.length > 0 && (
-                <div className="px-5 py-2 text-xs text-slate-500 bg-blue-50 font-semibold">Recent Searches</div>
-              )}
-              {recentSearches.map((recent, i) => (
-                <button
-                  key={recent}
-                  className={cn(
-                    "w-full text-left px-5 py-3 text-base hover:bg-blue-50 focus:bg-blue-100 transition-colors",
-                    selectedIndex === (suggestions.length + i) && "bg-blue-100 text-blue-800"
-                  )}
-                  onMouseDown={() => handleSuggestionClick(recent)}
-                  tabIndex={-1}
-                >
-                  <span className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-blue-400" />
-                    {recent}
-                  </span>
+                  <div className="text-slate-400 group-hover:text-blue-500 transition-colors">
+                    {suggestion.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors">
+                      {suggestion.text}
+                    </div>
+                    <div className="text-sm text-slate-500">
+                      {suggestion.description}
+                    </div>
+                  </div>
+                  <div className="text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
+                    {suggestion.category}
+                  </div>
                 </button>
               ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            
+            {/* Search Tips */}
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <h4 className="text-xs font-semibold text-slate-600 mb-2">Search Tips:</h4>
+              <div className="text-xs text-slate-500 space-y-1">
+                <div>• Try partial postcodes (e.g., "SW1" for all SW1 areas)</div>
+                <div>• Search by street name or town</div>
+                <div>• Use full postcodes for precise results</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Help Text */}
+      <div className="mt-3 text-center">
+        <p className="text-sm text-slate-600">
+          Search by postcode, street name, or town to find sold property prices
+        </p>
+      </div>
     </div>
   );
 };
