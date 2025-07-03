@@ -1,7 +1,20 @@
 import React, { useState } from 'react';
 
 // Reusable input component
-function InputField({ label, value, onChange, type = 'number', required = false, min, step, ...props }) {
+interface InputFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  type?: string;
+  required?: boolean;
+  min?: number;
+  step?: number;
+  maxLength?: number;
+  max?: number;
+  [key: string]: any;
+}
+
+function InputField({ label, value, onChange, type = 'number', required = false, min, step, ...props }: InputFieldProps) {
   return (
     <div className="mb-4 w-full">
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}{required && <span className="text-red-500">*</span>}</label>
@@ -19,12 +32,12 @@ function InputField({ label, value, onChange, type = 'number', required = false,
   );
 }
 
-function formatCurrency(val) {
+function formatCurrency(val: number): string {
   if (isNaN(val)) return '—';
   return '£' + Number(val).toLocaleString(undefined, { maximumFractionDigits: 0 });
 }
 
-function formatPercent(val) {
+function formatPercent(val: number): string {
   if (isNaN(val)) return '—';
   return val.toFixed(2) + '%';
 }
