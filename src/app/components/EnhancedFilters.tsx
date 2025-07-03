@@ -378,25 +378,26 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
       {/* Sale Date */}
       <div className="flex flex-col w-full md:w-auto">
         <label className="font-semibold text-sm mb-1">Sale Date</label>
-        <div className="flex gap-2">
-          <input
-            type="date"
-            value={dateRange.start}
-            onChange={e => setDateRange(dr => ({ ...dr, start: e.target.value }))}
-            className="w-36 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-            aria-label="Start date"
-            disabled={isLoading}
-          />
-          <span className="text-slate-400">–</span>
-          <input
-            type="date"
-            value={dateRange.end}
-            onChange={e => setDateRange(dr => ({ ...dr, end: e.target.value }))}
-            className="w-36 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-            aria-label="End date"
-            disabled={isLoading}
-          />
-        </div>
+        <select
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          value={(() => {
+            if (!dateRange.start && !dateRange.end) return '';
+            const startYear = dateRange.start?.slice(0, 4);
+            const endYear = dateRange.end?.slice(0, 4);
+            return startYear === endYear ? startYear : '';
+          })()}
+          onChange={e => {
+            const year = e.target.value;
+            if (!year) setDateRange({ start: '', end: '' });
+            else setDateRange({ start: `${year}-01-01`, end: `${year}-12-31` });
+          }}
+          disabled={isLoading}
+        >
+          <option value="">Any</option>
+          {availableYears.map(year => (
+            <option key={year} value={year}>{year}</option>
+          ))}
+        </select>
       </div>
     </div>
   );
