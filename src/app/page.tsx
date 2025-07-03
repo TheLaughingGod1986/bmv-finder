@@ -644,15 +644,6 @@ export default function Home() {
         <h1>BMV Finder: UK Property Price Search & Investment Insights</h1>
       </header>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-sans">
-        {/* Sticky search bar on mobile */}
-        <div className="md:hidden sticky top-0 z-30 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 px-4 pt-4 pb-2 shadow-sm">
-          <EnhancedSearch
-            value={searchTerm}
-            onChange={setSearchTerm}
-            onSearch={query => handleSearch(query)}
-            isLoading={isLoading}
-          />
-        </div>
         <main className="container mx-auto px-4 py-8 max-w-7xl" role="main">
           <section className="mb-12">
             <div className="bg-white/80 shadow-lg rounded-2xl p-8 md:p-12 w-full text-center border border-slate-200">
@@ -666,6 +657,15 @@ export default function Home() {
                 <li>Get investment calculator and personalized insights</li>
                 <li>Fast, accurate, and always up-to-date with UK Land Registry data</li>
               </ul>
+              {/* Mobile search bar under intro text */}
+              <div className="md:hidden mt-8">
+                <EnhancedSearch
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  onSearch={query => handleSearch(query)}
+                  isLoading={isLoading}
+                />
+              </div>
             </div>
           </section>
           <section className="mt-8 md:mt-16">
