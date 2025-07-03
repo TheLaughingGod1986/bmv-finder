@@ -728,14 +728,14 @@ export default function Home() {
                       if (e.key === 'Escape') setIsFiltersOpen(false);
                       // Trap focus
                       const focusable = Array.from(e.currentTarget.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('disabled'));
-                      const first = focusable[0] as HTMLElement;
-                      const last = focusable[focusable.length - 1] as HTMLElement;
+                      const first = focusable[0] as HTMLElement | undefined;
+                      const last = focusable[focusable.length - 1] as HTMLElement | undefined;
                       if (!e.shiftKey && document.activeElement === last) {
                         e.preventDefault();
-                        first.focus();
+                        if (first && typeof first.focus === 'function') first.focus();
                       } else if (e.shiftKey && document.activeElement === first) {
                         e.preventDefault();
-                        last.focus();
+                        if (last && typeof last.focus === 'function') last.focus();
                       }
                     }}
                   >
