@@ -310,9 +310,9 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
 
   // Desktop filter bar
   const DesktopFilters = () => (
-    <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 p-4 mt-8 flex flex-col gap-4 md:flex-row md:items-end md:gap-4 transition-all">
+    <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 p-4 mt-8 flex flex-col gap-4 transition-all">
       {/* Tenure Type Dropdown */}
-      <div className="flex flex-col w-full md:w-auto">
+      <div className="flex flex-col w-full">
         <label className="font-semibold text-sm mb-1">Tenure</label>
         <select
           className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
@@ -326,7 +326,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
         </select>
       </div>
       {/* Property Type Dropdown */}
-      <div className="flex flex-col w-full md:w-auto">
+      <div className="flex flex-col w-full">
         <label className="font-semibold text-sm mb-1">Property Type</label>
         <select
           className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
@@ -343,7 +343,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
         </select>
       </div>
       {/* Price Range */}
-      <div className="flex flex-col w-full md:w-auto">
+      <div className="flex flex-col w-full">
         <label className="font-semibold text-sm mb-1">Price Range (£)</label>
         <select
           className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
@@ -376,7 +376,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
         </select>
       </div>
       {/* Sale Date */}
-      <div className="flex flex-col w-full md:w-auto">
+      <div className="flex flex-col w-full">
         <label className="font-semibold text-sm mb-1">Sale Date</label>
         <select
           className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
@@ -403,11 +403,19 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
   );
 
   return (
-    <div className={cn("w-full", className)}>
+    <form
+      className={cn(
+        'flex flex-col gap-4 w-full max-w-full overflow-x-hidden',
+        className
+      )}
+      style={{ boxSizing: 'border-box' }}
+      autoComplete="off"
+      onSubmit={e => e.preventDefault()}
+    >
       <DesktopFilters />
       <MobileFilterButton />
       <MobileFilterModal />
-    </div>
+    </form>
   );
 };
 

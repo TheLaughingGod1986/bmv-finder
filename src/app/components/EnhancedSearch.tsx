@@ -158,7 +158,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
     <div className={cn("relative w-full", className)}>
       <form onSubmit={handleSubmit} className="relative">
         <div className="w-full flex flex-col items-center mb-4">
-          <div className="w-full max-w-2xl flex items-center bg-white rounded-full px-4 py-2 gap-2 border border-blue-300 focus-within:ring-2 focus-within:ring-blue-400 transition-all shadow-sm">
+          <div className="w-full flex items-center bg-white rounded-full px-4 py-2 gap-2 border border-blue-300 focus-within:ring-2 focus-within:ring-blue-400 transition-all shadow-sm">
             <input
               ref={inputRef}
               type="text"
@@ -186,7 +186,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
         </div>
         {/* History Dropdown */}
         {focused && history.length > 0 && (
-          <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-w-2xl mx-auto">
+          <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
             {history.map((h, idx) => (
               <button
                 key={h}
@@ -201,7 +201,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
         )}
         {/* Suggestions Dropdown */}
         {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10 max-w-2xl mx-auto">
+          <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
             {suggestions.map((s, idx) => (
               <button
                 key={s.text}
@@ -214,16 +214,16 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
             ))}
           </div>
         )}
+        {/* Help Text */}
+        <div className="mt-3 text-center">
+          <p className="text-sm text-slate-600">
+            Search by postcode, street name, or town to find sold property prices
+          </p>
+        </div>
+        {isPostcode && !isValidPostcode && (
+          <p className="text-xs text-red-600 mt-1">Invalid UK postcode format</p>
+        )}
       </form>
-      {/* Help Text */}
-      <div className="mt-3 text-center">
-        <p className="text-sm text-slate-600">
-          Search by postcode, street name, or town to find sold property prices
-        </p>
-      </div>
-      {isPostcode && !isValidPostcode && (
-        <p className="text-xs text-red-600 mt-1">Invalid UK postcode format</p>
-      )}
     </div>
   );
 };

@@ -165,8 +165,6 @@ export default function PropertyHistoryModal({
                     <div className="text-gray-400 text-sm font-mono tracking-widest">{property.postcode}</div>
                   </div>
                 </div>
-                {/* BMV Score Explanation Section */}
-                <BMVScoreExplanation />
                 {/* Property Details Grid */}
                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                   <div>

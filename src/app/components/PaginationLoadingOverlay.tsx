@@ -24,7 +24,7 @@ const PaginationLoadingOverlay: React.FC<PaginationLoadingOverlayProps> = ({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           className={cn(
-            "fixed inset-0 bg-white/80 backdrop-blur-sm z-50 flex items-center justify-center",
+            "absolute inset-0 bg-white/80 backdrop-blur-sm z-30 flex items-center justify-center",
             className
           )}
         >

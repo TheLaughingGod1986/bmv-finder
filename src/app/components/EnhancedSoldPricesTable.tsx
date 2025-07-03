@@ -31,6 +31,8 @@ interface EnhancedSoldPricesTableProps {
   isDateSortDisabled: boolean;
   onShowHistory: (property: SoldPrice, history: SoldPrice[]) => void;
   selectedRowId?: string | null;
+  onRowClick?: (property: SoldPrice) => void;
+  isLoading: boolean;
 }
 
 const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.memo(({
@@ -44,7 +46,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
   getHasHistory,
   isDateSortDisabled,
   onShowHistory,
-  selectedRowId
+  selectedRowId,
+  onRowClick,
+  isLoading
 }) => {
   // Cards/table view mode removed; always show table view
 
@@ -103,9 +107,19 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
 
   // Table View
   const TableView = () => (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full text-sm">
-        <thead className="bg-slate-50 border-b border-slate-200">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-lg relative">
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10 rounded-2xl animate-fade-in">
+          <span className="text-blue-600 text-lg font-semibold">Loading...</span>
+        </div>
+      )}
+      <motion.table
+        className="min-w-full divide-y divide-slate-200"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isLoading ? 0 : 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <thead className="bg-slate-50">
           <tr>
             <SortableHeader 
               title="Address" 
@@ -143,85 +157,69 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
                 <span>BMV Score</span>
               </div>
             </th>
-            <th className="px-6 py-4"></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100">
-          <AnimatePresence>
-            {paginatedSoldPrices.map((property, index) => (
-              <motion.tr
-                key={property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className={cn(
-                  "transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400",
-                  "hover:bg-blue-50/60 cursor-pointer group",
-                  selectedRowId === (property.id || [property.paon, property.saon, property.street, property.postcode, property.dateOfTransfer].join('-')) && "ring-2 ring-blue-500 bg-blue-50/80"
-                )}
-                tabIndex={0}
-                aria-label={`Property at ${formatAddress(property)}, sold for ${formatPrice(property.price)}`}
-                onClick={() => handleShowHistory(property)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') handleShowHistory(property); }}
-              >
-                <td className="px-6 py-5">
-                  <div className="max-w-xs">
-                    <div className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
-                      {formatAddress(property)}
-                    </div>
-                    <div className="text-sm text-slate-500 font-mono">
-                      {property.postcode}
-                    </div>
+        <tbody>
+          {paginatedSoldPrices.map((property, index) => (
+            <tr
+              key={`${property.id}-${index}`}
+              className={cn(
+                'group cursor-pointer transition-colors',
+                selectedRowId === property.id ? 'bg-blue-50/60' : '',
+                index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+              )}
+              onClick={() => onRowClick?.(property)}
+              tabIndex={0}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ' ') onRowClick?.(property);
+              }}
+              aria-selected={selectedRowId === property.id}
+            >
+              <td className="px-6 py-5">
+                <div className="max-w-xs">
+                  <div className="font-semibold text-slate-900 group-hover:text-blue-700 transition-colors">
+                    {formatAddress(property)}
                   </div>
-                </td>
-                <td className="px-6 py-5 text-slate-700 whitespace-nowrap">
-                  {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
-                </td>
-                <td className="px-6 py-5">
-                  <div className="text-right">
-                    <div className="text-xl font-bold text-green-700">
-                      {formatPrice(property.price)}
-                    </div>
+                  <div className="text-sm text-slate-500 font-mono">
+                    {property.postcode}
                   </div>
-                </td>
-                <td className="px-6 py-5">
-                  <div className="flex items-center gap-3">
-                    <span className="text-slate-600">
-                      {getPropertyTypeIcon(property.propertyType)}
-                    </span>
-                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">
-                      {formatPropertyType(property.propertyType)}
-                    </span>
+                </div>
+              </td>
+              <td className="px-6 py-5 text-slate-700 whitespace-nowrap">
+                {new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}
+              </td>
+              <td className="px-6 py-5">
+                <div className="text-right">
+                  <div className="text-xl font-bold text-green-700">
+                    {formatPrice(property.price)}
                   </div>
-                </td>
-                <td className="px-6 py-5">
-                  <span className={cn(
-                    "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                    property.duration === 'F' ? "bg-green-50 text-green-800" : "bg-blue-50 text-blue-800"
-                  )}>
-                    {formatDuration(property.duration)}
+                </div>
+              </td>
+              <td className="px-6 py-5">
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-600">
+                    {getPropertyTypeIcon(property.propertyType)}
                   </span>
-                </td>
-                <td className="px-6 py-5">
-                  <BMVScoreBadge property={property} allProperties={allSoldPrices} showTooltip={false} />
-                </td>
-                <td className="px-6 py-5 text-right">
-                  {getHasHistory(property) && (
-                    <button
-                      onClick={e => { e.stopPropagation(); handleShowHistory(property); }}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-semibold text-xs shadow-sm focus:ring-2 focus:ring-blue-400 transition-all duration-200 active:scale-95 opacity-0 group-hover:opacity-100"
-                      title="View price history"
-                      aria-label="View price history"
-                    >
-                      <TrendingUp className="h-4 w-4" /> History
-                    </button>
-                  )}
-                </td>
-              </motion.tr>
-            ))}
-          </AnimatePresence>
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">
+                    {formatPropertyType(property.propertyType)}
+                  </span>
+                </div>
+              </td>
+              <td className="px-6 py-5">
+                <span className={cn(
+                  "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                  property.duration === 'F' ? "bg-green-50 text-green-800" : "bg-blue-50 text-blue-800"
+                )}>
+                  {formatDuration(property.duration)}
+                </span>
+              </td>
+              <td className="px-6 py-5">
+                <BMVScoreBadge property={property} allProperties={allSoldPrices} showTooltip={false} />
+              </td>
+            </tr>
+          ))}
         </tbody>
-      </table>
+      </motion.table>
     </div>
   );
 
