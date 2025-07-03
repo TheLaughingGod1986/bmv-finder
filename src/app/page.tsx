@@ -872,7 +872,6 @@ export default function Home() {
                                           isDateSortDisabled={isDateSortDisabled}
                                           onShowHistory={handleShowHistory}
                                           selectedRowId={selectedRowId}
-                                          rowClassName="hover:bg-blue-50/60 transition-colors cursor-pointer"
                                           onRowClick={handleRowClick}
                                           isLoading={isPaginationLoading}
                                         />
