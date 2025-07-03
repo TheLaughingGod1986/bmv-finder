@@ -60,7 +60,7 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
         {/* Combined Market Overview Banner */}
         <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 flex flex-col md:flex-row items-stretch min-h-[240px] p-8 transition-all gap-8 md:gap-0">
           {/* Left: Property Types */}
-          <div className="flex flex-col items-center justify-center flex-1 min-w-[220px] max-w-[260px] border-b md:border-b-0 md:border-r border-slate-100 pr-0 md:pr-8 mb-8 md:mb-0 h-full">
+          <div className="flex flex-col items-center justify-center flex-none min-w-[320px] max-w-[420px] w-full border-b md:border-b-0 md:border-r border-slate-100 pr-0 md:pr-8 mb-8 md:mb-0 h-full">
             <div className="flex items-center gap-2 mb-3">
               <Home className="w-7 h-7 text-blue-500" />
               <span className="font-semibold text-xl">Property Types</span>
