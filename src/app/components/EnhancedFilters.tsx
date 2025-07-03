@@ -345,30 +345,35 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
       {/* Price Range */}
       <div className="flex flex-col w-full md:w-auto">
         <label className="font-semibold text-sm mb-1">Price Range (£)</label>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            min={0}
-            max={priceRange.max}
-            value={priceRange.min || ''}
-            onChange={e => setPriceRange(pr => ({ ...pr, min: Number(e.target.value) || 0 }))}
-            className="w-20 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-            placeholder="Min"
-            aria-label="Min price"
-            disabled={isLoading}
-          />
-          <span className="text-slate-400">–</span>
-          <input
-            type="number"
-            min={priceRange.min}
-            value={priceRange.max === 10000000 ? '' : priceRange.max}
-            onChange={e => setPriceRange(pr => ({ ...pr, max: Number(e.target.value) || 10000000 }))}
-            className="w-20 px-2 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-            placeholder="Max"
-            aria-label="Max price"
-            disabled={isLoading}
-          />
-        </div>
+        <select
+          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          value={(() => {
+            if (priceRange.min === 0 && priceRange.max === 10000000) return '';
+            if (priceRange.max <= 100000) return 'under-100k';
+            if (priceRange.min === 100000 && priceRange.max === 250000) return '100k-250k';
+            if (priceRange.min === 250000 && priceRange.max === 500000) return '250k-500k';
+            if (priceRange.min === 500000 && priceRange.max === 1000000) return '500k-1m';
+            if (priceRange.min === 1000000) return 'over-1m';
+            return '';
+          })()}
+          onChange={e => {
+            const val = e.target.value;
+            if (val === '') setPriceRange({ min: 0, max: 10000000 });
+            else if (val === 'under-100k') setPriceRange({ min: 0, max: 100000 });
+            else if (val === '100k-250k') setPriceRange({ min: 100000, max: 250000 });
+            else if (val === '250k-500k') setPriceRange({ min: 250000, max: 500000 });
+            else if (val === '500k-1m') setPriceRange({ min: 500000, max: 1000000 });
+            else if (val === 'over-1m') setPriceRange({ min: 1000000, max: 10000000 });
+          }}
+          disabled={isLoading}
+        >
+          <option value="">Any</option>
+          <option value="under-100k">Under £100k</option>
+          <option value="100k-250k">£100k–£250k</option>
+          <option value="250k-500k">£250k–£500k</option>
+          <option value="500k-1m">£500k–£1M</option>
+          <option value="over-1m">Over £1M</option>
+        </select>
       </div>
       {/* Sale Date */}
       <div className="flex flex-col w-full md:w-auto">
