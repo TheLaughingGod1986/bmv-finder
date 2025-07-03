@@ -82,7 +82,7 @@ export default function DealCalculatorPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <DealCalculator className="w-full" />
+            <DealCalculator />
           </motion.div>
         </section>
 
