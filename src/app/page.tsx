@@ -5,6 +5,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, TrendingUp, BarChart3 } from 'lucide-react';
+import Head from 'next/head';
 
 // Enhanced Components
 import EnhancedSearch from './components/EnhancedSearch';
@@ -177,11 +178,13 @@ export default function Home() {
         setSoldPrices(enhancedData);
         
         if (!isPaginationRequest) {
-          showToast({
-            type: 'success',
-            title: 'Search Complete',
-            message: `Found ${data.totalCount} properties in ${searchPostcode.trim()}`,
-          });
+          setTimeout(() => {
+            showToast({
+              type: 'success',
+              title: 'Search Complete',
+              message: `Found ${data.totalCount} sales records in ${searchPostcode.trim()} (${summary.totalProperties} after filters)`,
+            });
+          }, 0);
         }
       } else {
         setSoldPrices([]);
@@ -349,30 +352,68 @@ export default function Home() {
       return {
         totalProperties: 0,
         avgPrice: 0,
+        medianPrice: 0,
         minPrice: 0,
         maxPrice: 0,
         priceRange: 0,
         mostCommonType: '',
         dateRange: { earliest: '', latest: '' },
+        bmvDistribution: {
+          excellent: 0,
+          good: 0,
+          fair: 0,
+          overpriced: 0,
+          poor: 0,
+        },
       };
     }
+    
     const prices = filteredSoldPrices.map(p => p.price);
     const minPrice = Math.min(...prices);
     const maxPrice = Math.max(...prices);
     const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+    
+    // Calculate median price
+    const sortedPrices = [...prices].sort((a, b) => a - b);
+    const medianPrice = sortedPrices.length % 2 === 0
+      ? (sortedPrices[sortedPrices.length / 2 - 1] + sortedPrices[sortedPrices.length / 2]) / 2
+      : sortedPrices[Math.floor(sortedPrices.length / 2)];
+    
     const priceRange = maxPrice - minPrice;
     const types = filteredSoldPrices.map(p => p.propertyType).filter(Boolean);
     const typeCounts = types.reduce((acc, t) => { acc[t] = (acc[t] || 0) + 1; return acc; }, {} as Record<string, number>);
     const mostCommonType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
     const dates = filteredSoldPrices.map(p => p.dateOfTransfer).sort();
+    
+    // Calculate BMV score distribution
+    const bmvDistribution = {
+      excellent: 0,
+      good: 0,
+      fair: 0,
+      overpriced: 0,
+      poor: 0,
+    };
+    
+    filteredSoldPrices.forEach(property => {
+      if (property.bmvScore !== undefined) {
+        if (property.bmvScore >= 80) bmvDistribution.excellent++;
+        else if (property.bmvScore >= 65) bmvDistribution.good++;
+        else if (property.bmvScore >= 50) bmvDistribution.fair++;
+        else if (property.bmvScore >= 35) bmvDistribution.overpriced++;
+        else bmvDistribution.poor++;
+      }
+    });
+    
     return {
       totalProperties: filteredSoldPrices.length,
       avgPrice,
+      medianPrice,
       minPrice,
       maxPrice,
       priceRange,
       mostCommonType,
       dateRange: { earliest: dates[0], latest: dates[dates.length - 1] },
+      bmvDistribution,
     };
   }, [filteredSoldPrices]);
 
@@ -481,282 +522,292 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <main className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="text-center mb-8"
-        >
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              BMV Finder
-            </h1>
-          </div>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto leading-relaxed">
-            Discover below market value properties across the UK with our advanced search and BMV scoring system
-          </p>
-        </motion.div>
+    <>
+      <Head>
+        <title>BMV Finder | UK Property Price Search & Investment Insights</title>
+        <meta name="description" content="Search UK property prices, discover below market value (BMV) deals, and get investment insights. Instantly compare sold prices, growth, and BMV scores for any postcode, city, or street." />
+        <meta property="og:title" content="BMV Finder | UK Property Price Search & Investment Insights" />
+        <meta property="og:description" content="Search UK property prices, discover below market value (BMV) deals, and get investment insights. Instantly compare sold prices, growth, and BMV scores for any postcode, city, or street." />
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://bmvfinder.co.uk/" />
+        <meta property="og:image" content="/icon-512.png" />
+      </Head>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-sans">
+        <main className="container mx-auto px-4 py-8 max-w-7xl">
+          <section className="mb-12">
+            <div className="bg-white/80 shadow-lg rounded-2xl p-8 md:p-12 max-w-3xl mx-auto text-center border border-slate-200">
+              <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-blue-800 leading-tight">BMV Finder: UK Property Price Search & Investment Insights</h1>
+              <p className="text-lg md:text-xl text-slate-700 mb-6 font-medium">Find below market value (BMV) property deals, compare sold prices, and get instant investment insights for any postcode, city, or street in the UK.</p>
+              <ul className="list-disc list-inside text-left max-w-2xl mx-auto text-base md:text-lg text-slate-700 space-y-2">
+                <li>Search by postcode, city, or street for recent property sales</li>
+                <li>See BMV scores to spot below market value opportunities</li>
+                <li>View price growth charts and market trends</li>
+                <li>Compare similar sales and property types</li>
+                <li>Get investment calculator and personalized insights</li>
+                <li>Fast, accurate, and always up-to-date with UK Land Registry data</li>
+              </ul>
+            </div>
+          </section>
+          <section className="mt-8 md:mt-16">
+            {/* Search Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="mb-8"
+            >
+              <EnhancedSearch
+                value={searchTerm}
+                onChange={setSearchTerm}
+                onSearch={query => handleSearch(query)}
+                isLoading={isLoading}
+              />
+            </motion.div>
 
-        {/* Search Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="mb-8"
-        >
-          <EnhancedSearch
-            value={searchTerm}
-            onChange={setSearchTerm}
-            onSearch={query => handleSearch(query)}
-            isLoading={isLoading}
-          />
-        </motion.div>
-
-        {/* Results Section - Fixed height container to prevent layout shifts */}
-        <div className="min-h-[400px]">
-          <AnimatePresence mode="wait">
-            {hasSearched && (
-              <motion.div
-                key="results"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.4 }}
-                className="space-y-6"
-              >
-                {/* Loading State */}
-                {isLoading && (
+            {/* Results Section - Fixed height container to prevent layout shifts */}
+            <div className="min-h-[400px]">
+              <AnimatePresence mode="wait">
+                {hasSearched && (
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center justify-center py-12"
-                  >
-                    <div className="text-center">
-                      <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
-                      <p className="text-slate-600">Searching properties...</p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {/* Results Summary */}
-                {!isLoading && soldPrices.length > 0 && (
-                  <motion.div
+                    key="results"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="mb-6"
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.4 }}
+                    className="space-y-6"
                   >
-                    <EnhancedResultsSummary
-                      summary={summary}
-                      postcode={searchTerm}
-                      onExport={handleExport}
-                      onShare={handleShare}
-                      className="w-full"
-                    />
-                  </motion.div>
-                )}
-
-                {/* Filters */}
-                {!isLoading && soldPrices.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="mb-6"
-                  >
-                    <EnhancedFilters
-                      isLoading={isLoading}
-                      filterDuration={filterDuration}
-                      setFilterDuration={setFilterDuration}
-                      filterType={filterType}
-                      setFilterType={setFilterType}
-                      priceRange={priceRange}
-                      setPriceRange={setPriceRange}
-                      dateRange={dateRange}
-                      setDateRange={setDateRange}
-                      filterYear={filterYear}
-                      setFilterYear={setFilterYear}
-                      availableYears={availableYears}
-                      className="w-full"
-                    />
-                  </motion.div>
-                )}
-
-                {/* BMV Legend */}
-                {!isLoading && soldPrices.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="mb-6"
-                  >
-                    <BMVLegend variant="compact" className="w-full" />
-                  </motion.div>
-                )}
-
-                {/* Results Table */}
-                {!isLoading && soldPrices.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden"
-                  >
-                    <div className="p-6 border-b border-slate-100">
-                      <div className="flex items-center justify-between">
-                        <h2 className="text-xl font-bold text-slate-900">
-                          Property Sales ({filteredSoldPrices.length} of {totalCount})
-                        </h2>
-                        <div className="flex items-center gap-2 text-sm text-slate-600">
-                          <span>Page {page}</span>
-                          <span>•</span>
-                          <span>{pageSize} per page</span>
+                    {/* Loading State */}
+                    {isLoading && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="flex items-center justify-center py-12"
+                      >
+                        <div className="text-center">
+                          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+                          <p className="text-slate-600">Searching properties...</p>
                         </div>
-                      </div>
-                    </div>
-                    
-                    <div className="overflow-hidden relative">
-                      <EnhancedSoldPricesTable
-                        soldPrices={filteredSoldPrices}
-                        allSoldPrices={soldPrices}
-                        formatAddress={formatAddress}
-                        formatDuration={formatDuration}
-                        formatPropertyType={formatPropertyType}
-                        requestSort={requestSort}
-                        sortConfig={sortConfig}
-                        getHasHistory={getHasHistory}
-                        isDateSortDisabled={isDateSortDisabled}
-                        onShowHistory={handleShowHistory}
-                        selectedRowId={selectedRowId}
-                      />
-                      
-                      {/* Pagination Loading Overlay */}
-                      <PaginationLoadingOverlay 
-                        isLoading={isPaginationLoading} 
-                        direction={paginationDirection} 
-                      />
-                    </div>
+                      </motion.div>
+                    )}
 
-                    {/* Pagination */}
-                    {totalCount > pageSize && (
-                      <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm text-slate-600">
-                            Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} results
+                    {/* Results Summary */}
+                    {!isLoading && soldPrices.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="mb-6"
+                      >
+                        <EnhancedResultsSummary
+                          summary={summary}
+                          postcode={searchTerm}
+                          onExport={handleExport}
+                          onShare={handleShare}
+                          className="w-full"
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* Filters */}
+                    {!isLoading && soldPrices.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="mb-6"
+                      >
+                        <EnhancedFilters
+                          isLoading={isLoading}
+                          filterDuration={filterDuration}
+                          setFilterDuration={setFilterDuration}
+                          filterType={filterType}
+                          setFilterType={setFilterType}
+                          priceRange={priceRange}
+                          setPriceRange={setPriceRange}
+                          dateRange={dateRange}
+                          setDateRange={setDateRange}
+                          filterYear={filterYear}
+                          setFilterYear={setFilterYear}
+                          availableYears={availableYears}
+                          className="w-full"
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* BMV Legend */}
+                    {!isLoading && soldPrices.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="mb-6"
+                      >
+                        <BMVLegend variant="compact" className="w-full" />
+                      </motion.div>
+                    )}
+
+                    {/* Results Table */}
+                    {!isLoading && soldPrices.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden"
+                      >
+                        <div className="p-6 border-b border-slate-100">
+                          <div className="flex items-center justify-between">
+                            <h2 className="text-xl font-bold text-slate-900">
+                              Property Sales ({filteredSoldPrices.length} of {totalCount})
+                            </h2>
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <span>Page {page}</span>
+                              <span>•</span>
+                              <span>{pageSize} per page</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="overflow-hidden relative">
+                          <EnhancedSoldPricesTable
+                            soldPrices={filteredSoldPrices}
+                            allSoldPrices={soldPrices}
+                            formatAddress={formatAddress}
+                            formatDuration={formatDuration}
+                            formatPropertyType={formatPropertyType}
+                            requestSort={requestSort}
+                            sortConfig={sortConfig}
+                            getHasHistory={getHasHistory}
+                            isDateSortDisabled={isDateSortDisabled}
+                            onShowHistory={handleShowHistory}
+                            selectedRowId={selectedRowId}
+                          />
+                          
+                          {/* Pagination Loading Overlay */}
+                          <PaginationLoadingOverlay 
+                            isLoading={isPaginationLoading} 
+                            direction={paginationDirection} 
+                          />
+                        </div>
+
+                        {/* Pagination */}
+                        {totalCount > pageSize && (
+                          <div className="p-6 border-t border-slate-100 bg-slate-50/50">
+                            <div className="flex items-center justify-between">
+                              <div className="text-sm text-slate-600">
+                                Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} results
+                              </div>
+                              
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleSearch(searchTerm, page - 1)}
+                                  disabled={page === 1 || isPaginationLoading}
+                                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Previous
+                                </button>
+                                
+                                <span className="px-4 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-lg">
+                                  {page}
+                                </span>
+                                
+                                <button
+                                  onClick={() => handleSearch(searchTerm, page + 1)}
+                                  disabled={page * pageSize >= totalCount || isPaginationLoading}
+                                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  Next
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+
+                    {/* Empty State */}
+                    {!isLoading && hasSearched && soldPrices.length === 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="mb-8"
+                      >
+                        <EnhancedEmptyState
+                          postcode={searchTerm}
+                          hasSearched={hasSearched}
+                          onTryDifferentSearch={handleTryDifferentSearch}
+                          onSearchSuggestion={handleSearchSuggestion}
+                        />
+                      </motion.div>
+                    )}
+
+                    {/* Charts Section */}
+                    {!isLoading && soldPrices.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.5 }}
+                        className="space-y-8"
+                      >
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                              <TrendingUp className="w-5 h-5 text-blue-600" />
+                              Price Trends
+                            </h3>
+                            <AreaPriceTrendChart
+                              labels={chartLabels}
+                              data={priceTrendData}
+                              areaName={searchTerm}
+                              className="w-full"
+                            />
                           </div>
                           
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleSearch(searchTerm, page - 1)}
-                              disabled={page === 1 || isPaginationLoading}
-                              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              Previous
-                            </button>
-                            
-                            <span className="px-4 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-lg">
-                              {page}
-                            </span>
-                            
-                            <button
-                              onClick={() => handleSearch(searchTerm, page + 1)}
-                              disabled={page * pageSize >= totalCount || isPaginationLoading}
-                              className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                            >
-                              Next
-                            </button>
+                          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
+                            <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+                              <BarChart3 className="w-5 h-5 text-green-600" />
+                              Market Analysis
+                            </h3>
+                            <div className="grid grid-cols-1 gap-6">
+                              <SalesPerYearBarChart soldPrices={soldPrices} />
+                              <PropertyTypePieChart soldPrices={soldPrices} />
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </motion.div>
                     )}
                   </motion.div>
                 )}
+              </AnimatePresence>
+            </div>
+          </section>
 
-                {/* Empty State */}
-                {!isLoading && hasSearched && soldPrices.length === 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="mb-8"
-                  >
-                    <EnhancedEmptyState
-                      postcode={searchTerm}
-                      hasSearched={hasSearched}
-                      onTryDifferentSearch={handleTryDifferentSearch}
-                      onSearchSuggestion={handleSearchSuggestion}
-                    />
-                  </motion.div>
-                )}
-
-                {/* Charts Section */}
-                {!isLoading && soldPrices.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.5 }}
-                    className="space-y-8"
-                  >
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                          <TrendingUp className="w-5 h-5 text-blue-600" />
-                          Price Trends
-                        </h3>
-                        <AreaPriceTrendChart
-                          labels={chartLabels}
-                          data={priceTrendData}
-                          areaName={searchTerm}
-                          className="w-full"
-                        />
-                      </div>
-                      
-                      <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6">
-                        <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
-                          <BarChart3 className="w-5 h-5 text-green-600" />
-                          Market Analysis
-                        </h3>
-                        <div className="grid grid-cols-1 gap-6">
-                          <SalesPerYearBarChart soldPrices={soldPrices} />
-                          <PropertyTypePieChart soldPrices={soldPrices} />
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
+          {/* Modals */}
+          <AnimatePresence>
+            {showHistoryModal && selectedProperty && (
+              <PropertyHistoryModal
+                open={showHistoryModal}
+                property={selectedProperty}
+                history={propertyHistory}
+                onClose={() => setShowHistoryModal(false)}
+              />
+            )}
+            
+            {showPropertyModal && selectedPropertyForModal && (
+              <PropertyModal
+                isOpen={showPropertyModal}
+                property={selectedPropertyForModal}
+                onClose={() => setShowPropertyModal(false)}
+              />
             )}
           </AnimatePresence>
-        </div>
 
-        {/* Modals */}
-        <AnimatePresence>
-          {showHistoryModal && selectedProperty && (
-            <PropertyHistoryModal
-              open={showHistoryModal}
-              property={selectedProperty}
-              history={propertyHistory}
-              onClose={() => setShowHistoryModal(false)}
-            />
-          )}
-          
-          {showPropertyModal && selectedPropertyForModal && (
-            <PropertyModal
-              isOpen={showPropertyModal}
-              property={selectedPropertyForModal}
-              onClose={() => setShowPropertyModal(false)}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Analytics */}
-        <Analytics />
-        <SpeedInsights />
-      </main>
-    </div>
+          {/* Analytics */}
+          <Analytics />
+          <SpeedInsights />
+        </main>
+      </div>
+    </>
   );
 }
 
