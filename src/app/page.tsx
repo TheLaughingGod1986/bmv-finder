@@ -727,17 +727,15 @@ export default function Home() {
                     onKeyDown={e => {
                       if (e.key === 'Escape') setIsFiltersOpen(false);
                       // Trap focus
-                      if (e.key === 'Tab') {
-                        const focusable = Array.from(e.currentTarget.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('disabled'));
-                        const first = focusable[0];
-                        const last = focusable[focusable.length - 1];
-                        if (!e.shiftKey && document.activeElement === last) {
-                          e.preventDefault();
-                          first.focus();
-                        } else if (e.shiftKey && document.activeElement === first) {
-                          e.preventDefault();
-                          last.focus();
-                        }
+                      const focusable = Array.from(e.currentTarget.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('disabled'));
+                      const first = focusable[0] as HTMLElement;
+                      const last = focusable[focusable.length - 1] as HTMLElement;
+                      if (!e.shiftKey && document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                      } else if (e.shiftKey && document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
                       }
                     }}
                   >
