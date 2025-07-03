@@ -136,7 +136,7 @@ export default function DealCalculator() {
           {ltvMode === 'ltv' ? (
             <InputField label="Loan-to-Value (%)" value={ltv} onChange={val => { setLtv(val); setDeposit(''); }} required min={0} max={100} step={0.1} />
           ) : (
-            <InputField label="Deposit (£)" value={deposit} onChange={val => { setDeposit(val); setLtv(''); }} required min={0} max={purchasePrice || undefined} />
+            <InputField label="Deposit (£)" value={deposit} onChange={val => { setDeposit(val); setLtv(''); }} required min={0} max={Number(purchasePrice) || undefined} />
           )}
         </div>
         <InputField label="Other Monthly Expenses" value={otherExpenses} onChange={setOtherExpenses} min={0} />
