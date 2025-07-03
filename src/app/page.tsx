@@ -701,56 +701,87 @@ export default function Home() {
             {/* Filters modal for mobile */}
             {isFiltersOpen && (
               <>
+                {/* Overlay */}
                 <div
-                  className="fixed inset-0 z-50 bg-black/30 md:hidden"
-                  onClick={() => setIsFiltersOpen(false)}
+                  className="fixed inset-0 z-50 bg-black/30 md:hidden transition-opacity duration-300 animate-fade-in"
+                  onClick={e => {
+                    // Only close if clicking the overlay, not the modal content
+                    if (e.target === e.currentTarget) setIsFiltersOpen(false);
+                  }}
                   aria-label="Close filters overlay"
                   tabIndex={-1}
                 />
+                {/* Modal content with animation and focus trap */}
                 <div
                   className="fixed inset-0 z-50 flex items-center justify-center md:hidden"
                   role="dialog"
                   aria-modal="true"
-                  aria-label="Filters"
+                  aria-labelledby="mobile-filters-title"
                 >
-                  <div
-                    className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto p-6 z-10"
+                  <motion.div
+                    initial={{ opacity: 0, y: 40 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 40 }}
+                    transition={{ duration: 0.25 }}
+                    className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto flex flex-col max-h-[90vh] p-0 z-10 focus:outline-none"
                     tabIndex={0}
                     onKeyDown={e => {
                       if (e.key === 'Escape') setIsFiltersOpen(false);
+                      // Trap focus
+                      if (e.key === 'Tab') {
+                        const focusable = Array.from(e.currentTarget.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('disabled'));
+                        const first = focusable[0];
+                        const last = focusable[focusable.length - 1];
+                        if (!e.shiftKey && document.activeElement === last) {
+                          e.preventDefault();
+                          first.focus();
+                        } else if (e.shiftKey && document.activeElement === first) {
+                          e.preventDefault();
+                          last.focus();
+                        }
+                      }
                     }}
                   >
-                    <button
-                      onClick={() => setIsFiltersOpen(false)}
-                      className="absolute top-4 right-4 text-slate-500 hover:text-slate-700"
-                      aria-label="Close filters"
-                      autoFocus
-                    >
-                      <X className="w-6 h-6" />
-                    </button>
-                    <h2 className="text-xl font-bold mb-4">Filters</h2>
-                    <EnhancedFilters
-                      isLoading={isLoading}
-                      filterDuration={filterDuration}
-                      setFilterDuration={setFilterDuration}
-                      filterType={filterType}
-                      setFilterType={setFilterType}
-                      priceRange={priceRange}
-                      setPriceRange={setPriceRange}
-                      dateRange={dateRange}
-                      setDateRange={setDateRange}
-                      filterYear={filterYear}
-                      setFilterYear={setFilterYear}
-                      availableYears={availableYears}
-                      className="w-full"
-                    />
-                    <button
-                      onClick={() => setIsFiltersOpen(false)}
-                      className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                    >
-                      Apply Filters
-                    </button>
-                  </div>
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-slate-100">
+                      <h2 id="mobile-filters-title" className="text-xl font-bold">Filters</h2>
+                      <button
+                        onClick={() => setIsFiltersOpen(false)}
+                        className="ml-4 p-2 rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        aria-label="Close filters"
+                        autoFocus
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+                    {/* Content */}
+                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                      <EnhancedFilters
+                        isLoading={isLoading}
+                        filterDuration={filterDuration}
+                        setFilterDuration={setFilterDuration}
+                        filterType={filterType}
+                        setFilterType={setFilterType}
+                        priceRange={priceRange}
+                        setPriceRange={setPriceRange}
+                        dateRange={dateRange}
+                        setDateRange={setDateRange}
+                        filterYear={filterYear}
+                        setFilterYear={setFilterYear}
+                        availableYears={availableYears}
+                        className="w-full"
+                      />
+                    </div>
+                    {/* Sticky footer */}
+                    <div className="sticky bottom-0 left-0 right-0 bg-white px-6 pb-6 pt-3 border-t border-slate-100">
+                      <button
+                        onClick={() => setIsFiltersOpen(false)}
+                        className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 text-base font-semibold"
+                      >
+                        Apply Filters
+                      </button>
+                    </div>
+                  </motion.div>
                 </div>
               </>
             )}
