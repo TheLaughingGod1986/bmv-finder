@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
 import { ToastProvider } from './components/ToastProvider';
+import Navigation from './components/Navigation';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -73,6 +74,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-white text-gray-900`}>
         <a href="#main-content" className="sr-only focus:not-sr-only absolute left-2 top-2 bg-blue-600 text-white px-3 py-1 rounded z-50">Skip to main content</a>
+        <Navigation />
         <main id="main-content" tabIndex={-1}>
           <ToastProvider>
             {children}

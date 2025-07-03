@@ -56,99 +56,72 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
 
   return (
     <div className={cn("relative w-full max-w-6xl mx-auto animate-fade-in", className)}>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
-        {/* Property Types Card */}
-        <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center justify-center min-h-[240px] p-8 transition-all">
-          <div className="flex items-center gap-2 mb-3">
-            <Home className="w-7 h-7 text-blue-500" />
-            <span className="font-semibold text-xl">Property Types</span>
-          </div>
-          {(() => {
-            const match = summary.mostCommonType.match(/^([A-Z]) ?\((\d+)\)$/);
-            if (match) {
-              const abbr = match[1];
-              const count = match[2];
+      <div className="mb-10">
+        {/* Combined Market Overview Banner */}
+        <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 flex flex-col md:flex-row items-stretch min-h-[240px] p-8 transition-all gap-8 md:gap-0">
+          {/* Left: Property Types */}
+          <div className="flex flex-col items-center justify-center flex-1 min-w-[180px] border-b md:border-b-0 md:border-r border-slate-100 pr-0 md:pr-8 mb-8 md:mb-0">
+            <div className="flex items-center gap-2 mb-3">
+              <Home className="w-7 h-7 text-blue-500" />
+              <span className="font-semibold text-xl">Property Types</span>
+            </div>
+            {(() => {
+              const match = summary.mostCommonType.match(/^([A-Z]) ?\((\d+)\)$/);
+              if (match) {
+                const abbr = match[1];
+                const count = match[2];
+                return (
+                  <>
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-4xl">{getPropertyTypeIcon(abbr)}</span>
+                      <span className="text-2xl font-bold text-blue-700">{getPropertyTypeLabel(abbr)}</span>
+                    </div>
+                    <div className="text-lg text-gray-600 mb-1">{count} sales</div>
+                    <div className={cardBadge}>Most common</div>
+                  </>
+                );
+              }
+              // Fallback if no match
               return (
-                <>
-                  <div className="flex items-center gap-3 mb-2">
-                    <span className="text-4xl">{getPropertyTypeIcon(abbr)}</span>
-                    <span className="text-2xl font-bold text-blue-700">{getPropertyTypeLabel(abbr)}</span>
-                  </div>
-                  <div className="text-lg text-gray-600 mb-1">{count} sales</div>
-                  <div className={cardBadge}>Most common in this area</div>
-                </>
+                <div className="flex flex-col items-center justify-center h-28">
+                  <span className="text-5xl mb-2">🏭</span>
+                  <span className="text-slate-400 text-base">No data</span>
+                </div>
               );
-            }
-            // Fallback if no match
-            return (
-              <div className="flex flex-col items-center justify-center h-28">
-                <span className="text-5xl mb-2">🏭</span>
-                <span className="text-slate-400 text-base">No data</span>
-              </div>
-            );
-          })()}
-        </div>
+            })()}
+          </div>
 
-        {/* Time Period Card */}
-        <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center justify-center min-h-[240px] p-8 transition-all">
-          <div className="flex items-center gap-2 mb-3">
-            <Calendar className="w-7 h-7 text-green-500" />
-            <span className="font-semibold text-xl">Time Period</span>
-          </div>
-          <div className="flex flex-col items-center flex-1 justify-center w-full gap-2">
-            <div className="flex flex-col md:flex-row gap-2 w-full mb-2">
-              <div className="flex-1 bg-green-50 rounded-lg p-4 text-center">
-                <div className="text-xs text-green-800 mb-1">Earliest Sale</div>
-                <div className="text-lg font-semibold text-green-900">{summary.dateRange.earliest ? formatDate(summary.dateRange.earliest) : '--'}</div>
-              </div>
-              <div className="flex-1 bg-blue-50 rounded-lg p-4 text-center">
-                <div className="text-xs text-blue-800 mb-1">Latest Sale</div>
-                <div className="text-lg font-semibold text-blue-900">{summary.dateRange.latest ? formatDate(summary.dateRange.latest) : '--'}</div>
-              </div>
-            </div>
-            <div className="text-xs text-gray-600 bg-gray-50 rounded-lg p-2 w-full text-center">
-              <strong>Coverage:</strong> {(() => {
-                if (!summary.dateRange.earliest || !summary.dateRange.latest) return '--';
-                const start = new Date(summary.dateRange.earliest);
-                const end = new Date(summary.dateRange.latest);
-                const years = end.getFullYear() - start.getFullYear();
-                return `${years} year${years !== 1 ? 's' : ''} period`;
-              })()} of property sales
-            </div>
-          </div>
-        </div>
-
-        {/* Market Overview Card */}
-        <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 flex flex-col items-center justify-center min-h-[240px] p-8 transition-all">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-7 h-7 text-purple-500" />
-            <span className="font-semibold text-xl">Market Overview</span>
-          </div>
-          <div className="flex flex-col items-center flex-1 justify-center w-full gap-2">
-            <div className="grid grid-cols-2 gap-2 w-full mb-2">
-              <div className="bg-purple-50 rounded-lg p-4 text-center">
+          {/* Center: Key Stats */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 px-0 md:px-8 border-b md:border-b-0 md:border-r border-slate-100 mb-8 md:mb-0">
+            <div className="grid grid-cols-2 gap-4 w-full">
+              <div className="bg-purple-50 rounded-lg p-4 text-center w-full max-w-[180px] mx-auto min-w-[140px]">
                 <div className="text-2xl font-bold text-purple-600">{formatPrice(summary.avgPrice)}</div>
                 <div className="text-xs text-purple-700">Average Price</div>
               </div>
-              <div className="bg-blue-50 rounded-lg p-4 text-center">
+              <div className="bg-blue-50 rounded-lg p-4 text-center w-full max-w-[180px] mx-auto min-w-[140px]">
                 <div className="text-2xl font-bold text-blue-600">{formatPrice(summary.medianPrice || summary.avgPrice)}</div>
                 <div className="text-xs text-blue-700">Median Price</div>
               </div>
-              <div className="bg-orange-50 rounded-lg p-4 text-center">
+              <div className="bg-orange-50 rounded-lg p-4 text-center w-full max-w-[180px] mx-auto min-w-[140px]">
                 <div className="text-2xl font-bold text-orange-600">{summary.totalProperties}</div>
                 <div className="text-xs text-orange-700">Total Sales</div>
               </div>
-              <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="bg-green-50 rounded-lg p-4 text-center w-full max-w-[180px] mx-auto min-w-[140px]">
                 <div className="text-2xl font-bold text-green-600">{formatPrice(summary.priceRange)}</div>
                 <div className="text-xs text-green-700">Price Range</div>
               </div>
             </div>
-            
-            {/* BMV Score Distribution */}
-            {summary.bmvDistribution && (
-              <div className="w-full bg-gray-50 rounded-lg p-3 mb-2">
-                <div className="text-xs font-semibold text-gray-700 mb-2">BMV Score Distribution</div>
-                <div className="flex items-center gap-1 h-3">
+            <div className="bg-gray-50 rounded-lg p-2 w-full text-xs text-gray-700 text-center mt-2">
+              <strong>Market Type:</strong> {summary.avgPrice > 500000 ? 'Premium market' : summary.avgPrice > 300000 ? 'Mid-range market' : 'Affordable market'} with prices from {formatPrice(summary.minPrice)} to {formatPrice(summary.maxPrice)}.
+            </div>
+          </div>
+
+          {/* Right: BMV Score Distribution */}
+          <div className="flex flex-col items-center justify-center flex-1 min-w-[180px] pl-0 md:pl-8">
+            <div className="text-xs font-semibold text-gray-700 mb-2">BMV Score Distribution</div>
+            {summary.bmvDistribution && summary.totalProperties > 0 ? (
+              <>
+                <div className="flex items-center gap-1 h-3 w-full max-w-[180px]">
                   <div 
                     className="bg-green-500 rounded-l-full h-full" 
                     style={{ width: `${(summary.bmvDistribution.excellent / summary.totalProperties) * 100}%` }}
@@ -175,16 +148,14 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
                     title={`Poor (${summary.bmvDistribution.poor})`}
                   ></div>
                 </div>
-                <div className="flex justify-between text-xs text-gray-600 mt-1">
+                <div className="flex justify-between text-xs text-gray-600 mt-1 w-full max-w-[180px]">
                   <span>Excellent</span>
                   <span>Poor</span>
                 </div>
-              </div>
+              </>
+            ) : (
+              <div className="text-slate-400 text-base mt-8">No BMV data</div>
             )}
-            
-            <div className="bg-gray-50 rounded-lg p-2 w-full text-xs text-gray-700 text-center">
-              <strong>Market Type:</strong> {summary.avgPrice > 500000 ? 'Premium market' : summary.avgPrice > 300000 ? 'Mid-range market' : 'Affordable market'} with prices from {formatPrice(summary.minPrice)} to {formatPrice(summary.maxPrice)}.
-            </div>
           </div>
         </div>
       </div>

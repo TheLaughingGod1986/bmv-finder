@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MapPin, Home, TrendingUp, AlertCircle, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -18,14 +18,35 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
   onTryDifferentSearch,
   onSearchSuggestion 
 }) => {
-  const popularAreas = [
+  const [popularAreas, setPopularAreas] = useState([
     { area: 'SW1A 1AA', description: 'Buckingham Palace, London', icon: <MapPin className="w-4 h-4" /> },
     { area: 'M1 1AA', description: 'Manchester City Centre', icon: <Home className="w-4 h-4" /> },
     { area: 'B1 1AA', description: 'Birmingham City Centre', icon: <Home className="w-4 h-4" /> },
     { area: 'L1 1AA', description: 'Liverpool City Centre', icon: <Home className="w-4 h-4" /> },
     { area: 'SE22 0HP', description: 'East Dulwich, London', icon: <TrendingUp className="w-4 h-4" /> },
     { area: 'W11 1AA', description: 'Notting Hill, London', icon: <TrendingUp className="w-4 h-4" /> },
-  ];
+  ]);
+
+  useEffect(() => {
+    async function fetchPopularAreas() {
+      try {
+        const res = await fetch('/api/suggest-postcodes?q= ');
+        const data = await res.json();
+        if (data.suggestions && data.suggestions.length > 0) {
+          setPopularAreas(
+            data.suggestions.slice(0, 6).map((postcode: string) => ({
+              area: postcode,
+              description: '', // Optionally fetch area descriptions if available
+              icon: <Home className="w-4 h-4" />
+            }))
+          );
+        }
+      } catch (e) {
+        // fallback to hardcoded
+      }
+    }
+    fetchPopularAreas();
+  }, []);
 
   const SuggestionCard = ({ area, index }: { area: { area: string; description: string; icon: React.ReactNode }; index: number }) => (
     <motion.button

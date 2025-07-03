@@ -148,7 +148,7 @@ export default function AreaPriceTrendChart({ labels, data, areaName, className 
         This chart displays the average price of properties sold in {formatAreaName(areaName)} for each year, 
         based on official UK Land Registry data. Use it to identify trends in property values over time.
       </p>
-      <div className="relative flex-1 min-h-[250px] flex items-center justify-center">
+      <div className="relative flex-1 min-h-[320px] flex items-center justify-center">
         {labels.length === 0 || data.length === 0 ? (
           <div className="text-center py-12 max-w-md mx-auto">
             <div className="flex items-center justify-center gap-2 mb-3">
@@ -169,8 +169,61 @@ export default function AreaPriceTrendChart({ labels, data, areaName, className 
             </div>
           </div>
         ) : (
-          <div className="w-full h-[260px] md:h-[340px]">
-            <Line data={chartData} options={chartOptions} />
+          <div className="w-full h-[340px] md:h-[420px] p-2 md:p-4">
+            <Line data={chartData} options={{
+              ...chartOptions,
+              elements: {
+                line: { borderWidth: 5 },
+                point: { radius: 8, borderWidth: 3, hoverRadius: 12 },
+              },
+              layout: { padding: 32 },
+              scales: {
+                ...chartOptions.scales,
+                y: {
+                  ...chartOptions.scales.y,
+                  title: {
+                    ...chartOptions.scales.y.title,
+                    font: { size: 18, weight: 700 },
+                  },
+                  ticks: {
+                    ...chartOptions.scales.y.ticks,
+                    font: { size: 16, weight: 600 },
+                  },
+                  grid: { color: '#cbd5e1', lineWidth: 1.5 },
+                },
+                x: {
+                  ...chartOptions.scales.x,
+                  title: {
+                    ...chartOptions.scales.x.title,
+                    font: { size: 18, weight: 700 },
+                  },
+                  ticks: {
+                    ...chartOptions.scales.x.ticks,
+                    font: { size: 16, weight: 600 },
+                  },
+                  grid: { color: '#e2e8f0', lineWidth: 1.5 },
+                },
+              },
+              plugins: {
+                ...chartOptions.plugins,
+                legend: {
+                  ...chartOptions.plugins.legend,
+                  labels: {
+                    ...chartOptions.plugins.legend.labels,
+                    font: { size: 18, weight: 700 },
+                  },
+                },
+                tooltip: {
+                  ...chartOptions.plugins.tooltip,
+                  bodyFont: { size: 18, weight: 700 },
+                  callbacks: {
+                    label: function(context) {
+                      return `£${context.parsed.y.toLocaleString()}`;
+                    }
+                  }
+                },
+              },
+            }} />
           </div>
         )}
       </div>
