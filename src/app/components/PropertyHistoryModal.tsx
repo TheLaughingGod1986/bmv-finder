@@ -4,6 +4,7 @@ import React, { useState, useEffect, Fragment } from 'react';
 import { SoldPrice } from '../../../types/sold-price';
 import { formatPrice } from '../../lib/utils';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
+import BMVScoreExplanation from './BMVScoreExplanation';
 
 interface PropertyHistoryModalProps {
   open: boolean;
@@ -13,9 +14,10 @@ interface PropertyHistoryModalProps {
 }
 
 const TABS = [
+  { key: 'trend', label: 'Area Trend' },
+  { key: 'growth', label: 'Price Growth' },
   { key: 'details', label: 'Details' },
   { key: 'similar', label: 'Similar Sales' },
-  { key: 'growth', label: 'Price Growth' },
   { key: 'calculator', label: 'Investment Calculator' },
   { key: 'myproperty', label: 'My Property' },
 ];
@@ -29,13 +31,14 @@ export default function PropertyHistoryModal({
   const [isLoading, setIsLoading] = useState(false);
   const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('details');
+  const [activeTab, setActiveTab] = useState('trend');
 
   useEffect(() => {
     if (open && property && history.length > 0) {
       setIsLoading(false);
       setError(null);
       setFullHistory(history);
+      setActiveTab('trend');
     }
   }, [open, property, history]);
 
@@ -89,10 +92,15 @@ export default function PropertyHistoryModal({
     new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()
   );
 
+  // Remove duplicate sales (same date and price)
+  const uniqueHistory = sortedHistory.filter((sale, idx, arr) => {
+    return idx === arr.findIndex(s => s.dateOfTransfer === sale.dateOfTransfer && s.price === sale.price);
+  });
+
   // Calculate price changes
-  const historyWithChanges = sortedHistory.map((sale, index) => {
+  const historyWithChanges = uniqueHistory.map((sale, index) => {
     if (index === 0) return { ...sale, priceChange: 0, priceChangePercent: 0 };
-    const previousPrice = sortedHistory[index - 1].price;
+    const previousPrice = uniqueHistory[index - 1].price;
     const currentPrice = sale.price;
     const priceChange = currentPrice - previousPrice;
     const priceChangePercent = (priceChange / previousPrice) * 100;
@@ -113,7 +121,7 @@ export default function PropertyHistoryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30" onClick={handleOverlayClick}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-auto relative">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl mx-auto relative min-h-[700px] min-w-[420px] md:min-w-[700px] md:min-h-[800px]">
         {/* Modal header and close button */}
         <button
           className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
@@ -124,8 +132,8 @@ export default function PropertyHistoryModal({
         </button>
         {/* Modal body with scroll and sticky tabs */}
         <div className="relative">
-          <div className="sticky top-0 z-10 bg-white">
-            <div className="flex border-b mb-8 bg-slate-50 rounded-t-lg overflow-x-auto">
+          <div className="sticky top-0 z-10 bg-white rounded-t-3xl">
+            <div className="flex border-b mb-8 bg-slate-50 rounded-t-3xl overflow-x-auto">
               {TABS.map(tab => (
                 <button
                   key={tab.key}
@@ -141,7 +149,7 @@ export default function PropertyHistoryModal({
               ))}
             </div>
           </div>
-          <div className="overflow-y-auto max-h-[80vh] px-2 pb-8">
+          <div className="overflow-y-auto max-h-[80vh] px-2 pb-8 rounded-b-3xl">
             {/* Tab Content */}
             {activeTab === 'details' && (
               <div className="bg-white rounded-xl shadow p-8 mb-8 border border-slate-100 max-w-2xl mx-auto">
@@ -159,6 +167,9 @@ export default function PropertyHistoryModal({
                     <div className="text-gray-400 text-sm font-mono tracking-widest">{property.postcode}</div>
                   </div>
                 </div>
+                {/* BMV Score Explanation Section */}
+                <BMVScoreExplanation />
+                {/* Property Details Grid */}
                 <div className="grid grid-cols-2 gap-6 pt-4 border-t border-slate-100">
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Type</p>
@@ -232,14 +243,14 @@ export default function PropertyHistoryModal({
                         </tr>
                       </thead>
                       <tbody>
-                        {[...historyWithChanges].reverse().map((sale, index, arr) => {
-                          const isLatest = index === 0;
+                        {historyWithChanges.map((sale, index, arr) => {
+                          const isLatest = index === arr.length - 1;
                           return (
-                            <tr key={sale.id} className={isLatest ? 'bg-yellow-50/80' : 'bg-white'}>
+                            <tr key={sale.id + '-' + sale.dateOfTransfer} className={isLatest ? 'bg-yellow-50/80' : 'bg-white'}>
                               <td className="px-4 py-2 whitespace-nowrap font-medium">{formatDate(sale.dateOfTransfer)}</td>
                               <td className="px-4 py-2 whitespace-nowrap text-right font-semibold text-gray-900">{formatPrice(sale.price)}</td>
                               <td className="px-4 py-2 whitespace-nowrap text-right">
-                                {arr.length - index === arr.length ? (
+                                {index === 0 ? (
                                   <span className="text-gray-400">—</span>
                                 ) : (
                                   <span className={`font-medium ${sale.priceChange > 0 ? 'text-green-600' : sale.priceChange < 0 ? 'text-red-600' : 'text-gray-500'}`}> 
@@ -278,24 +289,6 @@ export default function PropertyHistoryModal({
                 <div className="text-sm text-gray-500 mb-4 text-center">
                   Percentage growth is calculated from the first recorded sale to the most recent sale of this property.
                 </div>
-                {/* Chart */}
-                {!isLoading && !error && fullHistory.length > 0 && (
-                  <div className="mb-6">
-                    <div className="min-w-[320px] max-w-full max-w-[600px] mx-auto pb-4">
-                      <div className="mb-2 text-sm font-semibold text-blue-700 truncate" title={formatAddress(property)}>
-                        Price Growth
-                      </div>
-                      <div className="w-full max-w-[600px] h-[220px] sm:h-[260px] bg-white rounded-2xl shadow border border-gray-100 overflow-hidden p-4">
-                        <AreaPriceTrendChart
-                          labels={sortedHistory.map(sale => formatDate(sale.dateOfTransfer))}
-                          data={sortedHistory.map(sale => sale.price)}
-                          areaName={formatAddress(property).length > 40 ? formatAddress(property).slice(0, 40) + '…' : formatAddress(property)}
-                          className="h-full w-full"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
                 {/* Error State */}
                 {error && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
@@ -314,6 +307,18 @@ export default function PropertyHistoryModal({
                     <p className="mt-2 text-gray-600">Loading property history...</p>
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* New Area Trend Tab */}
+            {activeTab === 'trend' && (
+              <div className="max-w-3xl mx-auto">
+                <AreaPriceTrendChart
+                  labels={sortedHistory.map(sale => formatDate(sale.dateOfTransfer))}
+                  data={sortedHistory.map(sale => sale.price)}
+                  areaName={formatAddress(property).length > 40 ? formatAddress(property).slice(0, 40) + '…' : formatAddress(property)}
+                  className="h-full w-full"
+                />
               </div>
             )}
 
