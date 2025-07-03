@@ -23,6 +23,12 @@ export default function Navigation() {
       href: '/deal-calculator',
       icon: Calculator,
       description: 'Calculate investment returns and cash flow'
+    },
+    {
+      name: 'My Property',
+      href: '/my-property',
+      icon: Home,
+      description: 'View and manage your saved properties'
     }
   ];
 

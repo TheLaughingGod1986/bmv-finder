@@ -18,8 +18,6 @@ const TABS = [
   { key: 'growth', label: 'Price Growth' },
   { key: 'details', label: 'Details' },
   { key: 'similar', label: 'Similar Sales' },
-  { key: 'calculator', label: 'Investment Calculator' },
-  { key: 'myproperty', label: 'My Property' },
 ];
 
 export default function PropertyHistoryModal({ 
@@ -321,29 +319,6 @@ export default function PropertyHistoryModal({
                 />
               </div>
             )}
-
-            {activeTab === 'calculator' && (
-              <div className="p-4 max-w-2xl mx-auto">
-                <h3 className="text-lg font-semibold mb-2">Investment Calculator</h3>
-                <p className="text-slate-600">Coming soon: Calculate rental yield, ROI, and more for this property.</p>
-              </div>
-            )}
-            {activeTab === 'myproperty' && (
-              <div className="p-8 max-w-2xl mx-auto text-center">
-                <h3 className="text-2xl font-bold mb-2">My Property</h3>
-                <p className="text-slate-600 mb-4">Save this property, add notes, or track future sales here. <br /> <span className="font-semibold">Coming soon!</span></p>
-                {/* Future: Add save button, notes input, etc. */}
-              </div>
-            )}
-            {/* Footer Close Button */}
-            <div className="flex justify-center mt-8">
-              <button
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold shadow hover:bg-blue-700 transition-colors"
-                onClick={onClose}
-              >
-                Close
-              </button>
-            </div>
           </div>
         </div>
       </div>
