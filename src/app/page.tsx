@@ -405,6 +405,9 @@ export default function Home() {
     const mostCommonType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
     const dates = filteredSoldPrices.map(p => p.dateOfTransfer).sort();
     
+    // Extract just the year for display
+    const getYear = (date: string) => date ? new Date(date).getFullYear().toString() : '';
+    
     // Calculate BMV score distribution
     const bmvDistribution = {
       excellent: 0,
@@ -432,7 +435,10 @@ export default function Home() {
       maxPrice,
       priceRange,
       mostCommonType,
-      dateRange: { earliest: dates[0], latest: dates[dates.length - 1] },
+      dateRange: {
+        earliest: getYear(dates[0]),
+        latest: getYear(dates[dates.length - 1]),
+      },
       bmvDistribution,
     };
   }, [filteredSoldPrices]);
