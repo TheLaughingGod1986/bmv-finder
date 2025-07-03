@@ -722,8 +722,7 @@ export default function Home() {
                     initial={{ opacity: 0, y: 40 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 40 }}
-                    transition={{ duration: 0.25 }}
-                    className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto flex flex-col max-h-[90vh] p-0 z-10 focus:outline-none"
+                    className="relative bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-sm mx-auto flex flex-col max-h-[90vh] p-0 z-10 focus:outline-none"
                     tabIndex={0}
                     onKeyDown={e => {
                       if (e.key === 'Escape') setIsFiltersOpen(false);
@@ -743,7 +742,7 @@ export default function Home() {
                     }}
                   >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 pt-6 pb-2 border-b border-slate-100">
+                    <div className="flex items-center justify-between px-6 pt-6 pb-2 rounded-t-2xl">
                       <h2 id="mobile-filters-title" className="text-xl font-bold">Filters</h2>
                       <button
                         onClick={() => setIsFiltersOpen(false)}
@@ -755,7 +754,7 @@ export default function Home() {
                       </button>
                     </div>
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto px-6 py-4">
+                    <div className="flex-1 overflow-y-auto px-6 py-4 bg-white">
                       <EnhancedFilters
                         isLoading={isLoading}
                         filterDuration={filterDuration}
@@ -773,10 +772,10 @@ export default function Home() {
                       />
                     </div>
                     {/* Sticky footer */}
-                    <div className="sticky bottom-0 left-0 right-0 bg-white px-6 pb-6 pt-3 border-t border-slate-100">
+                    <div className="sticky bottom-0 left-0 right-0 bg-white px-6 pb-6 pt-3 rounded-b-2xl">
                       <button
                         onClick={() => setIsFiltersOpen(false)}
-                        className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 text-base font-semibold"
+                        className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 text-base font-semibold border border-blue-700"
                       >
                         Apply Filters
                       </button>
