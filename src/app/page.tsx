@@ -7,7 +7,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, TrendingUp, BarChart3 } from 'lucide-react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
-import { Dialog } from '@headlessui/react';
 import { X } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
@@ -21,12 +20,8 @@ import { useToast } from './components/ToastProvider';
 import { SoldPrice } from '../../types/sold-price';
 
 // Components
-import EnhancedEmptyState from './components/EnhancedEmptyState';
 import PaginationLoadingOverlay from './components/PaginationLoadingOverlay';
 import BMVLegend from './components/BMVLegend';
-import AreaPriceTrendChart, { SalesPerYearBarChart, PropertyTypePieChart } from './components/AreaPriceTrendChart';
-
-import type { PropertyData } from './components/PropertyModal';
 
 // Dynamically import heavy components
 const PropertyHistoryModal = dynamic(() => import('./components/PropertyHistoryModal'));
@@ -698,40 +693,61 @@ export default function Home() {
               </button>
             </div>
             {/* Filters modal for mobile */}
-            <Dialog open={isFiltersOpen} onClose={() => setIsFiltersOpen(false)} className="fixed inset-0 z-50 flex items-center justify-center md:hidden">
-              <Dialog.Overlay className="fixed inset-0 bg-black/30" />
-              <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto p-6 z-10">
-                <button
+            {isFiltersOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-50 bg-black/30 md:hidden"
                   onClick={() => setIsFiltersOpen(false)}
-                  className="absolute top-4 right-4 text-slate-500 hover:text-slate-700"
-                  aria-label="Close filters"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-                <h2 className="text-xl font-bold mb-4">Filters</h2>
-                <EnhancedFilters
-                  isLoading={isLoading}
-                  filterDuration={filterDuration}
-                  setFilterDuration={setFilterDuration}
-                  filterType={filterType}
-                  setFilterType={setFilterType}
-                  priceRange={priceRange}
-                  setPriceRange={setPriceRange}
-                  dateRange={dateRange}
-                  setDateRange={setDateRange}
-                  filterYear={filterYear}
-                  setFilterYear={setFilterYear}
-                  availableYears={availableYears}
-                  className="w-full"
+                  aria-label="Close filters overlay"
+                  tabIndex={-1}
                 />
-                <button
-                  onClick={() => setIsFiltersOpen(false)}
-                  className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center md:hidden"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Filters"
                 >
-                  Apply Filters
-                </button>
-              </div>
-            </Dialog>
+                  <div
+                    className="relative bg-white rounded-2xl shadow-xl w-full max-w-md mx-auto p-6 z-10"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === 'Escape') setIsFiltersOpen(false);
+                    }}
+                  >
+                    <button
+                      onClick={() => setIsFiltersOpen(false)}
+                      className="absolute top-4 right-4 text-slate-500 hover:text-slate-700"
+                      aria-label="Close filters"
+                      autoFocus
+                    >
+                      <X className="w-6 h-6" />
+                    </button>
+                    <h2 className="text-xl font-bold mb-4">Filters</h2>
+                    <EnhancedFilters
+                      isLoading={isLoading}
+                      filterDuration={filterDuration}
+                      setFilterDuration={setFilterDuration}
+                      filterType={filterType}
+                      setFilterType={setFilterType}
+                      priceRange={priceRange}
+                      setPriceRange={setPriceRange}
+                      dateRange={dateRange}
+                      setDateRange={setDateRange}
+                      filterYear={filterYear}
+                      setFilterYear={setFilterYear}
+                      availableYears={availableYears}
+                      className="w-full"
+                    />
+                    <button
+                      onClick={() => setIsFiltersOpen(false)}
+                      className="mt-6 w-full px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                    >
+                      Apply Filters
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
             {/* Results Section - Two-column layout for desktop */}
             <div className="min-h-[400px]">
               <AnimatePresence mode="wait">
