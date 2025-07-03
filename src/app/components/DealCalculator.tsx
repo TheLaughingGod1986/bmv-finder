@@ -14,6 +14,23 @@ interface InputFieldProps {
   [key: string]: any;
 }
 
+// Type for saved deals
+interface SavedDeal {
+  address: string;
+  purchasePrice: number;
+  refurbCost: number;
+  monthlyRent: number;
+  interestRate: number;
+  ltv: number;
+  deposit: number;
+  otherExpenses: number;
+  roi: number;
+  grossYield: number;
+  netYield: number;
+  totalMonthlyCashFlow: number;
+  date: string;
+}
+
 function InputField({ label, value, onChange, type = 'number', required = false, min, step, ...props }: InputFieldProps) {
   return (
     <div className="mb-4 w-full">
@@ -54,7 +71,7 @@ export default function DealCalculator() {
   const [ltvMode, setLtvMode] = useState<'ltv' | 'deposit'>('ltv');
   const [otherExpenses, setOtherExpenses] = useState('');
   const [showSaved, setShowSaved] = useState(false);
-  const [savedDeals, setSavedDeals] = useState(() => {
+  const [savedDeals, setSavedDeals] = useState<SavedDeal[]>(() => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('dealCalculatorDeals');
       return saved ? JSON.parse(saved) : [];
