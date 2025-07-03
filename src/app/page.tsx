@@ -669,12 +669,12 @@ export default function Home() {
             </div>
           </section>
           <section className="mt-8 md:mt-16">
-            {/* Search Section */}
+            {/* Search Section - only show on desktop */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.2 }}
-              className="mb-8"
+              className="mb-8 hidden md:block"
             >
               <div className="flex items-center justify-center mt-8 mb-2 w-full">
                 <div className="relative w-full">
