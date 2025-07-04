@@ -215,7 +215,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
           </div>
         )}
         {/* Help Text */}
-        <div className="mt-3 text-center">
+        <div className="mt-3 mb-2 text-center">
           <p className="text-sm text-slate-600">
             Search by postcode, street name, or town to find sold property prices
           </p>

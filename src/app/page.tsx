@@ -672,17 +672,19 @@ export default function Home() {
           </section>
           <section className="mt-2 md:mt-16">
             {/* Filters button for mobile (sticky floating action button) */}
-            <div>
-              <button
-                onClick={() => setIsFiltersOpen(true)}
-                className="md:hidden fixed bottom-16 left-4 z-50 bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                aria-label="Open filters"
-                style={{ boxShadow: '0 4px 16px rgba(30, 64, 175, 0.18)' }}
-              >
-                <Filter className="w-5 h-5 mr-2" aria-hidden="true" />
-                <span className="font-semibold text-base">Filters</span>
-              </button>
-            </div>
+            {!isFiltersOpen && (
+              <div>
+                <button
+                  onClick={() => setIsFiltersOpen(true)}
+                  className="md:hidden fixed bottom-16 left-4 z-50 bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                  aria-label="Open filters"
+                  style={{ boxShadow: '0 4px 16px rgba(30, 64, 175, 0.18)' }}
+                >
+                  <Filter className="w-5 h-5 mr-2" aria-hidden="true" />
+                  <span className="font-semibold text-base">Filters</span>
+                </button>
+              </div>
+            )}
             {/* Filters modal for mobile */}
             {isFiltersOpen && (
               <>

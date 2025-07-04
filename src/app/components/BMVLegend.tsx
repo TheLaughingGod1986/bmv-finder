@@ -80,13 +80,13 @@ const BMVLegend: React.FC<BMVLegendProps> = ({ className, variant = 'full' }) =>
 
   // Accordion for full variant
   return (
-    <div className={cn("bg-gradient-to-br from-slate-50 to-blue-50 border border-slate-200 rounded-2xl shadow-sm", className)}>
-      <div className="flex items-center gap-4 p-6 py-4">
+    <div className={cn("bg-gradient-to-br from-slate-50 to-blue-50 border border-slate-200 rounded-2xl shadow-sm p-4 sm:p-6", className)}>
+      <div className="flex flex-col xs:flex-row items-center xs:items-start gap-4 xs:gap-6">
         <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center flex-shrink-0">
           <Target className="w-6 h-6 text-white" />
         </div>
-        <div className="flex-1 text-left flex flex-col justify-center min-h-[2.5rem]">
-          <div className="text-xl font-bold text-slate-900 mb-1">BMV Score: Your Investment Intelligence</div>
+        <div className="flex-1 text-left flex flex-col justify-center min-h-[2.5rem] space-y-2">
+          <div className="text-xl font-bold text-slate-900">BMV Score: Your Investment Intelligence</div>
           {!isExpanded ? (
             <div className="text-slate-700 leading-relaxed text-sm">
               Click to learn how the BMV Score works and how to spot the best value properties.
