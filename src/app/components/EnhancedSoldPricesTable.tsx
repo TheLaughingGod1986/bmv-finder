@@ -13,7 +13,8 @@ import {
   TrendingUp,
   Building,
   Layers,
-  Target
+  Target,
+  ChevronsUpDown
 } from 'lucide-react';
 import { SoldPrice } from '../../../types/sold-price';
 import { cn } from '../../lib/utils';
@@ -87,10 +88,15 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
     const sortIcon = isSorted ? (sortConfig.direction === 'ascending' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />) : <ChevronRight className="h-4 w-4 text-gray-300" />;
 
     return (
-      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
+      <th className={cn(
+        'px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider cursor-pointer select-none',
+        sortConfig.key === sortKey && 'text-blue-700'
+      )}
+        onClick={() => requestSort(sortKey)}
+        aria-sort={sortConfig.key === sortKey ? (sortConfig.direction === 'ascending' ? 'ascending' : 'descending') : 'none'}
+      >
         <button
           type="button"
-          onClick={() => requestSort(sortKey)}
           className="flex items-center space-x-1 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed hover:text-gray-800 transition-colors"
           disabled={disabled}
           title={disabled ? disabledTooltip : `Sort by ${title}`}
@@ -119,7 +125,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
         animate={{ opacity: isLoading ? 0 : 1 }}
         transition={{ duration: 0.3 }}
       >
-        <thead className="bg-slate-50">
+        <thead className="bg-slate-50 sticky top-0">
           <tr>
             <SortableHeader 
               title="Address" 
@@ -164,16 +170,14 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = React.me
             <tr
               key={`${property.id}-${index}`}
               className={cn(
-                'group cursor-pointer transition-colors',
-                selectedRowId === property.id ? 'bg-blue-50/60' : '',
-                index % 2 === 0 ? 'bg-white' : 'bg-slate-50'
+                index % 2 === 0 ? 'bg-white' : 'bg-slate-50',
+                'transition-colors hover:bg-blue-50/60',
+                selectedRowId === property.id && 'ring-2 ring-blue-400',
               )}
-              onClick={() => onRowClick?.(property)}
               tabIndex={0}
-              onKeyDown={e => {
-                if (e.key === 'Enter' || e.key === ' ') onRowClick?.(property);
-              }}
-              aria-selected={selectedRowId === property.id}
+              aria-label={`View details for ${formatAddress(property)}`}
+              onClick={() => onRowClick?.(property)}
+              onKeyDown={e => { if (e.key === 'Enter') onRowClick?.(property); }}
             >
               <td className="px-6 py-5">
                 <div className="max-w-xs">

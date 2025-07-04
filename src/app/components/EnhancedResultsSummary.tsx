@@ -10,6 +10,7 @@ import { cn, formatPrice, getPropertyTypeIcon, getPropertyTypeLabel } from '../.
 import { PropertyTypePieChart } from './AreaPriceTrendChart';
 import SalesPerYearChart from './SalesPerYearChart';
 import GrowthOverYearsChart from './GrowthOverYearsChart';
+import BMVLegend from './BMVLegend';
 
 interface EnhancedResultsSummaryProps {
   summary: {
@@ -51,6 +52,29 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
   fullBanner,
   soldPrices
 }) => {
+  // Calculate total growth percent (from first year avg to last year avg)
+  let totalGrowthPercent = 0;
+  if (soldPrices && soldPrices.length > 1) {
+    // Group prices by year
+    const yearMap: Record<string, { total: number; count: number }> = {};
+    soldPrices.forEach(sp => {
+      const year = new Date(sp.dateOfTransfer).getFullYear();
+      if (!yearMap[year]) yearMap[year] = { total: 0, count: 0 };
+      yearMap[year].total += sp.price;
+      yearMap[year].count += 1;
+    });
+    const years = Object.keys(yearMap).sort();
+    if (years.length > 1) {
+      const firstYear = years[0];
+      const lastYear = years[years.length - 1];
+      const firstAvg = yearMap[firstYear].total / yearMap[firstYear].count;
+      const lastAvg = yearMap[lastYear].total / yearMap[lastYear].count;
+      if (firstAvg > 0) {
+        totalGrowthPercent = Math.round(((lastAvg - firstAvg) / firstAvg) * 1000) / 10;
+      }
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -123,6 +147,14 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
               <GrowthOverYearsChart soldPrices={soldPrices || []} />
             </div>
           </div>
+        </div>
+        {/* After the summary card, add a subtle divider before the legend */}
+        <div className="w-full mb-4">
+          <hr className="border-slate-100" />
+        </div>
+        {/* Wrap the legend in a card-like background for visual separation */}
+        <div className="w-full mb-6 bg-slate-50/80 rounded-xl shadow border border-slate-200 p-4">
+          <BMVLegend variant="full" className="w-full" />
         </div>
       </div>
     );
@@ -211,18 +243,36 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           </div>
         </div>
         {/* Market Trends Section */}
-        <div className="mb-2 mt-2">
-          <h3 className="text-lg font-semibold text-blue-900 mb-4 text-center">Market Trends</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <h4 className="text-base font-semibold mb-2">Sales Per Year</h4>
+        <div className="mt-6">
+          <h3 className="text-lg font-bold text-slate-900 mb-2">Market Trends</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Sales Per Year Chart */}
+            <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
               <SalesPerYearChart soldPrices={soldPrices || []} />
+              {/* Total Sales Stat */}
+              <div className="mt-4 flex flex-col items-center">
+                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Total Sales</span>
+                <span className="text-2xl font-bold text-blue-700">{summary.totalProperties}</span>
+              </div>
             </div>
-            <div>
-              <h4 className="text-base font-semibold mb-2">Growth in Value Over Years</h4>
+            {/* Growth Over Years Chart */}
+            <div className="bg-white rounded-xl shadow p-4 flex flex-col items-center">
               <GrowthOverYearsChart soldPrices={soldPrices || []} />
+              {/* Total Growth Stat */}
+              <div className="mt-4 flex flex-col items-center">
+                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Total Growth</span>
+                <span className="text-2xl font-bold text-green-600">{totalGrowthPercent}%</span>
+              </div>
             </div>
           </div>
+        </div>
+        {/* After the summary card, add a subtle divider before the legend */}
+        <div className="w-full mb-4">
+          <hr className="border-slate-100" />
+        </div>
+        {/* Wrap the legend in a card-like background for visual separation */}
+        <div className="w-full mb-6 bg-slate-50/80 rounded-xl shadow border border-slate-200 p-4">
+          <BMVLegend variant="full" className="w-full" />
         </div>
       </div>
     </div>

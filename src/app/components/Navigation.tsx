@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Home, Calculator, Menu, X } from 'lucide-react';
+import { Home, Calculator, Menu, X, Search } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export default function Navigation() {
@@ -25,10 +25,16 @@ export default function Navigation() {
       description: 'Calculate investment returns and cash flow'
     },
     {
-      name: 'My Property',
-      href: '/my-property',
+      name: 'Saved Searches',
+      href: '/saved-searches',
+      icon: Search,
+      description: 'Access your frequently used searches'
+    },
+    {
+      name: 'Portfolio Tracker',
+      href: '/portfolio-tracker',
       icon: Home,
-      description: 'View and manage your saved properties'
+      description: 'Track your property investments and growth'
     }
   ];
 

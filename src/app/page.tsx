@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, TrendingUp, BarChart3 } from 'lucide-react';
+import { Loader2, TrendingUp, BarChart3, Filter } from 'lucide-react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
@@ -643,51 +643,35 @@ export default function Home() {
       <header role="banner" className="sr-only">
         <h1>BMV Finder: UK Property Price Search & Investment Insights</h1>
       </header>
+      {/* Sticky Search Bar (mobile) */}
+      <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 px-4 py-3 md:static md:bg-none md:p-0">
+        <div className="max-w-3xl mx-auto">
+          <EnhancedSearch
+            value={searchTerm}
+            onChange={setSearchTerm}
+            onSearch={query => handleSearch(query)}
+            isLoading={isLoading}
+          />
+        </div>
+      </div>
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-sans">
         <main className="container mx-auto px-4 py-8 max-w-7xl" role="main">
-          <section className="mb-12">
-            <div className="bg-white/80 shadow-lg rounded-2xl p-8 md:p-12 w-full text-center border border-slate-200">
-              <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-blue-800 leading-tight">BMV Finder: UK Property Price Search & Investment Insights</h1>
-              <p className="text-lg md:text-xl text-slate-700 mb-6 font-medium">Find below market value (BMV) property deals, compare sold prices, and get instant investment insights for any postcode, city, or street in the UK.</p>
-              <ul className="list-disc list-inside text-left max-w-2xl mx-auto text-base md:text-lg text-slate-700 space-y-2">
-                <li>Search by postcode, city, or street for recent property sales</li>
-                <li>See BMV scores to spot below market value opportunities</li>
-                <li>View price growth charts and market trends</li>
-                <li>Compare similar sales and property types</li>
-                <li>Get investment calculator and personalized insights</li>
-                <li>Fast, accurate, and always up-to-date with UK Land Registry data</li>
+          <section className="mb-8">
+            <div className="bg-white/80 shadow-lg rounded-2xl p-6 md:p-10 max-w-3xl mx-auto text-center border border-slate-200">
+              <h1 className="text-4xl md:text-5xl font-extrabold mb-3 text-blue-800 leading-tight">BMV Finder: UK Property Price Search & Investment Insights</h1>
+              <p className="text-lg md:text-xl text-slate-700 mb-5 font-medium">Find below market value (BMV) property deals, compare sold prices, and get instant investment insights for any postcode, city, or street in the UK.</p>
+              <ul className="flex flex-col gap-2 items-start max-w-2xl mx-auto text-base md:text-lg text-slate-700">
+                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Search by postcode, city, or street for recent property sales</li>
+                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>See BMV scores to spot below market value opportunities</li>
+                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>View price growth charts and market trends</li>
+                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Compare similar sales and property types</li>
+                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Get investment calculator and personalized insights</li>
+                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Fast, accurate, and always up-to-date with UK Land Registry data</li>
               </ul>
-              {/* Mobile search bar under intro text */}
-              <div className="md:hidden mt-8">
-                <EnhancedSearch
-                  value={searchTerm}
-                  onChange={setSearchTerm}
-                  onSearch={query => handleSearch(query)}
-                  isLoading={isLoading}
-                />
-              </div>
             </div>
+            <hr className="my-8 border-slate-200" />
           </section>
           <section className="mt-8 md:mt-16">
-            {/* Search Section - only show on desktop */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="mb-8 hidden md:block"
-            >
-              <div className="flex items-center justify-center mt-8 mb-2 w-full">
-                <div className="relative w-full">
-                  <EnhancedSearch
-                    value={searchTerm}
-                    onChange={setSearchTerm}
-                    onSearch={query => handleSearch(query)}
-                    isLoading={isLoading}
-                  />
-                </div>
-              </div>
-            </motion.div>
-
             {/* Filters button for mobile (sticky floating action button) */}
             <div>
               <button
@@ -696,18 +680,17 @@ export default function Home() {
                 aria-label="Open filters"
                 style={{ boxShadow: '0 4px 16px rgba(30, 64, 175, 0.18)' }}
               >
-                <X className="w-5 h-5 mr-2" aria-hidden="true" />
+                <Filter className="w-5 h-5 mr-2" aria-hidden="true" />
                 <span className="font-semibold text-base">Filters</span>
               </button>
             </div>
             {/* Filters modal for mobile */}
             {isFiltersOpen && (
               <>
-                {/* Overlay */}
+                {/* Overlay with blur and drop shadow */}
                 <div
-                  className="fixed inset-0 z-50 bg-black/30 md:hidden transition-opacity duration-300 animate-fade-in"
+                  className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm md:hidden transition-opacity duration-300 animate-fade-in"
                   onClick={e => {
-                    // Only close if clicking the overlay, not the modal content
                     if (e.target === e.currentTarget) setIsFiltersOpen(false);
                   }}
                   aria-label="Close filters overlay"
@@ -826,37 +809,28 @@ export default function Home() {
                             soldPrices={filteredSoldPrices}
                           />
                         </div>
-                        {/* BMV Score Legend - full width below market overview */}
-                        {soldPrices.length > 0 && (
-                          <div className="w-full mb-8">
-                            <BMVLegend variant="full" className="w-full" />
-                          </div>
-                        )}
                         <div className="grid grid-cols-1 xl:grid-cols-4 xl:gap-12 gap-8 items-start">
                           {/* Sidebar: Filters (desktop only) */}
                           <aside className="hidden xl:block col-span-1 min-h-0" aria-label="Filters">
-                            <div className="sticky top-8 min-h-0 max-h-[calc(100vh-4rem)] overflow-y-auto flex flex-col gap-8 bg-white/80 border border-slate-200 rounded-3xl shadow-xl p-6">
-                              {/* Filters */}
-                              {soldPrices.length > 0 && (
-                                <div>
-                                  <h3 className="text-lg font-bold text-slate-900 mb-3 tracking-tight">Filters</h3>
-                                  <EnhancedFilters
-                                    isLoading={isLoading}
-                                    filterDuration={filterDuration}
-                                    setFilterDuration={setFilterDuration}
-                                    filterType={filterType}
-                                    setFilterType={setFilterType}
-                                    priceRange={priceRange}
-                                    setPriceRange={setPriceRange}
-                                    dateRange={dateRange}
-                                    setDateRange={setDateRange}
-                                    filterYear={filterYear}
-                                    setFilterYear={setFilterYear}
-                                    availableYears={availableYears}
-                                    className="w-full"
-                                  />
-                                </div>
-                              )}
+                            <div className="min-h-0 max-h-[calc(100vh-4rem)] overflow-y-auto flex flex-col gap-8 bg-slate-50/80 border border-slate-200 rounded-2xl shadow p-6">
+                              <div>
+                                <h3 className="text-lg font-bold text-slate-900 mb-3 tracking-tight">Filters</h3>
+                                <EnhancedFilters
+                                  isLoading={isLoading}
+                                  filterDuration={filterDuration}
+                                  setFilterDuration={setFilterDuration}
+                                  filterType={filterType}
+                                  setFilterType={setFilterType}
+                                  priceRange={priceRange}
+                                  setPriceRange={setPriceRange}
+                                  dateRange={dateRange}
+                                  setDateRange={setDateRange}
+                                  filterYear={filterYear}
+                                  setFilterYear={setFilterYear}
+                                  availableYears={availableYears}
+                                  className="w-full"
+                                />
+                              </div>
                             </div>
                           </aside>
                           {/* Main Content Area (Table, Charts) - 75% width, always after sidebar */}
@@ -930,12 +904,12 @@ export default function Home() {
                                           <button
                                             onClick={() => handleSearch(searchTerm, page - 1)}
                                             disabled={page === 1 || isPaginationLoading}
-                                            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             aria-label="Previous page"
                                           >
                                             Previous
                                           </button>
-                                          <span className="px-4 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-lg">
+                                          <span className="px-5 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-full">
                                             {page}
                                           </span>
                                           <label htmlFor="gotoPage" className="sr-only">Go to page</label>
@@ -957,7 +931,7 @@ export default function Home() {
                                           <button
                                             onClick={() => handleSearch(searchTerm, page + 1)}
                                             disabled={page * customPageSize >= totalCount || isPaginationLoading}
-                                            className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                            className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                             aria-label="Next page"
                                           >
                                             Next
@@ -1017,22 +991,22 @@ export default function Home() {
                             )}
                             {/* Sticky pagination on mobile */}
                             {soldPrices.length > 0 && (
-                              <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 border-t border-slate-200 shadow-lg flex items-center justify-between px-4 py-2">
+                              <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 border-t border-slate-200 shadow-lg flex items-center justify-between px-4 py-1.5 backdrop-blur-sm">
                                 <button
                                   onClick={() => handleSearch(searchTerm, page - 1)}
                                   disabled={page === 1 || isPaginationLoading}
-                                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   aria-label="Previous page"
                                 >
                                   Previous
                                 </button>
-                                <span className="px-4 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-lg">
+                                <span className="px-5 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-full">
                                   {page}
                                 </span>
                                 <button
                                   onClick={() => handleSearch(searchTerm, page + 1)}
                                   disabled={page * customPageSize >= totalCount || isPaginationLoading}
-                                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                  className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   aria-label="Next page"
                                 >
                                   Next
@@ -1050,6 +1024,29 @@ export default function Home() {
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
                                 </svg>
                               </button>
+                            )}
+                            {/* Add after the mobile pagination bar, only if there are results */}
+                            {soldPrices.length > 0 && (
+                              <div className="md:hidden fixed bottom-16 right-4 z-50 flex flex-col gap-3">
+                                <button
+                                  onClick={handleExport}
+                                  className="bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                  aria-label="Export results to CSV"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-8m0 8l-3-3m3 3l3-3M4 20h16a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={handleShare}
+                                  className="bg-blue-500 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+                                  aria-label="Share search results"
+                                >
+                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm6 8a3 3 0 11-6 0 3 3 0 016 0zm-6 0a3 3 0 11-6 0 3 3 0 016 0zm-6 0a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  </svg>
+                                </button>
+                              </div>
                             )}
                           </section>
                         </div>
@@ -1077,8 +1074,14 @@ export default function Home() {
           <Analytics />
           <SpeedInsights />
         </main>
-        <footer className="w-full py-8 text-center text-slate-500 text-sm" role="contentinfo">
-          &copy; {new Date().getFullYear()} BMV Finder. All rights reserved.
+        <hr className="border-t border-slate-200 my-8" />
+        <footer className="w-full py-8 text-center text-slate-500 text-sm flex flex-col items-center gap-2" role="contentinfo">
+          <nav className="mb-2 flex gap-4 text-slate-500 text-xs">
+            <a href="/about" className="hover:text-blue-700 underline transition-colors">About</a>
+            <a href="/contact" className="hover:text-blue-700 underline transition-colors">Contact</a>
+            <a href="/privacy" className="hover:text-blue-700 underline transition-colors">Privacy</a>
+          </nav>
+          <div>&copy; {new Date().getFullYear()} BMV Finder. All rights reserved.</div>
         </footer>
       </div>
     </>
