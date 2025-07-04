@@ -644,7 +644,7 @@ export default function Home() {
         <h1>BMV Finder: UK Property Price Search & Investment Insights</h1>
       </header>
       {/* Sticky Search Bar (mobile) */}
-      <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 px-4 py-3 md:static md:bg-none md:p-0">
+      <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 px-4 py-3 md:static md:bg-none md:p-0 mb-8 md:mb-0 md:pt-8">
         <div className="max-w-3xl mx-auto">
           <EnhancedSearch
             value={searchTerm}
@@ -654,10 +654,10 @@ export default function Home() {
           />
         </div>
       </div>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-sans">
-        <main className="container mx-auto px-4 py-8 max-w-7xl" role="main">
-          <section className="mb-8">
-            <div className="bg-white/80 shadow-lg rounded-2xl p-6 md:p-10 max-w-3xl mx-auto text-center border border-slate-200">
+      <div className="min-h-screen bg-[#f6fafd] md:bg-gradient-to-br md:from-slate-50 md:via-blue-50 md:to-indigo-50 font-sans">
+         <main className="container mx-auto px-4 py-2 md:pt-12 max-w-7xl" role="main">
+          <section className="mb-2 md:mb-8">
+            <div className="md:bg-white/80 shadow-lg rounded-2xl p-2 md:p-10 max-w-3xl mx-auto text-center md:border md:border-slate-200">
               <h1 className="text-4xl md:text-5xl font-extrabold mb-3 text-blue-800 leading-tight">BMV Finder: UK Property Price Search & Investment Insights</h1>
               <p className="text-lg md:text-xl text-slate-700 mb-5 font-medium">Find below market value (BMV) property deals, compare sold prices, and get instant investment insights for any postcode, city, or street in the UK.</p>
               <ul className="flex flex-col gap-2 items-start max-w-2xl mx-auto text-base md:text-lg text-slate-700">
@@ -669,14 +669,13 @@ export default function Home() {
                 <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Fast, accurate, and always up-to-date with UK Land Registry data</li>
               </ul>
             </div>
-            <hr className="my-8 border-slate-200" />
           </section>
-          <section className="mt-8 md:mt-16">
+          <section className="mt-2 md:mt-16">
             {/* Filters button for mobile (sticky floating action button) */}
             <div>
               <button
                 onClick={() => setIsFiltersOpen(true)}
-                className="md:hidden fixed bottom-4 right-4 z-50 bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
+                className="md:hidden fixed bottom-16 left-4 z-50 bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
                 aria-label="Open filters"
                 style={{ boxShadow: '0 4px 16px rgba(30, 64, 175, 0.18)' }}
               >
@@ -1027,7 +1026,7 @@ export default function Home() {
                             )}
                             {/* Add after the mobile pagination bar, only if there are results */}
                             {soldPrices.length > 0 && (
-                              <div className="md:hidden fixed bottom-16 right-4 z-50 flex flex-col gap-3">
+                              <div className="md:hidden fixed bottom-16 right-4 z-50 flex flex-col gap-6">
                                 <button
                                   onClick={handleExport}
                                   className="bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
