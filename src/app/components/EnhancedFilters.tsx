@@ -108,28 +108,6 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
     </button>
   );
 
-  const MobileFilterButton = () => (
-    <button
-      onClick={() => setShowMobileFilters(true)}
-      disabled={isLoading}
-      className={cn(
-        "md:hidden fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3",
-        "bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all duration-200",
-        "focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2",
-        "hover:scale-105 active:scale-95",
-        isLoading && "opacity-50 cursor-not-allowed"
-      )}
-    >
-      <Filter className="h-5 w-5" />
-      <span className="font-medium">Filters</span>
-      {activeFilters > 0 && (
-        <span className="bg-white text-blue-600 text-xs font-bold px-2 py-1 rounded-full min-w-[20px] shadow-sm">
-          {activeFilters}
-        </span>
-      )}
-    </button>
-  );
-
   const MobileFilterModal = () => (
     <AnimatePresence>
       {showMobileFilters && (
@@ -413,7 +391,6 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
       onSubmit={e => e.preventDefault()}
     >
       <DesktopFilters />
-      <MobileFilterButton />
       <MobileFilterModal />
     </form>
   );
