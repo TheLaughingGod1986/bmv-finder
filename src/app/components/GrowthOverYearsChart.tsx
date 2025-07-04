@@ -58,7 +58,18 @@ const GrowthOverYearsChart: React.FC<GrowthOverYearsChartProps> = ({ soldPrices 
     },
     scales: {
       x: { title: { display: true, text: 'Year' } },
-      y: { title: { display: true, text: 'Growth (%)' }, beginAtZero: false, ticks: { callback: (v: number) => `${v}%` } },
+      y: {
+        title: { display: true, text: 'Growth (%)' },
+        beginAtZero: false,
+        ticks: {
+          callback: (tickValue: string | number) => {
+            if (typeof tickValue === 'number') {
+              return `${tickValue}%`;
+            }
+            return tickValue;
+          }
+        }
+      },
     },
   };
 
