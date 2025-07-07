@@ -34,7 +34,7 @@ interface SavedDeal {
 function InputField({ label, value, onChange, type = 'number', required = false, min, step, ...props }: InputFieldProps) {
   return (
     <div className="mb-4 w-full">
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}{required && <span className="text-red-500">*</span>}</label>
+      <label className="block text-base font-semibold text-primary mb-1">{label}{required && <span className="text-gold">*</span>}</label>
       <input
         type={type}
         value={value}
@@ -42,7 +42,7 @@ function InputField({ label, value, onChange, type = 'number', required = false,
         required={required}
         min={min}
         step={step}
-        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all text-base"
+        className="w-full px-4 py-2 border-2 border-taupe rounded-xl bg-beige text-primary focus:ring-2 focus:ring-gold focus:border-gold transition-all text-base shadow-sm"
         {...props}
       />
     </div>
@@ -139,7 +139,7 @@ export default function DealCalculator() {
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-10 mt-8 mb-12">
       <h2 className="text-2xl font-bold text-blue-800 mb-6 text-center">Deal Calculator</h2>
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={e => e.preventDefault()}>
+      <form className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-beige rounded-3xl shadow-xl border border-taupe p-8" onSubmit={e => e.preventDefault()}>
         <InputField label="Property Address" value={address} onChange={setAddress} required type="text" maxLength={120} />
         <InputField label="Purchase Price" value={purchasePrice} onChange={val => { setPurchasePrice(val); if (ltvMode === 'ltv') setDeposit(''); }} required min={0} />
         <InputField label="Refurbishment Costs" value={refurbCost} onChange={setRefurbCost} min={0} />
@@ -158,32 +158,32 @@ export default function DealCalculator() {
         </div>
         <InputField label="Other Monthly Expenses" value={otherExpenses} onChange={setOtherExpenses} min={0} />
       </form>
-      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-blue-50 rounded-xl p-4 flex flex-col items-center">
-          <div className="text-lg font-semibold text-blue-700 mb-1">ROI</div>
-          <div className="text-2xl font-bold text-blue-900">{formatPercent(roi)}</div>
+      <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-softgrey rounded-2xl p-6 flex flex-col items-center border-2 border-gold shadow-md">
+          <div className="text-lg font-semibold text-primary mb-1">ROI</div>
+          <div className="text-2xl font-bold text-gold">{formatPercent(roi)}</div>
         </div>
-        <div className="bg-purple-50 rounded-xl p-4 flex flex-col items-center">
-          <div className="text-lg font-semibold text-purple-700 mb-1">Gross Yield</div>
-          <div className="text-2xl font-bold text-purple-900">{formatPercent(grossYield)}</div>
+        <div className="bg-softgrey rounded-2xl p-6 flex flex-col items-center border-2 border-silver shadow-md">
+          <div className="text-lg font-semibold text-green mb-1">Gross Yield</div>
+          <div className="text-2xl font-bold text-silver">{formatPercent(grossYield)}</div>
         </div>
-        <div className="bg-green-50 rounded-xl p-4 flex flex-col items-center">
-          <div className="text-lg font-semibold text-green-700 mb-1">Net Yield</div>
-          <div className="text-2xl font-bold text-green-900">{formatPercent(netYield)}</div>
+        <div className="bg-beige rounded-2xl p-6 flex flex-col items-center border-2 border-taupe shadow-md">
+          <div className="text-lg font-semibold text-green-light mb-1">Net Yield</div>
+          <div className="text-2xl font-bold text-primary">{formatPercent(netYield)}</div>
         </div>
-        <div className="bg-orange-50 rounded-xl p-4 flex flex-col items-center">
-          <div className="text-lg font-semibold text-orange-700 mb-1">Monthly Mortgage Payment</div>
-          <div className="text-2xl font-bold text-orange-900">{formatCurrency(monthlyInterest)}</div>
+        <div className="bg-taupe rounded-2xl p-6 flex flex-col items-center border-2 border-gold shadow-md">
+          <div className="text-lg font-semibold text-gold mb-1">Monthly Mortgage Payment</div>
+          <div className="text-2xl font-bold text-beige">{formatCurrency(monthlyInterest)}</div>
         </div>
-        <div className="bg-yellow-50 rounded-xl p-4 flex flex-col items-center md:col-span-2">
-          <div className="text-lg font-semibold text-yellow-700 mb-1">Total Monthly Cash Flow</div>
-          <div className="text-2xl font-bold text-yellow-900">{formatCurrency(totalMonthlyCashFlow)}</div>
+        <div className="bg-gold rounded-2xl p-6 flex flex-col items-center md:col-span-2 border-2 border-silver shadow-md">
+          <div className="text-lg font-semibold text-beige mb-1">Total Monthly Cash Flow</div>
+          <div className="text-2xl font-bold text-primary">{formatCurrency(totalMonthlyCashFlow)}</div>
         </div>
       </div>
-      <div className="mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-6">
         <button
           type="button"
-          className="px-6 py-2 rounded-lg bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 transition-all disabled:opacity-50"
+          className="px-7 py-3 rounded-2xl bg-primary text-beige font-bold border-2 border-gold lux-accent-gold shadow-md hover:bg-primary-light transition-colors disabled:opacity-50"
           onClick={handleSave}
           disabled={!isValid}
         >
@@ -191,7 +191,7 @@ export default function DealCalculator() {
         </button>
         <button
           type="button"
-          className="px-6 py-2 rounded-lg bg-gray-100 text-blue-700 font-semibold shadow hover:bg-blue-200 transition-all"
+          className="px-7 py-3 rounded-2xl bg-taupe text-primary font-bold border-2 border-silver lux-accent-silver shadow-md hover:bg-gold hover:text-beige transition-colors"
           onClick={() => setShowSaved(true)}
         >
           View Saved Deals
@@ -200,32 +200,32 @@ export default function DealCalculator() {
       {/* Saved Deals Modal */}
       {showSaved && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full relative">
+          <div className="bg-beige rounded-3xl shadow-2xl border-2 border-taupe p-10 max-w-lg w-full relative">
             <button
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold focus:outline-none"
+              className="absolute top-4 right-4 text-gold hover:text-primary text-2xl font-bold focus:outline-none"
               onClick={() => setShowSaved(false)}
               aria-label="Close"
             >
               ×
             </button>
-            <h3 className="text-xl font-bold text-blue-800 mb-4">Saved Deals</h3>
+            <h3 className="text-xl font-bold text-primary mb-4">Saved Deals</h3>
             {savedDeals.length === 0 ? (
-              <div className="text-gray-500">No saved deals yet.</div>
+              <div className="text-taupe">No saved deals yet.</div>
             ) : (
               <ul className="space-y-4 max-h-96 overflow-y-auto">
                 {savedDeals.map((deal, idx) => (
-                  <li key={idx} className="bg-blue-50 rounded-lg p-4">
+                  <li key={idx} className="bg-softgrey rounded-2xl border-2 border-taupe p-5">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div>
-                        <div className="text-sm text-gray-700 font-semibold">{deal.address}</div>
-                        <div className="text-sm text-gray-700">Purchase: {formatCurrency(deal.purchasePrice)}, Refurb: {formatCurrency(deal.refurbCost)}, Rent: {formatCurrency(deal.monthlyRent)}</div>
-                        <div className="text-xs text-gray-500">Saved: {new Date(deal.date).toLocaleString()}</div>
+                        <div className="text-sm text-primary font-semibold">{deal.address}</div>
+                        <div className="text-sm text-taupe">Purchase: {formatCurrency(deal.purchasePrice)}, Refurb: {formatCurrency(deal.refurbCost)}, Rent: {formatCurrency(deal.monthlyRent)}</div>
+                        <div className="text-xs text-silver">Saved: {new Date(deal.date).toLocaleString()}</div>
                       </div>
                       <div className="flex gap-4">
-                        <span className="text-blue-700 font-semibold">ROI: {formatPercent(deal.roi)}</span>
-                        <span className="text-purple-700 font-semibold">Gross: {formatPercent(deal.grossYield)}</span>
-                        <span className="text-green-700 font-semibold">Net: {formatPercent(deal.netYield)}</span>
-                        <span className="text-yellow-700 font-semibold">Cash Flow: {formatCurrency(deal.totalMonthlyCashFlow)}</span>
+                        <span className="text-gold font-semibold">ROI: {formatPercent(deal.roi)}</span>
+                        <span className="text-silver font-semibold">Gross: {formatPercent(deal.grossYield)}</span>
+                        <span className="text-green font-semibold">Net: {formatPercent(deal.netYield)}</span>
+                        <span className="text-primary font-semibold">Cash Flow: {formatCurrency(deal.totalMonthlyCashFlow)}</span>
                       </div>
                     </div>
                   </li>

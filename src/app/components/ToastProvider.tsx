@@ -43,29 +43,29 @@ const ToastIcon = ({ type }: { type: ToastType }) => {
 const ToastItem = ({ toast, onClose }: { toast: Toast; onClose: (id: string) => void }) => {
   const colors = {
     success: {
-      bg: 'bg-green-50',
-      border: 'border-green-200',
+      bg: 'bg-white',
+      border: 'border-green-300',
       icon: 'text-green-600',
       title: 'text-green-800',
       message: 'text-green-700',
     },
     error: {
-      bg: 'bg-red-50',
-      border: 'border-red-200',
+      bg: 'bg-white',
+      border: 'border-red-300',
       icon: 'text-red-600',
       title: 'text-red-800',
       message: 'text-red-700',
     },
     info: {
-      bg: 'bg-blue-50',
-      border: 'border-blue-200',
+      bg: 'bg-white',
+      border: 'border-blue-300',
       icon: 'text-blue-600',
       title: 'text-blue-800',
       message: 'text-blue-700',
     },
     warning: {
-      bg: 'bg-yellow-50',
-      border: 'border-yellow-200',
+      bg: 'bg-white',
+      border: 'border-yellow-300',
       icon: 'text-yellow-600',
       title: 'text-yellow-800',
       message: 'text-yellow-700',
@@ -81,8 +81,7 @@ const ToastItem = ({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
       exit={{ opacity: 0, x: 300, scale: 0.8 }}
       transition={{ type: 'spring', damping: 25, stiffness: 300 }}
       className={cn(
-        'relative p-4 rounded-lg border shadow-lg max-w-sm w-full',
-        colorScheme.bg,
+        'relative p-4 rounded-lg border-2 shadow-xl max-w-sm w-full bg-white',
         colorScheme.border
       )}
     >
@@ -105,7 +104,7 @@ const ToastItem = ({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
         <button
           onClick={() => onClose(toast.id)}
           className={cn(
-            'flex-shrink-0 p-1 rounded-full hover:bg-black/5 transition-colors',
+            'flex-shrink-0 p-1 rounded-full hover:bg-gray-100 transition-colors',
             colorScheme.icon
           )}
         >
@@ -141,7 +140,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       {children}
       
       {/* Toast Container */}
-      <div className="fixed top-4 right-4 z-50 space-y-2 pointer-events-none">
+      <div className="fixed top-4 right-4 z-popover space-y-2 pointer-events-none">
         <AnimatePresence>
           {toasts.map(toast => (
             <div key={toast.id} className="pointer-events-auto">

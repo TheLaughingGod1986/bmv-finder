@@ -3,8 +3,20 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
-import { Home, Calculator, Menu, X, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Home, 
+  Calculator, 
+  Menu, 
+  X, 
+  Search, 
+  BarChart3, 
+  MapPin, 
+  Download,
+  HelpCircle,
+  Building2,
+  PoundSterling
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export default function Navigation() {
@@ -12,29 +24,47 @@ export default function Navigation() {
   const pathname = usePathname();
 
   const navItems = [
+    // {
+    //   name: 'Home',
+    //   href: '/',
+    //   icon: Home,
+    //   description: 'Search property prices and BMV scores'
+    // },
     {
-      name: 'Home',
+      name: 'Past Sales Search',
       href: '/',
-      icon: Home,
-      description: 'Search property prices and BMV scores'
+      icon: Search,
+      description: 'Find and research past sold house data and prices from the Land Registry'
     },
     {
-      name: 'Deal Calculator',
+      name: 'What Should I Pay?',
+      href: '/what-should-i-pay',
+      icon: PoundSterling,
+      description: 'Get smart offer suggestions'
+    },
+    {
+      name: 'Tools',
       href: '/deal-calculator',
       icon: Calculator,
-      description: 'Calculate investment returns and cash flow'
+      description: 'Investment calculators and analysis'
     },
     {
-      name: 'Saved Searches',
-      href: '/saved-searches',
-      icon: Search,
-      description: 'Access your frequently used searches'
-    },
-    {
-      name: 'Portfolio Tracker',
+      name: 'Portfolio',
       href: '/portfolio-tracker',
-      icon: Home,
-      description: 'Track your property investments and growth'
+      icon: BarChart3,
+      description: 'Track your property investments'
+    },
+    {
+      name: 'Export',
+      href: '/saved-searches',
+      icon: Download,
+      description: 'Export data and reports'
+    },
+    {
+      name: 'FAQ',
+      href: '/test',
+      icon: HelpCircle,
+      description: 'Help and documentation'
     }
   ];
 
@@ -46,21 +76,22 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="bg-white/95 backdrop-blur-sm border-b border-slate-200 sticky top-0 z-50">
-      <div className="container mx-auto px-4">
+    <nav className="bg-white border-b border-gray-200 shadow-soft sticky top-0 z-sticky">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo/Brand */}
-          <Link href="/" className="flex items-center gap-2 group">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg flex items-center justify-center">
-              <Home className="w-5 h-5 text-white" />
+          {/* Logo and Brand */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-soft group-hover:shadow-medium transition-shadow">
+              <Building2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-900 group-hover:text-blue-600 transition-colors">
-              BMV Finder
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-text-primary tracking-tight">BMV Finder</span>
+              <span className="text-xs text-text-secondary">Property Investment Tool</span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -68,14 +99,12 @@ export default function Navigation() {
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                    isActive(item.href)
-                      ? "bg-blue-100 text-blue-700 border border-blue-200"
-                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-100 border border-transparent"
+                    "flex items-center gap-2 px-4 py-2 rounded-lg text-text-primary hover:bg-gray-100 hover:text-primary-600 transition-colors",
+                    isActive(item.href) && "bg-primary-500 text-white hover:bg-primary-600"
                   )}
                 >
                   <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
+                  <span className="font-medium">{item.name}</span>
                 </Link>
               );
             })}
@@ -84,7 +113,7 @@ export default function Navigation() {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+            className="lg:hidden p-2 text-text-primary hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label="Toggle mobile menu"
           >
             {isMobileMenuOpen ? (
@@ -94,40 +123,43 @@ export default function Navigation() {
             )}
           </button>
         </div>
-
-        {/* Mobile Navigation */}
-        <motion.div
-          initial={false}
-          animate={{ height: isMobileMenuOpen ? 'auto' : 0 }}
-          transition={{ duration: 0.3, ease: 'easeInOut' }}
-          className="md:hidden overflow-hidden"
-        >
-          <div className="py-4 space-y-2 border-t border-slate-200">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200",
-                    isActive(item.href)
-                      ? "bg-blue-100 text-blue-700 border border-blue-200"
-                      : "text-slate-600 hover:text-blue-600 hover:bg-slate-100 border border-transparent"
-                  )}
-                >
-                  <Icon className="w-5 h-5" />
-                  <div className="flex-1">
-                    <div className="font-semibold">{item.name}</div>
-                    <div className="text-xs text-slate-500">{item.description}</div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        </motion.div>
       </div>
+
+      {/* Mobile Navigation */}
+      <AnimatePresence>
+        {isMobileMenuOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: 'easeInOut' }}
+            className="lg:hidden overflow-hidden border-t border-gray-200 bg-white"
+          >
+            <div className="px-4 py-4 space-y-2">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 px-4 py-3 rounded-lg text-text-primary hover:bg-gray-100 hover:text-primary-600 transition-colors",
+                      isActive(item.href) && "bg-primary-500 text-white hover:bg-primary-600"
+                    )}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <div className="flex-1">
+                      <div className="font-medium">{item.name}</div>
+                      <div className="text-xs text-text-tertiary">{item.description}</div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 } 

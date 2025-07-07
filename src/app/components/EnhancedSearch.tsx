@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, TrendingUp, Building, Home, Sparkles } from 'lucide-react';
+import { Search, MapPin, TrendingUp, Building, Home, Sparkles, Clock, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 
 interface EnhancedSearchProps {
@@ -156,74 +157,145 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
 
   return (
     <div className={cn("relative w-full", className)}>
-      <form onSubmit={handleSubmit} className="relative">
-        <div className="w-full flex flex-col items-center mb-4">
-          <div className="w-full flex items-center bg-white rounded-full px-4 py-2 gap-2 border border-blue-300 focus-within:ring-2 focus-within:ring-blue-400 transition-all shadow-sm">
-            <input
-              ref={inputRef}
-              type="text"
-              className="flex-1 bg-transparent outline-none text-lg px-2 py-2 rounded-full placeholder-slate-400"
-              placeholder="Search by postcode, street name, or town"
-              value={value}
-              onChange={handleInputChange}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-              aria-label="Search by postcode, street, or town"
-              autoComplete="off"
-            />
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 py-2 shadow transition-colors focus:outline-none focus:ring-2 focus:ring-blue-400"
-              aria-label="Search"
-              disabled={isLoading}
-            >
-              <Search className="w-5 h-5" />
-            </button>
-          </div>
-          {isPostcode && !isValidPostcode && (
-            <div className="text-xs text-red-600 mt-1">Invalid UK postcode format</div>
-          )}
-        </div>
-        {/* History Dropdown */}
-        {focused && history.length > 0 && (
-          <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
-            {history.map((h, idx) => (
-              <button
-                key={h}
-                type="button"
-                onMouseDown={() => handleHistoryClick(h)}
-                className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:bg-blue-100 text-slate-900"
-              >
-                {h}
-              </button>
-            ))}
-          </div>
-        )}
-        {/* Suggestions Dropdown */}
-        {showSuggestions && suggestions.length > 0 && (
-          <div className="absolute left-0 right-0 mt-2 bg-white border border-slate-200 rounded-xl shadow-lg z-10">
-            {suggestions.map((s, idx) => (
-              <button
-                key={s.text}
-                type="button"
-                onMouseDown={() => handleSuggestionClick(s.text)}
-                className="w-full text-left px-4 py-2 hover:bg-blue-50 focus:bg-blue-100 text-slate-900"
-              >
-                {s.text}
-              </button>
-            ))}
-          </div>
-        )}
-        {/* Help Text */}
-        <div className="mt-3 mb-2 text-center">
-          <p className="text-sm text-slate-600">
-            Search by postcode, street name, or town to find sold property prices
+      <div className="max-w-4xl mx-auto">
+        {/* Hero Section */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary mb-6">
+            Find <span className="text-gradient-primary">Below Market Value</span> Properties
+          </h1>
+          <p className="text-lg md:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed">
+            Search UK property data to identify investment opportunities with our advanced BMV scoring system
           </p>
         </div>
-        {isPostcode && !isValidPostcode && (
-          <p className="text-xs text-red-600 mt-1">Invalid UK postcode format</p>
-        )}
-      </form>
+
+        {/* Search Form */}
+        <form onSubmit={handleSubmit} className="relative mb-8">
+          <div className="relative">
+            <div className="relative flex items-center bg-white rounded-2xl border-2 border-gray-200 focus-within:border-primary-500 focus-within:ring-4 focus-within:ring-primary-500/10 transition-all duration-200 shadow-soft hover:shadow-medium">
+              <div className="absolute left-4 text-text-tertiary">
+                <Search className="w-6 h-6" />
+              </div>
+              <input
+                ref={inputRef}
+                type="text"
+                className="w-full bg-transparent outline-none text-lg px-12 py-4 placeholder-gray-400 text-text-primary"
+                placeholder="Search by postcode, street name, or town"
+                value={value}
+                onChange={handleInputChange}
+                onFocus={handleFocus}
+                onBlur={handleBlur}
+                aria-label="Search by postcode, street, or town"
+                autoComplete="off"
+              />
+              {value && (
+                <button
+                  type="button"
+                  onClick={handleClear}
+                  className="absolute right-20 p-2 text-text-tertiary hover:text-text-secondary transition-colors"
+                  aria-label="Clear search"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={isLoading || !value.trim()}
+                className="absolute right-2 p-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                aria-label="Search"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Search className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Suggestions and History Dropdown */}
+          <AnimatePresence>
+            {showSuggestions && (suggestions.length > 0 || history.length > 0) && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-large z-dropdown overflow-hidden"
+              >
+                {/* Suggestions */}
+                {suggestions.length > 0 && (
+                  <div className="p-2">
+                    <div className="text-xs font-medium text-text-secondary px-3 py-2">Suggestions</div>
+                    {suggestions.slice(0, 5).map((suggestion, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSuggestionClick(suggestion.text)}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
+                      >
+                        <MapPin className="w-4 h-4 text-text-tertiary" />
+                        <span className="text-text-primary">{suggestion.text}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* History */}
+                {history.length > 0 && (
+                  <div className="p-2 border-t border-gray-100">
+                    <div className="text-xs font-medium text-text-secondary px-3 py-2">Recent Searches</div>
+                    {history.slice(0, 3).map((query, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleHistoryClick(query)}
+                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
+                      >
+                        <Clock className="w-4 h-4 text-text-tertiary" />
+                        <span className="text-text-primary">{query}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </form>
+
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <Building className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-text-primary">2.5M+</div>
+                <div className="text-sm text-text-secondary">Properties</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-secondary-100 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-secondary-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-text-primary">BMV Score</div>
+                <div className="text-sm text-text-secondary">Investment Rating</div>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-yellow-100 rounded-lg">
+                <Sparkles className="w-5 h-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-text-primary">Live Data</div>
+                <div className="text-sm text-text-secondary">Updated Daily</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

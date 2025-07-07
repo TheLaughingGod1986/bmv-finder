@@ -4,12 +4,11 @@ import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, TrendingUp, BarChart3, Filter } from 'lucide-react';
+import { Loader2, TrendingUp, BarChart3, Filter, X, MapPin, Download, Share2, ArrowUp } from 'lucide-react';
 import Head from 'next/head';
 import { useRouter } from 'next/navigation';
-import { X } from 'lucide-react';
 import dynamic from 'next/dynamic';
-import Image from 'next/image';
+import { DragDropContext, Droppable, Draggable, DropResult } from '@hello-pangea/dnd';
 
 // Enhanced Components
 import EnhancedSearch from './components/EnhancedSearch';
@@ -22,10 +21,203 @@ import { SoldPrice } from '../../types/sold-price';
 // Components
 import PaginationLoadingOverlay from './components/PaginationLoadingOverlay';
 import BMVLegend from './components/BMVLegend';
+import PropertyHistoryModal from './components/PropertyHistoryModal';
 
-// Dynamically import heavy components
-const PropertyHistoryModal = dynamic(() => import('./components/PropertyHistoryModal'));
-const AreaPriceTrendChart = dynamic(() => import('./components/AreaPriceTrendChart'));
+// Replace the dynamic import for AreaPriceTrendChart and SalesPerYearBarChart with a static import:
+import AreaPriceTrendChart, { SalesPerYearBarChart, PropertyTypePieChart, AreaGrowthTable, PriceDistributionHistogram, RecentSalesTable, TenurePieChart, SalesAndPropertyTypeCharts, PriceAndTenureCharts } from './components/AreaPriceTrendChart';
+
+// Unified Analytics Accordion component that allows cross-column dragging
+function UnifiedAnalyticsAccordion({ 
+  leftItems, 
+  rightItems 
+}: { 
+  leftItems: { title: string, content: React.ReactNode }[], 
+  rightItems: { title: string, content: React.ReactNode }[] 
+}) {
+  const storageKey = 'unified-analytics-accordion-order';
+  const allItems = [...leftItems, ...rightItems];
+  const defaultOrder = allItems.map((_, i) => i);
+  
+  const [openIdxs, setOpenIdxs] = useState(defaultOrder); // all open by default
+  const [order, setOrder] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length === allItems.length) return parsed;
+        } catch {}
+      }
+    }
+    return defaultOrder;
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, JSON.stringify(order));
+    }
+  }, [order, storageKey]);
+
+  const toggle = (idx: number) => {
+    setOpenIdxs(openIdxs =>
+      openIdxs.includes(idx)
+        ? openIdxs.filter(i => i !== idx)
+        : [...openIdxs, idx]
+    );
+  };
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const newOrder = Array.from(order);
+    const [removed] = newOrder.splice(result.source.index, 1);
+    newOrder.splice(result.destination.index, 0, removed);
+    setOrder(newOrder);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(storageKey, JSON.stringify(newOrder));
+    }
+  };
+
+  // Split items into left and right columns based on current order
+  const leftColumnItems: { item: typeof allItems[0], originalIdx: number }[] = [];
+  const rightColumnItems: { item: typeof allItems[0], originalIdx: number }[] = [];
+  
+  order.forEach((itemIdx, displayIdx) => {
+    const item = allItems[itemIdx];
+    const itemData = { item, originalIdx: itemIdx };
+    
+    if (displayIdx < Math.ceil(allItems.length / 2)) {
+      leftColumnItems.push(itemData);
+    } else {
+      rightColumnItems.push(itemData);
+    }
+  });
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <DragDropContext onDragEnd={onDragEnd}>
+        {/* Left Column */}
+        <Droppable droppableId="left-column">
+          {(provided, snapshot) => (
+            <div 
+              className={`space-y-4 min-h-[200px] p-2 rounded-lg transition-colors ${
+                (snapshot as any).isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''
+              }`}
+              ref={provided.innerRef} 
+              {...provided.droppableProps}
+            >
+              {leftColumnItems.map(({ item, originalIdx }, idx) => (
+                <Draggable key={item.title} draggableId={item.title} index={idx}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={
+                        'border rounded-xl bg-white shadow-soft transition-shadow cursor-grab ' +
+                        (snapshot.isDragging ? 'ring-2 ring-primary-400 shadow-lg' : 'hover:shadow-md')
+                      }
+                    >
+                      <div className="flex items-center">
+                        <button
+                          className={
+                            'flex-1 flex justify-between items-center px-4 py-4 text-left font-semibold text-blue-900 text-base focus:outline-none ' +
+                            (openIdxs.includes(originalIdx) ? 'bg-blue-50' : '')
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggle(originalIdx);
+                          }}
+                          aria-expanded={openIdxs.includes(originalIdx)}
+                          type="button"
+                        >
+                          <span>{item.title}</span>
+                          <span className={
+                            'transition-transform duration-200 ' +
+                            (openIdxs.includes(originalIdx) ? 'rotate-90 text-blue-700' : 'text-gray-400')
+                          }>▶</span>
+                        </button>
+                      </div>
+                      <div
+                        className={
+                          'overflow-hidden transition-all duration-300 ' +
+                          (openIdxs.includes(originalIdx) ? 'max-h-[1000px] py-4 px-6' : 'max-h-0 p-0')
+                        }
+                        style={{ background: openIdxs.includes(originalIdx) ? '#f0f6ff' : undefined }}
+                      >
+                        {openIdxs.includes(originalIdx) && item.content}
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+
+        {/* Right Column */}
+        <Droppable droppableId="right-column">
+          {(provided, snapshot) => (
+            <div 
+              className={`space-y-4 min-h-[200px] p-2 rounded-lg transition-colors ${
+                (snapshot as any).isDragOver ? 'bg-blue-50 border-2 border-dashed border-blue-300' : ''
+              }`}
+              ref={provided.innerRef} 
+              {...provided.droppableProps}
+            >
+              {rightColumnItems.map(({ item, originalIdx }, idx) => (
+                <Draggable key={item.title} draggableId={item.title} index={leftColumnItems.length + idx}>
+                  {(provided, snapshot) => (
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      {...provided.dragHandleProps}
+                      className={
+                        'border rounded-xl bg-white shadow-soft transition-shadow cursor-grab ' +
+                        (snapshot.isDragging ? 'ring-2 ring-primary-400 shadow-lg' : 'hover:shadow-md')
+                      }
+                    >
+                      <div className="flex items-center">
+                        <button
+                          className={
+                            'flex-1 flex justify-between items-center px-4 py-4 text-left font-semibold text-blue-900 text-base focus:outline-none ' +
+                            (openIdxs.includes(originalIdx) ? 'bg-blue-50' : '')
+                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggle(originalIdx);
+                          }}
+                          aria-expanded={openIdxs.includes(originalIdx)}
+                          type="button"
+                        >
+                          <span>{item.title}</span>
+                          <span className={
+                            'transition-transform duration-200 ' +
+                            (openIdxs.includes(originalIdx) ? 'rotate-90 text-blue-700' : 'text-gray-400')
+                          }>▶</span>
+                        </button>
+                      </div>
+                      <div
+                        className={
+                          'overflow-hidden transition-all duration-300 ' +
+                          (openIdxs.includes(originalIdx) ? 'max-h-[1000px] py-4 px-6' : 'max-h-0 p-0')
+                        }
+                        style={{ background: openIdxs.includes(originalIdx) ? '#f0f6ff' : undefined }}
+                      >
+                        {openIdxs.includes(originalIdx) && item.content}
+                      </div>
+                    </div>
+                  )}
+                </Draggable>
+              ))}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
+    </div>
+  );
+}
 
 export default function Home() {
   // Search and data state
@@ -37,11 +229,14 @@ export default function Home() {
   const [isPaginationLoading, setIsPaginationLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   
-  // Pagination state
+  // Pagination state - updated for search_after
   const [page, setPage] = useState(1);
   const [paginationDirection, setPaginationDirection] = useState<'next' | 'previous'>('next');
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(20);
+  const [searchAfter, setSearchAfter] = useState<any>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [searchAfterHistory, setSearchAfterHistory] = useState<any[]>([]);
   
   // Data freshness state
   const [lastUpdatedData, setLastUpdatedData] = useState<{
@@ -57,11 +252,15 @@ export default function Home() {
     key: 'dateOfTransfer',
     direction: 'descending'
   });
-  const [filterDuration, setFilterDuration] = useState<string[]>([]);
-  const [filterType, setFilterType] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState({ min: 0, max: 10000000 });
-  const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [filterYear, setFilterYear] = useState<string[]>([]);
+  
+  // New filter state structure
+  const [filters, setFilters] = useState({
+    priceRange: { min: 0, max: 10000000 },
+    dateRange: { start: '', end: '' },
+    propertyType: [] as string[],
+    duration: [] as string[],
+    year: [] as string[]
+  });
   
   // Modal state
   const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -70,7 +269,6 @@ export default function Home() {
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
 
   const { showToast } = useToast();
-
   const router = useRouter();
 
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -98,47 +296,49 @@ export default function Home() {
     return properties;
   }, []);
 
-  // Check if date sorting should be disabled
-  const isDateSortDisabled = useMemo(() => {
-    if (soldPrices.length < 2) return true;
-    const firstYear = soldPrices[0].dateOfTransfer.slice(0, 4);
-    return soldPrices.every(p => p.dateOfTransfer.slice(0, 4) === firstYear);
-  }, [soldPrices]);
-
-  // Create property sale counts map
-  const propertySaleCounts = useMemo(() => {
-    const counts = new Map<string, number>();
-    if (!soldPrices || soldPrices.length === 0) return counts;
-    
-    for (const sp of soldPrices) {
+  // Group properties by normalized address (paon + street + postcode)
+  const groupPropertiesByAddress = useCallback((properties: SoldPrice[]) => {
+    const grouped: { [key: string]: SoldPrice[] } = {};
+    properties.forEach((sp) => {
       const addressKey = [
-        typeof sp.postcode === 'string' ? sp.postcode.trim().toUpperCase() : '',
-        typeof sp.street === 'string' ? sp.street.trim().toUpperCase() : '',
-        typeof sp.paon === 'string' ? sp.paon.trim().toUpperCase() : '',
-        typeof sp.saon === 'string' ? sp.saon.trim().toUpperCase() : ''
-      ].filter(Boolean).join('|');
-      
-      if (addressKey) {
-        counts.set(addressKey, (counts.get(addressKey) || 0) + 1);
-      }
-    }
-    return counts;
+        sp.paon?.trim().toLowerCase() || '',
+        sp.street?.trim().toLowerCase() || '',
+        sp.postcode?.trim().toLowerCase() || ''
+      ].join('|');
+      if (!grouped[addressKey]) grouped[addressKey] = [];
+      grouped[addressKey].push(sp);
+    });
+    // For the table, show only the most recent sale for each address
+    const mostRecentSales = Object.values(grouped).map(salesArr =>
+      salesArr.reduce((latest, curr) =>
+        new Date(curr.dateOfTransfer) > new Date(latest.dateOfTransfer) ? curr : latest
+      )
+    );
+    return { grouped, mostRecentSales };
+  }, []);
+
+  // Get all sales history for a specific address
+  const getSalesHistoryForAddress = useCallback((property: SoldPrice) => {
+    const addressKey = [
+      property.paon?.trim().toLowerCase() || '',
+      property.street?.trim().toLowerCase() || '',
+      property.postcode?.trim().toLowerCase() || ''
+    ].join('|');
+    return soldPrices.filter(sale => {
+      const saleAddressKey = [
+        sale.paon?.trim().toLowerCase() || '',
+        sale.street?.trim().toLowerCase() || '',
+        sale.postcode?.trim().toLowerCase() || ''
+      ].join('|');
+      return saleAddressKey === addressKey;
+    }).sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime());
   }, [soldPrices]);
 
-  // Check if property has history
-  const getHasHistory = useCallback((property: SoldPrice) => {
-    const addressKey = [
-      typeof property.postcode === 'string' ? property.postcode.trim().toUpperCase() : '',
-      typeof property.street === 'string' ? property.street.trim().toUpperCase() : '',
-      typeof property.paon === 'string' ? property.paon.trim().toUpperCase() : '',
-      typeof property.saon === 'string' ? property.saon.trim().toUpperCase() : ''
-    ].filter(Boolean).join('|');
-    
-    return !!addressKey && (propertySaleCounts.get(addressKey) || 0) > 1;
-  }, [propertySaleCounts]);
+  // Create sales count map for display
+  const [salesCountMap, setSalesCountMap] = useState<{ [key: string]: number }>({});
 
-  // Main search function
-  const handleSearch = useCallback(async (searchPostcode: string, pageNum = 1) => {
+  // Main search function - updated for search_after pagination
+  const handleSearch = useCallback(async (searchPostcode: string, pageNum = 1, direction: 'next' | 'previous' = 'next') => {
     if (!searchPostcode.trim()) {
       showToast({
         type: 'warning',
@@ -152,23 +352,40 @@ export default function Home() {
     
     if (isPaginationRequest) {
       setIsPaginationLoading(true);
-      setPaginationDirection(pageNum > page ? 'next' : 'previous');
+      setPaginationDirection(direction);
     } else {
       setIsLoading(true);
       setError(null);
       setHasSearched(true);
+      // Reset pagination state for new search
+      setSearchAfter(null);
+      setSearchAfterHistory([]);
+      setHasMore(false);
     }
 
     setPage(pageNum);
 
     try {
+      // Determine search_after value based on direction
+      let currentSearchAfter = null;
+      if (direction === 'next' && searchAfter) {
+        currentSearchAfter = searchAfter;
+      } else if (direction === 'previous' && searchAfterHistory.length > 0) {
+        // Go back to previous cursor
+        const newHistory = [...searchAfterHistory];
+        newHistory.pop(); // Remove current
+        currentSearchAfter = newHistory[newHistory.length - 1] || null;
+        setSearchAfterHistory(newHistory);
+      }
+
       const response = await fetch('/api/property-es', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           searchTerm: searchPostcode.trim(), 
           page: pageNum, 
-          pageSize 
+          pageSize,
+          searchAfter: currentSearchAfter
         }),
       });
 
@@ -178,34 +395,53 @@ export default function Home() {
 
       const data = await response.json();
       setTotalCount(data.totalCount || 0);
+      setHasMore(data.hasMore || false);
       
       if (data.data && data.data.length > 0) {
         const enhancedData = await enhancePropertiesWithBMVScores(data.data);
         setSoldPrices(enhancedData);
+        const { grouped, mostRecentSales } = groupPropertiesByAddress(enhancedData);
+        // Build salesCountMap with deduplication: only unique sales per address (same date, price, and address fields)
+        setSalesCountMap(Object.fromEntries(Object.entries(grouped).map(([k, v]) => {
+          // Deduplicate sales for this address
+          const uniqueSales = v.filter((sale, idx, arr) =>
+            idx === arr.findIndex(other =>
+              other.dateOfTransfer === sale.dateOfTransfer &&
+              other.price === sale.price &&
+              (other.paon || '') === (sale.paon || '') &&
+              (other.saon || '') === (sale.saon || '') &&
+              (other.street || '') === (sale.street || '') &&
+              (other.postcode || '') === (sale.postcode || '')
+            )
+          );
+          return [k, uniqueSales.length];
+        })));
+        
+        // Update search_after state for next page
+        if (data.nextSearchAfter) {
+          setSearchAfter(data.nextSearchAfter);
+          if (direction === 'next') {
+            setSearchAfterHistory(prev => [...prev, currentSearchAfter].filter(Boolean));
+          }
+        }
+        
         if (!isPaginationRequest) {
-          setDisplayedSoldPrices(enhancedData);
+          setDisplayedSoldPrices(mostRecentSales);
           setTimeout(() => {
             showToast({
               type: 'success',
               title: 'Search Complete',
-              message: `Found ${data.totalCount} sales records in ${searchPostcode.trim()} (${summary.totalProperties} after filters)`,
+              message: `Found ${data.totalCount} sales records in ${searchPostcode.trim()}`,
             });
           }, 0);
         } else {
-          setTimeout(() => setDisplayedSoldPrices(enhancedData), 100);
+          setTimeout(() => setDisplayedSoldPrices(mostRecentSales), 100);
         }
       } else {
         setSoldPrices([]);
+        setSalesCountMap({});
         if (!isPaginationRequest) {
           setDisplayedSoldPrices([]);
-        } else {
-          showToast({
-            type: 'info',
-            title: 'No More Results',
-            message: `No more properties found for this page.`,
-          });
-        }
-        if (!isPaginationRequest) {
           showToast({
             type: 'info',
             title: 'No Results',
@@ -215,25 +451,54 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Search error:', error);
-      setError(error instanceof Error ? error.message : 'An error occurred during search');
-      setSoldPrices([]);
-      if (!isPaginationRequest) {
-        setDisplayedSoldPrices([]);
-      }
-      if (!isPaginationRequest) {
+      setError('Failed to search properties. Please try again.');
         showToast({
           type: 'error',
-          title: 'Search Failed',
-          message: 'Unable to search properties. Please try again.',
+        title: 'Search Error',
+        message: 'Failed to search properties. Please try again.',
         });
-      }
     } finally {
       setIsLoading(false);
-      setTimeout(() => setIsPaginationLoading(false), 100);
+      setIsPaginationLoading(false);
     }
-  }, [soldPrices.length, page, pageSize, enhancePropertiesWithBMVScores, showToast]);
+  }, [soldPrices.length, page, pageSize, searchAfter, searchAfterHistory, enhancePropertiesWithBMVScores, groupPropertiesByAddress, showToast]);
+
+  // Filter and sort functions
+  const handleSort = useCallback((key: keyof SoldPrice) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending'
+    }));
+  }, []);
+
+  const handleFiltersChange = useCallback((newFilters: any) => {
+    setFilters(newFilters);
+    // Apply filters to displayed data
+    // This is a simplified implementation - you might want to re-fetch from API
+  }, []);
+
+  const handleResetFilters = useCallback(() => {
+    setFilters({
+      priceRange: { min: 0, max: 10000000 },
+      dateRange: { start: '', end: '' },
+      propertyType: [],
+      duration: [],
+      year: []
+    });
+  }, []);
+
+  // Scroll to top functionality
+  useEffect(() => {
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 400);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Fetch last updated data
+  useEffect(() => {
   const fetchLastUpdated = async () => {
     try {
       const response = await fetch('/api/last-updated');
@@ -246,234 +511,24 @@ export default function Home() {
     }
   };
 
-  // Keyboard shortcuts
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if (e.key === 'Enter' && e.ctrlKey) {
-      e.preventDefault();
-      handleSearch(searchTerm);
-    }
-  }, [searchTerm, handleSearch]);
-
-  // Sorting function
-  const requestSort = (key: keyof SoldPrice) => {
-    setSortConfig(prevConfig => ({
-      key,
-      direction: prevConfig.key === key && prevConfig.direction === 'ascending' ? 'descending' : 'ascending'
-    }));
-  };
-
-  // Filtered and sorted data
-  const filteredSoldPrices = useMemo(() => {
-    let filtered = [...displayedSoldPrices];
-
-    // Apply filters
-    if (filterDuration.length > 0) {
-      filtered = filtered.filter(sp => filterDuration.includes(sp.duration));
-    }
-    if (filterType.length > 0) {
-      filtered = filtered.filter(sp => filterType.includes(sp.propertyType));
-    }
-    if (filterYear.length > 0) {
-      filtered = filtered.filter(sp => filterYear.includes(sp.dateOfTransfer.slice(0, 4)));
-    }
-    if (priceRange.min > 0 || priceRange.max < 10000000) {
-      filtered = filtered.filter(sp => 
-        sp.price >= priceRange.min && sp.price <= priceRange.max
-      );
-    }
-    if (dateRange.start || dateRange.end) {
-      filtered = filtered.filter(sp => {
-        const transferDate = sp.dateOfTransfer;
-        if (dateRange.start && transferDate < dateRange.start) return false;
-        if (dateRange.end && transferDate > dateRange.end) return false;
-        return true;
-      });
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
-      const aValue = a[sortConfig.key];
-      const bValue = b[sortConfig.key];
-      
-      if (aValue === null || aValue === undefined) return 1;
-      if (bValue === null || bValue === undefined) return -1;
-      
-      if (typeof aValue === 'string' && typeof bValue === 'string') {
-        return sortConfig.direction === 'ascending' 
-          ? aValue.localeCompare(bValue)
-          : bValue.localeCompare(aValue);
-      }
-      
-      if (typeof aValue === 'number' && typeof bValue === 'number') {
-        return sortConfig.direction === 'ascending' 
-          ? aValue - bValue
-          : bValue - aValue;
-      }
-      
-      return 0;
-    });
-
-    return filtered;
-  }, [displayedSoldPrices, sortConfig, filterDuration, filterType, filterYear, priceRange, dateRange]);
-
-  // Available years for filtering
-  const availableYears = useMemo(() => {
-    const years = new Set<string>();
-    soldPrices.forEach(sp => years.add(sp.dateOfTransfer.slice(0, 4)));
-    return Array.from(years).sort().reverse();
-  }, [soldPrices]);
-
-  // Chart data
-  const chartLabels = useMemo(() => {
-    const labels = new Set<string>();
-    soldPrices.forEach(sp => labels.add(sp.dateOfTransfer.slice(0, 4)));
-    return Array.from(labels).sort();
-  }, [soldPrices]);
-
-  // Chart data for price trends
-  const priceTrendData = useMemo(() => {
-    if (!chartLabels.length) return [];
-    
-    return chartLabels.map(year => {
-      const yearPrices = soldPrices
-        .filter(sp => sp.dateOfTransfer.slice(0, 4) === year)
-        .map(sp => sp.price);
-      return yearPrices.length > 0 
-        ? yearPrices.reduce((sum, price) => sum + price, 0) / yearPrices.length
-        : 0;
-    });
-  }, [soldPrices, chartLabels]);
-
-  // Sales count data per year
-  const salesCountData = useMemo(() => {
-    if (!chartLabels.length) return [];
-    
-    return chartLabels.map(year => {
-      return soldPrices.filter(sp => sp.dateOfTransfer.slice(0, 4) === year).length;
-    });
-  }, [soldPrices, chartLabels]);
-
-  // Property type data for pie chart
-  const propertyTypeData = useMemo(() => {
-    const typeCounts: Record<string, number> = {};
-    soldPrices.forEach(sp => {
-      const type = sp.propertyType || 'Unknown';
-      typeCounts[type] = (typeCounts[type] || 0) + 1;
-    });
-    return {
-      labels: Object.keys(typeCounts),
-      data: Object.values(typeCounts)
-    };
-  }, [soldPrices]);
-
-  // Compute summary for EnhancedResultsSummary
-  const summary = useMemo(() => {
-    if (!filteredSoldPrices || filteredSoldPrices.length === 0) {
-      return {
-        totalProperties: 0,
-        avgPrice: 0,
-        medianPrice: 0,
-        minPrice: 0,
-        maxPrice: 0,
-        priceRange: 0,
-        mostCommonType: '',
-        dateRange: { earliest: '', latest: '' },
-        bmvDistribution: {
-          excellent: 0,
-          good: 0,
-          fair: 0,
-          overpriced: 0,
-          poor: 0,
-        },
-      };
-    }
-    
-    const prices = filteredSoldPrices.map(p => p.price);
-    const minPrice = Math.min(...prices);
-    const maxPrice = Math.max(...prices);
-    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-    
-    // Calculate median price
-    const sortedPrices = [...prices].sort((a, b) => a - b);
-    const medianPrice = sortedPrices.length % 2 === 0
-      ? (sortedPrices[sortedPrices.length / 2 - 1] + sortedPrices[sortedPrices.length / 2]) / 2
-      : sortedPrices[Math.floor(sortedPrices.length / 2)];
-    
-    const priceRange = maxPrice - minPrice;
-    const types = filteredSoldPrices.map(p => p.propertyType).filter(Boolean);
-    const typeCounts = types.reduce((acc, t) => { acc[t] = (acc[t] || 0) + 1; return acc; }, {} as Record<string, number>);
-    const mostCommonType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
-    const dates = filteredSoldPrices.map(p => p.dateOfTransfer).sort();
-    
-    // Extract just the year for display
-    const getYear = (date: string) => date ? new Date(date).getFullYear().toString() : '';
-    
-    // Calculate BMV score distribution
-    const bmvDistribution = {
-      excellent: 0,
-      good: 0,
-      fair: 0,
-      overpriced: 0,
-      poor: 0,
-    };
-    
-    filteredSoldPrices.forEach(property => {
-      if (property.bmvScore !== undefined) {
-        if (property.bmvScore >= 80) bmvDistribution.excellent++;
-        else if (property.bmvScore >= 65) bmvDistribution.good++;
-        else if (property.bmvScore >= 50) bmvDistribution.fair++;
-        else if (property.bmvScore >= 35) bmvDistribution.overpriced++;
-        else bmvDistribution.poor++;
-      }
-    });
-    
-    return {
-      totalProperties: filteredSoldPrices.length,
-      avgPrice,
-      medianPrice,
-      minPrice,
-      maxPrice,
-      priceRange,
-      mostCommonType,
-      dateRange: {
-        earliest: getYear(dates[0]),
-        latest: getYear(dates[dates.length - 1]),
-      },
-      bmvDistribution,
-    };
-  }, [filteredSoldPrices]);
-
-  // Effects
-  useEffect(() => {
     fetchLastUpdated();
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
-  // Show Back to Top button on scroll (mobile only)
-  useEffect(() => {
-    const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 400 && window.innerWidth < 768);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Event handlers
-  const handleTryDifferentSearch = () => {
-    setSearchTerm('');
-    setSoldPrices([]);
-    setHasSearched(false);
-    setError(null);
-  };
+  const handleRowClick = useCallback((property: SoldPrice) => {
+    setSelectedProperty(property);
+    setSelectedRowId(`${property.paon}-${property.street}-${property.dateOfTransfer}`);
+    setPropertyHistory(getSalesHistoryForAddress(property));
+    setShowHistoryModal(true);
+  }, [getSalesHistoryForAddress]);
 
-  const handleSearchSuggestion = (suggestion: string) => {
-    setSearchTerm(suggestion);
-    handleSearch(suggestion);
-  };
+  const handleShowHistory = useCallback((property: SoldPrice, history: SoldPrice[]) => {
+    setSelectedProperty(property);
+    setPropertyHistory(history);
+    setShowHistoryModal(true);
+  }, []);
 
-  const handleExport = () => {
-    if (filteredSoldPrices.length === 0) {
+  const handleExport = useCallback(() => {
+    if (soldPrices.length === 0) {
       showToast({
         type: 'warning',
         title: 'No Data to Export',
@@ -482,23 +537,26 @@ export default function Home() {
       return;
     }
 
+    // Create CSV content
+    const headers = ['Address', 'Property Type', 'Price', 'Sale Date', 'BMV Score', 'Postcode'];
     const csvContent = [
-      ['Address', 'Postcode', 'Property Type', 'Price', 'Date of Transfer', 'Duration'],
-      ...filteredSoldPrices.map(sp => [
-        `${sp.paon || ''} ${sp.saon || ''} ${sp.street || ''}`.trim(),
-        sp.postcode || '',
-        sp.propertyType || '',
-        sp.price?.toString() || '',
-        sp.dateOfTransfer || '',
-        sp.duration || ''
-      ])
-    ].map(row => row.map(field => `"${field}"`).join(',')).join('\n');
+      headers.join(','),
+      ...soldPrices.map(sp => [
+        `"${[sp.paon, sp.saon, sp.street, sp.locality, sp.town_city, sp.county].filter(Boolean).join(', ')}"`,
+        sp.propertyType,
+        sp.price,
+        sp.dateOfTransfer,
+        sp.bmvScore || 0,
+        sp.postcode
+      ].join(','))
+    ].join('\n');
 
+    // Download CSV
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `property-sales-${searchTerm}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `property-data-${searchTerm}-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -507,584 +565,327 @@ export default function Home() {
     showToast({
       type: 'success',
       title: 'Export Complete',
-      message: `Exported ${filteredSoldPrices.length} properties to CSV.`,
+      message: `Exported ${soldPrices.length} properties to CSV.`,
     });
-  };
+  }, [soldPrices, searchTerm, showToast]);
 
-  const handleShare = () => {
-    const url = new URL(window.location.href);
-    url.searchParams.set('search', searchTerm);
-    
+  const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
         title: 'BMV Finder - Property Search Results',
-        text: `Check out these property sales in ${searchTerm}`,
-        url: url.toString(),
+        text: `Found ${soldPrices.length} properties in ${searchTerm}`,
+        url: window.location.href,
       });
     } else {
-      navigator.clipboard.writeText(url.toString());
+      // Fallback to copying URL
+      navigator.clipboard.writeText(window.location.href);
       showToast({
         type: 'success',
         title: 'Link Copied',
         message: 'Search results link copied to clipboard.',
       });
     }
-  };
+  }, [soldPrices.length, searchTerm, showToast]);
 
-  // Utility functions
-  const formatAddress = (sp: SoldPrice) => {
-    // If there's a flat/saon, include it first
-    const parts = [];
-    if (sp.saon) parts.push(sp.saon); // Flat number
-    if (sp.paon) parts.push(sp.paon); // House number/name
-    if (sp.street) parts.push(sp.street);
-    return parts.length > 0 ? parts.join(' ') : 'Address not available';
-  };
+  // Prepare chart data for area trends
+  const chartData = useMemo(() => {
+    if (soldPrices.length === 0) return { labels: [], data: [] };
 
-  const formatPropertyType = (type: string) => {
-    if (!type) return 'Unknown';
-    return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-  };
+    const yearData: { [key: string]: number[] } = {};
+    
+    soldPrices.forEach(sale => {
+      const year = new Date(sale.dateOfTransfer).getFullYear().toString();
+      if (!yearData[year]) {
+        yearData[year] = [];
+      }
+      yearData[year].push(sale.price);
+    });
 
-  const formatDuration = (duration: string) => {
-    return duration === 'F' ? 'Freehold' : duration === 'L' ? 'Leasehold' : duration;
-  };
+    const labels = Object.keys(yearData).sort();
+    const data = labels.map(year => {
+      const prices = yearData[year];
+      return Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length);
+    });
 
-  // Handler for row click to open unified modal (PropertyHistoryModal)
-  const handleRowClick = (property: SoldPrice) => {
-    // Find history for this property (same logic as handleShowHistory)
-    const normalize = (str: string | undefined | null) => (str ?? '').trim().toUpperCase();
-    const normalizeSaon = (saon: string | undefined | null) => {
-      const val = (saon ?? '').trim().toUpperCase();
-      return val === '' ? '-' : val;
-    };
-    const history = soldPrices.filter(sp =>
-      normalize(sp.postcode) === normalize(property.postcode) &&
-      normalize(sp.street) === normalize(property.street) &&
-      normalize(sp.paon) === normalize(property.paon) &&
-      normalizeSaon(sp.saon) === normalizeSaon(property.saon)
-    );
-    setSelectedProperty(property);
-    setPropertyHistory(history);
-    setShowHistoryModal(true);
-  };
+    return { labels, data };
+  }, [soldPrices]);
 
-  const handleShowHistory = (property: SoldPrice, history: SoldPrice[]) => {
-    setSelectedProperty(property);
-    setPropertyHistory(history);
-    setShowHistoryModal(true);
-  };
+  // Calculate total growth for summary bar
+  const totalGrowth = React.useMemo(() => {
+    if (!soldPrices || soldPrices.length < 2) return null;
+    // Group by year and get average per year
+    const yearMap: Record<string, number[]> = {};
+    soldPrices.forEach(sp => {
+      const year = new Date(sp.dateOfTransfer).getFullYear();
+      if (!yearMap[year]) yearMap[year] = [];
+      yearMap[year].push(sp.price);
+    });
+    const years = Object.keys(yearMap).sort();
+    if (years.length < 2) return null;
+    const avgByYear = years.map(year => {
+      const prices = yearMap[year];
+      return Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+    });
+    const first = avgByYear[0];
+    const last = avgByYear[avgByYear.length - 1];
+    const growth = last - first;
+    const growthPct = first ? (growth / first) * 100 : 0;
+    return { amount: growth, percent: growthPct };
+  }, [soldPrices]);
 
-  // SEO helpers
-  const pageTitle = searchTerm
-    ? `BMV Finder | Sold Prices in ${searchTerm}`
-    : 'BMV Finder | UK Property Price Search & Investment Insights';
-  const pageDescription = searchTerm
-    ? `See sold property prices, BMV deals, and investment insights for ${searchTerm}. Instantly compare sales, growth, and BMV scores for any postcode, city, or street.`
-    : 'Search UK property prices, discover below market value (BMV) deals, and get investment insights. Instantly compare sold prices, growth, and BMV scores for any postcode, city, or street.';
-  const canonicalUrl = `https://bmvfinder.co.uk${searchTerm ? `/?search=${encodeURIComponent(searchTerm)}` : ''}`;
+  // Add state for trend data
+  const [trendData, setTrendData] = useState<{ labels: string[]; data: number[] }>({ labels: [], data: [] });
 
-  // Pagination controls
-  const [customPageSize, setCustomPageSize] = useState(pageSize);
-  const [gotoPage, setGotoPage] = useState(page);
-
-  // Skeleton loader components
-  function SkeletonTableRows({ rows = 10 }) {
-    return (
-      <tbody>
-        {Array.from({ length: rows }).map((_, i) => (
-          <tr key={i} className="animate-pulse bg-slate-100">
-            <td colSpan={8} className="h-12" />
-          </tr>
-        ))}
-      </tbody>
-    );
-  }
-  function SkeletonCards({ count = 6 }) {
-    return (
-      <div className="grid gap-4">
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="rounded-xl bg-slate-100 animate-pulse h-32" />
-        ))}
-      </div>
-    );
-  }
+  // Fetch trend data when searchTerm changes and hasSearched is true
+  useEffect(() => {
+    if (!hasSearched || !searchTerm) return;
+    console.log('Trend useEffect triggered', { hasSearched, searchTerm }); // Debug: effect triggered
+    (async () => {
+      try {
+        const response = await fetch('/api/property-trend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ searchTerm }),
+        });
+        console.log('Trend fetch response status:', response.status); // Debug: fetch status
+        if (response.ok) {
+          const trend = await response.json();
+          console.log('Trend data from /api/property-trend:', trend); // Debug: trend data
+          setTrendData({
+            labels: trend.map((row: any) => row.year.toString()),
+            data: trend.map((row: any) => row.averagePrice),
+          });
+        } else {
+          setTrendData({ labels: [], data: [] });
+          console.warn('Trend fetch failed with status:', response.status); // Debug: fetch failed
+        }
+      } catch (err) {
+        setTrendData({ labels: [], data: [] });
+        console.error('Trend fetch error:', err); // Debug: fetch error
+      }
+    })();
+  }, [searchTerm, hasSearched]);
 
   return (
     <>
       <Head>
-        <title>{pageTitle}</title>
-        <meta name="description" content={pageDescription} />
-        <meta property="og:title" content={pageTitle} />
-        <meta property="og:description" content={pageDescription} />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content={canonicalUrl} />
-        <meta property="og:image" content="/icon-512.png" />
-        <meta name="robots" content="index, follow" />
-        <meta name="keywords" content="UK property, BMV, below market value, house prices, sold prices, investment, real estate, property search, UK Land Registry" />
-        <link rel="canonical" href={canonicalUrl} />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={pageTitle} />
-        <meta name="twitter:description" content={pageDescription} />
-        <meta name="twitter:image" content="/icon-512.png" />
-        {/* Placeholder for JSON-LD structured data */}
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'WebSite',
-          'name': 'BMV Finder',
-          'url': canonicalUrl,
-          'potentialAction': {
-            '@type': 'SearchAction',
-            'target': 'https://bmvfinder.co.uk/?search={search_term_string}',
-            'query-input': 'required name=search_term_string'
-          }
-        }) }} />
+        <title>BMV Finder - Find Below Market Value Properties</title>
+        <meta name="description" content="Search UK property data to identify investment opportunities with our advanced BMV scoring system" />
       </Head>
-      <header role="banner" className="sr-only">
-        <h1>BMV Finder: UK Property Price Search & Investment Insights</h1>
-      </header>
-      {/* Sticky Search Bar (mobile) */}
-      <div className="sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 px-4 py-3 md:static md:bg-none md:p-0 mb-8 md:mb-0 md:pt-8">
-        <div className="max-w-3xl mx-auto">
+
+      <div className="min-h-screen bg-gray-50">
+        {/* Hero Section with Search */}
+        <section className="bg-white border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <EnhancedSearch
             value={searchTerm}
             onChange={setSearchTerm}
-            onSearch={query => handleSearch(query)}
+              onSearch={handleSearch}
             isLoading={isLoading}
           />
-        </div>
-      </div>
-      <div className="min-h-screen bg-[#f6fafd] md:bg-gradient-to-br md:from-slate-50 md:via-blue-50 md:to-indigo-50 font-sans">
-         <main className="container mx-auto px-4 py-2 md:pt-12 max-w-7xl" role="main">
-          <section className="mb-2 md:mb-8">
-            <div className="md:bg-white/80 shadow-lg rounded-2xl p-2 md:p-10 max-w-3xl mx-auto text-center md:border md:border-slate-200">
-              <h1 className="text-4xl md:text-5xl font-extrabold mb-3 text-blue-800 leading-tight">BMV Finder: UK Property Price Search & Investment Insights</h1>
-              <p className="text-lg md:text-xl text-slate-700 mb-5 font-medium">Find below market value (BMV) property deals, compare sold prices, and get instant investment insights for any postcode, city, or street in the UK.</p>
-              <ul className="flex flex-col gap-2 items-start max-w-2xl mx-auto text-base md:text-lg text-slate-700">
-                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Search by postcode, city, or street for recent property sales</li>
-                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>See BMV scores to spot below market value opportunities</li>
-                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>View price growth charts and market trends</li>
-                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Compare similar sales and property types</li>
-                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Get investment calculator and personalized insights</li>
-                <li className="flex items-center gap-2"><span className="text-blue-500"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round"/></svg></span>Fast, accurate, and always up-to-date with UK Land Registry data</li>
-              </ul>
             </div>
           </section>
-          <section className="mt-2 md:mt-16">
-            {/* Filters button for mobile (sticky floating action button) */}
-            {!isFiltersOpen && (
-              <div>
+
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Filters and Actions */}
+          {hasSearched && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+              <div className="flex items-center gap-4">
                 <button
                   onClick={() => setIsFiltersOpen(true)}
-                  className="md:hidden fixed bottom-16 left-4 z-50 bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                  aria-label="Open filters"
-                  style={{ boxShadow: '0 4px 16px rgba(30, 64, 175, 0.18)' }}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-text-primary hover:bg-gray-50 transition-colors"
                 >
-                  <Filter className="w-5 h-5 mr-2" aria-hidden="true" />
-                  <span className="font-semibold text-base">Filters</span>
+                  <Filter className="w-4 h-4" />
+                  <span>Filters</span>
                 </button>
+                <BMVLegend />
               </div>
-            )}
-            {/* Filters modal for mobile */}
-            {isFiltersOpen && (
-              <>
-                {/* Overlay with blur and drop shadow */}
-                <div
-                  className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm md:hidden transition-opacity duration-300 animate-fade-in"
-                  onClick={e => {
-                    if (e.target === e.currentTarget) setIsFiltersOpen(false);
-                  }}
-                  aria-label="Close filters overlay"
-                  tabIndex={-1}
-                />
-                {/* Modal content with animation and focus trap */}
-                <div
-                  className="fixed inset-0 z-50 flex items-center justify-center md:hidden"
-                  role="dialog"
-                  aria-modal="true"
-                  aria-labelledby="mobile-filters-title"
-                >
-                  <motion.div
-                    initial={{ opacity: 0, y: 40 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 40 }}
-                    className="relative bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-sm mx-auto flex flex-col max-h-[90vh] p-0 z-10 focus:outline-none"
-                    tabIndex={0}
-                    onKeyDown={e => {
-                      if (e.key === 'Escape') setIsFiltersOpen(false);
-                      // Trap focus
-                      const focusable = Array.from(e.currentTarget.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(el => !el.hasAttribute('disabled'));
-                      const first = focusable[0] as HTMLElement | undefined;
-                      const last = focusable[focusable.length - 1] as HTMLElement | undefined;
-                      if (!e.shiftKey && document.activeElement === last) {
-                        e.preventDefault();
-                        if (first && typeof first.focus === 'function') first.focus();
-                      } else if (e.shiftKey && document.activeElement === first) {
-                        e.preventDefault();
-                        if (last && typeof last.focus === 'function') last.focus();
-                      }
-                    }}
-                  >
-                    {/* Header */}
-                    <div className="flex items-center justify-between px-6 pt-6 pb-2 rounded-t-2xl">
-                      <h2 id="mobile-filters-title" className="text-xl font-bold">Filters</h2>
+              
+              <div className="flex items-center gap-2">
                       <button
-                        onClick={() => setIsFiltersOpen(false)}
-                        className="ml-4 p-2 rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                        aria-label="Close filters"
-                        autoFocus
+                  onClick={handleExport}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-text-primary hover:bg-gray-50 transition-colors"
                       >
-                        <X className="w-6 h-6" />
+                  <Download className="w-4 h-4" />
+                  <span>Export</span>
+                      </button>
+                      <button
+                  onClick={handleShare}
+                  className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-text-primary hover:bg-gray-50 transition-colors"
+                      >
+                  <Share2 className="w-4 h-4" />
+                  <span>Share</span>
                       </button>
                     </div>
-                    {/* Content */}
-                    <div className="flex-1 overflow-y-auto px-6 py-4 bg-white">
-                      <EnhancedFilters
-                        isLoading={isLoading}
-                        filterDuration={filterDuration}
-                        setFilterDuration={setFilterDuration}
-                        filterType={filterType}
-                        setFilterType={setFilterType}
-                        priceRange={priceRange}
-                        setPriceRange={setPriceRange}
-                        dateRange={dateRange}
-                        setDateRange={setDateRange}
-                        filterYear={filterYear}
-                        setFilterYear={setFilterYear}
-                        availableYears={availableYears}
-                        className="w-full"
-                      />
-                    </div>
-                    {/* Sticky footer */}
-                    <div className="sticky bottom-0 left-0 right-0 bg-white px-6 pb-6 pt-3 rounded-b-2xl">
-                      <button
-                        onClick={() => setIsFiltersOpen(false)}
-                        className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 text-base font-semibold border border-blue-700"
-                      >
-                        Apply Filters
-                      </button>
-                    </div>
-                  </motion.div>
                 </div>
-              </>
             )}
-            {/* Results Section - Two-column layout for desktop */}
-            <div className="min-h-[400px]">
-              <AnimatePresence mode="wait">
+
+          {/* Results Summary */}
                 {hasSearched && (
-                  <motion.div
-                    key="results"
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.4 }}
-                    className="w-full"
-                    aria-live="polite"
-                  >
-                    {/* Loading State */}
-                    {isLoading && (
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center justify-center py-12"
-                        role="status"
-                        aria-busy="true"
-                      >
-                        <div className="text-center">
-                          <Loader2 className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" aria-hidden="true" />
-                          <p className="text-slate-600">Searching properties...</p>
-                        </div>
-                      </motion.div>
-                    )}
-                    {/* Main Results Layout */}
-                    {!isLoading && (
-                      <>
-                        {/* Unified Market Overview Banner - full width above grid */}
-                        <div className="w-full mb-8">
                           <EnhancedResultsSummary
-                            summary={summary}
-                            postcode={searchTerm}
-                            onExport={handleExport}
-                            onShare={handleShare}
-                            fullBanner
-                            soldPrices={filteredSoldPrices}
-                          />
+              totalCount={totalCount}
+              displayedCount={displayedSoldPrices.length}
+              searchTerm={searchTerm}
+              lastUpdatedData={lastUpdatedData}
+              totalGrowth={totalGrowth}
+            />
+          )}
+
+          {/* Charts Section */}
+          {hasSearched && !error && soldPrices.length > 0 && (
+            <section className="mb-8">
+              <div className="flex items-center gap-2 mb-6">
+                <BarChart3 className="w-5 h-5 text-primary-600" />
+                <h2 className="text-xl font-semibold text-text-primary">Area Analytics</h2>
                         </div>
-                        <div className="grid grid-cols-1 xl:grid-cols-4 xl:gap-12 gap-8 items-start">
-                          {/* Sidebar: Filters (desktop only) */}
-                          <aside className="hidden xl:block col-span-1 min-h-0" aria-label="Filters">
-                            <div className="min-h-0 max-h-[calc(100vh-4rem)] overflow-y-auto flex flex-col gap-8 bg-slate-50/80 border border-slate-200 rounded-2xl shadow p-6">
-                              <div>
-                                <h3 className="text-lg font-bold text-slate-900 mb-3 tracking-tight">Filters</h3>
-                                <EnhancedFilters
-                                  isLoading={isLoading}
-                                  filterDuration={filterDuration}
-                                  setFilterDuration={setFilterDuration}
-                                  filterType={filterType}
-                                  setFilterType={setFilterType}
-                                  priceRange={priceRange}
-                                  setPriceRange={setPriceRange}
-                                  dateRange={dateRange}
-                                  setDateRange={setDateRange}
-                                  filterYear={filterYear}
-                                  setFilterYear={setFilterYear}
-                                  availableYears={availableYears}
-                                  className="w-full"
-                                />
+              {/* Info box for analytics section */}
+              <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg px-6 py-4 text-blue-900 text-sm shadow-sm">
+                <div className="font-semibold mb-2 flex items-center gap-2">
+                  <svg width="18" height="18" fill="none" viewBox="0 0 24 24" className="inline-block align-middle text-blue-500"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none"/><path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
+                  What does this dashboard show?
+                </div>
+                <ul className="list-disc pl-6 mb-2">
+                  <li><b>Average Sold Price Growth</b>: How property prices have changed over time in this area.</li>
+                  <li><b>Growth of Area Per Year</b>: Year-by-year average price and growth rates.</li>
+                  <li><b>Sales Per Year</b>: Number of properties sold each year.</li>
+                  <li><b>Property Type Distribution</b>: Proportion of flats, houses, etc. sold.</li>
+                  <li><b>Price Distribution</b>: Histogram of sale prices for the area.</li>
+                  <li><b>Recent Notable Sales</b>: Table of the most recent/highlighted sales.</li>
+                  <li><b>Tenure Distribution</b>: Leasehold vs. freehold breakdown.</li>
+                </ul>
+                <div className="mt-2 text-blue-800">
+                  <b>Tip:</b> You can <b>drag and drop</b> any card to rearrange or move it between columns. Your custom layout will be saved for next time!
+                </div>
+              </div>
+              <UnifiedAnalyticsAccordion
+                leftItems={[
+                  { title: 'Average Sold Price Growth', content: <AreaPriceTrendChart labels={trendData.labels} data={trendData.data} areaName={searchTerm} /> },
+                  { title: 'Growth of Area Per Year', content: <AreaGrowthTable soldPrices={soldPrices} /> },
+                ]}
+                rightItems={[
+                  { title: 'Market Activity', content: <SalesAndPropertyTypeCharts soldPrices={soldPrices} /> },
+                  { title: 'Property Details', content: <PriceAndTenureCharts soldPrices={soldPrices} /> },
+                  { title: 'Recent Notable Sales', content: <RecentSalesTable soldPrices={soldPrices} /> },
+                ]}
+              />
+              {/* Show a warning if trendData is empty after a search */}
+              {trendData.labels.length === 0 && (
+                <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg text-yellow-800 text-center">
+                  <b>Warning:</b> No trend data available for this area. This may indicate no sales in recent years or a data issue.
                               </div>
+              )}
+            </section>
+          )}
+
+          {/* Error State */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <X className="w-5 h-5 text-red-600" />
                             </div>
-                          </aside>
-                          {/* Main Content Area (Table, Charts) - 75% width, always after sidebar */}
-                          <section className="col-span-1 xl:col-span-3 w-full min-w-0" aria-label="Results">
-                            {/* Results as cards on mobile, table on desktop */}
-                            {soldPrices.length > 0 ? (
-                              <>
-                                <div className="md:block hidden bg-white rounded-3xl shadow-xl border border-slate-200 overflow-hidden">
-                                  <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                                    <h2 className="text-xl font-bold text-slate-900 tracking-tight">
-                                      Property Sales ({filteredSoldPrices.length} of {totalCount})
-                                    </h2>
-                                    <div className="flex items-center gap-2 text-sm text-slate-600">
-                                      <span>Page {page}</span>
-                                      <span>•</span>
-                                      <span>
-                                        <label htmlFor="pageSize" className="sr-only">Results per page</label>
-                                        <select
-                                          id="pageSize"
-                                          value={customPageSize}
-                                          onChange={e => {
-                                            setCustomPageSize(Number(e.target.value));
-                                            handleSearch(searchTerm, 1);
-                                          }}
-                                          className="border border-slate-300 rounded px-2 py-1 text-sm"
-                                          aria-label="Results per page"
-                                        >
-                                          {[20, 50, 100].map(size => (
-                                            <option key={size} value={size}>{size} per page</option>
-                                          ))}
-                                        </select>
-                                      </span>
+                <div>
+                  <h3 className="text-lg font-semibold text-red-800">Search Error</h3>
+                  <p className="text-red-700">{error}</p>
                                     </div>
                                   </div>
-                                  <div className="overflow-x-auto relative">
-                                    <div className="divide-y divide-slate-100 min-w-[700px]">
-                                      {isLoading ? (
-                                        <SkeletonTableRows rows={10} />
-                                      ) : (
+            </div>
+          )}
+
+          {/* Results Table */}
+          {hasSearched && !error && (
+            <div className="relative">
                                         <EnhancedSoldPricesTable
-                                          soldPrices={filteredSoldPrices}
-                                          allSoldPrices={soldPrices}
-                                          formatAddress={formatAddress}
-                                          formatDuration={formatDuration}
-                                          formatPropertyType={formatPropertyType}
-                                          requestSort={requestSort}
-                                          sortConfig={sortConfig}
-                                          getHasHistory={getHasHistory}
-                                          isDateSortDisabled={isDateSortDisabled}
+                soldPrices={displayedSoldPrices}
+                onRowClick={handleRowClick}
                                           onShowHistory={handleShowHistory}
+                sortConfig={sortConfig}
+                onSort={handleSort}
+                isLoading={isLoading}
                                           selectedRowId={selectedRowId}
-                                          onRowClick={handleRowClick}
-                                          isLoading={isPaginationLoading}
+                salesCountMap={salesCountMap}
                                         />
+              
+              {/* Pagination Loading Overlay */}
+              {isPaginationLoading && (
+                <PaginationLoadingOverlay isLoading={isPaginationLoading} direction={paginationDirection} />
                                       )}
                                     </div>
-                                    {/* Pagination Loading Overlay */}
-                                    <PaginationLoadingOverlay 
-                                      isLoading={isPaginationLoading} 
-                                      direction={paginationDirection} 
-                                    />
-                                  </div>
+          )}
+
                                   {/* Pagination */}
-                                  {totalCount > customPageSize && (
-                                    <div className="p-6 border-t border-slate-100 bg-slate-50/50">
-                                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                                        <div className="text-sm text-slate-600">
-                                          Showing {((page - 1) * customPageSize) + 1} to {Math.min(page * customPageSize, totalCount)} of {totalCount} results
+          {hasSearched && !error && totalCount > pageSize && (
+            <div className="flex items-center justify-between mt-8">
+              <div className="text-sm text-text-secondary">
+                Showing {displayedSoldPrices.length} of {totalCount.toLocaleString()} results
+                {page > 1 && (
+                  <span className="ml-2 text-text-tertiary">
+                    (Page {page})
+                  </span>
+                )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                           <button
-                                            onClick={() => handleSearch(searchTerm, page - 1)}
-                                            disabled={page === 1 || isPaginationLoading}
-                                            className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            aria-label="Previous page"
+                  onClick={() => handleSearch(searchTerm, page - 1, 'previous')}
+                  disabled={page === 1 || isPaginationLoading || searchAfterHistory.length === 0}
+                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-text-primary hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                           >
                                             Previous
                                           </button>
-                                          <span className="px-5 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-full">
-                                            {page}
+                <span className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-text-primary">
+                  Page {page}
                                           </span>
-                                          <label htmlFor="gotoPage" className="sr-only">Go to page</label>
-                                          <input
-                                            id="gotoPage"
-                                            type="number"
-                                            min={1}
-                                            max={Math.ceil(totalCount / customPageSize)}
-                                            value={gotoPage}
-                                            onChange={e => setGotoPage(Number(e.target.value))}
-                                            onBlur={() => {
-                                              if (gotoPage !== page && gotoPage >= 1 && gotoPage <= Math.ceil(totalCount / customPageSize)) {
-                                                handleSearch(searchTerm, gotoPage);
-                                              }
-                                            }}
-                                            className="w-16 border border-slate-300 rounded px-2 py-1 text-sm"
-                                            aria-label="Go to page"
-                                          />
                                           <button
-                                            onClick={() => handleSearch(searchTerm, page + 1)}
-                                            disabled={page * customPageSize >= totalCount || isPaginationLoading}
-                                            className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                            aria-label="Next page"
+                  onClick={() => handleSearch(searchTerm, page + 1, 'next')}
+                  disabled={!hasMore || isPaginationLoading}
+                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-text-primary hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                           >
                                             Next
                                           </button>
-                                        </div>
                                       </div>
                                     </div>
                                   )}
-                                </div>
-                                <div className="md:hidden flex flex-col gap-4">
-                                  {isLoading ? (
-                                    <SkeletonCards count={6} />
-                                  ) : (
-                                    filteredSoldPrices.map((property, idx) => (
-                                      <div key={property.id + '-' + idx} className="bg-white rounded-2xl shadow border border-slate-200 p-4 flex flex-col gap-2">
-                                        <div className="flex items-center justify-between">
-                                          <div className="font-semibold text-blue-800 text-lg">{formatAddress(property)}</div>
-                                          <div className="text-right text-green-700 font-bold text-lg">£{property.price.toLocaleString()}</div>
-                                        </div>
-                                        <div className="flex flex-wrap gap-2 text-slate-600 text-sm">
-                                          <span>{new Date(property.dateOfTransfer).toLocaleDateString('en-GB')}</span>
-                                          <span>•</span>
-                                          <span>{formatPropertyType(property.propertyType)}</span>
-                                          <span>•</span>
-                                          <span>{formatDuration(property.duration)}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 mt-2">
-                                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-800">
-                                            BMV: {property.bmvScore ?? 'N/A'}
-                                          </span>
-                                          <button
-                                            onClick={() => handleRowClick(property)}
-                                            className="ml-auto px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
-                                            aria-label="View property details"
-                                          >
-                                            Details
-                                          </button>
-                                        </div>
-                                      </div>
-                                    ))
-                                  )}
-                                </div>
-                              </>
-                            ) : (
-                              <div className="flex flex-col items-center justify-center py-24">
-                                <BarChart3 className="w-16 h-16 text-slate-300 mb-6" aria-hidden="true" />
-                                <h3 className="text-2xl font-semibold mb-2 text-gray-800">No Sold Prices Found</h3>
-                                <p className="text-gray-600 mb-4">Try adjusting your filters or search for a different postcode or area.</p>
-                                <button
-                                  onClick={handleTryDifferentSearch}
-                                  className="px-6 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2"
-                                  aria-label="Try a different search"
-                                >
-                                  Try a Different Search
-                                </button>
-                              </div>
-                            )}
-                            {/* Sticky pagination on mobile */}
-                            {soldPrices.length > 0 && (
-                              <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/80 border-t border-slate-200 shadow-lg flex items-center justify-between px-4 py-1.5 backdrop-blur-sm">
-                                <button
-                                  onClick={() => handleSearch(searchTerm, page - 1)}
-                                  disabled={page === 1 || isPaginationLoading}
-                                  className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                  aria-label="Previous page"
-                                >
-                                  Previous
-                                </button>
-                                <span className="px-5 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-full">
-                                  {page}
-                                </span>
-                                <button
-                                  onClick={() => handleSearch(searchTerm, page + 1)}
-                                  disabled={page * customPageSize >= totalCount || isPaginationLoading}
-                                  className="px-5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-full hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                  aria-label="Next page"
-                                >
-                                  Next
-                                </button>
-                              </div>
-                            )}
-                            {/* Back to Top button on mobile */}
+        </main>
+
+        {/* Back to Top Button */}
+        <AnimatePresence>
                             {showBackToTop && (
-                              <button
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
                                 onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                                className="md:hidden fixed bottom-16 right-4 z-50 bg-blue-600 text-white rounded-full shadow-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="fixed bottom-8 right-8 p-3 bg-primary-500 text-white rounded-full shadow-large hover:bg-primary-600 transition-colors z-50"
                                 aria-label="Back to top"
                               >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
-                                </svg>
-                              </button>
-                            )}
-                            {/* Add after the mobile pagination bar, only if there are results */}
-                            {soldPrices.length > 0 && (
-                              <div className="md:hidden fixed bottom-16 right-4 z-50 flex flex-col gap-6">
-                                <button
-                                  onClick={handleExport}
-                                  className="bg-blue-600 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                  aria-label="Export results to CSV"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-8m0 8l-3-3m3 3l3-3M4 20h16a2 2 0 002-2V6a2 2 0 00-2-2H4a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                  </svg>
-                                </button>
-                                <button
-                                  onClick={handleShare}
-                                  className="bg-blue-500 text-white rounded-full shadow-lg p-4 flex items-center justify-center hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                                  aria-label="Share search results"
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 8a3 3 0 11-6 0 3 3 0 016 0zm6 8a3 3 0 11-6 0 3 3 0 016 0zm-6 0a3 3 0 11-6 0 3 3 0 016 0zm-6 0a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  </svg>
-                                </button>
-                              </div>
-                            )}
-                          </section>
-                        </div>
-                      </>
-                    )}
-                  </motion.div>
+              <ArrowUp className="w-5 h-5" />
+            </motion.button>
                 )}
               </AnimatePresence>
-            </div>
-          </section>
 
-          {/* Modals */}
-          <AnimatePresence>
+        {/* Filters Modal */}
+        <EnhancedFilters
+          isOpen={isFiltersOpen}
+          onClose={() => setIsFiltersOpen(false)}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onReset={handleResetFilters}
+        />
+
+        {/* Property History Modal */}
             {showHistoryModal && selectedProperty && (
               <PropertyHistoryModal
-                open={showHistoryModal}
                 property={selectedProperty}
                 history={propertyHistory}
                 onClose={() => setShowHistoryModal(false)}
+            allSales={soldPrices}
               />
             )}
-          </AnimatePresence>
+      </div>
 
-          {/* Analytics */}
           <Analytics />
           <SpeedInsights />
-        </main>
-        <hr className="border-t border-slate-200 my-8" />
-        <footer className="w-full py-8 text-center text-slate-500 text-sm flex flex-col items-center gap-2" role="contentinfo">
-          <nav className="mb-2 flex gap-4 text-slate-500 text-xs">
-            <a href="/about" className="hover:text-blue-700 underline transition-colors">About</a>
-            <a href="/contact" className="hover:text-blue-700 underline transition-colors">Contact</a>
-            <a href="/privacy" className="hover:text-blue-700 underline transition-colors">Privacy</a>
-          </nav>
-          <div>&copy; {new Date().getFullYear()} BMV Finder. All rights reserved.</div>
-        </footer>
-      </div>
     </>
   );
 }

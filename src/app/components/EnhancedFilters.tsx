@@ -1,282 +1,302 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Filter, X, Home, Building, Layers } from 'lucide-react';
+import { 
+  Filter, 
+  X, 
+  PoundSterling, 
+  Calendar, 
+  Home, 
+  TrendingUp,
+  MapPin,
+  Sliders,
+  RefreshCw
+} from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface EnhancedFiltersProps {
-  isLoading: boolean;
-  filterDuration: string[];
-  setFilterDuration: React.Dispatch<React.SetStateAction<string[]>>;
-  filterType: string[];
-  setFilterType: React.Dispatch<React.SetStateAction<string[]>>;
-  priceRange: { min: number; max: number };
-  setPriceRange: React.Dispatch<React.SetStateAction<{ min: number; max: number }>>;
-  dateRange: { start: string; end: string };
-  setDateRange: React.Dispatch<React.SetStateAction<{ start: string; end: string }>>;
-  filterYear: string[];
-  setFilterYear: React.Dispatch<React.SetStateAction<string[]>>;
-  availableYears: string[];
+  isOpen: boolean;
+  onClose: () => void;
+  filters: {
+    priceRange: { min: number; max: number };
+    dateRange: { start: string; end: string };
+    propertyType: string[];
+    duration: string[];
+    year: string[];
+  };
+  onFiltersChange: (filters: any) => void;
+  onReset: () => void;
   className?: string;
 }
 
 const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
-  isLoading,
-  filterDuration,
-  setFilterDuration,
-  filterType,
-  setFilterType,
-  priceRange,
-  setPriceRange,
-  dateRange,
-  setDateRange,
-  filterYear,
-  setFilterYear,
-  availableYears,
+  isOpen,
+  onClose,
+  filters,
+  onFiltersChange,
+  onReset,
   className
 }) => {
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [activeFilters, setActiveFilters] = useState(0);
+  const [localFilters, setLocalFilters] = useState(filters);
 
-  // Calculate active filters count
-  useEffect(() => {
-    let count = 0;
-    if (filterDuration.length > 0) count += filterDuration.length;
-    if (filterType.length > 0) count += filterType.length;
-    if (priceRange.min > 0 || priceRange.max < 10000000) count += 1;
-    if (dateRange.start || dateRange.end) count += 1;
-    setActiveFilters(count);
-  }, [filterDuration, filterType, priceRange, dateRange]);
+  const propertyTypes = [
+    { value: 'D', label: 'Detached' },
+    { value: 'S', label: 'Semi-Detached' },
+    { value: 'T', label: 'Terraced' },
+    { value: 'F', label: 'Flat/Maisonette' },
+    { value: 'O', label: 'Other' }
+  ];
 
-  const handleDurationToggle = (duration: string) => {
-    setFilterDuration(prev => 
-      prev.includes(duration) 
-        ? prev.filter(d => d !== duration)
-        : [...prev, duration]
-    );
+  const durations = [
+    { value: 'F', label: 'Freehold' },
+    { value: 'L', label: 'Leasehold' }
+  ];
+
+  const years = Array.from({ length: 10 }, (_, i) => {
+    const year = new Date().getFullYear() - i;
+    return { value: year.toString(), label: year.toString() };
+  });
+
+  const handleFilterChange = (key: string, value: any) => {
+    const newFilters = { ...localFilters, [key]: value };
+    setLocalFilters(newFilters);
+    onFiltersChange(newFilters);
   };
 
-  const handleTypeToggle = (type: string) => {
-    setFilterType(prev => 
-      prev.includes(type) 
-        ? prev.filter(t => t !== type)
-        : [...prev, type]
-    );
+  const handleApply = () => {
+    onFiltersChange(localFilters);
+    onClose();
   };
 
-  const clearAllFilters = () => {
-    setFilterDuration([]);
-    setFilterType([]);
-    setPriceRange({ min: 0, max: 10000000 });
-    setDateRange({ start: '', end: '' });
-  };
-
-  const getPropertyTypeIcon = (type: string) => {
-    const icons = {
-      'D': <Home className="h-4 w-4" />,
-      'S': <Building className="h-4 w-4" />,
-      'T': <Layers className="h-4 w-4" />,
-      'F': <Building className="h-4 w-4" />,
-      'O': <Home className="h-4 w-4" />,
+  const handleReset = () => {
+    const resetFilters = {
+      priceRange: { min: 0, max: 10000000 },
+      dateRange: { start: '', end: '' },
+      propertyType: [],
+      duration: [],
+      year: []
     };
-    return icons[type as keyof typeof icons] || <Home className="h-4 w-4" />;
+    setLocalFilters(resetFilters);
+    onReset();
   };
 
-  const FilterChip = ({ label, isActive, onClick, icon }: {
-    label: string;
-    isActive: boolean;
-    onClick: () => void;
-    icon?: React.ReactNode;
-  }) => (
-    <button
-      onClick={onClick}
-      disabled={isLoading}
-      className={cn(
-        "w-32",
-        "inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-all duration-200",
-        "border-2 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2",
-        "hover:scale-105 active:scale-95",
-        isActive
-          ? "bg-blue-100 border-blue-300 text-blue-800 hover:bg-blue-200 shadow-md"
-          : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50 hover:border-gray-400 hover:shadow-sm",
-        isLoading && "opacity-50 cursor-not-allowed"
-      )}
-    >
-      {icon}
-      <span className="w-full text-center">{label}</span>
-    </button>
-  );
+  const activeFiltersCount = [
+    localFilters.priceRange.min > 0 || localFilters.priceRange.max < 10000000,
+    localFilters.dateRange.start || localFilters.dateRange.end,
+    localFilters.propertyType.length > 0,
+    localFilters.duration.length > 0,
+    localFilters.year.length > 0
+  ].filter(Boolean).length;
 
-  const MobileFilterModal = () => (
+  return (
     <AnimatePresence>
-      {showMobileFilters && (
+      {isOpen && (
         <>
+          {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden backdrop-blur-sm"
-            onClick={() => setShowMobileFilters(false)}
+            className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-modal-backdrop"
+            onClick={onClose}
           />
+
+          {/* Filter Panel */}
           <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 bg-white rounded-t-3xl z-50 md:hidden max-h-[85vh] overflow-y-auto shadow-2xl border-t border-gray-200"
+            initial={{ x: '100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-xl z-modal border-l border-gray-200"
           >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-xl font-bold text-gray-900">Filters</h3>
+            <div className="flex flex-col h-full">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-primary-100 rounded-lg">
+                    <Sliders className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary">Filters</h3>
+                    <p className="text-sm text-text-secondary">
+                      {activeFiltersCount} active filter{activeFiltersCount !== 1 ? 's' : ''}
+                    </p>
+                  </div>
+                </div>
                 <button
-                  onClick={() => setShowMobileFilters(false)}
-                  className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+                  onClick={onClose}
+                  className="p-2 text-text-tertiary hover:text-text-primary hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                  <X className="h-6 w-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
-              
-              <div className="space-y-6">
-                {/* Duration Filter */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-3">Tenure Type</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip
-                      label="All"
-                      isActive={filterDuration.length === 0}
-                      onClick={() => setFilterDuration([])}
-                    />
-                    <FilterChip
-                      label="Freehold"
-                      isActive={filterDuration.includes('F')}
-                      onClick={() => handleDurationToggle('F')}
-                    />
-                    <FilterChip
-                      label="Leasehold"
-                      isActive={filterDuration.includes('L')}
-                      onClick={() => handleDurationToggle('L')}
-                    />
-                  </div>
-                </div>
 
-                {/* Property Type Filter */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-3">Property Type</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip
-                      label="All"
-                      isActive={filterType.length === 0}
-                      onClick={() => setFilterType([])}
-                    />
-                    <FilterChip
-                      label="Detached"
-                      isActive={filterType.includes('Detached')}
-                      onClick={() => handleTypeToggle('Detached')}
-                      icon={getPropertyTypeIcon('Detached')}
-                    />
-                    <FilterChip
-                      label="Semi-detached"
-                      isActive={filterType.includes('Semi-detached')}
-                      onClick={() => handleTypeToggle('Semi-detached')}
-                      icon={getPropertyTypeIcon('Semi-detached')}
-                    />
-                    <FilterChip
-                      label="Terraced"
-                      isActive={filterType.includes('Terraced')}
-                      onClick={() => handleTypeToggle('Terraced')}
-                      icon={getPropertyTypeIcon('Terraced')}
-                    />
-                    <FilterChip
-                      label="Flat/Maisonette"
-                      isActive={filterType.includes('Flat/Maisonette')}
-                      onClick={() => handleTypeToggle('Flat/Maisonette')}
-                      icon={getPropertyTypeIcon('Flat/Maisonette')}
-                    />
-                    <FilterChip
-                      label="Other"
-                      isActive={filterType.includes('Other')}
-                      onClick={() => handleTypeToggle('Other')}
-                      icon={getPropertyTypeIcon('Other')}
-                    />
-                  </div>
-                </div>
-
-                {/* Year Filter */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-3">Year</h4>
-                  <div className="flex flex-wrap gap-2">
-                    <FilterChip
-                      label="All"
-                      isActive={filterYear.length === 0}
-                      onClick={() => setFilterYear([])}
-                    />
-                    {availableYears.map(year => (
-                      <FilterChip
-                        key={year}
-                        label={year}
-                        isActive={filterYear.includes(year)}
-                        onClick={() => setFilterYear((fy: string[]) => fy.includes(year) ? fy.filter(x => x !== year) : [...fy, year])}
-                      />
-                    ))}
-                  </div>
-                </div>
-
+              {/* Filter Content */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-8">
                 {/* Price Range */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-3">Price Range</h4>
-                  <div className="space-y-3">
-                    <div className="flex gap-2">
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                    <PoundSterling className="w-4 h-4" />
+                    Price Range
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-text-secondary mb-2">Min Price</label>
                       <input
                         type="number"
-                        placeholder="Min"
-                        value={priceRange.min || ''}
-                        onChange={(e) => setPriceRange(prev => ({ ...prev, min: Number(e.target.value) || 0 }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        value={localFilters.priceRange.min || ''}
+                        onChange={(e) => handleFilterChange('priceRange', {
+                          ...localFilters.priceRange,
+                          min: e.target.value ? parseInt(e.target.value) : 0
+                        })}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                        placeholder="£0"
                       />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-text-secondary mb-2">Max Price</label>
                       <input
                         type="number"
-                        placeholder="Max"
-                        value={priceRange.max === 10000000 ? '' : priceRange.max}
-                        onChange={(e) => setPriceRange(prev => ({ ...prev, max: Number(e.target.value) || 10000000 }))}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        value={localFilters.priceRange.max === 10000000 ? '' : localFilters.priceRange.max}
+                        onChange={(e) => handleFilterChange('priceRange', {
+                          ...localFilters.priceRange,
+                          max: e.target.value ? parseInt(e.target.value) : 10000000
+                        })}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                        placeholder="No limit"
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Date Range */}
-                <div>
-                  <h4 className="font-semibold text-gray-800 mb-3">Date Range</h4>
-                  <div className="space-y-3">
-                    <input
-                      type="date"
-                      value={dateRange.start}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
-                    <input
-                      type="date"
-                      value={dateRange.end}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
-                    />
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                    <Calendar className="w-4 h-4" />
+                    Date Range
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-text-secondary mb-2">From</label>
+                      <input
+                        type="date"
+                        value={localFilters.dateRange.start}
+                        onChange={(e) => handleFilterChange('dateRange', {
+                          ...localFilters.dateRange,
+                          start: e.target.value
+                        })}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-text-secondary mb-2">To</label>
+                      <input
+                        type="date"
+                        value={localFilters.dateRange.end}
+                        onChange={(e) => handleFilterChange('dateRange', {
+                          ...localFilters.dateRange,
+                          end: e.target.value
+                        })}
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property Type */}
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                    <Home className="w-4 h-4" />
+                    Property Type
+                  </label>
+                  <div className="space-y-2">
+                    {propertyTypes.map((type) => (
+                      <label key={type.value} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localFilters.propertyType.includes(type.value)}
+                          onChange={(e) => {
+                            const newTypes = e.target.checked
+                              ? [...localFilters.propertyType, type.value]
+                              : localFilters.propertyType.filter(t => t !== type.value);
+                            handleFilterChange('propertyType', newTypes);
+                          }}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-text-primary">{type.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Duration */}
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                    <TrendingUp className="w-4 h-4" />
+                    Duration
+                  </label>
+                  <div className="space-y-2">
+                    {durations.map((duration) => (
+                      <label key={duration.value} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localFilters.duration.includes(duration.value)}
+                          onChange={(e) => {
+                            const newDurations = e.target.checked
+                              ? [...localFilters.duration, duration.value]
+                              : localFilters.duration.filter(d => d !== duration.value);
+                            handleFilterChange('duration', newDurations);
+                          }}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-text-primary">{duration.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Year */}
+                <div className="space-y-4">
+                  <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                    <Calendar className="w-4 h-4" />
+                    Year
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {years.map((year) => (
+                      <label key={year.value} className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={localFilters.year.includes(year.value)}
+                          onChange={(e) => {
+                            const newYears = e.target.checked
+                              ? [...localFilters.year, year.value]
+                              : localFilters.year.filter(y => y !== year.value);
+                            handleFilterChange('year', newYears);
+                          }}
+                          className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                        />
+                        <span className="text-sm text-text-primary">{year.label}</span>
+                      </label>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-8">
+              {/* Footer */}
+              <div className="p-6 border-t border-gray-200 space-y-3">
                 <button
-                  onClick={clearAllFilters}
-                  className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  Clear All
-                </button>
-                <button
-                  onClick={() => setShowMobileFilters(false)}
-                  className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  onClick={handleApply}
+                  className="w-full bg-primary-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-600 transition-colors"
                 >
                   Apply Filters
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="w-full flex items-center justify-center gap-2 text-text-secondary hover:text-text-primary py-2 px-4 rounded-lg font-medium transition-colors"
+                >
+                  <RefreshCw className="w-4 h-4" />
+                  Reset All
                 </button>
               </div>
             </div>
@@ -284,115 +304,6 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
         </>
       )}
     </AnimatePresence>
-  );
-
-  // Desktop filter bar
-  const DesktopFilters = () => (
-    <div className="bg-white/95 rounded-2xl shadow-lg border border-slate-200 p-4 mt-8 flex flex-col gap-4 transition-all">
-      {/* Tenure Type Dropdown */}
-      <div className="flex flex-col w-full">
-        <label className="font-semibold text-sm mb-1">Tenure</label>
-        <select
-          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-          value={filterDuration[0] || ''}
-          onChange={e => setFilterDuration(e.target.value ? [e.target.value] : [])}
-          disabled={isLoading}
-        >
-          <option value="">All</option>
-          <option value="F">Freehold</option>
-          <option value="L">Leasehold</option>
-        </select>
-      </div>
-      {/* Property Type Dropdown */}
-      <div className="flex flex-col w-full">
-        <label className="font-semibold text-sm mb-1">Property Type</label>
-        <select
-          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-          value={filterType[0] || ''}
-          onChange={e => setFilterType(e.target.value ? [e.target.value] : [])}
-          disabled={isLoading}
-        >
-          <option value="">All</option>
-          <option value="D">Detached</option>
-          <option value="S">Semi-detached</option>
-          <option value="T">Terraced</option>
-          <option value="F">Flat/Maisonette</option>
-          <option value="O">Other</option>
-        </select>
-      </div>
-      {/* Price Range */}
-      <div className="flex flex-col w-full">
-        <label className="font-semibold text-sm mb-1">Price Range (£)</label>
-        <select
-          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-          value={(() => {
-            if (priceRange.min === 0 && priceRange.max === 10000000) return '';
-            if (priceRange.max <= 100000) return 'under-100k';
-            if (priceRange.min === 100000 && priceRange.max === 250000) return '100k-250k';
-            if (priceRange.min === 250000 && priceRange.max === 500000) return '250k-500k';
-            if (priceRange.min === 500000 && priceRange.max === 1000000) return '500k-1m';
-            if (priceRange.min === 1000000) return 'over-1m';
-            return '';
-          })()}
-          onChange={e => {
-            const val = e.target.value;
-            if (val === '') setPriceRange({ min: 0, max: 10000000 });
-            else if (val === 'under-100k') setPriceRange({ min: 0, max: 100000 });
-            else if (val === '100k-250k') setPriceRange({ min: 100000, max: 250000 });
-            else if (val === '250k-500k') setPriceRange({ min: 250000, max: 500000 });
-            else if (val === '500k-1m') setPriceRange({ min: 500000, max: 1000000 });
-            else if (val === 'over-1m') setPriceRange({ min: 1000000, max: 10000000 });
-          }}
-          disabled={isLoading}
-        >
-          <option value="">Any</option>
-          <option value="under-100k">Under £100k</option>
-          <option value="100k-250k">£100k–£250k</option>
-          <option value="250k-500k">£250k–£500k</option>
-          <option value="500k-1m">£500k–£1M</option>
-          <option value="over-1m">Over £1M</option>
-        </select>
-      </div>
-      {/* Sale Date */}
-      <div className="flex flex-col w-full">
-        <label className="font-semibold text-sm mb-1">Sale Date</label>
-        <select
-          className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
-          value={(() => {
-            if (!dateRange.start && !dateRange.end) return '';
-            const startYear = dateRange.start?.slice(0, 4);
-            const endYear = dateRange.end?.slice(0, 4);
-            return startYear === endYear ? startYear : '';
-          })()}
-          onChange={e => {
-            const year = e.target.value;
-            if (!year) setDateRange({ start: '', end: '' });
-            else setDateRange({ start: `${year}-01-01`, end: `${year}-12-31` });
-          }}
-          disabled={isLoading}
-        >
-          <option value="">Any</option>
-          {availableYears.map(year => (
-            <option key={year} value={year}>{year}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  );
-
-  return (
-    <form
-      className={cn(
-        'flex flex-col gap-4 w-full max-w-full overflow-x-hidden',
-        className
-      )}
-      style={{ boxSizing: 'border-box' }}
-      autoComplete="off"
-      onSubmit={e => e.preventDefault()}
-    >
-      <DesktopFilters />
-      <MobileFilterModal />
-    </form>
   );
 };
 

@@ -21,95 +21,143 @@ export async function POST(req: NextRequest) {
   const inputNoSpace = normalizedInput.replace(/\s/g, '');
   const inputWithSpace = normalizedInput.length > 3 && normalizedInput[normalizedInput.length - 4] !== ' ' ? normalizedInput.slice(0, -3) + ' ' + normalizedInput.slice(-3) : normalizedInput;
 
-  // Pagination
-  const limit = Math.max(1, Math.min(pageSize, 50));
-  const from = (Math.max(1, page) - 1) * limit;
+  // Build query based on input type
+  let query: Record<string, unknown>;
+  const postcodePattern = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}$/i;
+  const shortPostcodePattern = /^[A-Z]{1,2}[0-9][A-Z0-9]?$/i;
+  let canAggregate = false;
+  let isPostcodeSearch = false;
+
+  if (postcodePattern.test(normalizedInput)) {
+    // Full postcode search - match all variants
+    query = {
+      bool: {
+        should: [
+          { match_phrase: { 'postcode.keyword': normalizedInput } },
+          { match_phrase: { 'postcode.keyword': inputNoSpace } },
+          { match_phrase: { 'postcode.keyword': inputWithSpace } }
+        ]
+      }
+    };
+    isPostcodeSearch = true;
+  } else if (shortPostcodePattern.test(normalizedInput)) {
+    // Short postcode search - prefix match
+    query = {
+      bool: {
+        should: [
+          { prefix: { 'postcode.keyword': normalizedInput } },
+          { prefix: { 'postcode.keyword': normalizedInput + ' ' } }
+        ]
+      }
+    };
+    isPostcodeSearch = true;
+  } else {
+    // Town/city search - fuzzy match across multiple fields (can aggregate)
+    query = {
+      bool: {
+        should: [
+          { match: { town_city: { query: normalizedInput, fuzziness: 'AUTO' } } },
+          { match: { locality: { query: normalizedInput, fuzziness: 'AUTO' } } },
+          { match: { county: { query: normalizedInput, fuzziness: 'AUTO' } } },
+          { match: { street: { query: normalizedInput, fuzziness: 'AUTO' } } },
+          { match: { fullAddress: { query: normalizedInput, fuzziness: 'AUTO' } } }
+        ],
+        minimum_should_match: 1
+      }
+    };
+    canAggregate = true;
+  }
+
+  // Pagination logic
+  const safePage = Math.max(1, parseInt(page, 10) || 1);
+  let safePageSize = Math.max(1, parseInt(pageSize, 10) || 20);
+  if (safePageSize > 100) safePageSize = 100;
 
   try {
-    // Build query based on input type
-    let query: Record<string, unknown>;
-    
-    // Check if it looks like a postcode (UK postcode pattern)
-    const postcodePattern = /^[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}$/i;
-    const shortPostcodePattern = /^[A-Z]{1,2}[0-9][A-Z0-9]?$/i;
-    
-    if (postcodePattern.test(normalizedInput)) {
-      // Full postcode search - match all variants
-      query = {
-        bool: {
-          should: [
-            { match_phrase: { postcode: normalizedInput } },
-            { match_phrase: { postcode: inputNoSpace } },
-            { match_phrase: { postcode: inputWithSpace } }
-          ]
+    if (isPostcodeSearch) {
+      // Return all sales for postcode (no deduplication)
+      const result = await esClient.search({
+        index: 'properties',
+        size: safePageSize,
+        from: (safePage - 1) * safePageSize,
+        query,
+        sort: [
+          { dateOfTransfer: { order: 'desc' } }
+        ]
+      });
+      const hits = result.hits.hits.map(hit => hit._source as Record<string, unknown>);
+      return NextResponse.json({
+        data: hits,
+        totalCount: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total ?? hits.length,
+        hasMore: hits.length === safePageSize
+      });
+    } else if (canAggregate) {
+      // Use composite aggregation for deduplication
+      const result = await esClient.search({
+        index: 'properties',
+        size: 0, // no hits, just aggs
+        query,
+        aggs: {
+          deduped_properties: {
+            composite: {
+              size: safePageSize,
+              sources: [
+                {
+                  address: {
+                    terms: {
+                      script: {
+                        source: "((doc.containsKey('paon.keyword') && !doc['paon.keyword'].empty ? doc['paon.keyword'].value : '') + '|' + (doc.containsKey('street.keyword') && !doc['street.keyword'].empty ? doc['street.keyword'].value : '') + '|' + (doc.containsKey('postcode.keyword') && !doc['postcode.keyword'].empty ? doc['postcode.keyword'].value : '')).toLowerCase()",
+                        lang: 'painless'
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            aggs: {
+              most_recent_sale: {
+                top_hits: {
+                  size: 1,
+                  sort: [
+                    { dateOfTransfer: { order: 'desc' } }
+                  ]
+                }
+              }
+            }
+          }
         }
-      };
-    } else if (shortPostcodePattern.test(normalizedInput)) {
-      // Short postcode search - prefix match
-      query = {
-        bool: {
-          should: [
-            { match_phrase_prefix: { postcode: normalizedInput } },
-            { match_phrase_prefix: { postcode: normalizedInput + ' ' } }
-          ]
-        }
-      };
+      });
+
+      const buckets = (result.aggregations?.deduped_properties as any)?.buckets || [];
+      const hits = buckets.map((bucket: any) => bucket.most_recent_sale.hits.hits[0]._source);
+      
+      return NextResponse.json({
+        data: hits,
+        totalCount: hits.length,
+        hasMore: buckets.length === safePageSize
+      });
     } else {
-      // Town/city search - fuzzy match across multiple fields
-      query = {
-        bool: {
-          should: [
-            { match: { town_city: { query: normalizedInput, fuzziness: 'AUTO' } } },
-            { match: { locality: { query: normalizedInput, fuzziness: 'AUTO' } } },
-            { match: { county: { query: normalizedInput, fuzziness: 'AUTO' } } },
-            { match: { street: { query: normalizedInput, fuzziness: 'AUTO' } } },
-            { match: { fullAddress: { query: normalizedInput, fuzziness: 'AUTO' } } }
-          ],
-          minimum_should_match: 1
-        }
-      };
+      // Fallback: normal search
+      const result = await esClient.search({
+        index: 'properties',
+        size: safePageSize,
+        from: (safePage - 1) * safePageSize,
+        query,
+        sort: [
+          { dateOfTransfer: { order: 'desc' } }
+        ]
+      });
+
+      const hits = result.hits.hits.map(hit => hit._source as Record<string, unknown>);
+      
+      return NextResponse.json({
+        data: hits,
+        totalCount: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total ?? hits.length,
+        hasMore: hits.length === safePageSize
+      });
     }
-
-    // Query Elasticsearch
-    const result = await esClient.search({
-      index: 'properties',
-      from,
-      size: limit,
-      query,
-      sort: [
-        { dateOfTransfer: { order: 'desc' } }
-      ],
-      _source: [
-        'id', 'price', 'dateOfTransfer', 'postcode', 'propertyType', 
-        'propertyTypeLabel', 'street', 'town_city', 'county', 'paon', 
-        'saon', 'duration', 'durationLabel', 'locality', 'fullAddress',
-        'year', 'month', 'priceRange'
-      ]
-    });
-
-    const hits = result.hits.hits.map(hit => hit._source as Record<string, unknown>);
-    let totalCount = 0;
-    if (result.hits.total !== undefined) {
-      totalCount = typeof result.hits.total === 'number' ? result.hits.total : result.hits.total.value;
-    }
-
-    return NextResponse.json({
-      data: hits,
-      page,
-      pageSize: limit,
-      totalCount,
-      searchType: postcodePattern.test(normalizedInput) ? 'full_postcode' : 
-                  shortPostcodePattern.test(normalizedInput) ? 'short_postcode' : 'town'
-    });
   } catch (error) {
-    console.error('Elasticsearch search error:', error);
-    return NextResponse.json({
-      data: [],
-      page,
-      pageSize: limit,
-      totalCount: 0,
-      error: 'Elasticsearch not populated or unavailable',
-      details: String(error)
-    }, { status: 500 });
+    console.error('Elasticsearch property search error:', error);
+    return NextResponse.json({ error: 'Failed to fetch properties', details: error }, { status: 500 });
   }
 } 

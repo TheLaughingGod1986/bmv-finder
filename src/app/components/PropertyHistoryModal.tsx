@@ -5,13 +5,14 @@ import { SoldPrice } from '../../../types/sold-price';
 import { formatPrice } from '../../lib/utils';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
 import BMVScoreExplanation from './BMVScoreExplanation';
-import { X, Home } from 'lucide-react';
+import { X, Home, TrendingUp, MapPin, Calendar, PoundSterling } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface PropertyHistoryModalProps {
-  open: boolean;
-  property: SoldPrice | null;
+  property: SoldPrice;
   history: SoldPrice[];
   onClose: () => void;
+  allSales?: SoldPrice[];
 }
 
 const TABS = [
@@ -22,24 +23,25 @@ const TABS = [
 ];
 
 export default function PropertyHistoryModal({ 
-  open, 
   property, 
   history, 
-  onClose 
+  onClose,
+  allSales
 }: PropertyHistoryModalProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'trend' | 'growth' | 'similar'>('details');
+  const [similarSalesOption, setSimilarSalesOption] = useState<'default' | 'nearby' | 'postcode' | 'broader'>('default');
 
   useEffect(() => {
-    if (open && property && history.length > 0) {
+    if (property && history.length > 0) {
       setIsLoading(false);
       setError(null);
       setFullHistory(history);
       setActiveTab('details');
     }
-  }, [open, property, history]);
+  }, [property, history]);
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -51,8 +53,6 @@ export default function PropertyHistoryModal({
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
-
-  if (!open || !property) return null;
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -91,12 +91,19 @@ export default function PropertyHistoryModal({
     new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()
   );
 
-  // Remove duplicate sales (same date and price)
+  // Filter out exact duplicates (same date, price, and address)
   const uniqueHistory = sortedHistory.filter((sale, idx, arr) => {
-    return idx === arr.findIndex(s => s.dateOfTransfer === sale.dateOfTransfer && s.price === sale.price);
+    return idx === arr.findIndex(other =>
+      other.dateOfTransfer === sale.dateOfTransfer &&
+      other.price === sale.price &&
+      (other.paon || '') === (sale.paon || '') &&
+      (other.saon || '') === (sale.saon || '') &&
+      (other.street || '') === (sale.street || '') &&
+      (other.postcode || '') === (sale.postcode || '')
+    );
   });
 
-  // Calculate price changes
+  // Calculate price changes for unique sales
   const historyWithChanges = uniqueHistory.map((sale, index) => {
     if (index === 0) return { ...sale, priceChange: 0, priceChangePercent: 0 };
     const previousPrice = uniqueHistory[index - 1].price;
@@ -106,10 +113,145 @@ export default function PropertyHistoryModal({
     return { ...sale, priceChange, priceChangePercent };
   });
 
-  // Find similar properties in the same postcode (excluding the current property)
-  const similarProperties = fullHistory
-    .filter(sp => sp.postcode === property.postcode && sp.id !== property.id)
-    .sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime());
+  // Helper to normalize address for comparison
+  const normalizeAddress = (sp: SoldPrice) =>
+    [sp.paon, sp.saon, sp.street, sp.postcode]
+      .map(x => (x || '').trim().toLowerCase())
+      .join('|');
+
+  // Helper to check if streets are similar (fuzzy matching)
+  const areStreetsSimilar = (street1: string, street2: string) => {
+    if (!street1 || !street2) return false;
+    
+    const s1 = street1.toLowerCase().trim();
+    const s2 = street2.toLowerCase().trim();
+    
+    // Exact match
+    if (s1 === s2) return true;
+    
+    // Same street with different suffixes (e.g., "Belgrave Road" vs "Belgrave Avenue")
+    const s1Words = s1.split(' ').filter(w => w.length > 2);
+    const s2Words = s2.split(' ').filter(w => w.length > 2);
+    
+    if (s1Words.length >= 2 && s2Words.length >= 2) {
+      // Check if first word matches (e.g., "Belgrave")
+      if (s1Words[0] === s2Words[0]) return true;
+    }
+    
+    // Check for street name variations
+    const commonSuffixes = ['road', 'street', 'avenue', 'lane', 'close', 'drive', 'way', 'crescent', 'grove'];
+    const s1Base = s1Words.find(w => !commonSuffixes.includes(w)) || s1Words[0];
+    const s2Base = s2Words.find(w => !commonSuffixes.includes(w)) || s2Words[0];
+    
+    return s1Base === s2Base;
+  };
+
+  // Get the normalized address of the current property
+  const currentAddressKey = normalizeAddress(property);
+
+  // Use allSales for similar sales, fallback to fullHistory
+  const similarSalesSource = allSales && allSales.length > 0 ? allSales : fullHistory;
+  
+  // Debug logging
+  console.log('[SimilarSalesSource] allSales length:', allSales?.length || 0);
+  console.log('[SimilarSalesSource] fullHistory length:', fullHistory.length);
+  console.log('[SimilarSalesSource] final source length:', similarSalesSource.length);
+
+  // Find similar properties based on selected option
+  const similarProperties = React.useMemo(() => {
+    console.log('[SimilarProperties] Recalculating with option:', similarSalesOption);
+    console.log('[SimilarProperties] Property street:', property.street);
+    console.log('[SimilarProperties] Property postcode:', property.postcode);
+    console.log('[SimilarProperties] Source data length:', similarSalesSource.length);
+    
+    let filtered = [] as SoldPrice[];
+    switch (similarSalesOption) {
+      case 'default':
+        filtered = similarSalesSource.filter(sp =>
+          sp.street === property.street &&
+          normalizeAddress(sp) !== currentAddressKey
+        );
+        console.log('[SimilarProperties] Default filter - same street matches:', filtered.length);
+        break;
+      case 'nearby':
+        filtered = similarSalesSource.filter(sp =>
+          (sp.street === property.street || areStreetsSimilar(sp.street, property.street)) &&
+          normalizeAddress(sp) !== currentAddressKey
+        );
+        console.log('[SimilarProperties] Nearby filter - similar streets matches:', filtered.length);
+        break;
+      case 'postcode':
+        filtered = similarSalesSource.filter(sp =>
+          sp.postcode === property.postcode &&
+          normalizeAddress(sp) !== currentAddressKey
+        );
+        console.log('[SimilarProperties] Postcode filter - same postcode matches:', filtered.length);
+        break;
+      case 'broader':
+        filtered = similarSalesSource.filter(sp => {
+          const isSamePostcode = sp.postcode === property.postcode;
+          const isSimilarStreet = areStreetsSimilar(sp.street, property.street);
+          const isNotCurrentProperty = normalizeAddress(sp) !== currentAddressKey;
+          return (isSamePostcode || isSimilarStreet) && isNotCurrentProperty;
+        });
+        console.log('[SimilarProperties] Broader filter - broader area matches:', filtered.length);
+        break;
+      default:
+        filtered = similarSalesSource.filter(sp =>
+          sp.street === property.street &&
+          normalizeAddress(sp) !== currentAddressKey
+        );
+        console.log('[SimilarProperties] Default case - same street matches:', filtered.length);
+    }
+    
+    console.log('[SimilarProperties] After filtering, before grouping:', filtered.length);
+    
+    // Group by normalized address and keep only the most recent sale for each property
+    const grouped: { [address: string]: SoldPrice } = {};
+    filtered.forEach(sp => {
+      const addr = normalizeAddress(sp);
+      if (!grouped[addr] || new Date(sp.dateOfTransfer) > new Date(grouped[addr].dateOfTransfer)) {
+        grouped[addr] = sp;
+      }
+    });
+    
+    console.log('[SimilarProperties] After grouping:', Object.keys(grouped).length);
+    
+    // Only include sales from the last 3 years
+    const threeYearsAgo = new Date();
+    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
+    const finalResult = Object.values(grouped)
+      .filter(sp => new Date(sp.dateOfTransfer) >= threeYearsAgo)
+      .sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime());
+    
+    console.log('[SimilarProperties] Final result length:', finalResult.length);
+    console.log('[SimilarProperties] Final result addresses:', finalResult.map(sp => formatAddress(sp)));
+    
+    return finalResult;
+  }, [similarSalesOption, similarSalesSource, property, currentAddressKey]);
+
+  // Prepare chart data for area trends
+  const prepareChartData = () => {
+    const yearData: { [key: string]: number[] } = {};
+    
+    fullHistory.forEach(sale => {
+      const year = new Date(sale.dateOfTransfer).getFullYear().toString();
+      if (!yearData[year]) {
+        yearData[year] = [];
+      }
+      yearData[year].push(sale.price);
+    });
+
+    const labels = Object.keys(yearData).sort();
+    const data = labels.map(year => {
+      const prices = yearData[year];
+      return Math.round(prices.reduce((sum, price) => sum + price, 0) / prices.length);
+    });
+
+    return { labels, data };
+  };
+
+  const chartData = prepareChartData();
 
   // Overlay click handler
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -119,246 +261,273 @@ export default function PropertyHistoryModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm transition-opacity duration-300" onClick={handleOverlayClick} aria-modal="true" role="dialog">
-      <div className="bg-white/90 rounded-3xl shadow-2xl w-full max-w-5xl mx-auto relative min-h-[700px] min-w-[320px] md:min-w-[700px] md:min-h-[800px] animate-fade-in flex flex-col">
-        {/* Accent bar or icon/avatar */}
-        <div className="h-2 w-full bg-gradient-to-r from-blue-500 via-indigo-400 to-blue-400 rounded-t-3xl mb-2" />
-        {/* Modal header and close button */}
-        <button
-          className="absolute top-4 right-4 text-gray-400 hover:text-blue-600 bg-white/80 rounded-full p-2 shadow focus:outline-none focus:ring-2 focus:ring-blue-400"
-          onClick={onClose}
-          aria-label="Close modal"
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-modal-backdrop flex items-center justify-center bg-black/50 backdrop-blur-sm"
+        onClick={handleOverlayClick}
+        aria-modal="true"
+        role="dialog"
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="bg-white rounded-xl shadow-xl w-full max-w-4xl mx-4 max-h-[90vh] overflow-hidden"
         >
-          <X className="w-6 h-6" />
-        </button>
-        {/* Modal body with scroll and sticky tabs */}
-        <div className="relative flex-1 flex flex-col">
-          <div className="sticky top-0 z-10 bg-white rounded-t-3xl shadow-sm border-b border-slate-100">
-            <div className="flex gap-2 px-4 py-2 overflow-x-auto no-scrollbar">
-              {TABS.map(tab => (
-                <button
-                  key={tab.key}
-                  className={`px-5 py-2 rounded-full font-semibold text-base transition-all whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-blue-400
-                    ${activeTab === tab.key
-                      ? 'bg-blue-100 text-blue-800 shadow'
-                      : 'bg-slate-100 text-slate-500 hover:bg-blue-50 hover:text-blue-700'}
-                  `}
-                  onClick={() => setActiveTab(tab.key)}
-                  aria-selected={activeTab === tab.key}
-                  tabIndex={activeTab === tab.key ? 0 : -1}
-                >
-                  {tab.label}
-                </button>
-              ))}
+          {/* Header */}
+          <div className="flex items-center justify-between p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-primary-100 rounded-lg">
+                <Home className="w-5 h-5 text-primary-600" />
+              </div>
+              <div>
+                <h2 className="text-xl font-semibold text-text-primary">
+                  {uniqueHistory.length > 1 ? `Property Sales History (${uniqueHistory.length} sales)` : 'Property Details'}
+                </h2>
+                <p className="text-sm text-text-secondary">{formatAddress(property)}</p>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              className="p-2 text-text-tertiary hover:text-text-primary hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <div className="overflow-y-auto max-h-[80vh] px-2 pb-8 rounded-b-3xl">
-            {/* Tab Content */}
+
+          {/* Tabs */}
+          <div className="flex gap-2 p-2 bg-gray-50 rounded-xl mb-4">
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key as 'details' | 'trend' | 'growth' | 'similar')}
+                className={`
+                  px-4 py-2 rounded-full font-semibold transition-colors
+                  ${activeTab === tab.key
+                    ? 'bg-primary-500 text-white shadow'
+                    : 'text-primary-600 hover:bg-gray-100'}
+                `}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Content */}
+          <div className="overflow-y-auto max-h-[60vh] p-6">
             {activeTab === 'details' && (
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-slate-50/80 rounded-2xl shadow-lg p-8 mb-8 border border-slate-100 flex flex-col items-center gap-6">
-                  {/* Property Icon */}
-                  <div className="bg-blue-100 rounded-full p-3 mb-2 flex items-center justify-center shadow">
-                    <Home className="w-8 h-8 text-blue-500" aria-hidden="true" />
-                  </div>
-                  {/* Price and Address */}
-                  <div className="text-center w-full">
-                    <div className="text-4xl font-extrabold text-blue-900 mb-1">{formatPrice(property.price)}</div>
-                    <div className="font-bold text-lg text-gray-800 uppercase tracking-wide mb-1">{[property.paon, property.street].filter(Boolean).join(' ')}</div>
-                    <div className="text-gray-600 text-base font-medium mb-1">{property.town_city}</div>
-                    <div className="text-gray-400 text-sm font-mono tracking-widest mb-2">{property.postcode}</div>
-                    <div className="flex items-center justify-center text-base text-gray-500 mb-2 gap-2">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 4h10a2 2 0 012 2v10a2 2 0 01-2 2H7a2 2 0 01-2-2V9a2 2 0 012-2z" /></svg>
-                      Sold {formatDate(property.dateOfTransfer)}
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 space-y-6">
+                {/* Property Overview */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary mb-4">Property Information</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <MapPin className="w-4 h-4 text-text-tertiary" />
+                        <div>
+                          <div className="text-sm text-text-secondary">Address</div>
+                          <div className="font-medium text-text-primary">{formatAddress(property)}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Home className="w-4 h-4 text-text-tertiary" />
+                        <div>
+                          <div className="text-sm text-text-secondary">Property Type</div>
+                          <div className="font-medium text-text-primary">{formatPropertyType(property.propertyType)}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <TrendingUp className="w-4 h-4 text-text-tertiary" />
+                        <div>
+                          <div className="text-sm text-text-secondary">Tenure</div>
+                          <div className="font-medium text-text-primary">{formatDuration(property.duration)}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  {/* Divider */}
-                  <hr className="w-full border-slate-200 my-2" />
-                  {/* Property Details Grid */}
-                  <div className="grid grid-cols-2 gap-6 w-full pt-2">
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Type</p>
-                      <p className="font-semibold text-gray-900">{formatPropertyType(property.propertyType)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Tenure</p>
-                      <p className="font-semibold text-gray-900">{formatDuration(property.duration)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Year</p>
-                      <p className="font-semibold text-gray-900">{new Date(property.dateOfTransfer).getFullYear()}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-gray-500 mb-1">Month</p>
-                      <p className="font-semibold text-gray-900">{new Date(property.dateOfTransfer).toLocaleString('en-GB', { month: 'long' })}</p>
+                  <div>
+                    <h3 className="text-lg font-semibold text-text-primary mb-4">Sale Information</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <PoundSterling className="w-4 h-4 text-text-tertiary" />
+                        <div>
+                          <div className="text-sm text-text-secondary">Sale Price</div>
+                          <div className="text-2xl font-bold text-text-primary">{formatPrice(property.price)}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-4 h-4 text-text-tertiary" />
+                        <div>
+                          <div className="text-sm text-text-secondary">Sale Date</div>
+                          <div className="font-medium text-text-primary">{formatDate(property.dateOfTransfer)}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <TrendingUp className="w-4 h-4 text-text-tertiary" />
+                        <div>
+                          <div className="text-sm text-text-secondary">BMV Score</div>
+                          <div className="font-medium text-text-primary">{property.bmvScore || 'N/A'}</div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
+                {/* BMV Score Explanation */}
+                <BMVScoreExplanation />
               </div>
             )}
 
-            {activeTab === 'similar' && (
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-slate-50/80 rounded-2xl shadow-lg p-6 mb-8 flex flex-col gap-4 items-center">
-                  <div className="bg-blue-100 rounded-full p-2 mb-2 flex items-center justify-center shadow">
-                    <Home className="w-7 h-7 text-blue-500" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 text-center w-full mb-2">Similar Sales in {property.postcode}</h3>
-                  {similarProperties.length > 0 ? (
-                    <div className="mt-2 grid grid-cols-1 gap-4 w-full">
-                      {similarProperties.map((sp) => (
-                        <div
-                          key={sp.id}
-                          className="flex items-center gap-4 p-4 bg-white rounded-xl shadow hover:shadow-lg transition-shadow border border-slate-100 focus-within:ring-2 focus-within:ring-blue-400"
-                          tabIndex={0}
-                          aria-label={`Similar property at ${[sp.saon, sp.paon, sp.street].filter(Boolean).join(' ')}`}
-                        >
-                          <div className="bg-blue-50 rounded-full p-2 flex items-center justify-center">
-                            <Home className="w-6 h-6 text-blue-400" aria-hidden="true" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-semibold text-gray-900 uppercase truncate">
-                              <span className="font-bold">{[sp.saon, sp.paon].filter(Boolean).join(', ')}</span>{sp.street ? ` ${sp.street}` : ''}
-                            </div>
-                            <div className="text-sm text-gray-500 flex flex-wrap gap-2 items-center">
-                              <span>{formatDate(sp.dateOfTransfer)}</span>
-                              {sp.propertyType && <span className="px-2 py-0.5 bg-slate-100 rounded text-xs font-medium text-blue-700">{formatPropertyType(sp.propertyType)}</span>}
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-bold text-lg text-blue-800">{formatPrice(sp.price)}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-500 w-full">No similar properties found in this postcode.</div>
-                  )}
-                </div>
+            {activeTab === 'trend' && (
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 space-y-6">
+                <AreaPriceTrendChart
+                  labels={chartData.labels}
+                  data={chartData.data}
+                  areaName={property.town_city || property.postcode}
+                />
               </div>
             )}
 
             {activeTab === 'growth' && (
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-slate-50/80 rounded-2xl shadow-lg p-6 mb-8 flex flex-col gap-2 items-center">
-                  <div className="bg-blue-100 rounded-full p-2 mb-2 flex items-center justify-center shadow">
-                    <Home className="w-7 h-7 text-blue-500" aria-hidden="true" />
-                  </div>
-                  <div className="text-center w-full">
-                    <div className="font-bold text-lg text-gray-800 uppercase tracking-wide mb-1">{[property.paon, property.street].filter(Boolean).join(' ')}</div>
-                    <div className="text-gray-600 text-base font-medium mb-1">{property.town_city}</div>
-                    <div className="text-gray-400 text-sm font-mono tracking-widest mb-2">{property.postcode}</div>
-                  </div>
-                  <h3 className="text-lg font-bold text-blue-900 mb-4 text-center w-full">Price Growth</h3>
-                  {/* --- Price History Section --- */}
-                  <div className="w-full">
-                    <div className="bg-white rounded-xl shadow p-6 mb-6 border border-slate-100">
-                      <h4 className="text-xl font-bold text-blue-900 mb-1">Price History</h4>
-                      {/* Sale History Table */}
-                      {!isLoading && !error && fullHistory.length > 0 && (
-                        <div className="overflow-x-auto mb-4">
-                          <div className="text-lg font-semibold text-blue-800 mb-2">Sale History by Year</div>
-                          <table className="min-w-[420px] w-full text-base border-separate border-spacing-y-1">
-                            <thead>
-                              <tr className="text-xs text-blue-900 uppercase bg-blue-50">
-                                <th className="px-4 py-2 text-left whitespace-nowrap">Latest Sale Date</th>
-                                <th className="px-4 py-2 text-right whitespace-nowrap">Sale Price</th>
-                                <th className="px-4 py-2 text-right whitespace-nowrap">Growth</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {historyWithChanges.map((sale, index, arr) => {
-                                const isLatest = index === arr.length - 1;
-                                return (
-                                  <tr key={sale.id + '-' + sale.dateOfTransfer} className={isLatest ? 'bg-yellow-50/80' : 'bg-white'}>
-                                    <td className="px-4 py-2 whitespace-nowrap font-medium">{formatDate(sale.dateOfTransfer)}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-right font-semibold text-gray-900">{formatPrice(sale.price)}</td>
-                                    <td className="px-4 py-2 whitespace-nowrap text-right">
-                                      {index === 0 ? (
-                                        <span className="text-gray-400">—</span>
-                                      ) : (
-                                        <span className={`font-medium ${sale.priceChange > 0 ? 'text-green-600' : sale.priceChange < 0 ? 'text-red-600' : 'text-gray-500'}`}> 
-                                          {sale.priceChange > 0 ? '+' : ''}{formatPrice(sale.priceChange)}
-                                          <span className="ml-1 text-xs">
-                                            ({sale.priceChangePercent > 0 ? '+' : ''}{sale.priceChangePercent.toFixed(1)}%)
-                                          </span>
-                                        </span>
-                                      )}
-                                    </td>
-                                  </tr>
-                                );
-                              })}
-                            </tbody>
-                          </table>
-                        </div>
-                      )}
-                      {/* Summary Growth Box */}
-                      {!isLoading && !error && fullHistory.length > 1 && (
-                        <div className="my-4 flex justify-center">
-                          {(() => {
-                            const first = sortedHistory[0];
-                            const last = sortedHistory[sortedHistory.length - 1];
-                            const growth = last.price - first.price;
-                            const growthPct = (growth / first.price) * 100;
-                            return (
-                              <div className="bg-green-50 border border-green-200 rounded-xl px-6 py-4 text-center w-full max-w-md mx-auto shadow">
-                                <div className="text-2xl font-bold text-green-700">{growth > 0 ? '+' : ''}{formatPrice(growth)} ({growthPct > 0 ? '+' : ''}{growthPct.toFixed(1)}%)</div>
-                                <div className="text-sm text-green-900 mt-1">Growth from {new Date(first.dateOfTransfer).getFullYear()} to {new Date(last.dateOfTransfer).getFullYear()}</div>
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      )}
-                      {/* Explanatory Text */}
-                      <div className="text-sm text-gray-500 mb-4 text-center">
-                        Percentage growth is calculated from the first recorded sale to the most recent sale of this property.
-                      </div>
-                      {/* Error State */}
-                      {error && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6">
-                          <div className="flex items-center gap-2 text-yellow-800">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                            <span>{error}</span>
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 space-y-6">
+                <h3 className="text-lg font-semibold text-text-primary mb-4">Price History</h3>
+                {historyWithChanges.length > 1 ? (
+                  <div className="space-y-4">
+                    <table className="min-w-full text-sm border rounded-xl overflow-hidden">
+                      <thead>
+                        <tr className="bg-blue-50 text-blue-900">
+                          <th className="px-4 py-2 text-left font-semibold">Latest Sale Date</th>
+                          <th className="px-4 py-2 text-left font-semibold">Sale Price</th>
+                          <th className="px-4 py-2 text-left font-semibold">Growth</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historyWithChanges.map((sale, i) => (
+                          <tr key={i} className={i === historyWithChanges.length - 1 ? 'bg-yellow-50' : ''}>
+                            <td className="px-4 py-2">{formatDate(sale.dateOfTransfer)}</td>
+                            <td className="px-4 py-2 font-semibold">{formatPrice(sale.price)}</td>
+                            <td className="px-4 py-2">
+                              {i === 0 ? (
+                                <span className="text-gray-400">—</span>
+                              ) : (
+                                <span className={sale.priceChange >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                                  {sale.priceChange >= 0 ? '+' : ''}{formatPrice(sale.priceChange)} {sale.priceChangePercent !== null && (
+                                    <span className="text-xs font-normal">({sale.priceChangePercent >= 0 ? '+' : ''}{sale.priceChangePercent.toFixed(1)}%)</span>
+                                  )}
+                                </span>
+                              )}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {/* Growth Summary */}
+                    {(() => {
+                      const first = historyWithChanges[0];
+                      const last = historyWithChanges[historyWithChanges.length - 1];
+                      const growth = last.price - first.price;
+                      const growthPct = first.price ? (growth / first.price) * 100 : 0;
+                      return (
+                        <div className="flex justify-center">
+                          <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center w-full max-w-md mx-auto">
+                            <div className="text-2xl md:text-3xl font-bold text-green-700 mb-2">
+                              {growth >= 0 ? '+' : ''}{formatPrice(growth)} ({growthPct >= 0 ? '+' : ''}{growthPct.toFixed(1)}%)
+                            </div>
+                            <div className="text-sm text-green-800 font-medium">
+                              Growth from {formatDate(first.dateOfTransfer)} to {formatDate(last.dateOfTransfer)}
+                            </div>
                           </div>
                         </div>
-                      )}
-                      {/* Loading State */}
-                      {isLoading && (
-                        <div className="text-center py-8">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                          <p className="mt-2 text-gray-600">Loading property history...</p>
-                        </div>
-                      )}
+                      );
+                    })()}
+                    <div className="text-xs text-slate-500 text-center mt-6">
+                      Percentage growth is calculated from the first recorded sale to the most recent sale of this property.
                     </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8 text-text-secondary">
+                    <TrendingUp className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No price history available for this property</p>
+                  </div>
+                )}
               </div>
             )}
 
-            {/* New Area Trend Tab */}
-            {activeTab === 'trend' && (
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-slate-50/80 rounded-2xl shadow-lg p-6 mb-8 flex flex-col gap-2 items-center">
-                  <div className="bg-blue-100 rounded-full p-2 mb-2 flex items-center justify-center shadow">
-                    <Home className="w-7 h-7 text-blue-500" aria-hidden="true" />
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 text-center">{formatAddress(property)}</h3>
-                  <h4 className="text-lg font-bold text-blue-900 mb-4 text-center w-full">Area Price Trend</h4>
-                  <div className="w-full">
-                    <AreaPriceTrendChart
-                      labels={sortedHistory.map(sale => sale.dateOfTransfer.slice(0, 4))}
-                      data={sortedHistory.map(sale => sale.price)}
-                      areaName={formatAddress(property)}
-                    />
+            {activeTab === 'similar' && (
+              <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 space-y-4">
+                {/* Similar Sales Options Selector */}
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="text-lg font-semibold text-text-primary">Similar Sales Nearby</h4>
+                  <div className="flex items-center gap-2">
+                    <label className="text-sm text-text-secondary">Compare with:</label>
+                    <select
+                      value={similarSalesOption}
+                      onChange={(e) => setSimilarSalesOption(e.target.value as any)}
+                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                    >
+                      <option value="default">Same Street</option>
+                      <option value="nearby">Nearby Streets</option>
+                      <option value="postcode">Same Postcode</option>
+                      <option value="broader">Broader Area</option>
+                    </select>
                   </div>
                 </div>
+                {similarProperties.length === 0 ? (
+                  <div className="text-center py-8">
+                    <div className="text-gray-400 mb-2">
+                      <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                    </div>
+                    <p className="text-text-secondary">
+                      No similar properties found in this area.
+                    </p>
+                    <p className="text-sm text-text-tertiary mt-1">
+                      Try selecting a different comparison option above.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm border rounded-xl overflow-hidden">
+                      <thead>
+                        <tr className="bg-blue-50 text-blue-900">
+                          <th className="text-left py-3 px-4 font-semibold">Address</th>
+                          <th className="text-left py-3 px-4 font-semibold">Price</th>
+                          <th className="text-left py-3 px-4 font-semibold">Date</th>
+                          <th className="text-left py-3 px-4 font-semibold">Type</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {similarProperties.slice(0, 10).map((sp, index) => (
+                          <tr key={normalizeAddress(sp) + '-' + sp.dateOfTransfer} className={index === 0 ? 'bg-yellow-50' : ''}>
+                            <td className="py-3 px-4 font-medium text-text-primary">
+                              {formatAddress(sp)}
+                              <div className="text-xs text-text-tertiary">{sp.postcode}</div>
+                            </td>
+                            <td className="py-3 px-4 font-semibold text-text-primary">
+                              £{sp.price.toLocaleString()}
+                            </td>
+                            <td className="py-3 px-4 text-text-secondary">
+                              {formatDate(sp.dateOfTransfer)}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                {formatPropertyType(sp.propertyType)}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 } 

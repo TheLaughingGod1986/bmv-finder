@@ -2,114 +2,128 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Info, TrendingUp, Home, Calculator, Target } from 'lucide-react';
-import { BMVScoreEngine } from '../../lib/bmvScoreEngine';
-import { SoldPrice } from '../../../types/sold-price';
+import { Info, TrendingUp, Target } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 interface BMVScoreBadgeProps {
-  property: SoldPrice;
-  allProperties: SoldPrice[];
+  score: number;
   className?: string;
   showTooltip?: boolean;
 }
 
 const BMVScoreBadge: React.FC<BMVScoreBadgeProps> = ({ 
-  property, 
-  allProperties, 
+  score, 
   className = '',
   showTooltip = true 
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
   
-  // Calculate BMV score data
-  const bmvData = BMVScoreEngine.calculateBMVScore(property, allProperties);
-  const category = BMVScoreEngine.getBMVCategory(bmvData.bmvScore);
+  // Get BMV category based on score
+  const getBMVCategory = (score: number) => {
+    if (score >= 80) {
+      return {
+        category: 'Excellent',
+        color: 'bg-green-500 text-white',
+        bgColor: 'bg-green-50',
+        textColor: 'text-green-700',
+        description: 'Exceptional investment opportunity with high potential returns.'
+      };
+    } else if (score >= 65) {
+      return {
+        category: 'Good',
+        color: 'bg-blue-500 text-white',
+        bgColor: 'bg-blue-50',
+        textColor: 'text-blue-700',
+        description: 'Good investment opportunity with solid potential.'
+      };
+    } else if (score >= 50) {
+      return {
+        category: 'Fair',
+        color: 'bg-yellow-500 text-white',
+        bgColor: 'bg-yellow-50',
+        textColor: 'text-yellow-700',
+        description: 'Fair investment opportunity, consider carefully.'
+      };
+    } else if (score >= 35) {
+      return {
+        category: 'Overpriced',
+        color: 'bg-orange-500 text-white',
+        bgColor: 'bg-orange-50',
+        textColor: 'text-orange-700',
+        description: 'Property may be overpriced for investment purposes.'
+      };
+    } else {
+      return {
+        category: 'Poor',
+        color: 'bg-red-500 text-white',
+        bgColor: 'bg-red-50',
+        textColor: 'text-red-700',
+        description: 'Poor investment opportunity, not recommended.'
+      };
+    }
+  };
 
-  const formatPrice = (price: number) => `£${price.toLocaleString()}`;
-  const formatPercentage = (value: number) => `${value.toFixed(1)}%`;
+  const category = getBMVCategory(score);
 
   const TooltipContent = () => (
     <motion.div
       initial={{ opacity: 0, scale: 0.95, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: 10 }}
-      className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 bg-white rounded-xl shadow-2xl border border-gray-200 p-4 z-50"
+      className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-tooltip"
     >
       {/* Arrow */}
       <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
       
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
-        <Target className="h-5 w-5 text-blue-600" />
-        <h3 className="font-semibold text-gray-900">BMV Analysis</h3>
+        <Target className="h-5 w-5 text-primary-600" />
+        <h3 className="font-semibold text-text-primary">BMV Analysis</h3>
       </div>
 
       {/* Score Display */}
       <div className="flex items-center justify-between mb-4 p-3 bg-gray-50 rounded-lg">
         <div>
-          <div className="text-sm text-gray-600">BMV Score</div>
-          <div className="text-2xl font-bold text-gray-900">{bmvData.bmvScore}/100</div>
+          <div className="text-sm text-text-secondary">BMV Score</div>
+          <div className="text-2xl font-bold text-text-primary">{score}/100</div>
         </div>
         <div className={cn(
-          "px-3 py-1 rounded-full text-xs font-semibold text-white",
+          "px-3 py-1 rounded-full text-xs font-semibold",
           category.color
         )}>
           {category.category}
         </div>
       </div>
 
-      {/* Metrics Grid */}
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Home className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-600">Market Value</span>
-          </div>
-          <div className="font-semibold text-gray-900">{formatPrice(bmvData.marketValue)}</div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <Calculator className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-600">Asking Price</span>
-          </div>
-          <div className="font-semibold text-gray-900">{formatPrice(bmvData.askingPrice)}</div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-600">Rental Yield</span>
-          </div>
-          <div className="font-semibold text-gray-900">{formatPercentage(bmvData.rentalYield)}</div>
-        </div>
-        
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingUp className="h-4 w-4 text-gray-500" />
-            <span className="text-gray-600">Area Growth</span>
-          </div>
-          <div className={cn(
-            "font-semibold",
-            bmvData.areaGrowth > 0 ? "text-green-600" : "text-red-600"
-          )}>
-            {formatPercentage(bmvData.areaGrowth)}
-          </div>
-        </div>
-      </div>
-
       {/* Description */}
-      <div className="text-sm text-gray-600 leading-relaxed">
+      <div className="text-sm text-text-secondary leading-relaxed">
         {category.description}
       </div>
 
-      {/* Postcode Metrics */}
+      {/* Score Breakdown */}
       <div className="mt-3 pt-3 border-t border-gray-200">
-        <div className="text-xs text-gray-500 mb-2">Postcode Averages:</div>
-        <div className="flex justify-between text-xs">
-          <span>Yield: {formatPercentage(bmvData.postcodeYield)}</span>
-          <span>Growth: {formatPercentage(bmvData.postcodeGrowth)}</span>
+        <div className="text-xs text-text-tertiary mb-2">Score Breakdown:</div>
+        <div className="space-y-2">
+          <div className="flex justify-between text-xs">
+            <span className="text-text-secondary">80-100:</span>
+            <span className="text-green-600 font-medium">Excellent</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-text-secondary">65-79:</span>
+            <span className="text-blue-600 font-medium">Good</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-text-secondary">50-64:</span>
+            <span className="text-yellow-600 font-medium">Fair</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-text-secondary">35-49:</span>
+            <span className="text-orange-600 font-medium">Overpriced</span>
+          </div>
+          <div className="flex justify-between text-xs">
+            <span className="text-text-secondary">0-34:</span>
+            <span className="text-red-600 font-medium">Poor</span>
+          </div>
         </div>
       </div>
     </motion.div>
@@ -117,21 +131,19 @@ const BMVScoreBadge: React.FC<BMVScoreBadgeProps> = ({
 
   return (
     <div className={cn("relative inline-block", className)}>
-      <button
-        onClick={() => setIsTooltipVisible(!isTooltipVisible)}
+      <div
         onMouseEnter={() => showTooltip && setIsTooltipVisible(true)}
         onMouseLeave={() => showTooltip && setIsTooltipVisible(false)}
         className={cn(
-          "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-semibold text-white transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2",
-          category.color,
-          "focus:ring-blue-400"
+          "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200",
+          category.bgColor,
+          category.textColor
         )}
-        title="Click for detailed BMV analysis"
       >
-        <Target className="h-4 w-4" />
-        <span>BMV {bmvData.bmvScore}</span>
-        {showTooltip && <Info className="h-3 w-3 opacity-75" />}
-      </button>
+        <TrendingUp className="h-3 w-3" />
+        <span>{score}</span>
+        {showTooltip && <Info className="h-3 w-3 opacity-60" />}
+      </div>
 
       <AnimatePresence>
         {isTooltipVisible && showTooltip && <TooltipContent />}
