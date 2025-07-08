@@ -21,32 +21,13 @@ if (process.env.ELASTICSEARCH_API_KEY) {
     username: process.env.ELASTICSEARCH_USERNAME,
     password: process.env.ELASTICSEARCH_PASSWORD
   };
-} else if (isDevelopment) {
-  // Fallback for local development
-  clientConfig.auth = {
-    username: 'elastic',
-    password: 'TIRv--dMe*rHmuRMm-b4'
-  };
+} else {
+  throw new Error('Missing Elasticsearch credentials in environment variables.');
 }
 
-// TLS configuration - only use local certs in development
-if (isDevelopment && !isVercel) {
-  try {
-    const certPath = path.join(process.cwd(), 'elasticsearch-8.13.0/config/certs/http_ca.crt');
-    if (fs.existsSync(certPath)) {
-      clientConfig.tls = {
-        ca: fs.readFileSync(certPath),
-        rejectUnauthorized: true
-      };
-    }
-  } catch (error) {
-    console.warn('Could not load Elasticsearch certificate:', error);
-  }
-} else {
-  // In production/Vercel, use default TLS settings (no custom cert)
-  clientConfig.tls = {
-    rejectUnauthorized: false // Allow self-signed certs for managed services
-  };
-}
+// Always allow self-signed certs for this client (fixes Next.js API route issues)
+clientConfig.tls = {
+  rejectUnauthorized: false
+};
 
 export const esClient = new Client(clientConfig); 

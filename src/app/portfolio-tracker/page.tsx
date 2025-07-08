@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
+import UserProfile from '../components/UserProfile';
+import { supabase } from '@/lib/supabaseClient';
 
 interface PortfolioProperty {
   id: string;
@@ -19,9 +21,48 @@ interface PortfolioProperty {
 }
 
 export default function PortfolioTrackerPage() {
+  // Restore session after OAuth redirect (handle hash tokens) with debug logging
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const access_token = params.get('access_token');
+      const refresh_token = params.get('refresh_token');
+      console.log('Parsed tokens:', { access_token, refresh_token });
+      if (access_token && refresh_token) {
+        supabase.auth.setSession({ access_token, refresh_token })
+          .then(({ data, error }) => {
+            console.log('setSession result:', { data, error });
+          });
+        window.location.hash = '';
+      }
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      console.log('getSession after setSession:', data);
+    });
+  }, []);
+
+  // All hooks at the top
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const [portfolioProperties, setPortfolioProperties] = useState<PortfolioProperty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'sold' | 'watching'>('all');
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+      setLoading(false);
+    };
+    getUser();
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   // Memoized calculations
   const filteredProperties = useMemo(() => {
@@ -32,19 +73,8 @@ export default function PortfolioTrackerPage() {
   const portfolioStats = useMemo(() => {
     const totalProperties = portfolioProperties.length;
     const totalValue = portfolioProperties.reduce((sum, p) => sum + p.currentValue, 0);
-    const totalGrowth = portfolioProperties.reduce((sum, p) => {
-      if (p.purchasePrice > 0) {
-        return sum + ((p.currentValue - p.purchasePrice) / p.purchasePrice * 100);
-      }
-      return sum;
-    }, 0);
-    const avgGrowth = totalProperties > 0 ? totalGrowth / totalProperties : 0;
-
-    return {
-      totalProperties,
-      totalValue,
-      avgGrowth: avgGrowth.toFixed(1)
-    };
+    const totalGrowth = portfolioProperties.reduce((sum, p) => sum + (p.currentValue - p.purchasePrice), 0);
+    return { totalProperties, totalValue, totalGrowth };
   }, [portfolioProperties]);
 
   // Memoized event handlers
@@ -198,6 +228,9 @@ export default function PortfolioTrackerPage() {
     }
   };
 
+  // Only return JSX after all hooks
+  if (loading) return <div>Loading...</div>;
+
   return (
     <>
       <Head>
@@ -213,270 +246,276 @@ export default function PortfolioTrackerPage() {
         <meta name="twitter:description" content="Track your property investment portfolio and monitor growth." />
         <link rel="canonical" href="https://bmvfinder.com/portfolio-tracker" />
       </Head>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-sans">
+      <div className="min-h-screen bg-[#FAF9F6] font-sans">
         <main className="container mx-auto px-4 py-8 max-w-6xl">
-          {/* Header */}
-          <div className="text-center mb-8">
+          {/* Standardized Header */}
+          <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="bg-blue-100 rounded-full p-3">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <BarChart3 className="w-7 h-7 text-blue-600" />
               </div>
-              <h1 className="text-4xl font-extrabold text-gray-900 mb-4" id="page-title">Portfolio Tracker</h1>
+              <h1 className="text-4xl font-extrabold text-gray-900 mb-0" id="page-title">Portfolio Tracker</h1>
             </div>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto" id="page-description">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4" id="page-description">
               Track your property investments, monitor growth, and manage your BMV portfolio in one place.
             </p>
           </div>
 
-          {/* Portfolio Overview Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Home className="w-7 h-7 text-blue-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Total Properties</h3>
-              </div>
-              <p className="text-3xl font-bold text-blue-600">{portfolioStats.totalProperties}</p>
-            </motion.div>
+          <UserProfile />
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <PoundSterling className="w-7 h-7 text-green-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Portfolio Value</h3>
-              </div>
-              <p className="text-2xl font-bold text-green-600">{formatPrice(portfolioStats.totalValue)}</p>
-            </motion.div>
+          {user && (
+            <div className="mt-6">
+              {/* Portfolio Overview Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                  className="bg-white rounded-2xl shadow-lg p-6"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Home className="w-7 h-7 text-blue-500" />
+                    <h3 className="text-lg font-semibold text-gray-900">Total Properties</h3>
+                  </div>
+                  <p className="text-3xl font-bold text-blue-600">{portfolioStats.totalProperties}</p>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <TrendingUp className="w-7 h-7 text-orange-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Total Growth</h3>
-              </div>
-              <p className={`text-2xl font-bold ${getTotalGrowth() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {getTotalGrowth().toFixed(1)}%
-              </p>
-            </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white rounded-2xl shadow-lg p-6"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <PoundSterling className="w-7 h-7 text-green-500" />
+                    <h3 className="text-lg font-semibold text-gray-900">Portfolio Value</h3>
+                  </div>
+                  <p className="text-2xl font-bold text-green-600">{formatPrice(portfolioStats.totalValue)}</p>
+                </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <Target className="w-7 h-7 text-purple-500" />
-                <h3 className="text-lg font-semibold text-gray-900">Avg BMV Score</h3>
-              </div>
-              <p className="text-2xl font-bold text-purple-600">
-                {portfolioProperties.length > 0 
-                  ? Math.round(portfolioProperties.reduce((sum, p) => sum + p.bmvScore, 0) / portfolioProperties.length)
-                  : 0
-                }
-              </p>
-            </motion.div>
-          </div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="bg-white rounded-2xl shadow-lg p-6"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <TrendingUp className="w-7 h-7 text-orange-500" />
+                    <h3 className="text-lg font-semibold text-gray-900">Total Growth</h3>
+                  </div>
+                  <p className={`text-2xl font-bold ${getTotalGrowth() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {getTotalGrowth().toFixed(1)}%
+                  </p>
+                </motion.div>
 
-          {/* Filters */}
-          <div className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Filter className="w-5 h-5 text-gray-500" />
-                <span className="font-medium text-gray-700">Filter by status:</span>
-                <div className="flex gap-2">
-                  {(['all', 'active', 'sold', 'watching'] as const).map(status => (
-                    <button
-                      key={status}
-                      onClick={() => handleFilterChange(status)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                        filterStatus === status
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                      }`}
-                      role="tab"
-                      aria-selected={filterStatus === status}
-                      aria-controls="properties-list"
-                    >
-                      {status.charAt(0).toUpperCase() + status.slice(1)}
-                    </button>
-                  ))}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="bg-white rounded-2xl shadow-lg p-6"
+                >
+                  <div className="flex items-center gap-3 mb-2">
+                    <Target className="w-7 h-7 text-purple-500" />
+                    <h3 className="text-lg font-semibold text-gray-900">Avg BMV Score</h3>
+                  </div>
+                  <p className="text-2xl font-bold text-purple-600">
+                    {portfolioProperties.length > 0 
+                      ? Math.round(portfolioProperties.reduce((sum, p) => sum + p.bmvScore, 0) / portfolioProperties.length)
+                      : 0
+                    }
+                  </p>
+                </motion.div>
+              </div>
+
+              {/* Filters */}
+              <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Filter className="w-5 h-5 text-gray-500" />
+                    <span className="font-medium text-gray-700">Filter by status:</span>
+                    <div className="flex gap-2">
+                      {(['all', 'active', 'sold', 'watching'] as const).map(status => (
+                        <button
+                          key={status}
+                          onClick={() => handleFilterChange(status)}
+                          className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                            filterStatus === status
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          }`}
+                          role="tab"
+                          aria-selected={filterStatus === status}
+                          aria-controls="properties-list"
+                        >
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12" role="toolbar" aria-label="Portfolio actions">
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={handleAddProperty}
+                        className="rounded-full font-semibold shadow bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
+                        aria-label="Add a new property to portfolio"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Add Property
+                      </button>
+                      <button 
+                        onClick={handleExport}
+                        className="rounded-full font-semibold shadow bg-slate-100 text-slate-700 px-5 py-2.5 hover:bg-slate-200 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
+                        aria-label="Export portfolio data"
+                      >
+                        <BarChart3 className="w-5 h-5" />
+                        Export
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12" role="toolbar" aria-label="Portfolio actions">
-                <div className="flex gap-2">
-                  <button 
-                    onClick={handleAddProperty}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
-                    aria-label="Add a new property to portfolio"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Property
-                  </button>
-                  <button 
-                    onClick={handleExport}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-100 text-slate-700 font-semibold shadow hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition"
-                    aria-label="Export portfolio data"
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                    Export
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          {/* Properties List */}
-          <div className="space-y-4" role="region" aria-labelledby="properties-heading" id="properties-list">
-            <h2 className="sr-only" id="properties-heading">Portfolio Properties List</h2>
-            {isLoading ? (
-              <LoadingSkeleton />
-            ) : filteredProperties.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-center py-16"
-              >
-                <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-full flex items-center justify-center shadow-lg">
-                  <Home className="w-16 h-16 text-green-500" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">No Properties in Portfolio</h3>
-                <p className="text-gray-600 mb-8 max-w-lg mx-auto text-lg leading-relaxed">
-                  Start tracking your property investments and monitor their growth, returns, and market performance over time.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <button
-                    onClick={() => {
-                      // Add new property functionality
-                      console.log('Add new property');
-                    }}
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-lg"
-                  >
-                    <Plus className="w-5 h-5" />
-                    Add Your First Property
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Demo functionality
-                      console.log('View demo portfolio');
-                    }}
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-700 rounded-full font-semibold hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition"
-                  >
-                    <BarChart3 className="w-5 h-5" />
-                    View Demo Portfolio
-                  </button>
-                </div>
-              </motion.div>
-            ) : (
-              filteredProperties.map((property, index) => {
-                const growth = calculateGrowth(property.currentValue, property.purchasePrice);
-                return (
+              {/* Properties List */}
+              <div className="space-y-4" role="region" aria-labelledby="properties-heading" id="properties-list">
+                <h2 className="sr-only" id="properties-heading">Portfolio Properties List</h2>
+                {isLoading ? (
+                  <LoadingSkeleton />
+                ) : filteredProperties.length === 0 ? (
                   <motion.div
-                    key={property.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 + index * 0.05 }}
-                    className="bg-white/90 rounded-2xl p-6 shadow-lg border border-slate-200 hover:shadow-xl hover:border-slate-300 transition-all duration-200 group"
-                    role="article"
-                    aria-labelledby={`property-${property.id}-title`}
+                    transition={{ delay: 0.3 }}
+                    className="text-center py-16"
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-4 mb-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-green-50 to-green-100 rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                            <Home className="w-6 h-6 text-green-600" />
-                          </div>
-                          <div className="flex-1">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-1" id={`property-${property.id}-title`}>{property.address}</h3>
-                            <p className="text-sm text-gray-600 flex items-center gap-1">
-                              <MapPin className="w-4 h-4" />
-                              {property.postcode}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Purchase Price</p>
-                            <p className="font-semibold text-gray-900">£{property.purchasePrice.toLocaleString()}</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Current Value</p>
-                            <p className="font-semibold text-gray-900">£{property.currentValue.toLocaleString()}</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Growth</p>
-                            <p className="font-semibold text-green-600">+{((property.currentValue - property.purchasePrice) / property.purchasePrice * 100).toFixed(1)}%</p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg p-3">
-                            <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">BMV Score</p>
-                            <p className="font-semibold text-blue-600">{property.bmvScore}/100</p>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-2 ml-6">
-                        <button
-                          onClick={() => {
-                            console.log('View property details:', property.id);
-                          }}
-                          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm font-medium shadow-sm"
-                          aria-label={`View details for ${property.address}`}
-                        >
-                          <Target className="w-4 h-4" />
-                          View Details
-                        </button>
-                      </div>
+                    <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-full flex items-center justify-center shadow-lg">
+                      <Home className="w-16 h-16 text-green-500" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">No Properties in Portfolio</h3>
+                    <p className="text-gray-600 mb-8 max-w-lg mx-auto text-lg leading-relaxed">
+                      Start tracking your property investments and monitor their growth, returns, and market performance over time.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <button
+                        onClick={() => {
+                          // Add new property functionality
+                          console.log('Add new property');
+                        }}
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-lg"
+                      >
+                        <Plus className="w-5 h-5" />
+                        Add Your First Property
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Demo functionality
+                          console.log('View demo portfolio');
+                        }}
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-700 rounded-full font-semibold hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition"
+                      >
+                        <BarChart3 className="w-5 h-5" />
+                        View Demo Portfolio
+                      </button>
                     </div>
                   </motion.div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Quick Actions */}
-          {portfolioProperties.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="mt-8 bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
-            >
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
-              <div className="flex flex-wrap gap-3">
-                <button
-                  onClick={() => {
-                    // Export portfolio functionality
-                    console.log('Export portfolio');
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors"
-                >
-                  <BarChart3 className="w-5 h-5" />
-                  Export Portfolio
-                </button>
-                <button
-                  onClick={() => {
-                    // Generate report functionality
-                    console.log('Generate report');
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
-                >
-                  <TrendingUp className="w-5 h-5" />
-                  Generate Report
-                </button>
+                ) : (
+                  filteredProperties.map((property, index) => {
+                    const growth = calculateGrowth(property.currentValue, property.purchasePrice);
+                    return (
+                      <motion.div
+                        key={property.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 + index * 0.05 }}
+                        className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 group"
+                        role="article"
+                        aria-labelledby={`property-${property.id}-title`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-4 mb-4">
+                              <div className="w-12 h-12 bg-gradient-to-br from-green-50 to-green-100 rounded-full flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                                <Home className="w-6 h-6 text-green-600" />
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="text-lg font-semibold text-gray-900 mb-1" id={`property-${property.id}-title`}>{property.address}</h3>
+                                <p className="text-sm text-gray-600 flex items-center gap-1">
+                                  <MapPin className="w-4 h-4" />
+                                  {property.postcode}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                              <div className="bg-slate-50 rounded-lg p-3">
+                                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Purchase Price</p>
+                                <p className="font-semibold text-gray-900">£{property.purchasePrice.toLocaleString()}</p>
+                              </div>
+                              <div className="bg-slate-50 rounded-lg p-3">
+                                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Current Value</p>
+                                <p className="font-semibold text-gray-900">£{property.currentValue.toLocaleString()}</p>
+                              </div>
+                              <div className="bg-slate-50 rounded-lg p-3">
+                                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Growth</p>
+                                <p className="font-semibold text-green-600">+{((property.currentValue - property.purchasePrice) / property.purchasePrice * 100).toFixed(1)}%</p>
+                              </div>
+                              <div className="bg-slate-50 rounded-lg p-3">
+                                <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">BMV Score</p>
+                                <p className="font-semibold text-blue-600">{property.bmvScore}/100</p>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex flex-col gap-2 ml-6">
+                            <button
+                              onClick={() => {
+                                console.log('View property details:', property.id);
+                              }}
+                              className="rounded-full font-semibold shadow bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2 text-sm"
+                              aria-label={`View details for ${property.address}`}
+                            >
+                              <Target className="w-4 h-4" />
+                              View Details
+                            </button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
               </div>
-            </motion.div>
+
+              {/* Quick Actions */}
+              {portfolioProperties.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="mt-8 bg-white rounded-2xl shadow-lg p-6"
+                >
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={() => {
+                        // Export portfolio functionality
+                        console.log('Export portfolio');
+                      }}
+                      className="rounded-full font-semibold shadow bg-green-100 text-green-700 px-5 py-2.5 hover:bg-green-200 transition inline-flex items-center gap-2"
+                    >
+                      <BarChart3 className="w-5 h-5" />
+                      Export Portfolio
+                    </button>
+                    <button
+                      onClick={() => {
+                        // Generate report functionality
+                        console.log('Generate report');
+                      }}
+                      className="rounded-full font-semibold shadow bg-purple-100 text-purple-700 px-5 py-2.5 hover:bg-purple-200 transition inline-flex items-center gap-2"
+                    >
+                      <TrendingUp className="w-5 h-5" />
+                      Generate Report
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </div>
           )}
         </main>
       </div>

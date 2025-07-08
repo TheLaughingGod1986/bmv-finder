@@ -4,6 +4,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Search, MapPin, TrendingUp, Building, Home, Sparkles, Clock, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
+import { useUser } from '@supabase/auth-helpers-react';
+import { useUserTier } from '@/hooks/useUserTier';
+import UpgradePrompt from './UpgradePrompt';
 
 interface EnhancedSearchProps {
   value: string;
@@ -46,6 +49,10 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   const [isPostcode, setIsPostcode] = useState(false);
   const [isValidPostcode, setIsValidPostcode] = useState(true);
   const [history, setHistory] = useState<string[]>([]);
+  const user = useUser();
+  const { tier, loading: tierLoading } = useUserTier(user?.id);
+  const [lookupCount, setLookupCount] = useState<number>(0);
+  const [limitHit, setLimitHit] = useState(false);
 
   useEffect(() => {
     if (value.trim().length === 0) {
@@ -90,6 +97,17 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
       if (stored) setHistory(JSON.parse(stored));
     }
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch(`/api/profile-usage?userId=${user.id}`)
+      .then(res => res.json())
+      .then(data => setLookupCount(data.lookup_count || 0));
+  }, [user]);
+
+  if (tier === 'free' && lookupCount >= 3) {
+    return <UpgradePrompt />;
+  }
 
   // Save to history on search
   const saveToHistory = (query: string) => {
@@ -158,16 +176,6 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   return (
     <div className={cn("relative w-full", className)}>
       <div className="max-w-4xl mx-auto">
-        {/* Hero Section */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-text-primary mb-6">
-            Find <span className="text-gradient-primary">Below Market Value</span> Properties
-          </h1>
-          <p className="text-lg md:text-xl text-text-secondary max-w-3xl mx-auto leading-relaxed">
-            Search UK property data to identify investment opportunities with our advanced BMV scoring system
-          </p>
-        </div>
-
         {/* Search Form */}
         <form onSubmit={handleSubmit} className="relative mb-8">
           <div className="relative">

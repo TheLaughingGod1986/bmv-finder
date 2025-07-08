@@ -1,0 +1,50 @@
+name: Update HPI Data
+
+on:
+  schedule:
+    # Run on the 1st of each month at 5 AM UTC
+    - cron: '0 5 1 * *'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-hpi:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Create HPI index
+      env:
+        ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
+        ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
+      run: node src/createHpiIndex.js
+      
+    - name: Update HPI from ONS
+      env:
+        ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
+        ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
+      run: node src/updateHpiFromOns.js
+      
+    - name: Estimate property values
+      env:
+        ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
+        ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
+      run: node src/estimate.js
+      
+    - name: Commit and push updated data
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git add .
+        git commit -m "🤖 Automated HPI data update - $(date +'%Y-%m-%d')" || echo "No changes to commit"
+        git push 
