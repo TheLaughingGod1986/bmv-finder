@@ -676,15 +676,23 @@ export default function Home() {
       <div className="min-h-screen bg-gray-50">
         {/* Hero Section with Search */}
         <section className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <EnhancedSearch
-            value={searchTerm}
-            onChange={setSearchTerm}
-              onSearch={handleSearch}
-            isLoading={isLoading}
-          />
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
+            <h1 className="text-4xl sm:text-5xl font-extrabold text-gray-900 mb-6">
+              Discover the <span className="text-primary-700 font-bold">true value</span> of UK homes with trusted <span className="text-primary-700 font-bold">Land Registry data</span>.
+            </h1>
+            <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
+              Instantly see <span className="text-primary-700 font-bold">recent sales</span>, <span className="text-primary-700 font-bold">market trends</span>, and get smart tools to help you decide what's a <span className="text-primary-700 font-bold">fair price</span>—whether you're buying, selling, or investing.
+            </p>
+            <div className="mt-8">
+              <EnhancedSearch
+                value={searchTerm}
+                onChange={setSearchTerm}
+                onSearch={handleSearch}
+                isLoading={isLoading}
+              />
             </div>
-          </section>
+          </div>
+        </section>
 
         {/* Main Content */}
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

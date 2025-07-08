@@ -44,9 +44,9 @@ next-env.d.ts
 /logstash-csv-to-es.conf
 
 # Elasticsearch data and logs
-# elasticsearch-8.13.0/data/
-# elasticsearch-8.13.0/logs/
-# elasticsearch-8.13.0/config/certs/
+elasticsearch-8.13.0/data/
+elasticsearch-8.13.0/logs/
+elasticsearch-8.13.0/config/certs/
 
 # env
 .env
