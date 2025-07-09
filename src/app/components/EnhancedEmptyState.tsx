@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Search, MapPin, Home, TrendingUp, AlertCircle, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useUser } from '@supabase/auth-helpers-react';
+import { useUserTier } from '@/hooks/useUserTier';
+import UpgradePrompt from './UpgradePrompt';
 
 interface EnhancedEmptyStateProps {
   postcode: string;
@@ -26,6 +29,21 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
     { area: 'SE22 0HP', description: 'East Dulwich, London', icon: <TrendingUp className="w-4 h-4" /> },
     { area: 'W11 1AA', description: 'Notting Hill, London', icon: <TrendingUp className="w-4 h-4" /> },
   ]);
+
+  const { user } = useUser();
+  const { tier, loading: tierLoading } = useUserTier(user?.id);
+  const [lookupCount, setLookupCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (!user) return;
+    fetch(`/api/profile-usage?userId=${user.id}`)
+      .then(res => res.json())
+      .then(data => setLookupCount(data.lookup_count || 0));
+  }, [user]);
+
+  if (tier === 'free' && lookupCount >= 3) {
+    return <UpgradePrompt />;
+  }
 
   useEffect(() => {
     async function fetchPopularAreas() {
