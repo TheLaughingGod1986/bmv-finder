@@ -6,6 +6,7 @@ import ConfidenceScore from '../components/ConfidenceScore';
 import CompSlider from '../components/CompSlider';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 export default function WhatShouldIPayPage() {
   const [postcode, setPostcode] = useState('');
@@ -41,7 +42,7 @@ export default function WhatShouldIPayPage() {
         await fetch('/api/increment-usage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user.id, type: 'pay' }),
+          body: JSON.stringify({ userId: user?.id, type: 'pay' }),
         });
       }
       const res = await fetch('/api/what-should-i-pay', {
