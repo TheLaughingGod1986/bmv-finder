@@ -31,6 +31,7 @@ import { postcodeToRegion, isValidPostcodeFormat } from '../../../utils/postcode
 import { format } from 'date-fns';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
+import UpgradePrompt from '../components/UpgradePrompt';
 
 // Register Chart.js components
 ChartJS.register(
@@ -185,7 +186,7 @@ export default function HpiDashboard() {
       await fetch('/api/increment-usage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, type: 'lookup' }),
+        body: JSON.stringify({ userId: user?.id, type: 'lookup' }),
       });
     }
   };

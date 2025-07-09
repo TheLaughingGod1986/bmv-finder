@@ -22,28 +22,24 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
   onSearchSuggestion 
 }) => {
   const [popularAreas, setPopularAreas] = useState([
-    { area: 'SW1A 1AA', description: 'Buckingham Palace, London', icon: <MapPin className="w-4 h-4" /> },
-    { area: 'M1 1AA', description: 'Manchester City Centre', icon: <Home className="w-4 h-4" /> },
+    { area: 'SW1A 1AA', description: 'Westminster, London', icon: <Home className="w-4 h-4" /> },
+    { area: 'M1 1AA', description: 'Manchester City Centre', icon: <TrendingUp className="w-4 h-4" /> },
     { area: 'B1 1AA', description: 'Birmingham City Centre', icon: <Home className="w-4 h-4" /> },
-    { area: 'L1 1AA', description: 'Liverpool City Centre', icon: <Home className="w-4 h-4" /> },
-    { area: 'SE22 0HP', description: 'East Dulwich, London', icon: <TrendingUp className="w-4 h-4" /> },
+    { area: 'L1 1AA', description: 'Liverpool City Centre', icon: <TrendingUp className="w-4 h-4" /> },
+    { area: 'E1 1AA', description: 'East London', icon: <Home className="w-4 h-4" /> },
     { area: 'W11 1AA', description: 'Notting Hill, London', icon: <TrendingUp className="w-4 h-4" /> },
   ]);
 
-  const { user } = useUser();
+  const user = useUser();
   const { tier, loading: tierLoading } = useUserTier(user?.id);
   const [lookupCount, setLookupCount] = useState<number>(0);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
     fetch(`/api/profile-usage?userId=${user.id}`)
       .then(res => res.json())
       .then(data => setLookupCount(data.lookup_count || 0));
   }, [user]);
-
-  if (tier === 'free' && lookupCount >= 3) {
-    return <UpgradePrompt />;
-  }
 
   useEffect(() => {
     async function fetchPopularAreas() {
@@ -65,6 +61,10 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
     }
     fetchPopularAreas();
   }, []);
+
+  if (tier === 'free' && lookupCount >= 3) {
+    return <UpgradePrompt />;
+  }
 
   const SuggestionCard = ({ area, index }: { area: { area: string; description: string; icon: React.ReactNode }; index: number }) => (
     <motion.button

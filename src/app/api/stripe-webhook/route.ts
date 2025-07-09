@@ -4,7 +4,7 @@ import { supabaseAdmin } from '@/lib/supabaseAdminClient';
 
 // Stripe secret key and webhook secret from env
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-08-16',
+  apiVersion: '2025-06-30.basil',
 });
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId;
-      const priceId = session?.items?.data?.[0]?.price?.id || session?.metadata?.priceId;
+      const priceId = session.line_items?.data?.[0]?.price?.id || session.metadata?.priceId;
       // Log userId and priceId for debugging
       console.log('checkout.session.completed:', { userId, priceId, metadata: session.metadata });
       // Fallback: try to get priceId from line_items if expanded in webhook config
