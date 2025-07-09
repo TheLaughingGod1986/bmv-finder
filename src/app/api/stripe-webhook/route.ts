@@ -8,17 +8,19 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
+const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID!;
 const PRO_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID!;
 const PRO_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID!;
 const ELITE_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID!;
 const ELITE_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID!;
 const PDF_REPORT_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PDF_REPORT_PRICE_ID!;
 
-if (!PRO_MONTHLY_PRICE_ID || !PRO_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
+if (!STARTER_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PRO_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
   throw new Error('One or more Stripe Price IDs are missing from your environment variables.');
 }
 
 const priceIdToTier: Record<string, string> = {
+  [STARTER_PRICE_ID]: 'free',
   [PRO_MONTHLY_PRICE_ID]: 'pro',
   [PRO_YEARLY_PRICE_ID]: 'pro',
   [ELITE_MONTHLY_PRICE_ID]: 'elite',
@@ -53,15 +55,13 @@ export async function POST(req: NextRequest) {
       if (!userId) break;
       if (session.mode === 'subscription') {
         // Map priceId to tier
-        let tier: 'pro' | 'elite' | null = null;
-        if (priceId === PRO_MONTHLY_PRICE_ID || priceId === PRO_YEARLY_PRICE_ID) tier = 'pro';
-        if (priceId === ELITE_MONTHLY_PRICE_ID || priceId === ELITE_YEARLY_PRICE_ID) tier = 'elite';
+        const tier = priceIdToTier[priceId as string] as 'free' | 'pro' | 'elite' | undefined;
         if (tier) {
           await supabaseAdmin.from('profiles').update({ tier, billing_metadata: session }).eq('id', userId);
         }
-      } else if (session.mode === 'payment' && (priceId === PRO_MONTHLY_PRICE_ID || priceId === PRO_YEARLY_PRICE_ID)) {
-        // Treat one-time payment for pro as an upgrade (for testing or special cases)
-        await supabaseAdmin.from('profiles').update({ tier: 'pro', billing_metadata: session }).eq('id', userId);
+      } else if (session.mode === 'payment' && priceIdToTier[priceId as string]) {
+        // Treat one-time payment for any plan as an upgrade (for testing or special cases)
+        await supabaseAdmin.from('profiles').update({ tier: priceIdToTier[priceId as string], billing_metadata: session }).eq('id', userId);
       } else if (priceId === PDF_REPORT_PRICE_ID) {
         // PDF one-off purchase: grant entitlement (e.g., increment pdf_count or set flag)
         await supabaseAdmin.from('profiles').update({ pdf_entitlement: true }).eq('id', userId);
@@ -72,9 +72,7 @@ export async function POST(req: NextRequest) {
       const subscription = event.data.object as Stripe.Subscription;
       const userId = subscription.metadata?.userId;
       const priceId = subscription.items.data[0]?.price.id;
-      let tier: 'pro' | 'elite' | null = null;
-      if (priceId === PRO_MONTHLY_PRICE_ID || priceId === PRO_YEARLY_PRICE_ID) tier = 'pro';
-      if (priceId === ELITE_MONTHLY_PRICE_ID || priceId === ELITE_YEARLY_PRICE_ID) tier = 'elite';
+      const tier = priceIdToTier[priceId as string] as 'free' | 'pro' | 'elite' | undefined;
       if (userId && tier) {
         await supabaseAdmin.from('profiles').update({ tier, billing_metadata: subscription }).eq('id', userId);
       }
