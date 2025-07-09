@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      const regions = response.aggregations?.regions?.buckets || [];
+      const regions = (response.aggregations?.regions as any)?.buckets || [];
       const data = regions.map((bucket: any) => bucket.latest_data.hits.hits[0]._source);
 
       return NextResponse.json({
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data,
-      total: response.hits.total.value,
+      total: (response.hits.total as any)?.value || response.hits.total || 0,
       source: 'filtered_search'
     });
 
@@ -158,7 +158,7 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    const buckets = response.aggregations?.time_series?.buckets || [];
+    const buckets = (response.aggregations?.time_series as any)?.buckets || [];
     const timeSeriesData = buckets.map((bucket: any) => ({
       date: bucket.key_as_string,
       timestamp: bucket.key,
