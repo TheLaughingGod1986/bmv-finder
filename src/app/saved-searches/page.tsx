@@ -145,17 +145,17 @@ export default function SavedSearchesPage() {
         <meta name="twitter:description" content="Access your saved property searches and track market insights." />
         <link rel="canonical" href="https://bmvfinder.com/saved-searches" />
       </Head>
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 font-sans">
+      <div className="min-h-screen bg-[#FAF9F6] font-sans">
         <main className="container mx-auto px-4 py-12 max-w-4xl">
-          {/* Header */}
-          <div className="text-center mb-12">
+          {/* Standardized Header */}
+          <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <div className="bg-blue-100 rounded-full p-3">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                 <Bookmark className="w-7 h-7 text-blue-600" />
               </div>
-              <h1 className="text-4xl font-extrabold text-gray-900 mb-4" id="page-title">Saved Searches</h1>
+              <h1 className="text-4xl font-extrabold text-gray-900 mb-0" id="page-title">Saved Searches</h1>
             </div>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto" id="page-description">
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4" id="page-description">
               Access your frequently used property searches and track market insights across your favorite areas.
             </p>
           </div>
@@ -167,7 +167,7 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
+              className="bg-white rounded-2xl shadow-lg p-6"
             >
               <div className="flex items-center gap-3 mb-2">
                 <Search className="w-7 h-7 text-blue-500" />
@@ -180,7 +180,7 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
+              className="bg-white rounded-2xl shadow-lg p-6"
             >
               <div className="flex items-center gap-3 mb-2">
                 <MapPin className="w-7 h-7 text-green-500" />
@@ -193,7 +193,7 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
+              className="bg-white rounded-2xl shadow-lg p-6"
             >
               <div className="flex items-center gap-3 mb-2">
                 <Clock className="w-7 h-7 text-orange-500" />
@@ -249,7 +249,7 @@ export default function SavedSearchesPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + index * 0.05 }}
-                  className="bg-white/90 rounded-2xl p-6 shadow-lg border border-slate-200 hover:shadow-xl hover:border-slate-300 transition-all duration-200 group"
+                  className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 group"
                   role="article"
                   aria-labelledby={`search-${search.id}-title`}
                 >
@@ -289,14 +289,14 @@ export default function SavedSearchesPage() {
                     <div className="flex flex-col gap-2 ml-6">
                       <button
                         onClick={() => handleRunSearch(search.query)}
-                        className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition text-sm font-medium shadow-sm"
+                        className="rounded-full font-semibold shadow bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2 text-sm"
                         aria-label={`Run search for ${search.query}`}
                       >
                         <Search className="w-4 h-4" />
                         Run Search
                       </button>
                       <button
-                        className="text-red-500 hover:text-white hover:bg-red-500 rounded-lg p-2 transition focus:ring-2 focus:ring-red-300 focus:outline-none"
+                        className="rounded-full font-semibold shadow bg-red-100 text-red-700 px-5 py-2.5 hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-300 transition"
                         aria-label={`Delete saved search for ${search.query}`}
                         onClick={() => handleDelete(search.id)}
                       >
@@ -315,14 +315,14 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="mt-12 bg-white/80 rounded-2xl p-6 shadow-lg border border-slate-200"
+              className="mt-12 bg-white rounded-2xl shadow-lg p-6"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12" role="toolbar" aria-label="Search actions">
                 <div className="flex gap-2">
                   <button 
                     onClick={handleNewSearch}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-blue-600 text-white font-semibold shadow hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition"
+                    className="rounded-full font-semibold shadow bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
                     aria-label="Create a new property search"
                   >
                     <Plus className="w-5 h-5" />
@@ -330,7 +330,7 @@ export default function SavedSearchesPage() {
                   </button>
                   <button 
                     onClick={handleExport}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-slate-100 text-slate-700 font-semibold shadow hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition"
+                    className="rounded-full font-semibold shadow bg-slate-100 text-slate-700 px-5 py-2.5 hover:bg-slate-200 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
                     aria-label="Export saved searches"
                   >
                     <Bookmark className="w-5 h-5" />
