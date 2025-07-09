@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import AuthForm from "./AuthForm";
 import { useUserTier } from '@/hooks/useUserTier';
+import dayjs from 'dayjs';
 
 export default function UserProfile() {
   const [user, setUser] = useState<any>(null);
@@ -12,6 +13,7 @@ export default function UserProfile() {
   const [newPassword, setNewPassword] = useState("");
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
+  const [billingMetadata, setBillingMetadata] = useState<any>(null);
 
   // Always call useUserTier, even if user is null
   const { tier, loading: tierLoading } = useUserTier(user?.id);
@@ -22,6 +24,15 @@ export default function UserProfile() {
       setUser(data.user);
       setEmail(data.user?.email || "");
       setLoading(false);
+      // Fetch billing_metadata from profiles
+      if (data.user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('billing_metadata')
+          .eq('id', data.user.id)
+          .single();
+        setBillingMetadata(profile?.billing_metadata || null);
+      }
     };
     getUser();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -65,6 +76,12 @@ export default function UserProfile() {
       <div className="mt-2 text-base font-bold text-blue-700">
         {tierLoading ? 'Loading membership...' : `Membership: ${tier ? tier.toUpperCase() : 'FREE'}`}
       </div>
+      {/* Show renewal date if available */}
+      {billingMetadata && billingMetadata.current_period_end && (
+        <div className="text-sm text-gray-600 mt-1">
+          Renewal date: {dayjs.unix(billingMetadata.current_period_end).format('MMMM D, YYYY')}
+        </div>
+      )}
       <button
         onClick={handleLogout}
         className="mt-4 bg-red-500 hover:bg-red-600 text-white rounded px-4 py-2 font-semibold"
