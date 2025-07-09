@@ -7,72 +7,19 @@ import DealCalculator from '../components/DealCalculator';
 
 export default function DealCalculatorPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 font-sans">
+    <div className="min-h-screen bg-[#FAF9F6] font-sans">
       <main className="container mx-auto px-4 py-8 max-w-7xl">
-        {/* Header Section */}
-        <section className="mb-12">
-          <div className="bg-white/80 shadow-lg rounded-2xl p-8 md:p-12 max-w-4xl mx-auto text-center border border-slate-200">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="flex items-center justify-center mb-4"
-            >
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center">
-                <Calculator className="w-8 h-8 text-white" />
-              </div>
-            </motion.div>
-            
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl md:text-5xl font-extrabold mb-4 text-blue-800 leading-tight"
-            >
-              Deal Calculator
-            </motion.h1>
-            
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2 }}
-              className="text-lg md:text-xl text-slate-700 mb-6 font-medium"
-            >
-              Analyze property investment opportunities with our comprehensive deal calculator. 
-              Calculate ROI, yields, and cash flow to make informed investment decisions.
-            </motion.p>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3 }}
-              className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left max-w-3xl mx-auto"
-            >
-              <div className="flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <TrendingUp className="w-6 h-6 text-blue-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-blue-900 mb-1">ROI Analysis</h3>
-                  <p className="text-sm text-blue-800">Calculate return on investment including all costs and potential returns</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-4 bg-green-50 rounded-xl border border-green-200">
-                <Target className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-green-900 mb-1">Yield Calculation</h3>
-                  <p className="text-sm text-green-800">Determine gross and net rental yields for your investment</p>
-                </div>
-              </div>
-              
-              <div className="flex items-start gap-3 p-4 bg-purple-50 rounded-xl border border-purple-200">
-                <Calculator className="w-6 h-6 text-purple-600 mt-0.5 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold text-purple-900 mb-1">Cash Flow</h3>
-                  <p className="text-sm text-purple-800">Understand monthly cash flow after all expenses and mortgage</p>
-                </div>
-              </div>
-            </motion.div>
+        {/* Standardized Header */}
+        <section className="mb-10 max-w-3xl mx-auto pt-10">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <Calculator className="w-7 h-7 text-blue-600" />
+            </div>
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-0" id="page-title">Deal Calculator</h1>
           </div>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4" id="page-description">
+            Analyze property investment opportunities with our comprehensive deal calculator. Calculate ROI, yields, and cash flow to make informed investment decisions.
+          </p>
         </section>
 
         {/* Deal Calculator Component */}
@@ -82,7 +29,9 @@ export default function DealCalculatorPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <DealCalculator />
+            <div className="bg-white rounded-2xl shadow-lg p-6">
+              <DealCalculator />
+            </div>
           </motion.div>
         </section>
 

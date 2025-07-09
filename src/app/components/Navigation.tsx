@@ -4,123 +4,104 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Home, 
-  Calculator, 
-  Menu, 
-  X, 
-  Search, 
-  BarChart3, 
-  MapPin, 
-  Download,
-  HelpCircle,
-  Building2,
-  PoundSterling
+import {
+  Search,
+  BarChart3,
+  PoundSterling,
+  Calculator,
+  Building2
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { useUser } from '@supabase/auth-helpers-react';
+import { useUserTier } from '@/hooks/useUserTier';
+
+const minimalistNavItems = [
+  { name: 'Past Sales Search', href: '/', icon: Search },
+  { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: BarChart3 },
+  { name: 'What Should I Pay?', href: '/what-should-i-pay', icon: PoundSterling },
+  { name: 'Deal Calculator', href: '/deal-calculator', icon: Calculator },
+  { name: 'Portfolio Tracker', href: '/portfolio-tracker', icon: BarChart3 }
+];
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-
-  const navItems = [
-    // {
-    //   name: 'Home',
-    //   href: '/',
-    //   icon: Home,
-    //   description: 'Search property prices and BMV scores'
-    // },
-    {
-      name: 'Past Sales Search',
-      href: '/',
-      icon: Search,
-      description: 'Find and research past sold house data and prices from the Land Registry'
-    },
-    {
-      name: 'What Should I Pay?',
-      href: '/what-should-i-pay',
-      icon: PoundSterling,
-      description: 'Get smart offer suggestions'
-    },
-    {
-      name: 'Tools',
-      href: '/deal-calculator',
-      icon: Calculator,
-      description: 'Investment calculators and analysis'
-    },
-    {
-      name: 'Portfolio',
-      href: '/portfolio-tracker',
-      icon: BarChart3,
-      description: 'Track your property investments'
-    },
-    {
-      name: 'Export',
-      href: '/saved-searches',
-      icon: Download,
-      description: 'Export data and reports'
-    },
-    {
-      name: 'FAQ',
-      href: '/test',
-      icon: HelpCircle,
-      description: 'Help and documentation'
-    }
-  ];
+  const user = useUser();
+  const { tier } = useUserTier(user?.id);
 
   const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
-    }
+    if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-soft sticky top-0 z-sticky">
+    <nav className="bg-white sticky top-0 z-sticky border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo and Brand */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center shadow-soft group-hover:shadow-medium transition-shadow">
-              <Building2 className="w-6 h-6 text-white" />
+        <div className="flex items-center justify-between h-14">
+          {/* Logo */}
+          <Link href="/" className="flex items-center gap-2 group" aria-label="UK Property Insights Home">
+            <div className="w-8 h-8 bg-gradient-primary rounded flex items-center justify-center">
+              <Building2 className="w-5 h-5 text-white" />
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold text-text-primary tracking-tight">BMV Finder</span>
-              <span className="text-xs text-text-secondary">Property Investment Tool</span>
-            </div>
+            <span className="text-lg font-bold text-text-primary tracking-tight hidden sm:inline">UK Property Insights</span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center gap-1">
-            {navItems.map((item) => {
+          <div className="hidden lg:flex items-center gap-2">
+            {minimalistNavItems.map((item) => {
               const Icon = item.icon;
               return (
                 <Link
                   key={item.name}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-lg text-text-primary hover:bg-gray-100 hover:text-primary-600 transition-colors",
-                    isActive(item.href) && "bg-primary-500 text-white hover:bg-primary-600"
+                    'flex flex-col items-center justify-center px-3 py-2 rounded-md hover:bg-gray-50 transition-colors',
+                    isActive(item.href) && 'bg-primary-500 text-white'
                   )}
+                  aria-label={item.name}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium">{item.name}</span>
+                  <Icon className="w-5 h-5 mb-0.5" />
+                  <span className="sr-only">{item.name}</span>
                 </Link>
               );
             })}
+            <Link
+              href="/pricing"
+              className="ml-4 bg-primary-700 hover:bg-primary-800 text-white font-semibold rounded-full px-5 py-2 shadow transition text-sm"
+            >
+              See Packages
+            </Link>
+            {user ? (
+              <>
+                <Link
+                  href="/account"
+                  className="ml-2 bg-gray-100 hover:bg-gray-200 text-primary-700 font-semibold rounded-full px-5 py-2 shadow transition text-sm flex items-center gap-2"
+                >
+                  Account
+                  {tier && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wide">
+                      {tier}
+                    </span>
+                  )}
+                </Link>
+              </>
+            ) : (
+              <Link
+                href="/account"
+                className="ml-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-full px-5 py-2 shadow transition text-sm"
+              >
+                Login / Register
+              </Link>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="lg:hidden p-2 text-text-primary hover:text-primary-600 hover:bg-gray-100 rounded-lg transition-colors"
+            className="lg:hidden p-2 text-text-primary hover:text-primary-600 rounded transition-colors"
             aria-label="Toggle mobile menu"
           >
-            {isMobileMenuOpen ? (
-              <X className="w-6 h-6" />
-            ) : (
-              <Menu className="w-6 h-6" />
-            )}
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
           </button>
         </div>
       </div>
@@ -132,11 +113,11 @@ export default function Navigation() {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
-            className="lg:hidden overflow-hidden border-t border-gray-200 bg-white"
+            transition={{ duration: 0.2, ease: 'easeInOut' }}
+            className="lg:hidden overflow-hidden border-t border-gray-100 bg-white shadow-none"
           >
-            <div className="px-4 py-4 space-y-2">
-              {navItems.map((item) => {
+            <div className="px-4 py-4 flex flex-col gap-2">
+              {minimalistNavItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
@@ -144,18 +125,45 @@ export default function Navigation() {
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-lg text-text-primary hover:bg-gray-100 hover:text-primary-600 transition-colors",
-                      isActive(item.href) && "bg-primary-500 text-white hover:bg-primary-600"
+                      'flex items-center gap-3 px-3 py-2 rounded-md hover:bg-gray-50 transition-colors',
+                      isActive(item.href) && 'bg-primary-500 text-white'
                     )}
+                    aria-label={item.name}
                   >
                     <Icon className="w-5 h-5" />
-                    <div className="flex-1">
-                      <div className="font-medium">{item.name}</div>
-                      <div className="text-xs text-text-tertiary">{item.description}</div>
-                    </div>
+                    <span className="text-base font-medium">{item.name}</span>
                   </Link>
                 );
               })}
+              <Link
+                href="/pricing"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="mt-4 bg-primary-700 hover:bg-primary-800 text-white font-semibold rounded-full px-5 py-3 shadow transition text-base text-center"
+              >
+                See Packages
+              </Link>
+              {user ? (
+                <Link
+                  href="/account"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="mt-2 bg-gray-100 hover:bg-gray-200 text-primary-700 font-semibold rounded-full px-5 py-3 shadow transition text-base text-center flex items-center gap-2"
+                >
+                  Account
+                  {tier && (
+                    <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wide">
+                      {tier}
+                    </span>
+                  )}
+                </Link>
+              ) : (
+                <Link
+                  href="/account"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="mt-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-full px-5 py-3 shadow transition text-base text-center"
+                >
+                  Login / Register
+                </Link>
+              )}
             </div>
           </motion.div>
         )}

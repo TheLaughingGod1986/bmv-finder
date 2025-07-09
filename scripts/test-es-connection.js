@@ -1,7 +1,12 @@
+require('dotenv').config({ path: '.env.local' });
+console.log('ELASTICSEARCH_URL:', process.env.ELASTICSEARCH_URL);
 const { Client } = require('@elastic/elasticsearch');
 
 const esClient = new Client({
-  node: 'http://localhost:9200',
+  node: process.env.ELASTICSEARCH_URL,
+  auth: {
+    apiKey: process.env.ELASTICSEARCH_API_KEY
+  },
   // Disable SSL verification for local development
   tls: {
     rejectUnauthorized: false

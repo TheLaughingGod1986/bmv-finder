@@ -6,7 +6,7 @@ const path = require('path');
 const client = new Client({
   node: 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
   auth: {
-    apiKey: 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
+    apiKey: process.env.MEDIUM_API_KEY
   },
   tls: {
     rejectUnauthorized: false
