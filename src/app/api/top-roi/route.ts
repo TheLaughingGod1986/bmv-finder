@@ -4,7 +4,7 @@ import { Client } from '@elastic/elasticsearch';
 const client = new Client({
   node: process.env.ELASTICSEARCH_URL || 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
   auth: {
-    apiKey: process.env.ELASTICSEARCH_API_KEY
+    apiKey: process.env.ELASTICSEARCH_API_KEY || ''
   },
   tls: {
     rejectUnauthorized: false
@@ -56,10 +56,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    const properties = response.hits.hits.map(hit => hit._source);
+    const properties = response.hits.hits.map(hit => hit._source as any);
 
     // Calculate additional ROI metrics
-    const roiProperties = properties.map(property => {
+    const roiProperties = properties.map((property: any) => {
       const absoluteGrowth = property.estimatedValue - property.price;
       const roiPercentage = (absoluteGrowth / property.price) * 100;
       const annualizedRoi = calculateAnnualizedROI(
