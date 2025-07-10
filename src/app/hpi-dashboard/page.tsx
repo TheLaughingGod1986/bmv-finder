@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Line, Bar, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -121,11 +121,7 @@ export default function HpiDashboard() {
     fetchDateLimits();
   }, []);
 
-  useEffect(() => {
-    fetchHpiData();
-  }, [selectedRegion, dateRange]);
-
-  const fetchHpiData = async () => {
+  const fetchHpiData = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -162,7 +158,11 @@ export default function HpiDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedRegion, dateRange]);
+
+  useEffect(() => {
+    fetchHpiData();
+  }, [fetchHpiData]);
 
   const handlePostcodeSearch = async () => {
     setPostcodeError(null);

@@ -124,11 +124,11 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
         </div>
         
         <h2 className="text-2xl font-bold text-primary mb-3">
-          No properties found for "{postcode}"
+          No properties found for &quot;{postcode}&quot;
         </h2>
         
         <p className="text-taupe mb-6 max-w-2xl mx-auto leading-relaxed">
-          We couldn't find any property sales data for this area. This could be because:
+          We couldn&apos;t find any property sales data for this area. This could be because:
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10 max-w-3xl mx-auto">
@@ -207,17 +207,17 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
           <div>
             <strong>Try partial postcodes:</strong>
             <ul className="mt-1 space-y-1">
-              <li>• "SW1" for all SW1 areas</li>
-              <li>• "M1" for Manchester city centre</li>
-              <li>• "B1" for Birmingham city centre</li>
+              <li>• &quot;SW1&quot; for all SW1 areas</li>
+              <li>• &quot;M1&quot; for Manchester city centre</li>
+              <li>• &quot;B1&quot; for Birmingham city centre</li>
             </ul>
           </div>
           <div>
             <strong>Search by location:</strong>
             <ul className="mt-1 space-y-1">
-              <li>• Street names (e.g., "Oxford Street")</li>
-              <li>• Town names (e.g., "Manchester")</li>
-              <li>• Area names (e.g., "Notting Hill")</li>
+              <li>• Street names (e.g., &quot;Oxford Street&quot;)</li>
+              <li>• Town names (e.g., &quot;Manchester&quot;)</li>
+              <li>• Area names (e.g., &quot;Notting Hill&quot;)</li>
             </ul>
           </div>
         </div>

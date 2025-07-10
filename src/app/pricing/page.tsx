@@ -71,7 +71,10 @@ export default function PricingPage() {
             </a>
           </div>
           {/* Pro Plan Card */}
-          <div className="flex flex-col items-center bg-white rounded-2xl shadow-lg p-8 w-80 mb-0">
+          <div className={`flex flex-col items-center rounded-2xl shadow-lg p-8 w-80 mb-0 relative ${user && userTier === 'pro' ? 'border-4 border-blue-600 bg-blue-50' : 'border border-gray-200 bg-white'}`}>
+            {user && userTier === 'pro' && (
+              <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
+            )}
             <h3 className="text-xl font-bold mb-2">Pro</h3>
             <div className="text-2xl font-extrabold mb-2">£19/mo or £190/yr</div>
             <div className="mb-4 text-gray-600 text-center">Everything you need for property analysis</div>
@@ -94,7 +97,10 @@ export default function PricingPage() {
             )}
           </div>
           {/* Elite Plan Card */}
-          <div className="flex flex-col items-center bg-white rounded-2xl shadow-lg p-8 w-80 mb-0">
+          <div className={`flex flex-col items-center rounded-2xl shadow-lg p-8 w-80 mb-0 relative ${user && userTier === 'elite' ? 'border-4 border-blue-600 bg-blue-50' : 'border border-gray-200 bg-white'}`}>
+            {user && userTier === 'elite' && (
+              <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
+            )}
             <h3 className="text-xl font-bold mb-2">Elite</h3>
             <div className="text-2xl font-extrabold mb-2">£49/mo or £490/yr</div>
             <div className="mb-4 text-gray-600 text-center">Everything you need for property investment</div>

@@ -50,7 +50,7 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
           <div className="flex items-center gap-2 mb-2">
             <MapPin className="w-5 h-5 text-primary-600" />
             <h2 className="text-xl font-semibold text-text-primary">
-              Search Results for "{searchTerm}"
+              Search Results for &quot;{searchTerm}&quot;
             </h2>
           </div>
           
