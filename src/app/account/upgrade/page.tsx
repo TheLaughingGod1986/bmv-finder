@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { useSession } from '@supabase/auth-helpers-react';
+import { createClient } from '@supabase/supabase-js';
 import { getUserProfile } from '@/utils/getUserProfile';
 import { useToast } from '@/app/components/ToastProvider';
 import { format } from 'date-fns';
@@ -15,6 +15,58 @@ if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
 }
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+
+// Client-side only Supabase client
+function getSupabase() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase environment variables are not set');
+  }
+  
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
+
+// Custom hook for session management
+function useClientSession() {
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const supabase = useMemo(() => getSupabase(), []);
+  
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    
+    const getSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+      } catch (error) {
+        console.error('Error getting session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    getSession();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+  
+  return { session, loading };
+}
 
 type UserTier = 'free' | 'pro' | 'elite' | 'unknown';
 type BillingInterval = 'monthly' | 'yearly';
@@ -100,7 +152,7 @@ const PLANS: Plan[] = [
 ];
 
 const UpgradePage = () => {
-  const session = useSession();
+  const { session, loading: sessionLoading } = useClientSession();
   const userId = session?.user?.id;
   const { showToast } = useToast();
   const [userTier, setUserTier] = useState<UserTier>('unknown');
@@ -238,7 +290,6 @@ const UpgradePage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {}),
         },
       });
       if (!res.ok) {
@@ -273,8 +324,12 @@ const UpgradePage = () => {
   });
   console.log('userId:', userId);
 
-  if (!session) {
+  if (sessionLoading) {
     return <div style={{ maxWidth: 480, margin: '0 auto', padding: '2rem' }}><h1>Upgrade Your Account</h1><p>Loading...</p></div>;
+  }
+
+  if (!session) {
+    return <div style={{ maxWidth: 480, margin: '0 auto', padding: '2rem' }}><h1>Upgrade Your Account</h1><p>Please sign in to upgrade your account.</p></div>;
   }
 
   return (
