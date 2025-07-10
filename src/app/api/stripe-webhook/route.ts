@@ -26,26 +26,32 @@ const getSupabaseAdmin = () => {
   );
 };
 
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+// Get Stripe Price IDs and create mapping only when environment variables are available
+const getPriceIdToTier = () => {
+  const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID;
+  const PRO_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID;
+  const PRO_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID;
+  const ELITE_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID;
+  const ELITE_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID;
+  const PDF_REPORT_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PDF_REPORT_PRICE_ID;
 
-const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID!;
-const PRO_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID!;
-const PRO_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID!;
-const ELITE_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID!;
-const ELITE_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID!;
-const PDF_REPORT_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PDF_REPORT_PRICE_ID!;
+  if (!STARTER_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PRO_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
+    throw new Error('One or more Stripe Price IDs are missing from your environment variables.');
+  }
 
-if (!STARTER_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PRO_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
-  throw new Error('One or more Stripe Price IDs are missing from your environment variables.');
-}
-
-const priceIdToTier: Record<string, string> = {
-  [STARTER_PRICE_ID]: 'free',
-  [PRO_MONTHLY_PRICE_ID]: 'pro',
-  [PRO_YEARLY_PRICE_ID]: 'pro',
-  [ELITE_MONTHLY_PRICE_ID]: 'elite',
-  [ELITE_YEARLY_PRICE_ID]: 'elite',
+  return {
+    priceIdToTier: {
+      [STARTER_PRICE_ID]: 'free',
+      [PRO_MONTHLY_PRICE_ID]: 'pro',
+      [PRO_YEARLY_PRICE_ID]: 'pro',
+      [ELITE_MONTHLY_PRICE_ID]: 'elite',
+      [ELITE_YEARLY_PRICE_ID]: 'elite',
+    },
+    PDF_REPORT_PRICE_ID
+  };
 };
+
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 export async function POST(req: NextRequest) {
   try {
@@ -60,6 +66,9 @@ export async function POST(req: NextRequest) {
       console.error('Webhook signature verification failed.', err.message);
       return NextResponse.json({ error: `Webhook Error: ${err.message}` }, { status: 400 });
     }
+
+    // Get price ID mapping
+    const { priceIdToTier, PDF_REPORT_PRICE_ID } = getPriceIdToTier();
 
     // Log the incoming event for debugging
     console.log('Received Stripe event:', event.type, JSON.stringify(event, null, 2));
