@@ -198,7 +198,7 @@ const UpgradePage = () => {
   const subscriptionInfo = profile ? parseSubscriptionMetadata(profile.billing_metadata) : null;
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || typeof window === 'undefined') return;
     setProfileLoading(true);
     setProfileError(null);
     getUserProfile(userId)

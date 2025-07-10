@@ -1,10 +1,27 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+function getSupabase() {
+  // Only create client on the client side
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase environment variables are not set');
+  }
+  
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
 export async function getUserProfile(userId: string) {
+  const supabase = getSupabase();
+  if (!supabase) {
+    throw new Error('Supabase client not available on server side');
+  }
+
   const { data, error } = await supabase
     .from('profiles')
     .select('*')
