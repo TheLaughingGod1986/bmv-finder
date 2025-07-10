@@ -126,27 +126,11 @@ export default function PropertyHistoryModal({
   const addressKey = (sp: SoldPrice) =>
     [sp.paon, sp.street, sp.postcode].map(x => (x || '').trim().toLowerCase()).join('|');
 
-  // Sort history by date (oldest first)
-  const sortedHistory = [...fullHistory].sort((a, b) => 
-    new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()
-  );
-
-  // Group by addressKey and keep only the most recent sale for each property (matches table logic)
-  const groupedByAddress: { [key: string]: SoldPrice } = {};
-  sortedHistory.forEach(sale => {
-    const key = addressKey(sale);
-    if (!groupedByAddress[key] || new Date(sale.dateOfTransfer) > new Date(groupedByAddress[key].dateOfTransfer)) {
-      groupedByAddress[key] = sale;
-    }
-  });
-  // Now get the most recent sale for each address
-  const dedupedHistory = Object.values(groupedByAddress)
-    .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
-
-  // Calculate price changes for deduped sales
-  const historyWithChanges = dedupedHistory.map((sale, index) => {
+  // Remove deduplication logic from the modal, use the passed-in history prop directly
+  // Calculate price changes for the passed-in history
+  const historyWithChanges = history.map((sale, index) => {
     if (index === 0) return { ...sale, priceChange: 0, priceChangePercent: 0 };
-    const previousPrice = dedupedHistory[index - 1].price;
+    const previousPrice = history[index - 1].price;
     const currentPrice = sale.price;
     const priceChange = currentPrice - previousPrice;
     const priceChangePercent = (priceChange / previousPrice) * 100;
@@ -264,6 +248,10 @@ export default function PropertyHistoryModal({
 
   const chartData = prepareChartData();
 
+  // Show a warning if the number of sales in the modal does not match the expected count
+  const expectedSalesCount = property?.expectedSalesCount; // Optionally pass this as a prop if available
+  const showSalesCountWarning = expectedSalesCount && history.length !== expectedSalesCount;
+
   // Overlay click handler
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
@@ -295,8 +283,13 @@ export default function PropertyHistoryModal({
                 <Home className="w-5 h-5 text-primary-600" />
               </div>
               <div>
+                {showSalesCountWarning && (
+                  <div className="mb-2 p-2 rounded bg-yellow-100 text-yellow-800 font-semibold border border-yellow-300">
+                    Warning: The number of sales shown in this modal ({history.length}) does not match the expected count ({expectedSalesCount}). This may indicate a deduplication or grouping issue.
+                  </div>
+                )}
                 <h2 className="text-xl font-semibold text-text-primary">
-                  {dedupedHistory.length > 1 ? `Property Sales History (${dedupedHistory.length} sales)` : 'Property Details'}
+                  {history.length > 1 ? `Property Sales History (${history.length} sales)` : 'Property Details'}
                 </h2>
                 <p className="text-sm text-text-secondary">{formatAddress(property)}</p>
               </div>
