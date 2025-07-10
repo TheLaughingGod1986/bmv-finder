@@ -253,9 +253,7 @@ export default function PropertyHistoryModal({
 
   const chartData = prepareChartData();
 
-  // Show a warning if the number of sales in the modal does not match the expected count
-  const expectedSalesCount = property?.expectedSalesCount; // Optionally pass this as a prop if available
-  const showSalesCountWarning = expectedSalesCount && history.length !== expectedSalesCount;
+  // Overlay click handler
 
   // Overlay click handler
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -288,11 +286,6 @@ export default function PropertyHistoryModal({
                 <Home className="w-5 h-5 text-primary-600" />
               </div>
               <div>
-                {showSalesCountWarning && (
-                  <div className="mb-2 p-2 rounded bg-yellow-100 text-yellow-800 font-semibold border border-yellow-300">
-                    Warning: The number of sales shown in this modal ({history.length}) does not match the expected count ({expectedSalesCount}). This may indicate a deduplication or grouping issue.
-                  </div>
-                )}
                 <h2 className="text-xl font-semibold text-text-primary">
                   {history.length > 1 ? `Property Sales History (${history.length} sales)` : 'Property Details'}
                 </h2>
