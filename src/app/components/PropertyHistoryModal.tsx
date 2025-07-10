@@ -28,6 +28,11 @@ export default function PropertyHistoryModal({
   onClose,
   allSales
 }: PropertyHistoryModalProps) {
+  // Guard clause for null property
+  if (!property) {
+    return null;
+  }
+
   const [isLoading, setIsLoading] = useState(false);
   const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -155,37 +160,37 @@ export default function PropertyHistoryModal({
       console.warn('[SimilarProperties] property is null or undefined');
       return [];
     }
-    console.log('[SimilarProperties] Property street:', property.street);
-    console.log('[SimilarProperties] Property postcode:', property.postcode);
+            console.log('[SimilarProperties] Property street:', property?.street);
+        console.log('[SimilarProperties] Property postcode:', property?.postcode);
     console.log('[SimilarProperties] Source data length:', similarSalesSource.length);
     
     let filtered = [] as SoldPrice[];
     switch (similarSalesOption) {
       case 'default':
         filtered = similarSalesSource.filter(sp =>
-          sp.street === property.street &&
+          sp.street === property?.street &&
           normalizeAddress(sp) !== currentAddressKey
         );
         console.log('[SimilarProperties] Default filter - same street matches:', filtered.length);
         break;
       case 'nearby':
         filtered = similarSalesSource.filter(sp =>
-          (sp.street === property.street || areStreetsSimilar(sp.street, property.street)) &&
+          (sp.street === property?.street || areStreetsSimilar(sp.street, property?.street || '')) &&
           normalizeAddress(sp) !== currentAddressKey
         );
         console.log('[SimilarProperties] Nearby filter - similar streets matches:', filtered.length);
         break;
       case 'postcode':
         filtered = similarSalesSource.filter(sp =>
-          sp.postcode === property.postcode &&
+          sp.postcode === property?.postcode &&
           normalizeAddress(sp) !== currentAddressKey
         );
         console.log('[SimilarProperties] Postcode filter - same postcode matches:', filtered.length);
         break;
       case 'broader':
         filtered = similarSalesSource.filter(sp => {
-          const isSamePostcode = sp.postcode === property.postcode;
-          const isSimilarStreet = areStreetsSimilar(sp.street, property.street);
+          const isSamePostcode = sp.postcode === property?.postcode;
+          const isSimilarStreet = areStreetsSimilar(sp.street, property?.street || '');
           const isNotCurrentProperty = normalizeAddress(sp) !== currentAddressKey;
           return (isSamePostcode || isSimilarStreet) && isNotCurrentProperty;
         });
@@ -193,7 +198,7 @@ export default function PropertyHistoryModal({
         break;
       default:
         filtered = similarSalesSource.filter(sp =>
-          sp.street === property.street &&
+          sp.street === property?.street &&
           normalizeAddress(sp) !== currentAddressKey
         );
         console.log('[SimilarProperties] Default case - same street matches:', filtered.length);
@@ -340,14 +345,14 @@ export default function PropertyHistoryModal({
                         <Home className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Property Type</div>
-                          <div className="font-medium text-text-primary">{property ? formatPropertyType(property.propertyType) : ''}</div>
+                          <div className="font-medium text-text-primary">{property?.propertyType ? formatPropertyType(property.propertyType) : 'N/A'}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <TrendingUp className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Tenure</div>
-                          <div className="font-medium text-text-primary">{property ? formatDuration(property.duration) : ''}</div>
+                          <div className="font-medium text-text-primary">{property?.duration ? formatDuration(property.duration) : 'N/A'}</div>
                         </div>
                       </div>
                     </div>
@@ -359,21 +364,21 @@ export default function PropertyHistoryModal({
                         <PoundSterling className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Sale Price</div>
-                          <div className="text-2xl font-bold text-text-primary">{property ? formatPrice(property.price) : ''}</div>
+                          <div className="text-2xl font-bold text-text-primary">{property?.price ? formatPrice(property.price) : 'N/A'}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Calendar className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Sale Date</div>
-                          <div className="font-medium text-text-primary">{property ? formatDate(property.dateOfTransfer) : ''}</div>
+                          <div className="font-medium text-text-primary">{property?.dateOfTransfer ? formatDate(property.dateOfTransfer) : 'N/A'}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <TrendingUp className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">BMV Score</div>
-                          <div className="font-medium text-text-primary">{property ? property.bmvScore || 'N/A' : 'N/A'}</div>
+                          <div className="font-medium text-text-primary">{property?.bmvScore || 'N/A'}</div>
                         </div>
                       </div>
                     </div>
@@ -389,7 +394,7 @@ export default function PropertyHistoryModal({
                 <AreaPriceTrendChart
                   labels={chartData.labels}
                   data={chartData.data}
-                  areaName={property.town_city || property.postcode}
+                  areaName={property?.town_city || property?.postcode || 'Unknown Area'}
                 />
               </div>
             )}
