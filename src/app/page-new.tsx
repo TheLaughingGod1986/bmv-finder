@@ -408,12 +408,18 @@ export default function HomeNew() {
                   className="overflow-hidden"
                 >
                   <EnhancedFilters
+                    isOpen={isFiltersOpen}
+                    onClose={() => setIsFiltersOpen(false)}
                     filters={filters}
                     onFiltersChange={setFilters}
-                    onApplyFilters={() => {
-                      if (searchTerm) {
-                        handleSearch(searchTerm);
-                      }
+                    onReset={() => {
+                      setFilters({
+                        priceRange: { min: 0, max: 10000000 },
+                        dateRange: { start: '', end: '' },
+                        propertyType: [],
+                        duration: [],
+                        year: []
+                      });
                     }}
                   />
                 </motion.div>
