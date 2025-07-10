@@ -130,7 +130,7 @@ export default function UserProfile() {
                 )}
               </div>
             )}
-          </div>
+      </div>
         </div>
       </div>
 
@@ -141,14 +141,14 @@ export default function UserProfile() {
             <label htmlFor="newEmail" className="block text-sm font-medium text-gray-700">
               New Email
             </label>
-            <input
-              type="email"
+        <input
+          type="email"
               id="newEmail"
-              value={newEmail}
+          value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
-              required
+          required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
+        />
           </div>
           <button
             type="submit"
@@ -161,7 +161,7 @@ export default function UserProfile() {
               {emailMsg}
             </div>
           )}
-        </form>
+      </form>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -171,15 +171,15 @@ export default function UserProfile() {
             <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
               New Password
             </label>
-            <input
-              type="password"
+        <input
+          type="password"
               id="newPassword"
-              value={newPassword}
+          value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              required
+          required
               minLength={6}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-            />
+        />
           </div>
           <button
             type="submit"
@@ -192,7 +192,7 @@ export default function UserProfile() {
               {pwMsg}
             </div>
           )}
-        </form>
+      </form>
       </div>
 
       <div className="bg-white rounded-lg shadow-md p-6">

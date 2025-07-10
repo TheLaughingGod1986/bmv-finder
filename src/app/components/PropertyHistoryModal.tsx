@@ -77,7 +77,8 @@ export default function PropertyHistoryModal({
     return duration === 'F' ? 'Freehold' : 'Leasehold';
   };
 
-  const formatAddress = (sp: SoldPrice) => {
+  const formatAddress = (sp: SoldPrice | null | undefined) => {
+    if (!sp) return '';
     const addressParts = [];
     if (sp.saon && sp.saon.trim()) addressParts.push(sp.saon.trim());
     if (sp.paon && sp.paon.trim()) addressParts.push(sp.paon.trim());
@@ -86,38 +87,13 @@ export default function PropertyHistoryModal({
     return addressParts.join(', ');
   };
 
-  // Sort history by date (oldest first)
-  const sortedHistory = [...fullHistory].sort((a, b) => 
-    new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()
-  );
-
-  // Filter out exact duplicates (same date, price, and address)
-  const uniqueHistory = sortedHistory.filter((sale, idx, arr) => {
-    return idx === arr.findIndex(other =>
-      other.dateOfTransfer === sale.dateOfTransfer &&
-      other.price === sale.price &&
-      (other.paon || '') === (sale.paon || '') &&
-      (other.saon || '') === (sale.saon || '') &&
-      (other.street || '') === (sale.street || '') &&
-      (other.postcode || '') === (sale.postcode || '')
-    );
-  });
-
-  // Calculate price changes for unique sales
-  const historyWithChanges = uniqueHistory.map((sale, index) => {
-    if (index === 0) return { ...sale, priceChange: 0, priceChangePercent: 0 };
-    const previousPrice = uniqueHistory[index - 1].price;
-    const currentPrice = sale.price;
-    const priceChange = currentPrice - previousPrice;
-    const priceChangePercent = (priceChange / previousPrice) * 100;
-    return { ...sale, priceChange, priceChangePercent };
-  });
-
   // Helper to normalize address for comparison
-  const normalizeAddress = (sp: SoldPrice) =>
-    [sp.paon, sp.saon, sp.street, sp.postcode]
+  const normalizeAddress = (sp: SoldPrice | null | undefined) => {
+    if (!sp) return '';
+    return [sp.paon, sp.saon, sp.street, sp.postcode]
       .map(x => (x || '').trim().toLowerCase())
       .join('|');
+  };
 
   // Helper to check if streets are similar (fuzzy matching)
   const areStreetsSimilar = (street1: string, street2: string) => {
@@ -146,6 +122,37 @@ export default function PropertyHistoryModal({
     return s1Base === s2Base;
   };
 
+  // Helper to normalize address for grouping (same as table)
+  const addressKey = (sp: SoldPrice) =>
+    [sp.paon, sp.street, sp.postcode].map(x => (x || '').trim().toLowerCase()).join('|');
+
+  // Sort history by date (oldest first)
+  const sortedHistory = [...fullHistory].sort((a, b) => 
+    new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime()
+  );
+
+  // Group by addressKey and keep only the most recent sale for each property (matches table logic)
+  const groupedByAddress: { [key: string]: SoldPrice } = {};
+  sortedHistory.forEach(sale => {
+    const key = addressKey(sale);
+    if (!groupedByAddress[key] || new Date(sale.dateOfTransfer) > new Date(groupedByAddress[key].dateOfTransfer)) {
+      groupedByAddress[key] = sale;
+    }
+  });
+  // Now get the most recent sale for each address
+  const dedupedHistory = Object.values(groupedByAddress)
+    .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
+
+  // Calculate price changes for deduped sales
+  const historyWithChanges = dedupedHistory.map((sale, index) => {
+    if (index === 0) return { ...sale, priceChange: 0, priceChangePercent: 0 };
+    const previousPrice = dedupedHistory[index - 1].price;
+    const currentPrice = sale.price;
+    const priceChange = currentPrice - previousPrice;
+    const priceChangePercent = (priceChange / previousPrice) * 100;
+    return { ...sale, priceChange, priceChangePercent };
+  });
+
   // Get the normalized address of the current property
   const currentAddressKey = normalizeAddress(property);
 
@@ -160,6 +167,10 @@ export default function PropertyHistoryModal({
   // Find similar properties based on selected option
   const similarProperties = React.useMemo(() => {
     console.log('[SimilarProperties] Recalculating with option:', similarSalesOption);
+    if (!property) {
+      console.warn('[SimilarProperties] property is null or undefined');
+      return [];
+    }
     console.log('[SimilarProperties] Property street:', property.street);
     console.log('[SimilarProperties] Property postcode:', property.postcode);
     console.log('[SimilarProperties] Source data length:', similarSalesSource.length);
@@ -285,7 +296,7 @@ export default function PropertyHistoryModal({
               </div>
               <div>
                 <h2 className="text-xl font-semibold text-text-primary">
-                  {uniqueHistory.length > 1 ? `Property Sales History (${uniqueHistory.length} sales)` : 'Property Details'}
+                  {dedupedHistory.length > 1 ? `Property Sales History (${dedupedHistory.length} sales)` : 'Property Details'}
                 </h2>
                 <p className="text-sm text-text-secondary">{formatAddress(property)}</p>
               </div>
@@ -336,14 +347,14 @@ export default function PropertyHistoryModal({
                         <Home className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Property Type</div>
-                          <div className="font-medium text-text-primary">{formatPropertyType(property.propertyType)}</div>
+                          <div className="font-medium text-text-primary">{property ? formatPropertyType(property.propertyType) : ''}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <TrendingUp className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Tenure</div>
-                          <div className="font-medium text-text-primary">{formatDuration(property.duration)}</div>
+                          <div className="font-medium text-text-primary">{property ? formatDuration(property.duration) : ''}</div>
                         </div>
                       </div>
                     </div>
@@ -355,21 +366,21 @@ export default function PropertyHistoryModal({
                         <PoundSterling className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Sale Price</div>
-                          <div className="text-2xl font-bold text-text-primary">{formatPrice(property.price)}</div>
+                          <div className="text-2xl font-bold text-text-primary">{property ? formatPrice(property.price) : ''}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <Calendar className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">Sale Date</div>
-                          <div className="font-medium text-text-primary">{formatDate(property.dateOfTransfer)}</div>
+                          <div className="font-medium text-text-primary">{property ? formatDate(property.dateOfTransfer) : ''}</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
                         <TrendingUp className="w-4 h-4 text-text-tertiary" />
                         <div>
                           <div className="text-sm text-text-secondary">BMV Score</div>
-                          <div className="font-medium text-text-primary">{property.bmvScore || 'N/A'}</div>
+                          <div className="font-medium text-text-primary">{property ? property.bmvScore || 'N/A' : 'N/A'}</div>
                         </div>
                       </div>
                     </div>

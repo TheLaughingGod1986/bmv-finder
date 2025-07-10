@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getIndex, estimateUsingHpi, calculateYoYGrowth, HpiRecord } from '@/utils/hpiEstimator';
 import { scoreConfidence } from '@/utils/confidenceScorer';
 import { esClient } from '@/lib/esClient';
-import { postcodeToRegion } from '../../../../utils/postcodeToRegion';
+import { postcodeToRegion } from '@/utils/postcodeToRegion';
 import { parse, format, differenceInMonths } from 'date-fns';
 
 // Helper: fetch HPI data from ES (or cache)

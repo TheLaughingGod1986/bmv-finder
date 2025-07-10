@@ -3,6 +3,33 @@ const fs = require('fs');
 const path = require('path');
 const csv = require('csv-parser');
 require('dotenv').config();
+const yargs = require('yargs/yargs');
+const { hideBin } = require('yargs/helpers');
+const axios = require('axios');
+
+const argv = yargs(hideBin(process.argv))
+  .option('postcode', {
+    alias: 'p',
+    type: 'string',
+    description: 'Postcode to search for HPI data'
+  })
+  .option('mode', {
+    alias: 'm',
+    type: 'string',
+    default: 'upload',
+    choices: ['upload', 'search'],
+    description: 'Mode: upload (default) or search'
+  })
+  .option('fetch-api', {
+    alias: 'f',
+    type: 'boolean',
+    default: true,
+    description: 'Fetch data from Land Registry API if not found locally (search mode only)'
+  })
+  .help()
+  .argv;
+
+console.log('CLI arguments:', argv);
 
 // Elasticsearch client configuration
 const client = new Client({
@@ -164,13 +191,35 @@ async function calculateGrowthRates(data) {
 }
 
 async function uploadToElasticsearch(data) {
-  console.log(`📤 Uploading ${data.length} records to Elasticsearch...`);
+  console.log(`📤 Checking and uploading ${data.length} records to Elasticsearch...`);
+  
+  // Filter out records that already exist
+  const missingRecords = [];
+  let checked = 0;
+  
+  for (const record of data) {
+    const exists = await checkRecordExists(record);
+    if (!exists) {
+      missingRecords.push(record);
+    }
+    checked++;
+    if (checked % 100 === 0) {
+      console.log(`🔍 Checked ${checked}/${data.length} records, found ${missingRecords.length} missing`);
+    }
+  }
+  
+  console.log(`📊 Found ${missingRecords.length} missing records out of ${data.length} total`);
+  
+  if (missingRecords.length === 0) {
+    console.log('✅ All records already exist in Elasticsearch');
+    return;
+  }
   
   const batchSize = 1000;
   let uploaded = 0;
   
-  for (let i = 0; i < data.length; i += batchSize) {
-    const batch = data.slice(i, i + batchSize);
+  for (let i = 0; i < missingRecords.length; i += batchSize) {
+    const batch = missingRecords.slice(i, i + batchSize);
     
     const body = batch.flatMap(doc => [
       { index: { _index: INDEX_NAME } },
@@ -190,7 +239,7 @@ async function uploadToElasticsearch(data) {
       }
       
       uploaded += batch.length;
-      console.log(`📊 Uploaded ${uploaded}/${data.length} records`);
+      console.log(`📊 Uploaded ${uploaded}/${missingRecords.length} missing records`);
       
     } catch (error) {
       console.error('❌ Error uploading batch:', error);
@@ -231,6 +280,37 @@ async function createSampleCsv() {
   
   fs.writeFileSync(DEFAULT_CSV_PATH, csvContent.join(''));
   console.log(`✅ Sample CSV created at ${DEFAULT_CSV_PATH}`);
+}
+
+async function checkRecordExists(record) {
+  const query = {
+    bool: {
+      must: [
+        { term: { region: record.region } },
+        { term: { date: record.date } }
+      ]
+    }
+  };
+  
+  // Add postcode to query if it exists
+  if (record.postcode) {
+    query.bool.must.push({ term: { postcode: record.postcode } });
+  }
+  
+  try {
+    const result = await client.search({
+      index: INDEX_NAME,
+      size: 1,
+      body: {
+        query: query
+      }
+    });
+    
+    return result.body && result.body.hits && result.body.hits.total && result.body.hits.total.value > 0;
+  } catch (error) {
+    console.error('Error checking if record exists:', error);
+    return false;
+  }
 }
 
 async function uploadHpi(csvPath = DEFAULT_CSV_PATH) {
@@ -283,19 +363,185 @@ async function uploadHpi(csvPath = DEFAULT_CSV_PATH) {
   }
 }
 
+async function searchHpiByPostcode(postcode) {
+  console.log(`🔍 Searching for HPI data for postcode: ${postcode}`);
+  
+  try {
+    const result = await client.search({
+      index: INDEX_NAME,
+      size: 100,
+      body: {
+        query: {
+          term: { postcode: postcode }
+        },
+        sort: [
+          { date: { order: 'desc' } }
+        ]
+      }
+    });
+    
+    const hits = result.body && result.body.hits ? result.body.hits.hits : [];
+    
+    if (hits.length === 0) {
+      console.log(`❌ No HPI data found for postcode: ${postcode}`);
+      return [];
+    }
+    
+    console.log(`✅ Found ${hits.length} HPI records for postcode: ${postcode}`);
+    
+    // Display the results
+    hits.forEach((hit, index) => {
+      const source = hit._source;
+      console.log(`${index + 1}. ${source.region} - ${source.date} - Index: ${source.index}`);
+      if (source.monthOverMonth !== undefined) {
+        console.log(`   MoM Growth: ${source.monthOverMonth.toFixed(2)}%`);
+      }
+      if (source.yearOverYear !== undefined) {
+        console.log(`   YoY Growth: ${source.yearOverYear.toFixed(2)}%`);
+      }
+    });
+    
+    return hits.map(hit => hit._source);
+    
+  } catch (error) {
+    console.error('❌ Error searching for postcode:', error);
+    return [];
+  }
+}
+
+// Land Registry API configuration
+const LAND_REGISTRY_API_BASE = 'https://landregistry.data.gov.uk/data/ppi/';
+
+async function fetchHpiFromLandRegistry(postcode) {
+  console.log(`🌐 Fetching HPI data from Land Registry API for postcode: ${postcode}`);
+  
+  try {
+    // Query the Land Registry API for HPI data
+    const response = await axios.get(`${LAND_REGISTRY_API_BASE}transaction-record`, {
+      params: {
+        postcode: postcode,
+        limit: 100,
+        format: 'json'
+      },
+      timeout: 30000
+    });
+    
+    if (!response.data || !response.data.result) {
+      console.log(`❌ No data returned from Land Registry API for postcode: ${postcode}`);
+      return [];
+    }
+    
+    const transactions = response.data.result.items || [];
+    console.log(`📊 Found ${transactions.length} transactions from Land Registry API`);
+    
+    // Process and format the data for HPI index
+    const hpiRecords = transactions.map(transaction => {
+      const date = new Date(transaction.dateOfTransfer);
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      
+      return {
+        region: transaction.region || 'Unknown',
+        regionCode: transaction.regionCode || '',
+        date: `${year}-${month.toString().padStart(2, '0')}`,
+        year: year,
+        month: month,
+        index: transaction.pricePaid || 0,
+        postcode: postcode,
+        regionType: 'England', // Default, could be enhanced
+        source: 'Land Registry API',
+        lastUpdated: new Date().toISOString(),
+        transactionId: transaction.transactionId,
+        propertyType: transaction.propertyType,
+        pricePaid: transaction.pricePaid
+      };
+    });
+    
+    return hpiRecords;
+    
+  } catch (error) {
+    console.error('❌ Error fetching from Land Registry API:', error.message);
+    return [];
+  }
+}
+
+async function searchAndFetchHpiData(postcode, fetchFromApi = true) {
+  console.log(`🔍 Searching for HPI data for postcode: ${postcode}`);
+  
+  // First, search in Elasticsearch
+  const existingData = await searchHpiByPostcode(postcode);
+  
+  if (existingData.length > 0) {
+    console.log(`✅ Found ${existingData.length} existing records in Elasticsearch`);
+    return existingData;
+  }
+  
+  if (!fetchFromApi) {
+    console.log(`❌ No existing data found in Elasticsearch for ${postcode}`);
+    return [];
+  }
+  
+  console.log(`❌ No existing data found in Elasticsearch for ${postcode}`);
+  console.log(`🌐 Attempting to fetch from Land Registry API...`);
+  
+  // If not found in Elasticsearch, try Land Registry API
+  const apiData = await fetchHpiFromLandRegistry(postcode);
+  
+  if (apiData.length > 0) {
+    console.log(`📤 Uploading ${apiData.length} new records to Elasticsearch...`);
+    
+    // Upload the new data to Elasticsearch
+    await uploadToElasticsearch(apiData);
+    
+    // Return the newly uploaded data
+    return apiData;
+  }
+  
+  console.log(`❌ No HPI data available for postcode: ${postcode}`);
+  return [];
+}
+
 // Run the upload
 if (require.main === module) {
-  const csvPath = process.argv[2] || DEFAULT_CSV_PATH;
-  
-  uploadHpi(csvPath)
-    .then(() => {
-      console.log('✅ HPI upload completed!');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('❌ HPI upload failed:', error);
+  const csvPath = argv._[0] || DEFAULT_CSV_PATH;
+  // For now, just print the mode and postcode
+  console.log(`Mode: ${argv.mode}`);
+  if (argv.postcode) {
+    console.log(`Postcode: ${argv.postcode}`);
+  }
+  // Continue with upload as default
+  if (argv.mode === 'upload') {
+    uploadHpi(csvPath)
+      .then(() => {
+        console.log('✅ HPI upload completed!');
+        process.exit(0);
+      })
+      .catch((error) => {
+        console.error('❌ HPI upload failed:', error);
+        process.exit(1);
+      });
+  } else if (argv.mode === 'search') {
+    // Implement search logic
+    if (!argv.postcode) {
+      console.error('❌ Postcode is required for search mode. Use --postcode=POSTCODE');
       process.exit(1);
-    });
+    }
+    
+    const fetchFromApi = argv['fetch-api']; // Use the --fetch-api flag
+    searchAndFetchHpiData(argv.postcode, fetchFromApi)
+      .then((results) => {
+        if (results.length > 0) {
+          console.log(`\n📊 Search completed. Found ${results.length} records for ${argv.postcode}`);
+        } else {
+          console.log(`\n📊 Search completed. No records found for ${argv.postcode}`);
+        }
+        process.exit(0);
+      })
+      .catch((error) => {
+        console.error('❌ Search failed:', error);
+        process.exit(1);
+      });
+  }
 }
 
 module.exports = { uploadHpi, createSampleCsv }; 

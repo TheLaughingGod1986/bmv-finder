@@ -55,7 +55,8 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   const [limitHit, setLimitHit] = useState(false);
 
   useEffect(() => {
-    if (value.trim().length === 0) {
+    const safeValue = value || '';
+    if (safeValue.trim().length === 0) {
       setSuggestions([]);
       return;
     }
@@ -76,7 +77,8 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   }, [value]);
 
   useEffect(() => {
-    const trimmed = value.trim();
+    const safeValue = value || '';
+    const trimmed = safeValue.trim();
     // Only validate as postcode if it matches postcode pattern
     if (POSTCODE_REGEX.test(trimmed)) {
       setIsPostcode(true);
@@ -118,9 +120,10 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim() && !isLoading) {
-      onSearch(value.trim());
-      saveToHistory(value.trim());
+    const safeValue = value || '';
+    if (safeValue.trim() && !isLoading) {
+      onSearch(safeValue.trim());
+      saveToHistory(safeValue.trim());
       setShowSuggestions(false);
     }
   };
@@ -163,7 +166,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let input = e.target.value;
+    let input = e.target.value || '';
     // If it looks like a postcode (starts with a letter and contains a digit), format it
     if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
       input = formatIfPostcode(input);
