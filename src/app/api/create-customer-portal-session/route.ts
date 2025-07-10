@@ -5,9 +5,15 @@ import { createClient } from '@supabase/supabase-js';
 // Force dynamic rendering to prevent build-time issues
 export const dynamic = 'force-dynamic';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-06-30.basil',
-});
+// Initialize Stripe client only when environment variable is available
+const getStripe = () => {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set');
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY, {
+    apiVersion: '2025-06-30.basil',
+  });
+};
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -39,6 +45,7 @@ export async function POST(req: NextRequest) {
       customerId = profile.stripe_customer_id;
     } else {
       // Option 2: Fallback to searching by email
+      const stripe = getStripe();
       const customers = await stripe.customers.list({ email: user.email, limit: 1 });
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
@@ -50,6 +57,7 @@ export async function POST(req: NextRequest) {
 
     // Create the portal session
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
       return_url: `${baseUrl}/account`,
