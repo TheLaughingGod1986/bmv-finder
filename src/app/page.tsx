@@ -572,7 +572,7 @@ export default function Home() {
   const handleShare = useCallback(() => {
     if (navigator.share) {
       navigator.share({
-        title: 'BMV Finder - Property Search Results',
+        title: 'UK Property Insights - Property Search Results',
         text: `Found ${soldPrices.length} properties in ${searchTerm}`,
         url: window.location.href,
       });
@@ -669,7 +669,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>BMV Finder - Find Below Market Value Properties</title>
+        <title>UK Property Insights - Find Below Market Value Properties</title>
         <meta name="description" content="Search UK property data to identify investment opportunities with our advanced BMV scoring system" />
       </Head>
 
