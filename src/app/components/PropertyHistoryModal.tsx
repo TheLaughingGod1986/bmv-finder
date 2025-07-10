@@ -262,6 +262,11 @@ export default function PropertyHistoryModal({
     }
   };
 
+  // Guard clause for null property
+  if (!property) {
+    return null;
+  }
+
   return (
     <AnimatePresence>
       <motion.div
