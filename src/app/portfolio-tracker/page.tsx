@@ -47,17 +47,21 @@ export default function PortfolioTrackerPage() {
       console.log('Parsed tokens:', { access_token, refresh_token });
       if (access_token && refresh_token) {
         const supabase = getSupabase();
-        supabase.auth.setSession({ access_token, refresh_token })
-          .then(({ data, error }) => {
-            console.log('setSession result:', { data, error });
-          });
+        if (supabase) {
+          supabase.auth.setSession({ access_token, refresh_token })
+            .then(({ data, error }) => {
+              console.log('setSession result:', { data, error });
+            });
+        }
         window.location.hash = '';
       }
     }
     const supabase = getSupabase();
-    supabase.auth.getSession().then(({ data }) => {
-      console.log('getSession after setSession:', data);
-    });
+    if (supabase) {
+      supabase.auth.getSession().then(({ data }) => {
+        console.log('getSession after setSession:', data);
+      });
+    }
   }, []);
 
   // All hooks at the top
@@ -73,22 +77,50 @@ export default function PortfolioTrackerPage() {
     const initializeAuth = async () => {
       if (!supabase) return;
 
-      const getUser = async () => {
-        const { data } = await supabase.auth.getUser();
-        setUser(data.user);
-        setLoading(false);
-      };
-      getUser();
-      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-        setUser(session?.user ?? null);
+      // Check for tokens in URL (OAuth callback)
+      const urlParams = new URLSearchParams(window.location.search);
+      const access_token = urlParams.get('access_token');
+      const refresh_token = urlParams.get('refresh_token');
+      
+      if (access_token && refresh_token) {
+        console.log('Parsed tokens:', { access_token, refresh_token });
+        if (access_token && refresh_token) {
+          supabase.auth.setSession({ access_token, refresh_token })
+            .then(({ data, error }) => {
+              console.log('setSession result:', { data, error });
+              if (error) {
+                console.error('Error setting session:', error);
+              }
+            })
+            .catch(err => {
+              console.error('setSession error:', err);
+            });
+        }
+      }
+      
+      supabase.auth.getSession().then(({ data }) => {
+        console.log('getSession after setSession:', data);
+        if (data.session) {
+          setUser(data.session.user);
+        }
       });
-      return () => {
-        listener.subscription.unsubscribe();
-      };
+    };
+
+    const getUser = async () => {
+      if (!supabase) return;
+      
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
     };
 
     initializeAuth();
+    getUser();
   }, [supabase]);
+
+  // Don't render the component if we're on the server side
+  if (!supabase) {
+    return null;
+  }
 
   // Memoized calculations
   const filteredProperties = useMemo(() => {
