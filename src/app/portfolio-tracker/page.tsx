@@ -117,11 +117,6 @@ export default function PortfolioTrackerPage() {
     getUser();
   }, [supabase]);
 
-  // Don't render the component if we're on the server side
-  if (!supabase) {
-    return null;
-  }
-
   // Memoized calculations
   const filteredProperties = useMemo(() => {
     if (filterStatus === 'all') return portfolioProperties;
@@ -285,6 +280,11 @@ export default function PortfolioTrackerPage() {
       default: return 'text-gray-600 bg-gray-100';
     }
   };
+
+  // Don't render the component if we're on the server side
+  if (!supabase) {
+    return null;
+  }
 
   // Only return JSX after all hooks
   if (loading) return <div>Loading...</div>;
