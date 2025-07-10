@@ -1,16 +1,89 @@
 'use client';
-import React from "react";
-import { useUser } from "@supabase/auth-helpers-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { createClient } from '@supabase/supabase-js';
 import { useUserTier } from '@/hooks/useUserTier';
 
-const PRO_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID!;
-const ELITE_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID!;
-const ELITE_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID!;
-const PRO_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID!;
-const PDF_REPORT_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PDF_REPORT_PRICE_ID!;
+// Client-side only Supabase client
+function getSupabase() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase environment variables are not set');
+  }
+  
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
-if (!PRO_YEARLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
-  throw new Error('One or more Stripe Price IDs are missing from your environment variables.');
+// Custom hook for user management
+function useClientUser() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const supabase = useMemo(() => getSupabase(), []);
+  
+  useEffect(() => {
+    if (!supabase) {
+      setLoading(false);
+      return;
+    }
+    
+    const getUser = async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        setUser(data.user);
+      } catch (error) {
+        console.error('Error getting user:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    getUser();
+    
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+  
+  return { user, loading };
+}
+
+// Client-side only Stripe Price IDs
+function getStripePriceIds() {
+  if (typeof window === 'undefined') {
+    return {
+      PRO_YEARLY_PRICE_ID: null,
+      ELITE_YEARLY_PRICE_ID: null,
+      ELITE_MONTHLY_PRICE_ID: null,
+      PRO_MONTHLY_PRICE_ID: null,
+      PDF_REPORT_PRICE_ID: null,
+    };
+  }
+  
+  const PRO_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID;
+  const ELITE_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID;
+  const ELITE_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID;
+  const PRO_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID;
+  const PDF_REPORT_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PDF_REPORT_PRICE_ID;
+
+  if (!PRO_YEARLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
+    console.warn('One or more Stripe Price IDs are missing from your environment variables.');
+  }
+
+  return {
+    PRO_YEARLY_PRICE_ID,
+    ELITE_YEARLY_PRICE_ID,
+    ELITE_MONTHLY_PRICE_ID,
+    PRO_MONTHLY_PRICE_ID,
+    PDF_REPORT_PRICE_ID,
+  };
 }
 
 const UpgradeButton = ({ userId, priceId, children }: { userId: string; priceId: string; children: React.ReactNode }) => {
@@ -37,15 +110,27 @@ const UpgradeButton = ({ userId, priceId, children }: { userId: string; priceId:
 };
 
 export default function PricingPage() {
-  const user = useUser();
+  const { user, loading: userLoading } = useClientUser();
   const { tier: userTier } = useUserTier(user?.id || null);
+  const stripePriceIds = getStripePriceIds();
+
+  // Don't render the component if we're on the server side
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  if (userLoading) {
+    return <div className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
+      <div className="text-center">Loading...</div>
+    </div>;
+  }
 
   return (
     <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
       {/* Hero Section */}
       <section className="mb-10 text-center">
         <h1 className="text-4xl font-extrabold mb-4">Find the Right Plan for Your Property Journey</h1>
-        <p className="text-lg text-gray-600 mb-6">Compare features, see what’s included, and choose the perfect plan for you. Upgrade anytime.</p>
+        <p className="text-lg text-gray-600 mb-6">Compare features, see what's included, and choose the perfect plan for you. Upgrade anytime.</p>
         <a href="#plans" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow transition-colors text-lg">See Plans</a>
       </section>
 
@@ -91,7 +176,7 @@ export default function PricingPage() {
             ) : userTier === 'elite' ? (
               <button className="w-full py-3 rounded-lg font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white" onClick={() => alert('Downgrade via Account page')}>Downgrade to Pro</button>
             ) : (
-              <UpgradeButton userId={user?.id || ""} priceId={PRO_MONTHLY_PRICE_ID}>
+              <UpgradeButton userId={user?.id || ""} priceId={stripePriceIds.PRO_MONTHLY_PRICE_ID || ""}>
                 Upgrade to Pro
               </UpgradeButton>
             )}
@@ -115,7 +200,7 @@ export default function PricingPage() {
             ) : userTier === 'elite' ? (
               <button className="w-full py-3 rounded-lg font-semibold text-base bg-gray-200 text-gray-500 cursor-not-allowed" disabled>Current Plan</button>
             ) : (
-              <UpgradeButton userId={user?.id || ""} priceId={ELITE_MONTHLY_PRICE_ID}>
+              <UpgradeButton userId={user?.id || ""} priceId={stripePriceIds.ELITE_MONTHLY_PRICE_ID || ""}>
                 Upgrade to Elite
               </UpgradeButton>
             )}
