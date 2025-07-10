@@ -457,11 +457,20 @@ export default function HomeNew() {
               <div className="space-y-6">
                 <EnhancedSoldPricesTable
                   soldPrices={displayedSoldPrices}
-                  onPropertyClick={handleRowSelect}
+                  allSales={soldPrices}
+                  onRowClick={handleRowSelect}
+                  onShowHistory={(property, history) => {
+                    setSelectedProperty(property);
+                    setPropertyHistory(history);
+                    setShowHistoryModal(true);
+                  }}
                   selectedRowId={selectedRowId}
-                  salesCountMap={salesCountMap}
                   sortConfig={sortConfig}
-                  onSortChange={setSortConfig}
+                  onSort={(key) => setSortConfig(prev => ({
+                    key,
+                    direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending'
+                  }))}
+                  isLoading={isLoading}
                 />
                 
                 {/* Analytics Section */}
