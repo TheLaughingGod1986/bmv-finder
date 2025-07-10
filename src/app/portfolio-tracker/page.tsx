@@ -8,9 +8,15 @@ import UserProfile from '../components/UserProfile';
 import { createClient } from '@supabase/supabase-js';
 
 function getSupabase() {
+  // Only create client on the client side
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     throw new Error('Supabase environment variables are not set');
   }
+  
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -61,21 +67,28 @@ export default function PortfolioTrackerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'sold' | 'watching'>('all');
 
+  const supabase = useMemo(() => getSupabase(), []);
+
   useEffect(() => {
-    const supabase = getSupabase();
-    const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
-      setLoading(false);
+    const initializeAuth = async () => {
+      if (!supabase) return;
+
+      const getUser = async () => {
+        const { data } = await supabase.auth.getUser();
+        setUser(data.user);
+        setLoading(false);
+      };
+      getUser();
+      const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+        setUser(session?.user ?? null);
+      });
+      return () => {
+        listener.subscription.unsubscribe();
+      };
     };
-    getUser();
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-    });
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
+
+    initializeAuth();
+  }, [supabase]);
 
   // Memoized calculations
   const filteredProperties = useMemo(() => {

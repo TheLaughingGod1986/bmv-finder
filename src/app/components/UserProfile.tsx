@@ -1,135 +1,209 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { createClient } from '@supabase/supabase-js';
 import AuthForm from "./AuthForm";
 import { useUserTier } from '@/hooks/useUserTier';
 import dayjs from 'dayjs';
 
-function getSupabase() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
 export default function UserProfile() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [email, setEmail] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
   const [billingMetadata, setBillingMetadata] = useState<any>(null);
+  const { tier } = useUserTier();
 
-  // Always call useUserTier, even if user is null
-  const { tier, loading: tierLoading } = useUserTier(user?.id);
+  const supabase = useMemo(() => {
+    // Only create client on the client side
+    if (typeof window === 'undefined') {
+      return null;
+    }
+    
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      throw new Error('Supabase environment variables are not set');
+    }
+    
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    );
+  }, []);
 
   useEffect(() => {
     const getUser = async () => {
-      const supabase = getSupabase();
+      if (!supabase) return;
+      
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
-      setEmail(data.user?.email || "");
-      setLoading(false);
+
       // Fetch billing_metadata from profiles
       if (data.user?.id) {
-        const supabase = getSupabase();
         const { data: profile } = await supabase
           .from('profiles')
           .select('billing_metadata')
           .eq('id', data.user.id)
           .single();
-        setBillingMetadata(profile?.billing_metadata || null);
+        
+        if (profile?.billing_metadata) {
+          setBillingMetadata(profile.billing_metadata);
+        }
       }
+      setLoading(false);
     };
     getUser();
-    const supabase = getSupabase();
+    
+    if (!supabase) return;
+    
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
-      setEmail(session?.user?.email || "");
     });
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
 
-  if (loading) return <div>Loading...</div>;
-  if (!user) return <AuthForm />;
+    return () => listener.subscription.unsubscribe();
+  }, [supabase]);
 
-  const handleEmailChange = async (e: React.FormEvent) => {
+  const handleEmailUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailMsg(null);
-    const supabase = getSupabase();
+    if (!supabase) return;
+    
     const { error } = await supabase.auth.updateUser({ email: newEmail });
     if (error) setEmailMsg(error.message);
-    else setEmailMsg("Email update requested. Check your new email to confirm.");
+    else setEmailMsg("Check your email for the confirmation link!");
   };
 
-  const handlePasswordChange = async (e: React.FormEvent) => {
+  const handlePasswordUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwMsg(null);
-    const supabase = getSupabase();
+    if (!supabase) return;
+    
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) setPwMsg(error.message);
-    else setPwMsg("Password updated.");
+    else setPwMsg("Password updated successfully!");
   };
 
   const handleLogout = async () => {
-    const supabase = getSupabase();
+    if (!supabase) return;
+    
     await supabase.auth.signOut();
     window.location.reload();
   };
 
+  // Don't render the component if we're on the server side
+  if (!supabase) {
+    return null;
+  }
+
+  if (loading) {
+    return <div className="text-center py-8">Loading...</div>;
+  }
+
+  if (!user) {
+    return <AuthForm />;
+  }
+
   return (
-    <div className="max-w-sm mx-auto p-4 border rounded-lg bg-white shadow flex flex-col items-center gap-4">
-      <div className="text-lg font-semibold">Welcome!</div>
-      <div className="text-gray-700">{email}</div>
-      {/* Show membership tier */}
-      <div className="mt-2 text-base font-bold text-blue-700">
-        {tierLoading ? 'Loading membership...' : `Membership: ${tier ? tier.toUpperCase() : 'FREE'}`}
-      </div>
-      {/* Show renewal date if available */}
-      {billingMetadata && billingMetadata.current_period_end && (
-        <div className="text-sm text-gray-600 mt-1">
-          Renewal date: {dayjs.unix(billingMetadata.current_period_end).format('MMMM D, YYYY')}
+    <div className="max-w-4xl mx-auto p-6">
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h2 className="text-2xl font-bold mb-4">Profile</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Account Information</h3>
+            <p><strong>Email:</strong> {user.email}</p>
+            <p><strong>User ID:</strong> {user.id}</p>
+            <p><strong>Created:</strong> {dayjs(user.created_at).format('MMMM D, YYYY')}</p>
+            <p><strong>Last Sign In:</strong> {dayjs(user.last_sign_in_at).format('MMMM D, YYYY HH:mm')}</p>
+          </div>
+          
+          <div>
+            <h3 className="text-lg font-semibold mb-2">Subscription</h3>
+            <p><strong>Current Tier:</strong> <span className="capitalize">{tier}</span></p>
+            {billingMetadata && (
+              <div className="mt-2">
+                <p><strong>Plan:</strong> {billingMetadata.plan?.id || 'N/A'}</p>
+                {billingMetadata.current_period_end && (
+                  <p><strong>Next Billing:</strong> {dayjs(billingMetadata.current_period_end * 1000).format('MMMM D, YYYY')}</p>
+                )}
+                {billingMetadata.cancel_at_period_end && (
+                  <p className="text-orange-600"><strong>⚠️ Subscription will cancel at period end</strong></p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
-      )}
-      <button
-        onClick={handleLogout}
-        className="mt-4 bg-red-500 hover:bg-red-600 text-white rounded px-4 py-2 font-semibold"
-      >
-        Log Out
-      </button>
-      <form onSubmit={handleEmailChange} className="w-full flex flex-col gap-2 mt-4">
-        <label className="font-medium">Change Email</label>
-        <input
-          type="email"
-          placeholder="New email"
-          value={newEmail}
-          onChange={e => setNewEmail(e.target.value)}
-          className="border rounded px-3 py-2"
-          required
-        />
-        <button type="submit" className="bg-blue-500 text-white rounded px-4 py-2 font-semibold">Update Email</button>
-        {emailMsg && <div className="text-sm mt-1 text-green-700">{emailMsg}</div>}
-      </form>
-      <form onSubmit={handlePasswordChange} className="w-full flex flex-col gap-2 mt-2">
-        <label className="font-medium">Change Password</label>
-        <input
-          type="password"
-          placeholder="New password"
-          value={newPassword}
-          onChange={e => setNewPassword(e.target.value)}
-          className="border rounded px-3 py-2"
-          required
-        />
-        <button type="submit" className="bg-blue-500 text-white rounded px-4 py-2 font-semibold">Update Password</button>
-        {pwMsg && <div className="text-sm mt-1 text-green-700">{pwMsg}</div>}
-      </form>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 className="text-lg font-semibold mb-4">Update Email</h3>
+        <form onSubmit={handleEmailUpdate} className="space-y-4">
+          <div>
+            <label htmlFor="newEmail" className="block text-sm font-medium text-gray-700">
+              New Email
+            </label>
+            <input
+              type="email"
+              id="newEmail"
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Update Email
+          </button>
+          {emailMsg && (
+            <div className={`p-3 rounded ${emailMsg.includes('error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+              {emailMsg}
+            </div>
+          )}
+        </form>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <h3 className="text-lg font-semibold mb-4">Update Password</h3>
+        <form onSubmit={handlePasswordUpdate} className="space-y-4">
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+              New Password
+            </label>
+            <input
+              type="password"
+              id="newPassword"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              required
+              minLength={6}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+            />
+          </div>
+          <button
+            type="submit"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            Update Password
+          </button>
+          {pwMsg && (
+            <div className={`p-3 rounded ${pwMsg.includes('error') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
+              {pwMsg}
+            </div>
+          )}
+        </form>
+      </div>
+
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <h3 className="text-lg font-semibold mb-4">Account Actions</h3>
+        <button
+          onClick={handleLogout}
+          className="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+        >
+          Sign Out
+        </button>
+      </div>
     </div>
   );
 } 
