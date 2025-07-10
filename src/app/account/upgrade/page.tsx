@@ -15,11 +15,11 @@ function getStripePromise() {
   if (typeof window === 'undefined') {
     return null;
   }
-  
-  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-    throw new Error('Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in environment');
-  }
-  
+
+if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+  throw new Error('Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in environment');
+}
+
   return loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 }
 
@@ -97,67 +97,67 @@ interface Plan {
 
 function getPlans(): Plan[] {
   return [
-    {
-      name: 'Starter',
-      description: 'Basic access, limited features',
-      tier: 'free',
-      features: [
-        'Basic search',
-        'Limited lookups',
-        'No export',
-      ],
-      pricing: {
-        monthly: {
-          price: '£0',
-          priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
-        },
+  {
+    name: 'Starter',
+    description: 'Basic access, limited features',
+    tier: 'free',
+    features: [
+      'Basic search',
+      'Limited lookups',
+      'No export',
+    ],
+    pricing: {
+      monthly: {
+        price: '£0',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
       },
     },
-    {
-      name: 'Pro',
-      description: 'Unlimited lookups, alerts, export, full data access',
-      tier: 'pro',
-      features: [
-        'Unlimited lookups',
-        'Alerts & notifications',
-        'Export data',
-        'Full analytics',
-      ],
-      pricing: {
-        monthly: {
-          price: '£19/mo',
-          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
-        },
-        yearly: {
-          price: '£190/yr',
-          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID,
-          savings: 'Save 17%',
-        },
+  },
+  {
+    name: 'Pro',
+    description: 'Unlimited lookups, alerts, export, full data access',
+    tier: 'pro',
+    features: [
+      'Unlimited lookups',
+      'Alerts & notifications',
+      'Export data',
+      'Full analytics',
+    ],
+    pricing: {
+      monthly: {
+        price: '£19/mo',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
+      },
+      yearly: {
+        price: '£190/yr',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID,
+        savings: 'Save 17%',
       },
     },
-    {
-      name: 'Elite',
-      description: 'All Pro features + PDF reports, bulk analysis, CRM export',
-      tier: 'elite',
-      features: [
-        'All Pro features',
-        'PDF reports',
-        'Bulk analysis',
-        'CRM export',
-      ],
-      pricing: {
-        monthly: {
-          price: '£49/mo',
-          priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID,
-        },
-        yearly: {
-          price: '£490/yr',
-          priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID,
-          savings: 'Save 17%',
-        },
+  },
+  {
+    name: 'Elite',
+    description: 'All Pro features + PDF reports, bulk analysis, CRM export',
+    tier: 'elite',
+    features: [
+      'All Pro features',
+      'PDF reports',
+      'Bulk analysis',
+      'CRM export',
+    ],
+    pricing: {
+      monthly: {
+        price: '£49/mo',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID,
+      },
+      yearly: {
+        price: '£490/yr',
+        priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID,
+        savings: 'Save 17%',
       },
     },
-  ];
+  },
+];
 }
 
 const UpgradePage = () => {

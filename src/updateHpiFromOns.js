@@ -22,7 +22,12 @@ const client = new Client({
 });
 
 const INDEX_NAME = 'house_price_index';
-const ONS_HPI_URL = 'https://www.ons.gov.uk/file?uri=/economy/inflationandpriceindices/datasets/housepriceindexfornewpropertiesandexistingdwellingshpione/current/hpione.zip';
+// Updated URL - try multiple possible URLs
+const ONS_HPI_URLS = [
+  'https://www.ons.gov.uk/file?uri=/economy/inflationandpriceindices/datasets/housepriceindexfornewpropertiesandexistingdwellingshpione/current/hpione.zip',
+  'https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/housepriceindexfornewpropertiesandexistingdwellingshpione/current/download/hpione.zip',
+  'https://www.ons.gov.uk/file?uri=/economy/inflationandpriceindices/datasets/housepriceindexfornewpropertiesandexistingdwellingshpione/current/hpione.csv'
+];
 const TEMP_DIR = path.join(__dirname, '../temp');
 
 // Region mapping for ONS data
@@ -48,7 +53,35 @@ async function downloadFile(url, filepath) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(filepath);
     
-    https.get(url, (response) => {
+    // Add headers to mimic a browser request
+    const options = {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
+      }
+    };
+    
+    https.get(url, options, (response) => {
+      console.log(`📊 Response status: ${response.statusCode}`);
+      console.log(`📊 Response headers:`, response.headers);
+      
+      if (response.statusCode === 403) {
+        console.log('❌ 403 Forbidden - ONS website may be blocking automated requests');
+        console.log('💡 Try accessing the data manually from: https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/housepriceindexfornewpropertiesandexistingdwellingshpione');
+        reject(new Error('403 Forbidden - ONS website blocking automated requests'));
+        return;
+      }
+      
+      if (response.statusCode === 404) {
+        console.log('❌ 404 Not Found - URL may have changed');
+        reject(new Error('404 Not Found - URL may have changed'));
+        return;
+      }
+      
       if (response.statusCode !== 200) {
         reject(new Error(`Failed to download: ${response.statusCode}`));
         return;
@@ -66,6 +99,20 @@ async function downloadFile(url, filepath) {
       reject(err);
     });
   });
+}
+
+async function tryDownloadFromMultipleUrls() {
+  for (const url of ONS_HPI_URLS) {
+    try {
+      const filepath = path.join(TEMP_DIR, `hpi-${Date.now()}.zip`);
+      await downloadFile(url, filepath);
+      return filepath;
+    } catch (error) {
+      console.log(`❌ Failed to download from ${url}: ${error.message}`);
+      continue;
+    }
+  }
+  throw new Error('All ONS URLs failed - manual download required');
 }
 
 async function extractZip(zipPath, extractPath) {
@@ -235,33 +282,125 @@ async function updateHpiFromOns() {
       fs.mkdirSync(TEMP_DIR, { recursive: true });
     }
     
-    const zipPath = path.join(TEMP_DIR, 'hpione.zip');
-    const extractPath = path.join(TEMP_DIR, 'extracted');
+    console.log('⚠️  ONS website is blocking automated requests');
+    console.log('💡 Manual download required:');
+    console.log('   1. Visit: https://www.ons.gov.uk/economy/inflationandpriceindices/datasets/housepriceindexfornewpropertiesandexistingdwellingshpione');
+    console.log('   2. Download the latest ZIP file');
+    console.log('   3. Place it in the temp directory as "hpione.zip"');
+    console.log('   4. Run this script again');
     
-    // Download ONS HPI data
-    await downloadFile(ONS_HPI_URL, zipPath);
-    
-    // Extract ZIP file
-    const csvPath = await extractZip(zipPath, extractPath);
-    
-    // Parse CSV data
-    let data = await parseHpiData(csvPath);
-    
-    // Calculate growth rates
-    data = await calculateGrowthRates(data);
-    
-    // Upload to Elasticsearch
-    await uploadToElasticsearch(data);
-    
-    // Cleanup
-    await cleanup();
-    
-    console.log('🎉 ONS HPI update completed successfully!');
-    console.log(`📊 Total records processed: ${data.length}`);
+    // Check if manual file exists
+    const manualZipPath = path.join(TEMP_DIR, 'hpione.zip');
+    if (fs.existsSync(manualZipPath)) {
+      console.log('✅ Found manual download file, processing...');
+      
+      const extractPath = path.join(TEMP_DIR, 'extracted');
+      
+      // Extract ZIP file
+      const csvPath = await extractZip(manualZipPath, extractPath);
+      
+      // Parse CSV data
+      let data = await parseHpiData(csvPath);
+      
+      // Calculate growth rates
+      data = await calculateGrowthRates(data);
+      
+      // Upload to Elasticsearch
+      await uploadToElasticsearch(data);
+      
+      // Cleanup
+      await cleanup();
+      
+      console.log('🎉 ONS HPI update completed successfully!');
+      console.log(`📊 Total records processed: ${data.length}`);
+      
+    } else {
+      console.log('❌ No manual download file found');
+      console.log('📁 Expected location:', manualZipPath);
+      console.log('🔄 Please download the file manually and try again');
+      
+      // Alternative: Use existing data to update growth rates
+      console.log('🔄 Attempting to update growth rates for existing data...');
+      await updateExistingHpiGrowthRates();
+    }
     
   } catch (error) {
     console.error('💥 ONS HPI update failed:', error);
     await cleanup();
+    throw error;
+  }
+}
+
+async function updateExistingHpiGrowthRates() {
+  console.log('📊 Updating growth rates for existing HPI data...');
+  
+  try {
+    // Get existing HPI data from Elasticsearch
+    const result = await client.search({
+      index: INDEX_NAME,
+      size: 10000,
+      body: {
+        query: {
+          match_all: {}
+        },
+        sort: [
+          { region: { order: 'asc' } },
+          { date: { order: 'asc' } }
+        ]
+      }
+    });
+    
+    const existingData = result.hits.hits.map(hit => hit._source);
+    
+    if (existingData.length === 0) {
+      console.log('❌ No existing HPI data found');
+      return;
+    }
+    
+    console.log(`📊 Found ${existingData.length} existing records`);
+    
+    // Calculate growth rates
+    const updatedData = await calculateGrowthRates(existingData);
+    
+    // Update records with new growth rates
+    const batchSize = 1000;
+    let updated = 0;
+    
+    for (let i = 0; i < updatedData.length; i += batchSize) {
+      const batch = updatedData.slice(i, i + batchSize);
+      
+      const body = batch.flatMap(doc => [
+        { update: { _index: INDEX_NAME, _id: doc._id || `${doc.region}_${doc.date}` } },
+        { doc: { monthOverMonth: doc.monthOverMonth, yearOverYear: doc.yearOverYear }, doc_as_upsert: true }
+      ]);
+      
+      try {
+        const result = await client.bulk({ 
+          body,
+          timeout: '60s',
+          refresh: false
+        });
+        
+        if (result.errors) {
+          const errors = result.items.filter(item => item.update?.error);
+          console.warn(`⚠️  Batch had ${errors.length} errors, but continuing...`);
+        }
+        
+        updated += batch.length;
+        console.log(`📊 Updated ${updated}/${updatedData.length} records`);
+        
+      } catch (error) {
+        console.error('❌ Error updating batch:', error);
+        throw error;
+      }
+    }
+    
+    // Refresh index
+    await client.indices.refresh({ index: INDEX_NAME });
+    console.log('✅ Growth rates updated successfully');
+    
+  } catch (error) {
+    console.error('❌ Error updating growth rates:', error);
     throw error;
   }
 }

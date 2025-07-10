@@ -48,19 +48,19 @@ export default function PortfolioTrackerPage() {
       if (access_token && refresh_token) {
         const supabase = getSupabase();
         if (supabase) {
-          supabase.auth.setSession({ access_token, refresh_token })
-            .then(({ data, error }) => {
-              console.log('setSession result:', { data, error });
-            });
+        supabase.auth.setSession({ access_token, refresh_token })
+          .then(({ data, error }) => {
+            console.log('setSession result:', { data, error });
+          });
         }
         window.location.hash = '';
       }
     }
     const supabase = getSupabase();
     if (supabase) {
-      supabase.auth.getSession().then(({ data }) => {
-        console.log('getSession after setSession:', data);
-      });
+    supabase.auth.getSession().then(({ data }) => {
+      console.log('getSession after setSession:', data);
+    });
     }
   }, []);
 

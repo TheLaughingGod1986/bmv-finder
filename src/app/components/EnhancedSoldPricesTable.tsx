@@ -23,6 +23,7 @@ import BMVScoreBadge from './BMVScoreBadge';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
+  allSales: SoldPrice[];
   onRowClick: (property: SoldPrice) => void;
   onShowHistory: (property: SoldPrice, history: SoldPrice[]) => void;
   sortConfig: { key: keyof SoldPrice; direction: 'ascending' | 'descending' };
@@ -30,7 +31,6 @@ interface EnhancedSoldPricesTableProps {
   isLoading: boolean;
   selectedRowId: string | null;
   className?: string;
-  salesCountMap?: { [key: string]: number }; // Map of address to sales count
 }
 
 const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
@@ -42,7 +42,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
   isLoading,
   selectedRowId,
   className,
-  salesCountMap
+  allSales
 }) => {
   const [hoveredRow, setHoveredRow] = useState<string | null>(null);
 
@@ -58,15 +58,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
     return parts.join(', ');
   };
 
-  const getSalesCount = (property: SoldPrice) => {
-    if (!salesCountMap) return 1;
-    const addressKey = [
-      property.paon?.trim().toLowerCase() || '',
-      property.street?.trim().toLowerCase() || '',
-      property.postcode?.trim().toLowerCase() || ''
-    ].join('|');
-    return salesCountMap[addressKey] || 1;
-  };
+  // Helper to normalize address for grouping
+  const addressKey = (sp: SoldPrice) =>
+    [sp.paon, sp.street, sp.postcode].map(x => (x || '').trim().toLowerCase()).join('|');
 
   const formatPropertyType = (type: string) => {
     const types: { [key: string]: string } = {
@@ -175,6 +169,14 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
 
   return (
     <div className={cn("bg-white rounded-xl border border-gray-200 shadow-soft overflow-hidden", className)}>
+      {/* Debug: Log addressKey and count for each displayed property */}
+      {soldPrices.map((property, index) => {
+        const key = addressKey(property);
+        const count = allSales.filter(sale => addressKey(sale) === key).length;
+        // eslint-disable-next-line no-console
+        console.log(`[DEBUG] Row ${index}: addressKey=${key}, count=${count}`);
+        return null;
+      })}
       {/* Table Header */}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
@@ -245,11 +247,10 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                       </div>
                       <div className="flex items-center gap-2 text-sm text-text-secondary mt-1">
                         <span>{property.postcode}</span>
-                        {getSalesCount(property) > 1 && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {getSalesCount(property)} sales
-                          </span>
-                        )}
+                        {/* Sales count badge */}
+                        <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
+                          {allSales.filter(sale => addressKey(sale) === addressKey(property)).length} sales
+                        </span>
                       </div>
                     </div>
                   </div>

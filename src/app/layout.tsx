@@ -5,6 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
 import { ToastProvider } from './components/ToastProvider';
 import Navigation from './components/Navigation';
+// import AnchorLinks from './components/AnchorLinks';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
 
 const inter = Inter({
@@ -77,7 +78,8 @@ export default function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only absolute left-2 top-2 bg-blue-600 text-white px-3 py-1 rounded z-50">Skip to main content</a>
         <SupabaseUserProvider>
           <Navigation />
-          <main id="main-content" tabIndex={-1}>
+          {/* <AnchorLinks /> */}
+          <main id="main-content" tabIndex={-1} className="min-h-screen bg-[#F5F5DC]">
             <ToastProvider>
               {children}
             </ToastProvider>

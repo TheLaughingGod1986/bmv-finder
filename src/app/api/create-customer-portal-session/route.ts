@@ -11,8 +11,8 @@ const getStripe = () => {
     throw new Error('STRIPE_SECRET_KEY is not set');
   }
   return new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-06-30.basil',
-  });
+  apiVersion: '2025-06-30.basil',
+});
 };
 
 // Initialize Supabase client only when environment variables are available
@@ -23,7 +23,7 @@ const getSupabase = () => {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+);
 };
 
 export async function POST(req: NextRequest) {
