@@ -28,11 +28,6 @@ export default function PropertyHistoryModal({
   onClose,
   allSales
 }: PropertyHistoryModalProps) {
-  // Guard clause for null property
-  if (!property) {
-    return null;
-  }
-
   const [isLoading, setIsLoading] = useState(false);
   const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -229,6 +224,11 @@ export default function PropertyHistoryModal({
     
     return finalResult;
   }, [similarSalesOption, similarSalesSource, property, currentAddressKey]);
+
+  // Guard clause for null property (must be after all hooks)
+  if (!property) {
+    return null;
+  }
 
   // Prepare chart data for area trends
   const prepareChartData = () => {
