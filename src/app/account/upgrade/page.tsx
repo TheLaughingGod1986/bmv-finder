@@ -10,11 +10,18 @@ import { parseSubscriptionMetadata } from '@/utils/subscriptionUtils';
 import { ShieldCheckIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-  throw new Error('Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in environment');
+// Client-side only Stripe initialization
+function getStripePromise() {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
+    throw new Error('Missing NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY in environment');
+  }
+  
+  return loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 }
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 // Client-side only Supabase client
 function getSupabase() {
@@ -88,68 +95,70 @@ interface Plan {
   };
 }
 
-const PLANS: Plan[] = [
-  {
-    name: 'Starter',
-    description: 'Basic access, limited features',
-    tier: 'free',
-    features: [
-      'Basic search',
-      'Limited lookups',
-      'No export',
-    ],
-    pricing: {
-      monthly: {
-        price: '£0',
-        priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
+function getPlans(): Plan[] {
+  return [
+    {
+      name: 'Starter',
+      description: 'Basic access, limited features',
+      tier: 'free',
+      features: [
+        'Basic search',
+        'Limited lookups',
+        'No export',
+      ],
+      pricing: {
+        monthly: {
+          price: '£0',
+          priceId: process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID,
+        },
       },
     },
-  },
-  {
-    name: 'Pro',
-    description: 'Unlimited lookups, alerts, export, full data access',
-    tier: 'pro',
-    features: [
-      'Unlimited lookups',
-      'Alerts & notifications',
-      'Export data',
-      'Full analytics',
-    ],
-    pricing: {
-      monthly: {
-        price: '£19/mo',
-        priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
-      },
-      yearly: {
-        price: '£190/yr',
-        priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID,
-        savings: 'Save 17%',
-      },
-    },
-  },
-  {
-    name: 'Elite',
-    description: 'All Pro features + PDF reports, bulk analysis, CRM export',
-    tier: 'elite',
-    features: [
-      'All Pro features',
-      'PDF reports',
-      'Bulk analysis',
-      'CRM export',
-    ],
-    pricing: {
-      monthly: {
-        price: '£49/mo',
-        priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID,
-      },
-      yearly: {
-        price: '£490/yr',
-        priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID,
-        savings: 'Save 17%',
+    {
+      name: 'Pro',
+      description: 'Unlimited lookups, alerts, export, full data access',
+      tier: 'pro',
+      features: [
+        'Unlimited lookups',
+        'Alerts & notifications',
+        'Export data',
+        'Full analytics',
+      ],
+      pricing: {
+        monthly: {
+          price: '£19/mo',
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID,
+        },
+        yearly: {
+          price: '£190/yr',
+          priceId: process.env.NEXT_PUBLIC_STRIPE_PRO_YEARLY_PRICE_ID,
+          savings: 'Save 17%',
+        },
       },
     },
-  },
-];
+    {
+      name: 'Elite',
+      description: 'All Pro features + PDF reports, bulk analysis, CRM export',
+      tier: 'elite',
+      features: [
+        'All Pro features',
+        'PDF reports',
+        'Bulk analysis',
+        'CRM export',
+      ],
+      pricing: {
+        monthly: {
+          price: '£49/mo',
+          priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_MONTHLY_PRICE_ID,
+        },
+        yearly: {
+          price: '£490/yr',
+          priceId: process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID,
+          savings: 'Save 17%',
+        },
+      },
+    },
+  ];
+}
 
 const UpgradePage = () => {
   const { session, loading: sessionLoading } = useClientSession();
@@ -255,6 +264,10 @@ const UpgradePage = () => {
         throw new Error('No checkout URL received from server');
       }
       
+      const stripePromise = getStripePromise();
+      if (!stripePromise) {
+        throw new Error('Stripe not available on server side');
+      }
       const stripe = await stripePromise;
       if (stripe) {
         showToast({
@@ -316,7 +329,8 @@ const UpgradePage = () => {
   };
 
   // Debug logging
-  PLANS.forEach((plan) => {
+  const plans = getPlans();
+  plans.forEach((plan) => {
     console.log('Plan:', plan.name);
     Object.entries(plan.pricing).forEach(([interval, pricing]) => {
       console.log(`  ${interval}:`, pricing.price, 'priceId:', pricing.priceId);
@@ -463,7 +477,7 @@ const UpgradePage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {PLANS.map((plan) => {
+        {plans.map((plan) => {
           if (!subscriptionInfo) return null;
           const currentPlanPricing = plan.pricing[billingInterval];
           if (!currentPlanPricing) return null;
