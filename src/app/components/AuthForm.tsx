@@ -1,6 +1,16 @@
 "use client";
 import React, { useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from '@supabase/supabase-js';
+
+function getSupabase() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase environment variables are not set');
+  }
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
 export default function AuthForm() {
   const [email, setEmail] = useState("");
@@ -16,10 +26,12 @@ export default function AuthForm() {
     setSuccess(null);
     setLoading(true);
     if (mode === "sign-in") {
+      const supabase = getSupabase();
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
       else setSuccess("Signed in!");
     } else {
+      const supabase = getSupabase();
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) setError(error.message);
       else setSuccess("Check your email to confirm your account.");
@@ -30,6 +42,7 @@ export default function AuthForm() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError(null);
+    const supabase = getSupabase();
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
