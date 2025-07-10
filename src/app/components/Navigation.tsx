@@ -30,6 +30,7 @@ export default function Navigation() {
   const { tier } = useUserTier(user?.id);
 
   const isActive = (href: string) => {
+    if (!pathname) return false;
     if (href === '/') return pathname === '/';
     return pathname.startsWith(href);
   };

@@ -54,7 +54,7 @@ export async function POST(req: NextRequest) {
           if (session.mode === 'subscription') {
             // Fetch the subscription from Stripe
             const subscriptionId = session.subscription;
-            let subscription = null;
+            let subscription: Stripe.Subscription | null = null;
             if (subscriptionId) {
               subscription = await stripe.subscriptions.retrieve(subscriptionId as string);
             }
@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
                   amount: price.unit_amount,
                   currency: price.currency,
                 },
-                current_period_end: subscription.current_period_end,
+                current_period_end: (subscription as any).current_period_end,
                 cancel_at_period_end: subscription.cancel_at_period_end,
                 canceled_at: subscription.canceled_at,
                 userId: userId,
@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
                 amount: price.unit_amount,
                 currency: price.currency,
               },
-              current_period_end: subscription.current_period_end,
+              current_period_end: (subscription as any).current_period_end,
               cancel_at_period_end: subscription.cancel_at_period_end,
               canceled_at: subscription.canceled_at,
               userId: userId,
