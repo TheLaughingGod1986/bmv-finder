@@ -13,7 +13,7 @@ export default function UserProfile() {
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
   const [pwMsg, setPwMsg] = useState<string | null>(null);
   const [billingMetadata, setBillingMetadata] = useState<any>(null);
-  const { tier } = useUserTier();
+  const { tier } = useUserTier(user?.id);
 
   const supabase = useMemo(() => {
     // Only create client on the client side
