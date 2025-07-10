@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { supabaseAdmin } from '@/lib/supabaseAdminClient';
+import { createClient } from '@supabase/supabase-js';
 
 // Force dynamic rendering to prevent build-time issues
 export const dynamic = 'force-dynamic';
@@ -14,6 +14,18 @@ const getStripe = () => {
     apiVersion: '2025-06-30.basil',
   });
 };
+
+// Initialize Supabase admin client only when environment variables are available
+const getSupabaseAdmin = () => {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    throw new Error('Supabase admin environment variables are not set');
+  }
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+};
+
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
 const STARTER_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_STARTER_PRICE_ID!;
@@ -88,11 +100,14 @@ export async function POST(req: NextRequest) {
                 userId: userId,
               };
               console.log('DEBUG: Saving billing_metadata for checkout.session.completed:', JSON.stringify(billing_metadata, null, 2));
+              const supabaseAdmin = getSupabaseAdmin();
               await supabaseAdmin.from('profiles').update({ tier, billing_metadata }).eq('id', userId);
             }
           } else if (session.mode === 'payment' && priceIdToTier[priceId as string]) {
+            const supabaseAdmin = getSupabaseAdmin();
             await supabaseAdmin.from('profiles').update({ tier: priceIdToTier[priceId as string], billing_metadata: session }).eq('id', userId);
           } else if (priceId === PDF_REPORT_PRICE_ID) {
+            const supabaseAdmin = getSupabaseAdmin();
             await supabaseAdmin.from('profiles').update({ pdf_entitlement: true }).eq('id', userId);
           }
         } catch (error: any) {
@@ -124,6 +139,7 @@ export async function POST(req: NextRequest) {
               userId: userId,
             };
             console.log('DEBUG: Saving billing_metadata for customer.subscription.updated:', JSON.stringify(billing_metadata, null, 2));
+            const supabaseAdmin = getSupabaseAdmin();
             await supabaseAdmin.from('profiles').update({ tier, billing_metadata }).eq('id', userId);
           }
         } catch (error: any) {
@@ -136,6 +152,7 @@ export async function POST(req: NextRequest) {
           const subscription = event.data.object as Stripe.Subscription;
           const userId = subscription.metadata?.userId;
           if (userId) {
+            const supabaseAdmin = getSupabaseAdmin();
             await supabaseAdmin.from('profiles').update({ tier: 'free', billing_metadata: subscription }).eq('id', userId);
           }
         } catch (error: any) {
