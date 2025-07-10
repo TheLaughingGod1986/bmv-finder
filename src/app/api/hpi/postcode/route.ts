@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
 import axios from 'axios';
-import { postcodeToRegion } from '../../../../utils/postcodeToRegion';
+import { postcodeToRegion } from '@/utils/postcodeToRegion';
 
 const INDEX_NAME = 'house_price_index';
 const LAND_REGISTRY_API_BASE = 'https://landregistry.data.gov.uk/data/ppi/';

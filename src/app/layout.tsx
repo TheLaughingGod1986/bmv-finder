@@ -5,7 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
 import { ToastProvider } from './components/ToastProvider';
 import Navigation from './components/Navigation';
-import ResponsiveHeader from './components/ResponsiveHeader';
+// import ResponsiveHeader from './components/ResponsiveHeader';
 // import AnchorLinks from './components/AnchorLinks';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
 

@@ -99,12 +99,21 @@ export default function Home() {
   const { showToast } = useToast();
   const resultsRef = useRef<HTMLDivElement>(null);
 
-  // Helper: get sales history for address
+  // Helper: get sales history for address (use addressKey for grouping)
   const getSalesHistoryForAddress = useCallback((property: SoldPrice) => {
     if (!property) return [];
-    return soldPrices.filter(
-      (p) => p.address === property.address && p.postcode === property.postcode
-    );
+    const key = [
+      property.paon?.trim().toLowerCase() || '',
+      property.street?.trim().toLowerCase() || '',
+      property.postcode?.trim().toLowerCase() || ''
+    ].join('|');
+    return soldPrices
+      .filter((p) => [
+        p.paon?.trim().toLowerCase() || '',
+        p.street?.trim().toLowerCase() || '',
+        p.postcode?.trim().toLowerCase() || ''
+      ].join('|') === key)
+      .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
   }, [soldPrices]);
 
   // Search handler
