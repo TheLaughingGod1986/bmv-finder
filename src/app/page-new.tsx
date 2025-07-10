@@ -381,10 +381,10 @@ export default function HomeNew() {
             <div className="flex flex-col lg:flex-row gap-4 items-start">
               <div className="flex-1">
                 <EnhancedSearch
-                  searchTerm={searchTerm}
+                  value={searchTerm}
+                  onChange={setSearchTerm}
                   onSearch={handleSearch}
                   isLoading={isLoading}
-                  placeholder="Search by postcode, street, or town..."
                 />
               </div>
               <Button
