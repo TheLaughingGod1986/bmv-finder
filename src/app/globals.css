@@ -4,8 +4,24 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap');
 
-/* Custom CSS Variables */
+/* Custom CSS Variables - Refined Design System */
 :root {
+  /* Primary Colors - Cool Tones */
+  --primary-blue: #3A7CA5;
+  --primary-blue-dark: #2C6E91;
+  --primary-green: #5DA271;
+  --primary-green-dark: #3B755D;
+  
+  /* Neutral Colors */
+  --neutral-beige: #F5F5DC;
+  --neutral-taupe: #D2B48C;
+  --neutral-grey: #E5E5E5;
+  
+  /* Accent Colors - Metallic */
+  --accent-gold: #D4AF37;
+  --accent-silver: #C0C0C0;
+  
+  /* Background Colors */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
   --card: 0 0% 100%;
@@ -49,8 +65,8 @@ body {
 /* Base Styles */
 body {
   font-family: 'Inter', 'DM Sans', 'Source Sans Pro', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #FAF9F6;
-  color: #2D2D2D;
+  background-color: var(--neutral-beige);
+  color: var(--primary-blue-dark);
   line-height: 1.6;
   font-weight: 400;
 }
@@ -103,7 +119,7 @@ h6 {
 
 /* Focus Styles */
 :focus {
-  outline: 2px solid #3A4F8F;
+  outline: 2px solid var(--primary-blue);
   outline-offset: 2px;
 }
 
@@ -122,7 +138,7 @@ input, select, textarea {
 }
 
 input:focus, select:focus, textarea:focus {
-  outline: 2px solid #3A4F8F;
+  outline: 2px solid var(--primary-blue);
   outline-offset: 2px;
 }
 
@@ -397,12 +413,45 @@ input:focus, select:focus, textarea:focus {
   .card {
     @apply rounded-lg;
   }
+  
+  /* Mobile-specific improvements */
+  .mobile-safe-area {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* Ensure touch targets are large enough */
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve text readability on mobile */
+  body {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  /* Stack elements vertically on mobile */
+  .mobile-stack {
+    flex-direction: column;
+  }
+  
+  /* Reduce padding on mobile */
+  .mobile-compact {
+    padding: 1rem;
+  }
 }
 
 @media (min-width: 641px) and (max-width: 1024px) {
   .container {
     padding-left: 2rem;
     padding-right: 2rem;
+  }
+  
+  /* Tablet-specific improvements */
+  .tablet-grid-2 {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
@@ -412,6 +461,57 @@ input:focus, select:focus, textarea:focus {
     padding-right: 2rem;
     max-width: 1280px;
   }
+  
+  /* Desktop-specific improvements */
+  .desktop-grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .desktop-grid-4 {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --primary-blue: #1a4a6b;
+    --primary-blue-dark: #0d2d4a;
+    --primary-green: #2d5a3d;
+    --primary-green-dark: #1a3a2a;
+  }
+  
+  .border {
+    border-width: 2px;
+  }
+  
+  .focus-visible-ring {
+    outline-width: 3px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .animate-spin {
+    animation: none;
+  }
+  
+  .hover-lift:hover {
+    transform: none;
+  }
+}
+
+/* Dark mode support (if needed in future) */
+@media (prefers-color-scheme: dark) {
+  /* Dark mode styles can be added here */
 }
 
 /* Dividers */
@@ -431,4 +531,156 @@ hr, .divider {
 
 .lux-accent-silver {
   @apply text-gray-500;
+}
+
+/* Design System Utility Classes */
+.bg-primary-blue {
+  background-color: var(--primary-blue);
+}
+
+.bg-primary-blue-dark {
+  background-color: var(--primary-blue-dark);
+}
+
+.bg-primary-green {
+  background-color: var(--primary-green);
+}
+
+.bg-primary-green-dark {
+  background-color: var(--primary-green-dark);
+}
+
+.bg-neutral-beige {
+  background-color: var(--neutral-beige);
+}
+
+.bg-neutral-taupe {
+  background-color: var(--neutral-taupe);
+}
+
+.bg-neutral-grey {
+  background-color: var(--neutral-grey);
+}
+
+.bg-accent-gold {
+  background-color: var(--accent-gold);
+}
+
+.bg-accent-silver {
+  background-color: var(--accent-silver);
+}
+
+.text-primary-blue {
+  color: var(--primary-blue);
+}
+
+.text-primary-blue-dark {
+  color: var(--primary-blue-dark);
+}
+
+.text-primary-green {
+  color: var(--primary-green);
+}
+
+.text-primary-green-dark {
+  color: var(--primary-green-dark);
+}
+
+.text-neutral-beige {
+  color: var(--neutral-beige);
+}
+
+.text-neutral-taupe {
+  color: var(--neutral-taupe);
+}
+
+.text-neutral-grey {
+  color: var(--neutral-grey);
+}
+
+.text-accent-gold {
+  color: var(--accent-gold);
+}
+
+.text-accent-silver {
+  color: var(--accent-silver);
+}
+
+.border-primary-blue {
+  border-color: var(--primary-blue);
+}
+
+.border-primary-blue-dark {
+  border-color: var(--primary-blue-dark);
+}
+
+.border-primary-green {
+  border-color: var(--primary-green);
+}
+
+.border-primary-green-dark {
+  border-color: var(--primary-green-dark);
+}
+
+.border-neutral-beige {
+  border-color: var(--neutral-beige);
+}
+
+.border-neutral-taupe {
+  border-color: var(--neutral-taupe);
+}
+
+.border-neutral-grey {
+  border-color: var(--neutral-grey);
+}
+
+.border-accent-gold {
+  border-color: var(--accent-gold);
+}
+
+.border-accent-silver {
+  border-color: var(--accent-silver);
+}
+
+/* Enhanced Shadow System */
+.shadow-soft {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-medium {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.shadow-strong {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
+}
+
+/* Gradient Utilities */
+.gradient-primary {
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
+}
+
+.gradient-secondary {
+  background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+}
+
+.gradient-neutral {
+  background: linear-gradient(135deg, var(--neutral-beige) 0%, var(--neutral-grey) 100%);
+}
+
+/* Glass Effect */
+.glass {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Hover Effects */
+.hover-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.16);
 }

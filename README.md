@@ -1,211 +1,211 @@
-# UK Property Prices - Modern Property Search App
+# BMV Finder
 
-A modern, user-friendly web application for searching and analyzing UK sold property prices using official Land Registry data. Built with Next.js 15, TypeScript, and Tailwind CSS.
+A comprehensive UK property market analysis platform that provides actionable insights for property buyers using Land Registry data and House Price Index (HPI) analytics.
 
-## ✨ Features
+## 🚀 New Features
 
-### 🔍 **Smart Search**
-- **Postcode Search**: Full and partial postcode matching
-- **Street & Town Search**: Search by street names, towns, or cities
-- **Smart Suggestions**: Popular areas and search tips
-- **Real-time Results**: Instant search with loading states
+### **Complete Data Integration**
+- **Recent Sales Display**: Shows the latest 10 property transactions for any UK postcode
+- **HPI Integration**: Displays House Price Index data with regional trends and market signals
+- **Market Insights**: Provides "buy/sell" signals based on recent prices vs HPI trends
+- **Dual Data Sources**: Uses local Elasticsearch data with SPARQL fallback for comprehensive coverage
 
-### 📊 **Rich Data Display**
-- **Property Details**: Address, price, date, type, tenure
-- **BMV Scoring**: Below Market Value analysis for investment insights
-- **Price History**: Track property value changes over time
-- **Similar Properties**: Compare with nearby sales
+### **Automated Data Pipeline**
+- **Land Registry Updates**: Automated daily incremental and weekly full updates
+- **HPI Data Updates**: Monthly automated updates from ONS
+- **Health Monitoring**: Weekly data health checks and validation
+- **Comprehensive Logging**: Detailed logs for monitoring and debugging
 
-### 📈 **Analytics & Charts**
-- **Price Trends**: Yearly average price charts
-- **Market Analysis**: Sales volume and property type distribution
-- **Interactive Visualizations**: Responsive charts and graphs
-- **Export Data**: Download results as CSV
+## 🏠 Property Search Features
 
-### 🎨 **Modern UI/UX**
-- **Responsive Design**: Works perfectly on mobile, tablet, and desktop
-- **Progressive Web App**: Installable with offline support
-- **Smooth Animations**: Framer Motion powered transitions
-- **Accessibility**: WCAG compliant with keyboard navigation
+### **Postcode Search**
+When you search for a UK postcode (e.g., "SS9 5EL"), you'll see:
 
-### 🔧 **Advanced Features**
-- **Filtering**: By property type, tenure, price range, date
-- **Sorting**: Multiple sort options with visual indicators
-- **Pagination**: Efficient data loading
-- **Real-time Updates**: Latest Land Registry data
+1. **HPI Data Panel**: 
+   - Latest House Price Index for the region
+   - Month-over-month and year-over-year growth
+   - Mini trend chart showing HPI movement over time
+   - Tooltips explaining each metric
 
-## 🚀 Quick Start
+2. **Recent Sales Panel**:
+   - Latest 10 property transactions in the postcode
+   - Sale prices, dates, property types, and addresses
+   - Median price calculation
+   - Market signal (above/below/in line with trend)
 
-### Prerequisites
+3. **Market Insights**:
+   - Comparison of recent sale prices to HPI trends
+   - Simple "buy/sell" indicators for property investors
+   - Regional context and market positioning
+
+### **Region/City Search**
+When you search for a region or city (e.g., "Leeds", "London"), you'll see:
+- Regional HPI data and trends
+- Market context for the broader area
+
+## 🔧 Setup & Installation
+
+### **Prerequisites**
 - Node.js 18+
+- Elasticsearch 8.x
 - npm or yarn
 
-### Installation
-
-1. **Clone the repository**
+### **Installation**
 ```bash
 git clone <repository-url>
 cd bmv-finder
-```
-
-2. **Install dependencies**
-```bash
 npm install
 ```
 
-3. **Set up environment variables**
-```bash
-cp .env.example .env.local
-# Add your Elasticsearch credentials
+### **Environment Setup**
+Create a `.env.local` file with:
+```env
+ELASTICSEARCH_URL=https://localhost:9200
+ELASTICSEARCH_API_KEY=your_api_key
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_key
+STRIPE_SECRET_KEY=your_stripe_key
 ```
 
-4. **Start development server**
+### **Data Setup**
+1. **Start Elasticsearch**:
+   ```bash
+   cd elasticsearch-8.13.0
+   ./bin/elasticsearch
+   ```
+
+2. **Import Land Registry Data**:
+   ```bash
+   npm run populate-es
+   ```
+
+3. **Import HPI Data**:
+   ```bash
+   node src/createHpiIndex.js
+   node src/updateHpiFromOns.js
+   ```
+
+### **Automation Setup**
+Set up automated data updates:
+```bash
+./scripts/setup-automation.sh
+```
+
+This configures:
+- **Daily incremental Land Registry updates** (3 AM)
+- **Weekly full Land Registry updates** (Sundays 2 AM)
+- **Monthly HPI updates** (1st of month 4 AM)
+- **Weekly health checks** (Saturdays 6 AM)
+
+## 📊 API Endpoints
+
+### **Recent Sales API**
+- `GET /api/recent-sales?postcode=SS9 5EL`
+- Returns recent sales, HPI data, and market signals
+- Falls back to Land Registry SPARQL if no local data
+
+### **HPI API**
+- `GET /api/hpi/postcode?postcode=SS9 5EL`
+- `GET /api/hpi/postcode?region=London`
+- Returns HPI data with source information
+
+### **Property Search API**
+- `POST /api/property-es`
+- `GET /api/property-trend`
+- Existing property search functionality
+
+## 🎯 Usage Examples
+
+### **For Property Buyers**
+1. Search for a postcode you're interested in
+2. Review recent sales to understand local market prices
+3. Check HPI trends to see if prices are rising or falling
+4. Use market signals to time your purchase
+
+### **For Property Investors**
+1. Compare recent sale prices to HPI trends
+2. Identify undervalued areas (below trend signals)
+3. Monitor regional HPI growth rates
+4. Use median prices for investment calculations
+
+## 📈 Data Sources
+
+### **Land Registry Price Paid Data**
+- Complete UK property transaction history
+- Updated daily with new sales
+- Includes property type, price, date, and location
+
+### **House Price Index (HPI)**
+- Official UK government house price index
+- Regional and national trends
+- Monthly updates from ONS
+
+### **SPARQL Integration**
+- Real-time access to Land Registry linked data
+- Fallback for postcodes with limited local data
+- Comprehensive coverage for all UK postcodes
+
+## 🔍 Monitoring & Maintenance
+
+### **Log Files**
+- `logs/cron-landregistry-daily.log` - Daily updates
+- `logs/cron-landregistry-weekly.log` - Weekly updates
+- `logs/cron-hpi-monthly.log` - HPI updates
+- `logs/cron-health-check.log` - System health
+
+### **Health Checks**
+```bash
+# Check data health
+node scripts/check-hpi-data.js
+
+# View recent logs
+tail -f logs/cron-landregistry-daily.log
+```
+
+### **Manual Updates**
+```bash
+# Update Land Registry data
+npm run update-es
+
+# Update HPI data
+node src/updateHpiFromOns.js
+```
+
+## 🛠️ Development
+
+### **Running Locally**
 ```bash
 npm run dev
 ```
 
-5. **Open your browser**
-Navigate to [http://localhost:3000](http://localhost:3000)
-
-## 🏗️ Architecture
-
-### Frontend
-- **Next.js 15**: React framework with App Router
-- **TypeScript**: Type safety and better development experience
-- **Tailwind CSS**: Utility-first CSS framework
-- **Framer Motion**: Smooth animations and transitions
-- **Lucide React**: Beautiful, consistent icons
-
-### Backend
-- **Elasticsearch**: High-performance search engine
-- **UK Land Registry Data**: Official property sales data
-- **RESTful APIs**: Clean, documented API endpoints
-
-### Data Processing
-- **BMV Scoring**: Proprietary algorithm for investment analysis
-- **Real-time Updates**: Automated data refresh
-- **Data Validation**: Comprehensive error handling
-
-## 📱 User Experience Improvements
-
-### Search Experience
-- **Smart Suggestions**: Popular areas with categories
-- **Search Tips**: Helpful guidance for better results
-- **Loading States**: Clear feedback during searches
-- **Error Handling**: Friendly error messages with solutions
-
-### Results Display
-- **Summary Cards**: Key insights at a glance
-- **Filtering System**: Easy-to-use filters with visual feedback
-- **Sorting Options**: Multiple ways to organize results
-- **Pagination**: Smooth navigation through large datasets
-
-### Mobile Optimization
-- **Touch-Friendly**: Optimized for mobile interactions
-- **Responsive Design**: Adapts to all screen sizes
-- **PWA Features**: Installable app experience
-- **Fast Loading**: Optimized performance
-
-## 🎯 Key Improvements Made
-
-### 1. **Enhanced Search Interface**
-- Added search suggestions with categories
-- Improved search tips and guidance
-- Better error handling and user feedback
-- Keyboard navigation support
-
-### 2. **Improved Empty States**
-- Helpful explanations when no results found
-- Suggested alternatives and popular areas
-- Clear action buttons for next steps
-- Educational content about search strategies
-
-### 3. **Better Visual Design**
-- Consistent color scheme and typography
-- Smooth animations and transitions
-- Modern card-based layouts
-- Improved spacing and visual hierarchy
-
-### 4. **Enhanced User Guidance**
-- BMV legend explaining the scoring system
-- Tooltips and help text throughout the app
-- Clear labeling and intuitive navigation
-- Progressive disclosure of complex features
-
-### 5. **Performance Optimizations**
-- Dynamic imports for better loading
-- Optimized bundle size
-- Efficient data processing
-- Responsive image loading
-
-## 🔧 Development
-
-### Available Scripts
-
+### **Testing APIs**
 ```bash
-# Development
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run start        # Start production server
+# Test recent sales
+curl "http://localhost:3000/api/recent-sales?postcode=SS9%205EL"
 
-# Code Quality
-npm run lint         # Run ESLint
-npm run type-check   # Run TypeScript checks
-
-# Data Management
-npm run populate-es  # Import Land Registry data
-npm run update-es    # Update with latest data
+# Test HPI data
+curl "http://localhost:3000/api/hpi/postcode?postcode=SS9%205EL"
 ```
 
-### Project Structure
-
-```
-src/
-├── app/
-│   ├── api/                 # API routes
-│   ├── components/          # React components
-│   ├── globals.css         # Global styles
-│   ├── layout.tsx          # Root layout
-│   └── page.tsx            # Main page
-├── lib/
-│   ├── esClient.ts         # Elasticsearch client
-│   ├── bmvScoreEngine.ts   # BMV scoring logic
-│   └── utils.ts            # Utility functions
-└── types/
-    └── sold-price.d.ts     # TypeScript types
-```
-
-## 📊 Data Source
-
-This application uses the official UK Land Registry Price Paid Data, which includes:
-- Property sale prices and dates
-- Property addresses and types
-- Freehold/Leasehold information
-- New/Existing property status
-
-The data is updated monthly and contains over 30 million property transactions.
-
-## 🤝 Contributing
-
-We welcome contributions! Please see our contributing guidelines:
+## 📝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run tests and linting
+4. Add tests if applicable
 5. Submit a pull request
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## 🙏 Acknowledgments
+## 🆘 Support
 
-- UK Land Registry for providing the data
-- Next.js team for the amazing framework
-- Tailwind CSS for the utility-first approach
-- All contributors and users
+For support or questions:
+- Email: support@bmvfinder.com
+- Check the logs for error details
+- Review the automation setup if data isn't updating
 
 ---
 
-**Built with ❤️ for the UK property market**
+**BMV Finder** - Making UK property data accessible and actionable for everyone.

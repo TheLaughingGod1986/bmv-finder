@@ -27,7 +27,7 @@ import {
   PieChart,
   Activity
 } from 'lucide-react';
-import { postcodeToRegion, isValidPostcodeFormat } from '../../../utils/postcodeToRegion';
+import { postcodeToRegion, isValidPostcodeFormat } from '@/utils/postcodeToRegion';
 import { format } from 'date-fns';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';

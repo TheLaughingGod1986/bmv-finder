@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useLayoutEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Info, TrendingUp, Target } from 'lucide-react';
 import { cn } from '../../lib/utils';
@@ -17,6 +17,22 @@ const BMVScoreBadge: React.FC<BMVScoreBadgeProps> = ({
   showTooltip = true 
 }) => {
   const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+  const [openLeft, setOpenLeft] = useState(false);
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (isTooltipVisible && badgeRef.current && tooltipRef.current) {
+      const badgeRect = badgeRef.current.getBoundingClientRect();
+      const tooltipRect = tooltipRef.current.getBoundingClientRect();
+      const spaceRight = window.innerWidth - badgeRect.left;
+      if (badgeRect.left + tooltipRect.width > window.innerWidth) {
+        setOpenLeft(true);
+      } else {
+        setOpenLeft(false);
+      }
+    }
+  }, [isTooltipVisible]);
   
   // Get BMV category based on score
   const getBMVCategory = (score: number) => {
@@ -67,13 +83,25 @@ const BMVScoreBadge: React.FC<BMVScoreBadgeProps> = ({
 
   const TooltipContent = () => (
     <motion.div
+      ref={tooltipRef}
       initial={{ opacity: 0, scale: 0.95, y: 10 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: 10 }}
-      className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-tooltip"
+      className={
+        'absolute bottom-full mb-2 w-80 bg-white rounded-xl shadow-xl border border-gray-200 p-4 z-[9999] ' +
+        (openLeft
+          ? 'right-0 left-auto transform-none'
+          : 'left-1/2 transform -translate-x-1/2')
+      }
+      style={{ maxWidth: '90vw' }}
     >
       {/* Arrow */}
-      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white"></div>
+      <div className={
+        'absolute top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-white ' +
+        (openLeft
+          ? 'right-4 left-auto -translate-x-0'
+          : 'left-1/2 transform -translate-x-1/2')
+      }></div>
       
       {/* Header */}
       <div className="flex items-center gap-2 mb-3">
@@ -130,7 +158,7 @@ const BMVScoreBadge: React.FC<BMVScoreBadgeProps> = ({
   );
 
   return (
-    <div className={cn("relative inline-block", className)}>
+    <div ref={badgeRef} className={cn("relative inline-block", className)}>
       <div
         onMouseEnter={() => showTooltip && setIsTooltipVisible(true)}
         onMouseLeave={() => showTooltip && setIsTooltipVisible(false)}

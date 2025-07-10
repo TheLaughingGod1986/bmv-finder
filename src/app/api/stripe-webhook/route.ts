@@ -11,8 +11,8 @@ const getStripe = () => {
     throw new Error('STRIPE_SECRET_KEY is not set');
   }
   return new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: '2025-06-30.basil',
-  });
+  apiVersion: '2025-06-30.basil',
+});
 };
 
 // Initialize Supabase admin client only when environment variables are available
@@ -35,17 +35,17 @@ const getPriceIdToTier = () => {
   const ELITE_YEARLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID;
   const PDF_REPORT_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PDF_REPORT_PRICE_ID;
 
-  if (!STARTER_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PRO_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
-    throw new Error('One or more Stripe Price IDs are missing from your environment variables.');
-  }
+if (!STARTER_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PRO_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
+  throw new Error('One or more Stripe Price IDs are missing from your environment variables.');
+}
 
   return {
     priceIdToTier: {
-      [STARTER_PRICE_ID]: 'free',
-      [PRO_MONTHLY_PRICE_ID]: 'pro',
-      [PRO_YEARLY_PRICE_ID]: 'pro',
-      [ELITE_MONTHLY_PRICE_ID]: 'elite',
-      [ELITE_YEARLY_PRICE_ID]: 'elite',
+  [STARTER_PRICE_ID]: 'free',
+  [PRO_MONTHLY_PRICE_ID]: 'pro',
+  [PRO_YEARLY_PRICE_ID]: 'pro',
+  [ELITE_MONTHLY_PRICE_ID]: 'elite',
+  [ELITE_YEARLY_PRICE_ID]: 'elite',
     },
     PDF_REPORT_PRICE_ID
   };
