@@ -50,3 +50,4 @@ elasticsearch-8.13.0/config/certs/
 
 # env
 .env
+recent-sales-indexing.log
