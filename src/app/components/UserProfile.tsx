@@ -1,9 +1,19 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { createClient } from '@supabase/supabase-js';
 import AuthForm from "./AuthForm";
 import { useUserTier } from '@/hooks/useUserTier';
 import dayjs from 'dayjs';
+
+function getSupabase() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase environment variables are not set');
+  }
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
 export default function UserProfile() {
   const [user, setUser] = useState<any>(null);
@@ -20,12 +30,14 @@ export default function UserProfile() {
 
   useEffect(() => {
     const getUser = async () => {
+      const supabase = getSupabase();
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
       setEmail(data.user?.email || "");
       setLoading(false);
       // Fetch billing_metadata from profiles
       if (data.user?.id) {
+        const supabase = getSupabase();
         const { data: profile } = await supabase
           .from('profiles')
           .select('billing_metadata')
@@ -35,6 +47,7 @@ export default function UserProfile() {
       }
     };
     getUser();
+    const supabase = getSupabase();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setEmail(session?.user?.email || "");
@@ -50,6 +63,7 @@ export default function UserProfile() {
   const handleEmailChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setEmailMsg(null);
+    const supabase = getSupabase();
     const { error } = await supabase.auth.updateUser({ email: newEmail });
     if (error) setEmailMsg(error.message);
     else setEmailMsg("Email update requested. Check your new email to confirm.");
@@ -58,12 +72,14 @@ export default function UserProfile() {
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwMsg(null);
+    const supabase = getSupabase();
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     if (error) setPwMsg(error.message);
     else setPwMsg("Password updated.");
   };
 
   const handleLogout = async () => {
+    const supabase = getSupabase();
     await supabase.auth.signOut();
     window.location.reload();
   };

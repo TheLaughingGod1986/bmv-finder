@@ -5,7 +5,17 @@ import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Tar
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import UserProfile from '../components/UserProfile';
-import { supabase } from '@/lib/supabaseClient';
+import { createClient } from '@supabase/supabase-js';
+
+function getSupabase() {
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    throw new Error('Supabase environment variables are not set');
+  }
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
+}
 
 interface PortfolioProperty {
   id: string;
@@ -30,6 +40,7 @@ export default function PortfolioTrackerPage() {
       const refresh_token = params.get('refresh_token');
       console.log('Parsed tokens:', { access_token, refresh_token });
       if (access_token && refresh_token) {
+        const supabase = getSupabase();
         supabase.auth.setSession({ access_token, refresh_token })
           .then(({ data, error }) => {
             console.log('setSession result:', { data, error });
@@ -37,6 +48,7 @@ export default function PortfolioTrackerPage() {
         window.location.hash = '';
       }
     }
+    const supabase = getSupabase();
     supabase.auth.getSession().then(({ data }) => {
       console.log('getSession after setSession:', data);
     });
@@ -50,6 +62,7 @@ export default function PortfolioTrackerPage() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'sold' | 'watching'>('all');
 
   useEffect(() => {
+    const supabase = getSupabase();
     const getUser = async () => {
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
