@@ -461,7 +461,7 @@ export default function Home() {
       setIsLoading(false);
       setIsPaginationLoading(false);
     }
-  }, [soldPrices.length, page, pageSize, searchAfter, searchAfterHistory, enhancePropertiesWithBMVScores, groupPropertiesByAddress, showToast]);
+  }, [soldPrices.length, pageSize, searchAfter, searchAfterHistory, enhancePropertiesWithBMVScores, groupPropertiesByAddress, showToast]);
 
   // Filter and sort functions
   const handleSort = useCallback((key: keyof SoldPrice) => {
@@ -681,7 +681,7 @@ export default function Home() {
               Discover the <span className="text-primary-700 font-bold">true value</span> of UK homes with trusted <span className="text-primary-700 font-bold">Land Registry data</span>.
             </h1>
             <p className="text-lg text-gray-600 mb-8 max-w-2xl mx-auto">
-              Instantly see <span className="text-primary-700 font-bold">recent sales</span>, <span className="text-primary-700 font-bold">market trends</span>, and get smart tools to help you decide what's a <span className="text-primary-700 font-bold">fair price</span>—whether you're buying, selling, or investing.
+              Instantly see <span className="text-primary-700 font-bold">recent sales</span>, <span className="text-primary-700 font-bold">market trends</span>, and get smart tools to help you decide what&apos;s a <span className="text-primary-700 font-bold">fair price</span>—whether you&apos;re buying, selling, or investing.
             </p>
             <div className="mt-8">
               <EnhancedSearch
