@@ -657,9 +657,8 @@ export default function HomeNew() {
       </Section>
 
       {/* Property History Modal */}
-      {selectedProperty && (
+      {selectedProperty && showHistoryModal && (
         <PropertyHistoryModal
-          isOpen={showHistoryModal}
           onClose={() => setShowHistoryModal(false)}
           property={selectedProperty}
           history={propertyHistory}
