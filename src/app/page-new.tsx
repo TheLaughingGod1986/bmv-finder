@@ -299,7 +299,9 @@ export default function HomeNew() {
   }, [getSalesHistoryForAddress]);
 
   // Handle row selection
-  const handleRowSelect = useCallback((property: SoldPrice, rowId: string) => {
+  const handleRowSelect = useCallback((property: SoldPrice) => {
+    // Generate a unique row ID from the property data
+    const rowId = `${property.paon}-${property.street}-${property.postcode}-${property.dateOfTransfer}`;
     setSelectedRowId(rowId);
     handlePropertyClick(property);
   }, [handlePropertyClick]);
