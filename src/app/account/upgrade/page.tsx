@@ -185,6 +185,8 @@ const UpgradePage = () => {
 
   const [managingSubscription, setManagingSubscription] = useState(false);
   const [hoveredPlan, setHoveredPlan] = useState<UserTier | null>(null);
+  const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [upgradedPlan, setUpgradedPlan] = useState<string | null>(null);
 
   // Helper to get renewal date and interval from billing_metadata
   let renewalDate: string | null = null;
@@ -271,11 +273,20 @@ const UpgradePage = () => {
       }
       const stripe = await stripePromise;
       if (stripe) {
+        // Enhanced success notification with next steps
         showToast({
           type: 'success',
-          title: 'Redirecting to Stripe Checkout…',
-          message: 'You will complete your upgrade securely on Stripe.',
+          title: 'Redirecting to secure checkout...',
+          message: 'Complete your payment to unlock your new features. You\'ll be redirected back here after payment.',
         });
+        
+        // Store upgrade intent in sessionStorage for post-payment success message
+        sessionStorage.setItem('upgradeIntent', JSON.stringify({
+          planPriceId,
+          timestamp: Date.now(),
+          userId
+        }));
+        
         window.location.href = data.url;
       } else {
         showToast({
@@ -295,6 +306,36 @@ const UpgradePage = () => {
     }
   };
 
+  // Check for successful upgrade on page load
+  useEffect(() => {
+    const upgradeIntent = sessionStorage.getItem('upgradeIntent');
+    if (upgradeIntent) {
+      try {
+        const intent = JSON.parse(upgradeIntent);
+        const timeSinceUpgrade = Date.now() - intent.timestamp;
+        
+        // Show success message if upgrade was recent (within last 5 minutes)
+        if (timeSinceUpgrade < 5 * 60 * 1000) {
+          showToast({
+            type: 'success',
+            title: '🎉 Upgrade successful!',
+            message: 'Your new plan is now active. Explore your enhanced features below.',
+          });
+          
+          // Show success banner with next steps
+          setShowSuccessBanner(true);
+          setUpgradedPlan(intent.planPriceId.includes('PRO') ? 'Pro' : intent.planPriceId.includes('ELITE') ? 'Elite' : 'Starter');
+          
+          // Clear the upgrade intent
+          sessionStorage.removeItem('upgradeIntent');
+        }
+      } catch (error) {
+        console.error('Error parsing upgrade intent:', error);
+        sessionStorage.removeItem('upgradeIntent');
+      }
+    }
+  }, [showToast]);
+
   // Manage Subscription handler (copied from account page)
   const handleManageSubscription = async () => {
     if (managingSubscription) return;
@@ -312,13 +353,21 @@ const UpgradePage = () => {
       }
       const data = await res.json();
       if (data.url) {
-        toast.success('Opening Stripe Customer Portal...');
+        showToast({
+          type: 'info',
+          title: 'Opening account management...',
+          message: 'You can update billing info, view invoices, and manage your subscription.',
+        });
         window.location.href = data.url;
       } else {
         throw new Error(data.error || 'No portal URL received');
       }
     } catch (err: any) {
-      toast.error(err.message || 'Failed to open Stripe Customer Portal');
+      showToast({
+        type: 'error',
+        title: 'Failed to open account management',
+        message: err.message || 'Please try again later.',
+      });
     } finally {
       setManagingSubscription(false);
     }
@@ -327,6 +376,24 @@ const UpgradePage = () => {
   // Add back downgrade confirmation modal logic
   const handleDowngradeClick = (planName: string, priceId: string, renewalDate: string) => {
     setPendingDowngrade({ planName, priceId, renewalDate });
+  };
+
+  // Handle successful downgrade
+  const handleConfirmDowngrade = async () => {
+    if (!pendingDowngrade) return;
+    
+    try {
+      await handleUpgrade(pendingDowngrade.priceId);
+      setPendingDowngrade(null);
+      
+      showToast({
+        type: 'success',
+        title: 'Downgrade confirmed',
+        message: `Your plan will change to ${pendingDowngrade.planName} on ${pendingDowngrade.renewalDate}. You'll keep all current features until then.`,
+      });
+    } catch (error) {
+      // Error handling is already done in handleUpgrade
+    }
   };
 
   // Debug logging
@@ -349,6 +416,85 @@ const UpgradePage = () => {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
+      {/* Success Banner */}
+      {showSuccessBanner && (
+        <div className="mb-8 bg-gradient-to-r from-[#5DA271] to-[#3B755D] text-white rounded-xl p-6 shadow-lg">
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-bold">Welcome to {upgradedPlan}!</h2>
+              </div>
+              <p className="text-white text-opacity-90 mb-4 leading-relaxed">
+                Your upgrade is complete and your new features are now active. Here's what you can do next:
+              </p>
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                  <h3 className="font-semibold mb-2">🚀 Explore New Features</h3>
+                  <ul className="text-sm space-y-1">
+                    {upgradedPlan === 'Pro' && (
+                      <>
+                        <li>• Unlimited property lookups</li>
+                        <li>• Advanced analytics & insights</li>
+                        <li>• Export data to CSV</li>
+                      </>
+                    )}
+                    {upgradedPlan === 'Elite' && (
+                      <>
+                        <li>• Everything in Pro</li>
+                        <li>• API access</li>
+                        <li>• Custom reports</li>
+                      </>
+                    )}
+                  </ul>
+                </div>
+                <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                  <h3 className="font-semibold mb-2">📋 Next Steps</h3>
+                  <ul className="text-sm space-y-1">
+                    <li>• Start searching for properties</li>
+                    <li>• Set up alerts & notifications</li>
+                    <li>• Explore your dashboard</li>
+                  </ul>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="/"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#3B755D] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Start Searching
+                </a>
+                <a
+                  href="/account"
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-white text-white rounded-lg font-semibold hover:bg-white hover:text-[#3B755D] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  View Account
+                </a>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowSuccessBanner(false)}
+              className="ml-4 text-white text-opacity-70 hover:text-opacity-100 transition-opacity"
+              aria-label="Close success banner"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Modal for downgrade confirmation */}
       {pendingDowngrade && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
@@ -366,10 +512,7 @@ const UpgradePage = () => {
               </button>
               <button
                 className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700"
-                onClick={() => {
-                  handleUpgrade(pendingDowngrade.priceId);
-                  setPendingDowngrade(null);
-                }}
+                onClick={handleConfirmDowngrade}
               >
                 Confirm
               </button>
