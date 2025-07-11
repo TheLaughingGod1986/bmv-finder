@@ -7,12 +7,10 @@ export async function GET(request: NextRequest) {
   try {
     const response = await esClient.search({
       index: HPI_INDEX,
-      body: {
-        size: 0,
-        aggs: {
-          min_date: { min: { field: 'date' } },
-          max_date: { max: { field: 'date' } }
-        }
+      size: 0,
+      aggs: {
+        min_date: { min: { field: 'date' } },
+        max_date: { max: { field: 'date' } }
       }
     });
 
