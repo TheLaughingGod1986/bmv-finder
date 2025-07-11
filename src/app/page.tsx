@@ -361,7 +361,6 @@ export default function Home() {
                 onChange={setSearchTerm}
                 onSearch={handleSearch}
                 isLoading={isLoading}
-                placeholder="Search by postcode, street, or town..."
               />
             </div>
             {/* Filters Button Only (if you want to keep filters) */}
