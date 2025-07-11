@@ -27,17 +27,13 @@ export default function ResponsiveHeader({ className = '' }: ResponsiveHeaderPro
   ];
 
   return (
-    <header className={`sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-[#E5E5E5] ${className}`}>
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-3">
+    <header className={`bg-[#F5F5DC] ${className}`}>
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
         {/* Logo */}
-        <Link 
-          href="/" 
-          className="flex items-center gap-2 hover:opacity-80 transition"
-          onClick={closeMenu}
-        >
-          <span className="text-2xl font-extrabold text-[#3A7CA5] tracking-tight">🏡 UK Property Insights</span>
-        </Link>
-
+        <span className="flex items-center gap-2">
+          <img src="/icon.svg" alt="UK Property Insights Logo" className="w-7 h-7" />
+          <span className="text-2xl font-extrabold text-[#3A7CA5] tracking-tight">UK Property Insights</span>
+        </span>
         {/* Desktop Navigation */}
         <nav className="hidden md:flex gap-6 text-[#2C6E91] font-medium">
           {navItems.map((item) => (
@@ -50,15 +46,6 @@ export default function ResponsiveHeader({ className = '' }: ResponsiveHeaderPro
             </a>
           ))}
         </nav>
-
-        {/* Desktop Login Button */}
-        <Link 
-          href="/account" 
-          className="hidden md:inline-block ml-4 px-5 py-2 rounded-lg bg-[#3A7CA5] text-white font-semibold shadow hover:bg-[#2C6E91] transition focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2"
-        >
-          Login / Register
-        </Link>
-
         {/* Mobile Menu Button */}
         <button
           onClick={toggleMenu}
@@ -74,34 +61,25 @@ export default function ResponsiveHeader({ className = '' }: ResponsiveHeaderPro
           )}
         </button>
       </div>
-
       {/* Mobile Menu */}
       <div
         id="mobile-menu"
         className={`md:hidden ${isMenuOpen ? 'block' : 'hidden'}`}
         aria-hidden={!isMenuOpen}
       >
-        <div className="bg-white border-t border-[#E5E5E5] px-4 py-2 space-y-1">
+        <div className="bg-[#F5F5DC] border-t border-[#E5E5E5] px-4 py-2 space-y-1">
           {navItems.map((item) => (
             <a
               key={item.href}
               href={item.href}
-              className="block px-3 py-2 rounded-lg text-[#2C6E91] font-medium hover:bg-[#F5F5DC] transition focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2"
+              className="block px-3 py-2 rounded-lg text-[#2C6E91] font-medium hover:bg-[#E5E5E5] transition focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2"
               onClick={closeMenu}
             >
               {item.label}
             </a>
           ))}
-          <Link
-            href="/account"
-            className="block px-3 py-2 rounded-lg bg-[#3A7CA5] text-white font-semibold text-center hover:bg-[#2C6E91] transition focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2"
-            onClick={closeMenu}
-          >
-            Login / Register
-          </Link>
         </div>
       </div>
-
       {/* Backdrop for mobile menu */}
       {isMenuOpen && (
         <div
