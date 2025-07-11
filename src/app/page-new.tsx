@@ -682,7 +682,7 @@ export default function HomeNew() {
       </AnimatePresence>
 
       {/* Pagination Loading Overlay */}
-      <PaginationLoadingOverlay isVisible={isPaginationLoading} />
+      <PaginationLoadingOverlay isLoading={isPaginationLoading} />
     </div>
   );
 } 
