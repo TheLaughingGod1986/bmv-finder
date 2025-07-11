@@ -63,6 +63,10 @@ export default function AccountPage() {
   const derivedTier = profile?.billing_metadata?.plan?.name?.toLowerCase() || tier;
   const currentPlan = PLANS.find((p) => p.tier === derivedTier) || PLANS[0];
 
+  // Personalized greeting and plan reference
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+  const planName = derivedTier ? derivedTier.charAt(0).toUpperCase() + derivedTier.slice(1) : '';
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const params = new URLSearchParams(window.location.search);
@@ -138,6 +142,13 @@ export default function AccountPage() {
   return (
     <main className="max-w-2xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
       <Toaster position="top-center" />
+      {/* Personalized Greeting */}
+      {user && (
+        <div className="mb-6 text-center">
+          <h2 className="text-2xl font-bold text-[#2C6E91]">Hi{userName ? `, ${userName}` : ''}!</h2>
+          <p className="text-lg text-[#3B755D] mt-1">You’re currently on the <span className="font-semibold text-[#3A7CA5]">{planName} plan</span>.</p>
+        </div>
+      )}
       {/* Logo/Header */}
       <div className="flex items-center justify-between mb-6">
         <span className="font-bold text-xl text-blue-700">UK Property Insights</span>
@@ -147,6 +158,10 @@ export default function AccountPage() {
       {/* Current Plan Card */}
       {subscriptionInfo && (
         <section className={`rounded-2xl border-4 shadow p-6 flex flex-col items-center mb-8 relative ${subscriptionInfo.tier !== 'free' ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
+          {/* Recommended for you badge */}
+          {user && derivedTier !== 'elite' && (
+            <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
+          )}
           <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
           <div className="text-lg font-bold mb-1">Current Plan: {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)}</div>
           <div className="mb-2 text-gray-600 text-center">{subscriptionInfo.tier === 'free' ? 'Basic access, limited features' : subscriptionInfo.tier === 'pro' ? 'Unlimited lookups, alerts, export, full data access' : 'All Pro features + PDF reports, bulk analysis, CRM export'}</div>
