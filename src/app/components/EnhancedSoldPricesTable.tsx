@@ -177,8 +177,9 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
         console.log(`[DEBUG] Row ${index}: addressKey=${key}, count=${count}`);
         return null;
       })}
-      {/* Table Header */}
-      <div className="overflow-x-auto">
+      
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -198,6 +199,13 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
               </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">
                 <SortableHeader 
+                  column="dateOfTransfer" 
+                  label="Date" 
+                  icon={<Calendar className="w-4 h-4" />}
+                />
+              </th>
+              <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">
+                <SortableHeader 
                   column="price" 
                   label="Price" 
                   icon={<PoundSterling className="w-4 h-4" />}
@@ -205,109 +213,224 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
               </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">
                 <SortableHeader 
-                  column="dateOfTransfer" 
-                  label="Sale Date" 
-                  icon={<Calendar className="w-4 h-4" />}
+                  column="duration" 
+                  label="Duration" 
+                  icon={<TrendingUp className="w-4 h-4" />}
                 />
               </th>
               <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">
-                <div className="flex items-center gap-2 text-left font-semibold text-text-primary">
-                  <TrendingUp className="w-4 h-4" />
-                  <span>BMV Score</span>
-                </div>
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-text-primary">
-                Actions
+                <span className="flex items-center gap-2">
+                  <Eye className="w-4 h-4" />
+                  Actions
+                </span>
               </th>
             </tr>
           </thead>
           <tbody>
-            {soldPrices.map((property, index) => (
-              <motion.tr
-                key={`${property.paon}-${property.street}-${property.dateOfTransfer}-${index}`}
-                className={cn(
-                  "border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer",
-                  selectedRowId === `${property.paon}-${property.street}-${property.dateOfTransfer}-${index}` && "bg-primary-50 border-primary-200"
-                )}
-                onMouseEnter={() => setHoveredRow(`${property.paon}-${property.street}-${property.dateOfTransfer}-${index}`)}
-                onMouseLeave={() => setHoveredRow(null)}
-                onClick={() => onRowClick(property)}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <td className="px-6 py-4">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gray-100 rounded-lg">
-                      <MapPin className="w-4 h-4 text-text-tertiary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium text-text-primary line-clamp-2">
-                        {formatAddress(property)}
+            {soldPrices.map((property, index) => {
+              const key = addressKey(property);
+              const count = allSales.filter(sale => addressKey(sale) === key).length;
+              const isSelected = selectedRowId === property.id;
+              const isHovered = hoveredRow === property.id;
+              
+              return (
+                <motion.tr
+                  key={`${property.id}-${index}`}
+                  className={cn(
+                    "border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer",
+                    isSelected && "bg-primary-50 border-primary-200"
+                  )}
+                  onClick={() => onRowClick(property)}
+                  onMouseEnter={() => setHoveredRow(property.id)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  whileHover={{ backgroundColor: "#f8fafc" }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, delay: index * 0.05 }}
+                >
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0">
+                        {getPropertyTypeIcon(property.propertyType)}
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-text-secondary mt-1">
-                        <span>{property.postcode}</span>
-                        {/* Sales count badge */}
-                        <span className="ml-2 px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 text-xs font-semibold">
-                          {allSales.filter(sale => addressKey(sale) === addressKey(property)).length} sales
-                        </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-medium text-text-primary truncate">
+                          {formatAddress(property)}
+                        </div>
+                        <div className="text-xs text-text-secondary">
+                          {property.postcode}
+                        </div>
+                        {count > 1 && (
+                          <div className="text-xs text-primary-600 font-medium mt-1">
+                            {count} sales at this address
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1 bg-gray-100 rounded">
-                      {getPropertyTypeIcon(property.propertyType)}
-                    </div>
-                    <span className="text-sm text-text-primary">
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
                       {formatPropertyType(property.propertyType)}
                     </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="font-semibold text-text-primary">
-                    {formatPrice(property.price)}
-                  </div>
-                </td>
-                <td className="px-6 py-4">
-                  <div className="text-sm text-text-primary">
+                  </td>
+                  <td className="px-6 py-4 text-sm text-text-primary">
                     {formatDate(property.dateOfTransfer)}
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm font-semibold text-text-primary">
+                      {formatPrice(property.price)}
+                    </div>
+                                         <BMVScoreBadge score={property.bmvScore || 0} className="mt-1" />
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={cn(
+                      "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
+                      property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                    )}>
+                      {property.duration === 'F' ? 'Freehold' : 'Leasehold'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const history = allSales.filter(sale => addressKey(sale) === key);
+                          onShowHistory(property, history);
+                        }}
+                        className="p-2 text-text-tertiary hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors touch-target"
+                        aria-label="View property history"
+                      >
+                        <History className="w-4 h-4" />
+                      </button>
+                      <a
+                        href={`https://www.google.com/maps/search/${encodeURIComponent(formatAddress(property))}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 text-text-tertiary hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors touch-target"
+                        aria-label="View on Google Maps"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </td>
+                </motion.tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="lg:hidden">
+        <div className="p-4 space-y-4">
+          {soldPrices.map((property, index) => {
+            const key = addressKey(property);
+            const count = allSales.filter(sale => addressKey(sale) === key).length;
+            const isSelected = selectedRowId === property.id;
+            
+            return (
+              <motion.div
+                key={`${property.id}-${index}`}
+                className={cn(
+                  "bg-white border border-gray-200 rounded-lg p-4 shadow-soft hover:shadow-medium transition-all cursor-pointer",
+                  isSelected && "border-primary-300 bg-primary-50"
+                )}
+                onClick={() => onRowClick(property)}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.05 }}
+              >
+                {/* Header with Property Type Icon */}
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0">
+                      {getPropertyTypeIcon(property.propertyType)}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <h3 className="text-base font-semibold text-text-primary truncate">
+                        {formatAddress(property)}
+                      </h3>
+                      <p className="text-sm text-text-secondary">
+                        {property.postcode}
+                      </p>
+                    </div>
                   </div>
-                </td>
-                <td className="px-6 py-4">
-                  <BMVScoreBadge score={property.bmvScore || 0} />
-                </td>
-                <td className="px-6 py-4">
                   <div className="flex items-center gap-2">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onRowClick(property);
+                        const history = allSales.filter(sale => addressKey(sale) === key);
+                        onShowHistory(property, history);
                       }}
-                      className="p-2 text-text-tertiary hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                      title="View Details"
+                      className="p-2 text-text-tertiary hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors touch-target"
+                      aria-label="View property history"
                     >
-                      <Eye className="w-4 h-4" />
+                      <History className="w-5 h-5" />
                     </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Mock history data - in real app, fetch from API
-                        const mockHistory = [property];
-                        onShowHistory(property, mockHistory);
-                      }}
-                      className="p-2 text-text-tertiary hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
-                      title="View History"
+                    <a
+                      href={`https://www.google.com/maps/search/${encodeURIComponent(formatAddress(property))}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 text-text-tertiary hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors touch-target"
+                      aria-label="View on Google Maps"
                     >
-                      <History className="w-4 h-4" />
-                    </button>
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
                   </div>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+
+                {/* Property Details */}
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1">Price</p>
+                    <p className="text-lg font-bold text-text-primary">
+                      {formatPrice(property.price)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1">Date</p>
+                    <p className="text-sm font-medium text-text-primary">
+                      {formatDate(property.dateOfTransfer)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Property Type and Duration */}
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                    {formatPropertyType(property.propertyType)}
+                  </span>
+                  <span className={cn(
+                    "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
+                    property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                  )}>
+                    {property.duration === 'F' ? 'Freehold' : 'Leasehold'}
+                  </span>
+                </div>
+
+                                 {/* BMV Score */}
+                 <div className="mb-3">
+                   <BMVScoreBadge score={property.bmvScore || 0} />
+                 </div>
+
+                {/* Multiple Sales Indicator */}
+                {count > 1 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-blue-600" />
+                      <span className="text-sm font-medium text-blue-800">
+                        {count} sales at this address
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

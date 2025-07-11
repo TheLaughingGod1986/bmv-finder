@@ -112,7 +112,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
           >
             <div className="flex flex-col h-full">
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between p-4 sm:p-6 border-b border-gray-200">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-primary-100 rounded-lg">
                     <Sliders className="w-5 h-5 text-primary-600" />
@@ -126,21 +126,22 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 text-text-tertiary hover:text-text-primary hover:bg-gray-100 rounded-lg transition-colors"
+                  className="p-3 text-text-tertiary hover:text-text-primary hover:bg-gray-100 rounded-lg transition-colors touch-target"
+                  aria-label="Close filters"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
               {/* Filter Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
                 {/* Price Range */}
                 <div className="space-y-4">
                   <label className="flex items-center gap-2 text-sm font-medium text-text-primary">
                     <PoundSterling className="w-4 h-4" />
                     Price Range
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-text-secondary mb-2">Min Price</label>
                       <input
@@ -150,7 +151,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                           ...localFilters.priceRange,
                           min: e.target.value ? parseInt(e.target.value) : 0
                         })}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-3 sm:py-2.5 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors touch-target"
                         placeholder="£0"
                       />
                     </div>
@@ -163,7 +164,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                           ...localFilters.priceRange,
                           max: e.target.value ? parseInt(e.target.value) : 10000000
                         })}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-3 sm:py-2.5 text-sm text-text-primary placeholder-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors touch-target"
                         placeholder="No limit"
                       />
                     </div>
@@ -176,7 +177,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                     <Calendar className="w-4 h-4" />
                     Date Range
                   </label>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs text-text-secondary mb-2">From</label>
                       <input
@@ -186,7 +187,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                           ...localFilters.dateRange,
                           start: e.target.value
                         })}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-3 sm:py-2.5 text-sm text-text-primary focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors touch-target"
                       />
                     </div>
                     <div>
@@ -198,7 +199,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                           ...localFilters.dateRange,
                           end: e.target.value
                         })}
-                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-text-primary focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                        className="w-full rounded-lg border border-gray-200 bg-white px-3 py-3 sm:py-2.5 text-sm text-text-primary focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors touch-target"
                       />
                     </div>
                   </div>
@@ -210,9 +211,12 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                     <Home className="w-4 h-4" />
                     Property Type
                   </label>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {propertyTypes.map((type) => (
-                      <label key={type.value} className="flex items-center gap-3 cursor-pointer">
+                      <label
+                        key={type.value}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary-300 cursor-pointer transition-colors touch-target"
+                      >
                         <input
                           type="checkbox"
                           checked={localFilters.propertyType.includes(type.value)}
@@ -236,9 +240,12 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                     <TrendingUp className="w-4 h-4" />
                     Duration
                   </label>
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {durations.map((duration) => (
-                      <label key={duration.value} className="flex items-center gap-3 cursor-pointer">
+                      <label
+                        key={duration.value}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary-300 cursor-pointer transition-colors touch-target"
+                      >
                         <input
                           type="checkbox"
                           checked={localFilters.duration.includes(duration.value)}
@@ -262,9 +269,12 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                     <Calendar className="w-4 h-4" />
                     Year
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {years.map((year) => (
-                      <label key={year.value} className="flex items-center gap-3 cursor-pointer">
+                      <label
+                        key={year.value}
+                        className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:border-primary-300 cursor-pointer transition-colors touch-target"
+                      >
                         <input
                           type="checkbox"
                           checked={localFilters.year.includes(year.value)}
@@ -284,20 +294,23 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
               </div>
 
               {/* Footer */}
-              <div className="p-6 border-t border-gray-200 space-y-3">
-                <button
-                  onClick={handleApply}
-                  className="w-full bg-primary-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-600 transition-colors"
-                >
-                  Apply Filters
-                </button>
-                <button
-                  onClick={handleReset}
-                  className="w-full flex items-center justify-center gap-2 text-text-secondary hover:text-text-primary py-2 px-4 rounded-lg font-medium transition-colors"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  Reset All
-                </button>
+              <div className="p-4 sm:p-6 border-t border-gray-200 space-y-3">
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleReset}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-text-secondary bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors touch-target"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Reset
+                  </button>
+                  <button
+                    onClick={handleApply}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors touch-target"
+                  >
+                    <Filter className="w-4 h-4" />
+                    Apply Filters
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
