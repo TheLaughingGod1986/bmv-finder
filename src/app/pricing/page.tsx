@@ -114,6 +114,10 @@ export default function PricingPage() {
   const { tier: userTier } = useUserTier(user?.id || null);
   const stripePriceIds = getStripePriceIds();
 
+  // Personalized greeting and plan reference
+  const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+  const planName = userTier ? userTier.charAt(0).toUpperCase() + userTier.slice(1) : '';
+
   // Don't render the component if we're on the server side
   if (typeof window === 'undefined') {
     return null;
@@ -127,6 +131,13 @@ export default function PricingPage() {
 
   return (
     <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
+      {/* Personalized Greeting */}
+      {user && (
+        <div className="mb-6 text-center">
+          <h2 className="text-2xl font-bold text-[#2C6E91]">Welcome back{userName ? `, ${userName}` : ''}!</h2>
+          <p className="text-lg text-[#3B755D] mt-1">You’re currently on the <span className="font-semibold text-[#3A7CA5]">{planName} plan</span>.</p>
+        </div>
+      )}
       {/* Hero Section */}
       <section className="mb-10 text-center">
         <h1 className="text-4xl font-extrabold mb-4">Find the Right Plan for Your Property Journey</h1>
@@ -139,7 +150,11 @@ export default function PricingPage() {
         <h2 className="text-2xl font-bold mb-6 text-center">Compare Plans</h2>
         <div className="flex flex-col md:flex-row justify-center items-stretch gap-8">
           {/* Starter Plan Card */}
-          <div className="flex flex-col items-center bg-white rounded-2xl shadow-lg p-8 w-80 mb-0">
+          <div className="flex flex-col items-center bg-white rounded-2xl shadow-lg p-8 w-80 mb-0 relative">
+            {/* Recommended for you badge */}
+            {user && userTier === 'free' && (
+              <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
+            )}
             <h3 className="text-xl font-bold mb-2">Starter</h3>
             <div className="text-2xl font-extrabold mb-2">£0</div>
             <div className="mb-4 text-gray-600 text-center">Basic access, limited features</div>
@@ -157,8 +172,9 @@ export default function PricingPage() {
           </div>
           {/* Pro Plan Card */}
           <div className={`flex flex-col items-center rounded-2xl shadow-lg p-8 w-80 mb-0 relative ${user && userTier === 'pro' ? 'border-4 border-blue-600 bg-blue-50' : 'border border-gray-200 bg-white'}`}>
+            {/* Recommended for you badge */}
             {user && userTier === 'pro' && (
-              <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
+              <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
             )}
             <h3 className="text-xl font-bold mb-2">Pro</h3>
             <div className="text-2xl font-extrabold mb-2">£19/mo or £190/yr</div>
@@ -183,8 +199,9 @@ export default function PricingPage() {
           </div>
           {/* Elite Plan Card */}
           <div className={`flex flex-col items-center rounded-2xl shadow-lg p-8 w-80 mb-0 relative ${user && userTier === 'elite' ? 'border-4 border-blue-600 bg-blue-50' : 'border border-gray-200 bg-white'}`}>
+            {/* Recommended for you badge */}
             {user && userTier === 'elite' && (
-              <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
+              <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
             )}
             <h3 className="text-xl font-bold mb-2">Elite</h3>
             <div className="text-2xl font-extrabold mb-2">£49/mo or £490/yr</div>
