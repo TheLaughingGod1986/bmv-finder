@@ -315,7 +315,7 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background-primary">
+    <div className="min-h-screen bg-[#FAF9F6]">
       <Analytics />
       <SpeedInsights />
       
