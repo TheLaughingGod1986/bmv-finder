@@ -56,7 +56,7 @@ html {
 
 /* Prevent flash of unstyled content */
 body {
-  @apply bg-background-primary text-text-primary antialiased font-sans;
+  @apply bg-[#FAF9F6] text-[#2D2D2D] antialiased;
   font-smooth: always;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
