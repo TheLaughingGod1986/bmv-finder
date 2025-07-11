@@ -7,7 +7,7 @@ export async function GET(req: NextRequest) {
   if (!query) return NextResponse.json({ suggestions: [] });
 
   const result = await esClient.search({
-    index: 'properties',
+    index: 'properties_v2',
     size: 20, // get more to ensure uniqueness
     query: {
       match_phrase_prefix: { postcode: query }

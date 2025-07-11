@@ -8,7 +8,20 @@ import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
 import { useSession } from '@supabase/auth-helpers-react';
 import { parseSubscriptionMetadata, getSubscriptionStatusText, canManageSubscription } from '@/utils/subscriptionUtils';
-import { CalendarIcon, ArrowUpRightIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
+import { CalendarIcon, ArrowUpRightIcon } from '@heroicons/react/24/outline';
+import { useToast } from './components/ToastProvider';
+import { getUserProfile } from '@/utils/getUserProfile';
+import { format } from 'date-fns';
+import { 
+  ShieldCheckIcon, 
+  InformationCircleIcon,
+  TrophyIcon,
+  StarIcon,
+  GiftIcon,
+  ChartBarIcon,
+  UserGroupIcon,
+  SparklesIcon
+} from '@heroicons/react/24/outline';
 
 const PLANS = [
   {
@@ -66,6 +79,30 @@ export default function AccountPage() {
   // Personalized greeting and plan reference
   const userName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
   const planName = derivedTier ? derivedTier.charAt(0).toUpperCase() + derivedTier.slice(1) : '';
+  
+  // Mock usage data - replace with real data from your backend
+  const usageData = {
+    lookupsUsed: 3,
+    lookupsLimit: 5,
+    searchesThisMonth: 12,
+    propertiesSaved: 8,
+    daysActive: 15
+  };
+  
+  const usagePercentage = Math.round((usageData.lookupsUsed / usageData.lookupsLimit) * 100);
+  
+  // Achievement badges
+  const achievements = [
+    { id: 'first_search', name: 'First Search', description: 'Completed your first property search', earned: true, icon: '🔍' },
+    { id: 'saved_property', name: 'Property Saver', description: 'Saved your first property', earned: true, icon: '💾' },
+    { id: 'upgrade', name: 'Upgrader', description: 'Upgraded to a paid plan', earned: derivedTier !== 'free', icon: '⭐' },
+    { id: 'power_user', name: 'Power User', description: 'Used the platform for 30+ days', earned: usageData.daysActive >= 30, icon: '⚡' },
+    { id: 'referral', name: 'Referral Master', description: 'Referred 3 friends', earned: false, icon: '👥' },
+    { id: 'data_expert', name: 'Data Expert', description: 'Exported data 10+ times', earned: false, icon: '📊' }
+  ];
+  
+  const earnedAchievements = achievements.filter(a => a.earned);
+  const totalAchievements = achievements.length;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -142,18 +179,174 @@ export default function AccountPage() {
   return (
     <main className="max-w-2xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
       <Toaster position="top-center" />
+      
       {/* Personalized Greeting */}
       {user && (
-        <div className="mb-6 text-center">
-          <h2 className="text-2xl font-bold text-[#2C6E91]">Hi{userName ? `, ${userName}` : ''}!</h2>
-          <p className="text-lg text-[#3B755D] mt-1">You’re currently on the <span className="font-semibold text-[#3A7CA5]">{planName} plan</span>.</p>
+        <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-[#D2B48C]">
+          <h1 className="text-3xl md:text-4xl font-bold text-[#2C6E91] mb-2 leading-tight">
+            Hi{userName ? `, ${userName}` : ''}!
+          </h1>
+          <p className="text-lg md:text-xl text-[#3B755D] font-medium leading-relaxed">
+            You're currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
+          </p>
         </div>
       )}
-      {/* Logo/Header */}
-      <div className="flex items-center justify-between mb-6">
-        <span className="font-bold text-xl text-blue-700">UK Property Insights</span>
-        <h1 className="text-2xl font-bold">Account</h1>
-      </div>
+
+      {/* Usage Progress Section */}
+      {derivedTier === 'free' && (
+        <section className="mb-8 bg-[#F5F5DC] rounded-xl p-6 border border-[#D2B48C]">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
+              <ChartBarIcon className="w-6 h-6" />
+              Your Usage This Month
+            </h2>
+            <span className="text-sm font-semibold text-[#3B755D]">
+              {usageData.lookupsUsed}/{usageData.lookupsLimit} lookups
+            </span>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="w-full bg-[#E5E5E5] rounded-full h-3">
+              <div 
+                className={`h-3 rounded-full transition-all duration-500 ${
+                  usagePercentage >= 80 ? 'bg-red-500' : 
+                  usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-[#5DA271]'
+                }`}
+                style={{ width: `${usagePercentage}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-sm text-[#3B755D] mt-2">
+              <span>{usagePercentage}% used</span>
+              {usagePercentage >= 80 && (
+                <span className="text-red-600 font-semibold">Almost at limit!</span>
+              )}
+            </div>
+          </div>
+          
+          {/* Usage Stats */}
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="bg-white bg-opacity-50 rounded-lg p-3">
+              <div className="font-semibold text-[#2C6E91]">{usageData.searchesThisMonth}</div>
+              <div className="text-[#3B755D]">Searches this month</div>
+            </div>
+            <div className="bg-white bg-opacity-50 rounded-lg p-3">
+              <div className="font-semibold text-[#2C6E91]">{usageData.propertiesSaved}</div>
+              <div className="text-[#3B755D]">Properties saved</div>
+            </div>
+          </div>
+          
+          {/* Upgrade CTA */}
+          {usagePercentage >= 60 && (
+            <div className="mt-4 p-4 bg-gradient-to-r from-[#3A7CA5] to-[#2C6E91] rounded-lg text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold mb-1">Ready for unlimited access?</h3>
+                  <p className="text-sm opacity-90">Upgrade to Pro for unlimited lookups and advanced features</p>
+                </div>
+                <a
+                  href="/account/upgrade"
+                  className="px-4 py-2 bg-white text-[#2C6E91] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Upgrade Now
+                </a>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Achievements Section */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
+            <TrophyIcon className="w-6 h-6" />
+            Achievements
+          </h2>
+          <span className="text-sm font-semibold text-[#3B755D]">
+            {earnedAchievements.length}/{totalAchievements} earned
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {achievements.map((achievement) => (
+            <div
+              key={achievement.id}
+              className={`p-4 rounded-lg border-2 transition-all duration-300 ${
+                achievement.earned
+                  ? 'bg-gradient-to-br from-[#D4AF37] to-[#C0C0C0] border-[#D4AF37] text-white shadow-lg'
+                  : 'bg-[#F5F5DC] border-[#E5E5E5] text-[#3B755D] opacity-60'
+              }`}
+            >
+              <div className="text-center">
+                <div className="text-2xl mb-2">{achievement.icon}</div>
+                <h3 className={`font-bold text-sm mb-1 ${
+                  achievement.earned ? 'text-white' : 'text-[#2C6E91]'
+                }`}>
+                  {achievement.name}
+                </h3>
+                <p className={`text-xs ${
+                  achievement.earned ? 'text-white text-opacity-90' : 'text-[#3B755D]'
+                }`}>
+                  {achievement.description}
+                </p>
+                {achievement.earned && (
+                  <div className="mt-2">
+                    <SparklesIcon className="w-4 h-4 mx-auto text-white" />
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        
+        {/* Achievement Progress */}
+        <div className="mt-4 bg-[#F5F5DC] rounded-lg p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-[#2C6E91]">Achievement Progress</span>
+            <span className="text-sm text-[#3B755D]">
+              {Math.round((earnedAchievements.length / totalAchievements) * 100)}% complete
+            </span>
+          </div>
+          <div className="w-full bg-[#E5E5E5] rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-[#D4AF37] to-[#C0C0C0] h-2 rounded-full transition-all duration-500"
+              style={{ width: `${(earnedAchievements.length / totalAchievements) * 100}%` }}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Referral Rewards */}
+      <section className="mb-8 bg-gradient-to-r from-[#5DA271] to-[#3B755D] rounded-xl p-6 text-white">
+        <div className="flex items-center gap-3 mb-4">
+          <GiftIcon className="w-6 h-6" />
+          <h2 className="text-xl font-bold">Refer Friends & Earn Rewards</h2>
+        </div>
+        <p className="mb-4 text-white text-opacity-90">
+          Share BMV Finder with friends and earn exclusive rewards. Both you and your friends get benefits!
+        </p>
+        <div className="grid md:grid-cols-3 gap-4 mb-4">
+          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+            <div className="text-2xl mb-2">🎁</div>
+            <h3 className="font-semibold mb-1">Free Month</h3>
+            <p className="text-sm text-white text-opacity-80">Get 1 month free for each friend who upgrades</p>
+          </div>
+          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+            <div className="text-2xl mb-2">⭐</div>
+            <h3 className="font-semibold mb-1">Exclusive Features</h3>
+            <p className="text-sm text-white text-opacity-80">Unlock premium features for referring 5+ friends</p>
+          </div>
+          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+            <div className="text-2xl mb-2">🏆</div>
+            <h3 className="font-semibold mb-1">VIP Status</h3>
+            <p className="text-sm text-white text-opacity-80">Become a VIP member with 10+ referrals</p>
+          </div>
+        </div>
+        <button className="bg-white text-[#3B755D] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+          Get Referral Link
+        </button>
+      </section>
 
       {/* Current Plan Card */}
       {subscriptionInfo && (
