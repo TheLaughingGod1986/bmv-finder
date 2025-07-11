@@ -657,12 +657,14 @@ export default function HomeNew() {
       </Section>
 
       {/* Property History Modal */}
-      <PropertyHistoryModal
-        isOpen={showHistoryModal}
-        onClose={() => setShowHistoryModal(false)}
-        property={selectedProperty}
-        history={propertyHistory}
-      />
+      {selectedProperty && (
+        <PropertyHistoryModal
+          isOpen={showHistoryModal}
+          onClose={() => setShowHistoryModal(false)}
+          property={selectedProperty}
+          history={propertyHistory}
+        />
+      )}
 
       {/* Back to Top Button */}
       <AnimatePresence>
