@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useSession } from '@supabase/auth-helpers-react';
 import { parseSubscriptionMetadata, getSubscriptionStatusText, canManageSubscription } from '@/utils/subscriptionUtils';
 import { CalendarIcon, ArrowUpRightIcon, ShieldCheckIcon, UserIcon, CreditCardIcon, CogIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
 
 // New UI Components
 import { 
@@ -129,9 +130,11 @@ export default function AccountPageNew() {
           <div className="text-center py-12">
             <h1 className="text-3xl font-bold text-[#2C6E91] mb-4">Please Log In</h1>
             <p className="text-[#3B755D] mb-6">You need to be logged in to access your account.</p>
-            <Button href="/" variant="primary">
-              Go to Home
-            </Button>
+            <Link href="/">
+              <Button variant="primary">
+                Go to Home
+              </Button>
+            </Link>
           </div>
         </Section>
       </div>
@@ -214,14 +217,15 @@ export default function AccountPageNew() {
       <Section background="white">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-8">
-            <Button 
-              href="/account/upgrade" 
-              variant="primary" 
-              size="lg"
-              className="min-w-[200px]"
-            >
-              {derivedTier === 'free' ? 'Upgrade Plan' : 'Change Plan'}
-            </Button>
+            <Link href="/account/upgrade">
+              <Button 
+                variant="primary" 
+                size="lg"
+                className="min-w-[200px]"
+              >
+                {derivedTier === 'free' ? 'Upgrade Plan' : 'Change Plan'}
+              </Button>
+            </Link>
             
             {canManage && (
               <ManageSubscriptionButton
@@ -280,41 +284,45 @@ export default function AccountPageNew() {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button
-              href="/"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <UserIcon className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">Search Properties</span>
-            </Button>
+            <Link href="/">
+              <Button
+                variant="outline"
+                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              >
+                <UserIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <span className="font-semibold">Search Properties</span>
+              </Button>
+            </Link>
             
-            <Button
-              href="/what-should-i-pay"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <ShieldCheckIcon className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">Property Valuations</span>
-            </Button>
+            <Link href="/what-should-i-pay">
+              <Button
+                variant="outline"
+                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              >
+                <ShieldCheckIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <span className="font-semibold">Property Valuations</span>
+              </Button>
+            </Link>
             
-            <Button
-              href="/deal-calculator"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <CogIcon className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">Deal Calculator</span>
-            </Button>
+            <Link href="/deal-calculator">
+              <Button
+                variant="outline"
+                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              >
+                <CogIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <span className="font-semibold">Deal Calculator</span>
+              </Button>
+            </Link>
             
-            <Button
-              href="/hpi-dashboard"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <ArrowUpRightIcon className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">Market Trends</span>
-            </Button>
+            <Link href="/hpi-dashboard">
+              <Button
+                variant="outline"
+                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              >
+                <ArrowUpRightIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <span className="font-semibold">Market Trends</span>
+              </Button>
+            </Link>
           </div>
         </div>
       </Section>
