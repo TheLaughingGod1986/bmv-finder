@@ -36,9 +36,9 @@ export default function Navigation() {
   };
 
   return (
-    <nav className="bg-white sticky top-0 z-sticky border-b border-gray-100">
+    <nav className="bg-white sticky top-0 z-sticky shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
+        <div className="flex items-center justify-between h-12">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group" aria-label="UK Property Insights Home">
             <div className="w-8 h-8 bg-gradient-primary rounded flex items-center justify-center">
@@ -46,7 +46,6 @@ export default function Navigation() {
             </div>
             <span className="text-lg font-bold text-text-primary tracking-tight hidden sm:inline">UK Property Insights</span>
           </Link>
-
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center gap-2">
             {minimalistNavItems.map((item) => {
@@ -95,7 +94,6 @@ export default function Navigation() {
               </Link>
             )}
           </div>
-
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -106,7 +104,6 @@ export default function Navigation() {
           </button>
         </div>
       </div>
-
       {/* Mobile Navigation */}
       <AnimatePresence>
         {isMobileMenuOpen && (

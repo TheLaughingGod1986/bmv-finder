@@ -79,6 +79,7 @@ export default function RootLayout({
         <a href="#main-content" className="sr-only focus:not-sr-only absolute left-2 top-2 bg-blue-600 text-white px-3 py-1 rounded z-50">Skip to main content</a>
         <SupabaseUserProvider>
           <Navigation />
+          {/* <ResponsiveHeader /> */}
           {/* <AnchorLinks /> */}
           <main id="main-content" tabIndex={-1} className="min-h-screen bg-[#F5F5DC]">
             <ToastProvider>

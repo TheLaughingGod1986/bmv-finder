@@ -51,7 +51,7 @@ interface HpiData {
   region: string;
   date: string;
   index: number;
-  yearOverYear?: number;
+  yoyGrowth?: number; // <-- update field name
   monthOverMonth?: number;
   regionType: string;
 }
@@ -239,10 +239,10 @@ export default function HpiDashboard() {
         label: 'Current HPI Index',
         data: hpiData.map(d => d.index),
         backgroundColor: hpiData.map(d => 
-          d.yearOverYear && d.yearOverYear > 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'
+          d.yoyGrowth && d.yoyGrowth > 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'
         ),
         borderColor: hpiData.map(d => 
-          d.yearOverYear && d.yearOverYear > 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'
+          d.yoyGrowth && d.yoyGrowth > 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'
         ),
         borderWidth: 2
       }
@@ -251,16 +251,16 @@ export default function HpiDashboard() {
 
   // Growth comparison data
   const growthData = {
-    labels: hpiData.filter(d => d.yearOverYear !== undefined).map(d => d.region),
+    labels: hpiData.filter(d => d.yoyGrowth !== undefined).map(d => d.region),
     datasets: [
       {
         label: 'Year-over-Year Growth',
-        data: hpiData.filter(d => d.yearOverYear !== undefined).map(d => d.yearOverYear!),
-        backgroundColor: hpiData.filter(d => d.yearOverYear !== undefined).map(d => 
-          d.yearOverYear! > 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'
+        data: hpiData.filter(d => d.yoyGrowth !== undefined).map(d => d.yoyGrowth!),
+        backgroundColor: hpiData.filter(d => d.yoyGrowth !== undefined).map(d => 
+          d.yoyGrowth! > 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'
         ),
-        borderColor: hpiData.filter(d => d.yearOverYear !== undefined).map(d => 
-          d.yearOverYear! > 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'
+        borderColor: hpiData.filter(d => d.yoyGrowth !== undefined).map(d => 
+          d.yoyGrowth! > 0 ? 'rgb(34, 197, 94)' : 'rgb(239, 68, 68)'
         ),
         borderWidth: 2
       }
@@ -454,11 +454,11 @@ export default function HpiDashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">YoY Growth</p>
-                <p className={`text-2xl font-bold ${getGrowthColor(hpiData.find(d => d.region === selectedRegion)?.yearOverYear || 0)}`}>
-                  {formatPercentage(hpiData.find(d => d.region === selectedRegion)?.yearOverYear || 0)}
+                <p className={`text-2xl font-bold ${getGrowthColor(hpiData.find(d => d.region === selectedRegion)?.yoyGrowth ?? 0)}`}>
+                  {formatPercentage(hpiData.find(d => d.region === selectedRegion)?.yoyGrowth ?? 0)}
                 </p>
               </div>
-              {getGrowthIcon(hpiData.find(d => d.region === selectedRegion)?.yearOverYear || 0)}
+              {getGrowthIcon(hpiData.find(d => d.region === selectedRegion)?.yoyGrowth ?? 0)}
             </div>
           </div>
           <div className="bg-white rounded-2xl shadow-lg p-6">
@@ -561,8 +561,8 @@ export default function HpiDashboard() {
                         {item.index.toFixed(1)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={getGrowthColor(item.yearOverYear || 0)}>
-                          {formatPercentage(item.yearOverYear || 0)}
+                        <span className={getGrowthColor(item.yoyGrowth ?? 0)}>
+                          {formatPercentage(item.yoyGrowth ?? 0)}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">

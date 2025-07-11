@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
 
     // If no specific query, get latest data for all regions
     if (query.bool.must.length === 0) {
+      // 1. Get latest data for each region
       const response = await esClient.search({
         index: HPI_INDEX,
         body: {
@@ -44,13 +45,26 @@ export async function GET(request: NextRequest) {
             regions: {
               terms: {
                 field: 'region',
-                size: 20
+                size: 50
               },
               aggs: {
                 latest_data: {
                   top_hits: {
                     size: 1,
                     sort: [{ date: { order: 'desc' } }]
+                  }
+                },
+                prev_year_data: {
+                  top_hits: {
+                    size: 1,
+                    sort: [{ date: { order: 'desc' } }],
+                    script_fields: {
+                      prev_year_date: {
+                        script: {
+                          source: "def latest = doc['date'].value; return latest.minusYears(1).toString().substring(0,7);"
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -60,7 +74,37 @@ export async function GET(request: NextRequest) {
       });
 
       const regions = (response.aggregations?.regions as any)?.buckets || [];
-      const data = regions.map((bucket: any) => bucket.latest_data.hits.hits[0]._source);
+      // For each region, fetch the latest and previous year's index
+      const data = await Promise.all(regions.map(async (bucket: any) => {
+        const latest = bucket.latest_data.hits.hits[0]._source;
+        const region = latest.region;
+        const latestDate = latest.date;
+        // Fetch previous year's index for the same region and month
+        const prevYear = (parseInt(latestDate.substring(0, 4)) - 1) + latestDate.substring(4);
+        const prevYearRes = await esClient.search({
+          index: HPI_INDEX,
+          body: {
+            query: {
+              bool: {
+                must: [
+                  { term: { region } },
+                  { term: { date: prevYear } }
+                ]
+              }
+            },
+            size: 1
+          }
+        });
+        let yoyGrowth = null;
+        if (prevYearRes.hits.hits.length > 0) {
+          const prevIndex = prevYearRes.hits.hits[0]._source.index;
+          yoyGrowth = prevIndex !== 0 ? ((latest.index - prevIndex) / prevIndex) * 100 : null;
+        }
+        return {
+          ...latest,
+          yoyGrowth: yoyGrowth !== null ? parseFloat(yoyGrowth.toFixed(2)) : null
+        };
+      }));
 
       return NextResponse.json({
         success: true,
