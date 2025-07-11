@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
         });
         let yoyGrowth = null;
         if (prevYearRes.hits.hits.length > 0) {
-          const prevIndex = prevYearRes.hits.hits[0]._source.index;
+          const prevIndex = (prevYearRes.hits.hits[0]._source as any).index;
           yoyGrowth = prevIndex !== 0 ? ((latest.index - prevIndex) / prevIndex) * 100 : null;
         }
         return {
