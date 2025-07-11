@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createClient } from '@supabase/supabase-js';
 import { useUserTier } from '@/hooks/useUserTier';
-import { CheckIcon, StarIcon, ShieldCheckIcon, ChartBarIcon, DownloadIcon, BellIcon } from '@heroicons/react/24/outline';
+import { CheckIcon, StarIcon, ShieldCheckIcon, ChartBarIcon, ArrowDownTrayIcon, BellIcon } from '@heroicons/react/24/outline';
 
 // New UI Components
 import { 
