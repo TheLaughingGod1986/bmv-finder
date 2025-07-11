@@ -63,41 +63,66 @@ export default function PricingCard({
 
   return (
     <div 
-      className={`rounded-xl border-2 ${isPopular ? 'border-[#D4AF37] bg-[#FFFBEA] shadow-md' : 'border-[#E5E5E5] bg-white shadow-sm'} p-8 flex flex-col justify-between items-center relative transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg ${className}`}
+      className={`rounded-xl border-2 ${isPopular ? 'border-[#D4AF37] bg-[#FFFBEA] shadow-md' : 'border-[#E5E5E5] bg-white shadow-sm'} p-4 md:p-8 flex flex-col justify-between items-center relative transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg ${className} min-h-[500px] md:min-h-[600px]`}
       aria-label={ariaLabel}
       aria-describedby={ariaDescribedby}
     >
       {isPopular && (
-        <span className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-[#D4AF37] text-white text-xs font-semibold shadow" role="status">
+        <span className="absolute -top-3 md:-top-4 left-1/2 -translate-x-1/2 px-3 md:px-4 py-1 rounded-full bg-[#D4AF37] text-white text-xs font-semibold shadow" role="status">
           Most Popular
         </span>
       )}
-      <h3 className="text-xl font-bold mb-2">{title}</h3>
-      <p className="text-3xl font-extrabold text-[#3A7CA5] mb-4">
-        {price}
-        {period && <span className="text-base font-normal">{period}</span>}
-      </p>
-      <ul className="mb-6 text-left text-[#3B755D] text-sm" role="list">
-        {features.map((feature, index) => (
-          <li key={index} role="listitem">{feature}</li>
-        ))}
-      </ul>
-      <div className="w-full flex-1 flex flex-col justify-end">
-        {ctaHref ? (
-          <Link 
-            href={ctaHref} 
-            className={`${buttonClasses} mt-auto w-full text-center`}
-            onClick={handleClick}
+      <div className="w-full flex flex-col items-center text-center">
+        <h3 className="text-lg md:text-xl font-bold mb-2 text-[#2C6E91]">{title}</h3>
+        <div className="mb-4">
+          <span className="text-3xl md:text-4xl font-bold text-[#2C6E91]">£{price}</span>
+          <span className="text-[#3B755D] ml-1">/{period}</span>
+        </div>
+        <p className="text-sm md:text-base text-[#3B755D] mb-6">{description}</p>
+        
+        <ul className="space-y-2 md:space-y-3 mb-6 w-full">
+          {features.map((feature, index) => (
+            <li key={index} className="flex items-start gap-2 text-sm md:text-base text-[#3B755D]">
+              <svg className="w-4 h-4 md:w-5 md:h-5 text-[#5DA271] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* CTA Container - Always at bottom */}
+      <div className="flex-1 flex flex-col justify-end w-full mt-6">
+        {isPopular && (
+          <div className="text-center mb-3">
+            <span className="inline-flex items-center gap-1 px-3 py-1 bg-[#D4AF37] text-white text-xs font-semibold rounded-full">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
+              Recommended for you
+            </span>
+          </div>
+        )}
+        
+        {href ? (
+          <Link
+            href={href}
+            className={`w-full py-3 md:py-4 px-4 md:px-6 rounded-lg font-semibold text-sm md:text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 ${buttonClassName || 'bg-[#3A7CA5] hover:bg-[#2C6E91] text-white shadow-md hover:shadow-lg'}`}
+            aria-label={ariaLabel}
+            aria-describedby={ariaDescribedby}
           >
-            {buttonContent}
+            {buttonText}
           </Link>
         ) : (
-          <button 
-            className={`${buttonClasses} mt-auto w-full`}
-            onClick={handleClick}
-            disabled={disabled || loading}
+          <button
+            onClick={onClick}
+            disabled={disabled}
+            className={`w-full py-3 md:py-4 px-4 md:px-6 rounded-lg font-semibold text-sm md:text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 ${buttonClassName || 'bg-[#3A7CA5] hover:bg-[#2C6E91] text-white shadow-md hover:shadow-lg'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+            aria-label={ariaLabel}
+            aria-describedby={ariaDescribedby}
           >
-            {buttonContent}
+            {buttonText}
           </button>
         )}
       </div>

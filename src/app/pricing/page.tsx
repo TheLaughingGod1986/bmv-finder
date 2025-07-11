@@ -110,6 +110,22 @@ const UpgradeButton = ({ userId, priceId, children }: { userId: string; priceId:
 };
 
 export default function PricingPage() {
+  const [isMobile, setIsMobile] = useState(false);
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
+
+  // Detect mobile and handle sticky CTA visibility
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setShowStickyCTA(mobile);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   const { user, loading: userLoading } = useClientUser();
   const { tier: userTier } = useUserTier(user?.id || null);
   const stripePriceIds = getStripePriceIds();
@@ -130,12 +146,35 @@ export default function PricingPage() {
   }
 
   return (
-    <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
+    <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow relative">
+      {/* Sticky Mobile CTA Banner */}
+      {showStickyCTA && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-[#3A7CA5] shadow-lg z-50 md:hidden">
+          <div className="flex items-center justify-between p-4">
+            <div className="flex-1">
+              <p className="text-sm font-bold text-[#2C6E91] leading-tight">Ready to upgrade?</p>
+              <p className="text-xs text-[#3B755D] mt-1 leading-tight">Get unlimited access to property insights</p>
+            </div>
+            <button
+              onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+              className="ml-4 px-6 py-3 bg-[#3A7CA5] text-white rounded-lg font-bold text-sm hover:bg-[#2C6E91] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 min-h-[44px] min-w-[120px]"
+              aria-label="View pricing plans"
+            >
+              View Plans
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Personalized Greeting */}
       {user && (
-        <div className="mb-6 text-center">
-          <h2 className="text-2xl font-bold text-[#2C6E91]">Welcome back{userName ? `, ${userName}` : ''}!</h2>
-          <p className="text-lg text-[#3B755D] mt-1">You’re currently on the <span className="font-semibold text-[#3A7CA5]">{planName} plan</span>.</p>
+        <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-[#D2B48C]">
+          <h1 className="text-3xl md:text-4xl font-bold text-[#2C6E91] mb-2 leading-tight">
+            Welcome back{userName ? `, ${userName}` : ''}!
+          </h1>
+          <p className="text-lg md:text-xl text-[#3B755D] font-medium leading-relaxed">
+            You're currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
+          </p>
         </div>
       )}
       {/* Hero Section */}
@@ -146,82 +185,61 @@ export default function PricingPage() {
       </section>
 
       {/* Feature Comparison Table */}
-      <section id="plans" className="mb-12">
-        <h2 className="text-2xl font-bold mb-6 text-center">Compare Plans</h2>
-        <div className="flex flex-col md:flex-row justify-center items-stretch gap-8">
-          {/* Starter Plan Card */}
-          <div className="flex flex-col items-center bg-white rounded-2xl shadow-lg p-8 w-80 mb-0 relative">
-            {/* Recommended for you badge */}
-            {user && userTier === 'free' && (
-              <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
-            )}
-            <h3 className="text-xl font-bold mb-2">Starter</h3>
-            <div className="text-2xl font-extrabold mb-2">£0</div>
-            <div className="mb-4 text-gray-600 text-center">Basic access, limited features</div>
-            <ul className="mb-6 text-gray-700 text-sm space-y-1 text-center">
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Basic search</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Limited lookups</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />No export</li>
-            </ul>
-            <a
-              href={user ? "/dashboard" : "/signup"}
-              className="w-full py-3 rounded-lg font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white text-center transition mt-auto"
-            >
-              Get Started Free
-            </a>
-          </div>
-          {/* Pro Plan Card */}
-          <div className={`flex flex-col items-center rounded-2xl shadow-lg p-8 w-80 mb-0 relative ${user && userTier === 'pro' ? 'border-4 border-blue-600 bg-blue-50' : 'border border-gray-200 bg-white'}`}>
-            {/* Recommended for you badge */}
-            {user && userTier === 'pro' && (
-              <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
-            )}
-            <h3 className="text-xl font-bold mb-2">Pro</h3>
-            <div className="text-2xl font-extrabold mb-2">£19/mo or £190/yr</div>
-            <div className="mb-4 text-gray-600 text-center">Everything you need for property analysis</div>
-            <ul className="mb-6 text-gray-700 text-sm space-y-1 text-center">
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Unlimited Lookups</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Alerts & Notifications</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Export Data</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Full Analytics</li>
-            </ul>
-            {!user ? (
-              <a href="/account" className="w-full py-3 rounded-lg font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white text-center transition mt-auto">Get Pro</a>
-            ) : userTier === 'pro' ? (
-              <button className="w-full py-3 rounded-lg font-semibold text-base bg-gray-200 text-gray-500 cursor-not-allowed" disabled>Current Plan</button>
-            ) : userTier === 'elite' ? (
-              <button className="w-full py-3 rounded-lg font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white" onClick={() => alert('Downgrade via Account page')}>Downgrade to Pro</button>
-            ) : (
-              <UpgradeButton userId={user?.id || ""} priceId={stripePriceIds.PRO_MONTHLY_PRICE_ID || ""}>
-                Upgrade to Pro
-              </UpgradeButton>
-            )}
-          </div>
-          {/* Elite Plan Card */}
-          <div className={`flex flex-col items-center rounded-2xl shadow-lg p-8 w-80 mb-0 relative ${user && userTier === 'elite' ? 'border-4 border-blue-600 bg-blue-50' : 'border border-gray-200 bg-white'}`}>
-            {/* Recommended for you badge */}
-            {user && userTier === 'elite' && (
-              <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
-            )}
-            <h3 className="text-xl font-bold mb-2">Elite</h3>
-            <div className="text-2xl font-extrabold mb-2">£49/mo or £490/yr</div>
-            <div className="mb-4 text-gray-600 text-center">Everything you need for property investment</div>
-            <ul className="mb-6 text-gray-700 text-sm space-y-1 text-center">
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Everything in Pro</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />PDF Reports</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />Bulk Analysis</li>
-              <li className="flex items-center justify-center gap-2"><span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-400" />CRM Export</li>
-            </ul>
-            {!user ? (
-              <a href="/account" className="w-full py-3 rounded-lg font-semibold text-base bg-blue-600 hover:bg-blue-700 text-white text-center transition mt-auto">Get Elite</a>
-            ) : userTier === 'elite' ? (
-              <button className="w-full py-3 rounded-lg font-semibold text-base bg-gray-200 text-gray-500 cursor-not-allowed" disabled>Current Plan</button>
-            ) : (
-              <UpgradeButton userId={user?.id || ""} priceId={stripePriceIds.ELITE_MONTHLY_PRICE_ID || ""}>
-                Upgrade to Elite
-              </UpgradeButton>
-            )}
-          </div>
+      <section id="plans" className="mb-16">
+        <h2 className="text-3xl font-bold mb-8 text-center text-[#2C6E91] leading-tight">Choose Your Plan</h2>
+        <div className="flex flex-col lg:flex-row justify-center items-stretch gap-6 md:gap-8">
+          <PricingCard
+            title="Starter"
+            price="0"
+            period="month"
+            description="Perfect for getting started with property research"
+            features={[
+              "5 free property lookups per month",
+              "Basic market insights",
+              "Recent sales data",
+              "Email support"
+            ]}
+            buttonText="Get Started Free"
+            href="/register"
+            isPopular={false}
+            className="w-full lg:w-1/3"
+          />
+          <PricingCard
+            title="Pro"
+            price="19"
+            period="month"
+            description="For serious property investors and buyers"
+            features={[
+              "Unlimited property lookups",
+              "Advanced analytics & insights",
+              "BMV scoring system",
+              "Property history & trends",
+              "Priority support",
+              "Export data to CSV"
+            ]}
+            buttonText={user ? "Upgrade to Pro" : "Start Pro Trial"}
+            href={user ? "/account/upgrade" : "/register"}
+            isPopular={true}
+            className="w-full lg:w-1/3"
+          />
+          <PricingCard
+            title="Elite"
+            price="49"
+            period="month"
+            description="For professional property businesses"
+            features={[
+              "Everything in Pro",
+              "API access",
+              "Bulk data exports",
+              "Custom reports",
+              "Dedicated account manager",
+              "White-label options"
+            ]}
+            buttonText={user ? "Upgrade to Elite" : "Start Elite Trial"}
+            href={user ? "/account/upgrade" : "/register"}
+            isPopular={false}
+            className="w-full lg:w-1/3"
+          />
         </div>
         {/* Feature Comparison Table */}
         <div className="overflow-x-auto mt-10">
@@ -295,6 +313,87 @@ export default function PricingPage() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className="mb-16">
+        <h2 className="text-3xl font-bold mb-8 text-center text-[#2C6E91] leading-tight">Frequently Asked Questions</h2>
+        <div className="max-w-4xl mx-auto space-y-6">
+          <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+              <span>How does billing work?</span>
+              <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <p>We offer both monthly and yearly billing. Yearly plans come with a discount. You can upgrade, downgrade, or cancel at any time. Changes take effect immediately, and we'll prorate any adjustments to your next billing cycle.</p>
+            </div>
+          </details>
+
+          <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+              <span>Can I upgrade or downgrade my plan?</span>
+              <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <p>Yes! You can upgrade or downgrade at any time. Upgrades take effect immediately with prorated billing. Downgrades take effect at your next billing cycle. You'll always keep access to your current plan until the change takes effect.</p>
+            </div>
+          </details>
+
+          <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+              <span>What happens if I cancel?</span>
+              <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <p>You can cancel anytime from your account settings. You'll keep access to your plan until the end of your current billing period. No hidden fees or penalties - we want you to be happy with our service.</p>
+            </div>
+          </details>
+
+          <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
+            <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+              <span>Is my data secure?</span>
+              <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <p>Absolutely. We use bank-level security and encryption. All payments are processed securely through Stripe. Your data is protected and we never share your information with third parties.</p>
+            </div>
+          </details>
+        </div>
+
+        {/* Support Links */}
+        <div className="text-center mt-12">
+          <h3 className="text-xl font-bold text-[#2C6E91] mb-4">Still have questions? We're here to help!</h3>
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
+            <a 
+              href="/contact" 
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#3A7CA5] text-white rounded-lg font-bold text-base hover:bg-[#2C6E91] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 min-h-[48px]"
+              aria-label="Contact our support team"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+              Contact Support
+            </a>
+            <a 
+              href="/help" 
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-[#3A7CA5] text-[#3A7CA5] rounded-lg font-bold text-base hover:bg-[#3A7CA5] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 min-h-[48px]"
+              aria-label="Visit our help center"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Help Center
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Screenshots/Visuals */}
       <section className="mb-12">
         <h2 className="text-2xl font-bold mb-6 text-center">See It in Action</h2>
@@ -352,37 +451,73 @@ export default function PricingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6 text-center">What Our Users Say</h2>
-        <div className="flex flex-wrap justify-center gap-8">
-          <div className="max-w-xs bg-gray-50 rounded-lg p-6 shadow text-center">
-            <p className="italic mb-2">“This platform helped me find the best deals and made my property search so much easier!”</p>
-            <span className="font-semibold">— Alex P.</span>
-          </div>
-          <div className="max-w-xs bg-gray-50 rounded-lg p-6 shadow text-center">
-            <p className="italic mb-2">“The analytics and PDF reports are a game changer for my investment strategy.”</p>
-            <span className="font-semibold">— Priya S.</span>
-          </div>
+      {/* Trust Badges Section */}
+      <section className="mb-12 flex flex-wrap justify-center gap-4 items-center">
+        <span className="flex items-center gap-2 bg-[#E5E5E5] text-[#2C6E91] px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-[#D2B48C]">
+          <svg className="w-5 h-5 text-[#5DA271]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+          </svg>
+          Trusted by 1,000+ investors
+        </span>
+        <span className="flex items-center gap-2 bg-[#E5E5E5] text-[#2C6E91] px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-[#D2B48C]">
+          <svg className="w-5 h-5 text-[#5DA271]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+          </svg>
+          Secure Payments by Stripe
+        </span>
+        <span className="flex items-center gap-2 bg-[#E5E5E5] text-[#2C6E91] px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-[#D2B48C]">
+          <svg className="w-5 h-5 text-[#5DA271]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          Data from UK Land Registry
+        </span>
+      </section>
+
+      {/* Partner/Press Logos */}
+      <section className="mb-12 text-center">
+        <h2 className="text-lg font-semibold text-[#3B755D] mb-6">As featured in</h2>
+        <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
+          <div className="h-8 w-24 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">Rightmove</div>
+          <div className="h-8 w-20 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">Zoopla</div>
+          <div className="h-8 w-16 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">BBC</div>
+          <div className="h-8 w-20 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">Property Week</div>
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* Testimonials */}
       <section className="mb-12">
-        <h2 className="text-2xl font-bold mb-6 text-center">Frequently Asked Questions</h2>
-        <div className="max-w-2xl mx-auto space-y-4">
-          <details className="bg-gray-50 rounded p-4">
-            <summary className="font-semibold cursor-pointer">Can I upgrade or downgrade at any time?</summary>
-            <p className="mt-2 text-gray-600">Yes! You can change your plan at any time from your account page. Downgrades take effect at the end of your current billing period.</p>
-          </details>
-          <details className="bg-gray-50 rounded p-4">
-            <summary className="font-semibold cursor-pointer">Is my data secure?</summary>
-            <p className="mt-2 text-gray-600">Absolutely. We use industry-standard security and never share your data with third parties.</p>
-          </details>
-          <details className="bg-gray-50 rounded p-4">
-            <summary className="font-semibold cursor-pointer">Do you offer a free trial?</summary>
-            <p className="mt-2 text-gray-600">Yes, you can start with the Starter plan for free and upgrade when you’re ready.</p>
-          </details>
+        <h2 className="text-2xl font-bold mb-8 text-center text-[#2C6E91]">What our users say</h2>
+        <div className="grid md:grid-cols-3 gap-6">
+          <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-[#3A7CA5] rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">S</div>
+              <div>
+                <p className="font-bold text-[#2C6E91]">Sarah M.</p>
+                <p className="text-sm text-[#3B755D]">Property Investor</p>
+              </div>
+            </div>
+            <p className="text-[#3B755D] leading-relaxed">"Found my dream investment property using their BMV scoring. Saved me hours of research!"</p>
+          </div>
+          <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-[#5DA271] rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">M</div>
+              <div>
+                <p className="font-bold text-[#2C6E91]">Mike R.</p>
+                <p className="text-sm text-[#3B755D]">First-time Buyer</p>
+              </div>
+            </div>
+            <p className="text-[#3B755D] leading-relaxed">"The property history feature helped me understand the market value perfectly."</p>
+          </div>
+          <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-[#D4AF37] rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">L</div>
+              <div>
+                <p className="font-bold text-[#2C6E91]">Lisa K.</p>
+                <p className="text-sm text-[#3B755D]">Estate Agent</p>
+              </div>
+            </div>
+            <p className="text-[#3B755D] leading-relaxed">"Professional tool that gives my clients the insights they need to make informed decisions."</p>
+          </div>
         </div>
       </section>
 
