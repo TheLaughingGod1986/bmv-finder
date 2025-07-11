@@ -25,7 +25,9 @@ import {
   RefreshCw,
   BarChart3,
   PieChart,
-  Activity
+  Activity,
+  Info,
+  HelpCircle
 } from 'lucide-react';
 import { postcodeToRegion, isValidPostcodeFormat } from '@/utils/postcodeToRegion';
 import { format } from 'date-fns';
@@ -91,6 +93,7 @@ export default function HpiDashboard() {
   const [dateRange, setDateRange] = useState({ start: '2020-01', end: '2024-12' });
   const [dateLimits, setDateLimits] = useState<{ min: string; max: string }>({ min: '2020-01', max: '2024-12' });
   const [viewMode, setViewMode] = useState<'chart' | 'table' | 'comparison'>('chart');
+  const [showHelp, setShowHelp] = useState(false);
   const user = useUser();
   const { tier, loading: tierLoading } = useUserTier(user?.id);
   const [lookupCount, setLookupCount] = useState<number>(0);
@@ -347,6 +350,67 @@ export default function HpiDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
+        {/* Help Section */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5" />
+              Understanding House Price Index (HPI) Data
+            </h2>
+            <button
+              onClick={() => setShowHelp(!showHelp)}
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            >
+              {showHelp ? 'Hide Details' : 'Show Details'}
+            </button>
+          </div>
+          
+          {showHelp && (
+            <div className="space-y-4 text-sm text-blue-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold mb-2">What is HPI?</h3>
+                  <p className="mb-2">The House Price Index (HPI) measures changes in house prices over time. It's calculated using data from property sales and provides a standardized way to track market trends.</p>
+                  <p><strong>Base year:</strong> 2015 = 100. An index of 120 means prices are 20% higher than in 2015.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Understanding Growth Rates</h3>
+                  <ul className="space-y-1">
+                    <li><strong>YoY Growth:</strong> Year-over-Year change (e.g., +5.2% means prices are 5.2% higher than the same month last year)</li>
+                    <li><strong>MoM Growth:</strong> Month-over-Month change (e.g., +0.3% means prices are 0.3% higher than last month)</li>
+                    <li><strong>Positive values:</strong> Prices are increasing</li>
+                    <li><strong>Negative values:</strong> Prices are decreasing</li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Regional Data</h3>
+                  <p className="mb-2">HPI data is available for different UK regions. Each region may show different trends based on local market conditions, economic factors, and demand.</p>
+                  <p><strong>Tip:</strong> Use the postcode search to find HPI data for your specific area.</p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">Data Sources</h3>
+                  <p className="mb-2">This dashboard uses official House Price Index data from the Office for National Statistics (ONS) and other government sources.</p>
+                  <p><strong>Update frequency:</strong> Data is typically updated monthly with a 2-3 month lag.</p>
+                </div>
+              </div>
+              
+              <div className="bg-blue-100 p-3 rounded-lg">
+                <h3 className="font-semibold mb-1">💡 How to Use This Dashboard</h3>
+                <ul className="space-y-1 text-xs">
+                  <li>• <strong>Search by postcode</strong> to see HPI data for your local area</li>
+                  <li>• <strong>Select different regions</strong> to compare market performance</li>
+                  <li>• <strong>Adjust date ranges</strong> to analyze trends over different periods</li>
+                  <li>• <strong>Switch between views</strong> to see data in different formats</li>
+                  <li>• <strong>Monitor growth rates</strong> to understand market momentum</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
           {/* Show available date range */}
@@ -442,7 +506,16 @@ export default function HpiDashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Current HPI</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-sm font-medium text-gray-600">Current HPI</p>
+                  <div className="group relative">
+                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                      House Price Index value (2015 = 100)
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
                 <p className="text-2xl font-bold text-gray-900">
                   {hpiData.find(d => d.region === selectedRegion)?.index?.toFixed(1) || 'N/A'}
                 </p>
@@ -453,7 +526,16 @@ export default function HpiDashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">YoY Growth</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-sm font-medium text-gray-600">YoY Growth</p>
+                  <div className="group relative">
+                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                      Year-over-Year growth rate
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
                 <p className={`text-2xl font-bold ${getGrowthColor(hpiData.find(d => d.region === selectedRegion)?.yoyGrowth ?? 0)}`}>
                   {formatPercentage(hpiData.find(d => d.region === selectedRegion)?.yoyGrowth ?? 0)}
                 </p>
@@ -464,13 +546,88 @@ export default function HpiDashboard() {
           <div className="bg-white rounded-2xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">MoM Growth</p>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-sm font-medium text-gray-600">MoM Growth</p>
+                  <div className="group relative">
+                    <Info className="w-4 h-4 text-gray-400 cursor-help" />
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap z-10">
+                      Month-over-Month growth rate
+                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
                 <p className={`text-2xl font-bold ${getGrowthColor(hpiData.find(d => d.region === selectedRegion)?.monthOverMonth || 0)}`}>
                   {formatPercentage(hpiData.find(d => d.region === selectedRegion)?.monthOverMonth || 0)}
                 </p>
               </div>
               {getGrowthIcon(hpiData.find(d => d.region === selectedRegion)?.monthOverMonth || 0)}
             </div>
+          </div>
+        </div>
+
+        {/* Market Insights */}
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-2xl p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <TrendingUp className="w-5 h-5 text-green-600" />
+            Market Insights for {selectedRegion}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Market Trend:</span>
+                <span className={`font-medium ${hpiData.find(d => d.region === selectedRegion)?.yoyGrowth && hpiData.find(d => d.region === selectedRegion)?.yoyGrowth! > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {hpiData.find(d => d.region === selectedRegion)?.yoyGrowth && hpiData.find(d => d.region === selectedRegion)?.yoyGrowth! > 0 ? 'Rising' : 'Declining'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Growth Momentum:</span>
+                <span className={`font-medium ${hpiData.find(d => d.region === selectedRegion)?.monthOverMonth && hpiData.find(d => d.region === selectedRegion)?.monthOverMonth! > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  {hpiData.find(d => d.region === selectedRegion)?.monthOverMonth && hpiData.find(d => d.region === selectedRegion)?.monthOverMonth! > 0 ? 'Accelerating' : 'Slowing'}
+                </span>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">vs UK Average:</span>
+                <span className={`font-medium ${
+                  (hpiData.find(d => d.region === selectedRegion)?.yoyGrowth ?? 0) > (hpiData.find(d => d.region === 'United Kingdom')?.yoyGrowth ?? 0) ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {(hpiData.find(d => d.region === selectedRegion)?.yoyGrowth ?? 0) > (hpiData.find(d => d.region === 'United Kingdom')?.yoyGrowth ?? 0) ? 'Above Average' : 'Below Average'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Data Currency:</span>
+                <span className="font-medium text-gray-900">
+                  {hpiData.find(d => d.region === selectedRegion)?.date ? 
+                    new Date(hpiData.find(d => d.region === selectedRegion)?.date!).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : 
+                    'N/A'
+                  }
+                </span>
+              </div>
+            </div>
+          </div>
+          
+          {/* Market Context */}
+          <div className="mt-4 p-3 bg-white rounded-lg border border-gray-200">
+            <h4 className="font-medium text-gray-900 mb-2">💡 What This Means</h4>
+            <p className="text-xs text-gray-600 leading-relaxed">
+              {(() => {
+                const regionData = hpiData.find(d => d.region === selectedRegion);
+                const ukData = hpiData.find(d => d.region === 'United Kingdom');
+                const yoyGrowth = regionData?.yoyGrowth ?? 0;
+                const momGrowth = regionData?.monthOverMonth ?? 0;
+                
+                if (yoyGrowth > 5) {
+                  return `The ${selectedRegion} market is showing strong growth with a ${formatPercentage(yoyGrowth)} year-over-year increase. This suggests high demand and potentially rising property values.`;
+                } else if (yoyGrowth > 0) {
+                  return `The ${selectedRegion} market is experiencing moderate growth with a ${formatPercentage(yoyGrowth)} year-over-year increase. This indicates stable market conditions.`;
+                } else if (yoyGrowth > -5) {
+                  return `The ${selectedRegion} market is showing a slight decline with a ${formatPercentage(yoyGrowth)} year-over-year change. This may indicate cooling market conditions.`;
+                } else {
+                  return `The ${selectedRegion} market is experiencing significant decline with a ${formatPercentage(yoyGrowth)} year-over-year decrease. This suggests challenging market conditions.`;
+                }
+              })()}
+            </p>
           </div>
         </div>
 
@@ -515,11 +672,11 @@ export default function HpiDashboard() {
 
         {/* Content */}
         {viewMode === 'chart' && (
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col min-h-[400px]" style={{height: '100%'}}>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               HPI Trend - {selectedRegion}
             </h3>
-            <div className="h-96">
+            <div className="flex-1 min-h-[300px]">
               <Line data={timeSeriesChartData} options={chartOptions} />
             </div>
           </div>
