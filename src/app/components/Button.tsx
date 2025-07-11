@@ -12,6 +12,7 @@ interface ButtonProps {
   type?: 'button' | 'submit' | 'reset';
   disabled?: boolean;
   className?: string;
+  id?: string;
   'aria-label'?: string;
   'aria-describedby'?: string;
   'aria-expanded'?: boolean;
@@ -27,6 +28,7 @@ export default function Button({
   type = 'button',
   disabled = false,
   className = '',
+  id,
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedby,
   'aria-expanded': ariaExpanded,
@@ -59,6 +61,7 @@ export default function Button({
       <Link 
         href={href} 
         className={classes}
+        id={id}
         aria-label={ariaLabel}
         aria-describedby={ariaDescribedby}
         aria-expanded={ariaExpanded}
@@ -75,6 +78,7 @@ export default function Button({
       onClick={onClick}
       disabled={disabled}
       className={classes}
+      id={id}
       aria-label={ariaLabel}
       aria-describedby={ariaDescribedby}
       aria-expanded={ariaExpanded}
