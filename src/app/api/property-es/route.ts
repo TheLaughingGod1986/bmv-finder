@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       if (isPostcodeSearch) {
         // Return all sales for postcode (no deduplication)
         const result = await esClient.search({
-          index: 'properties',
+          index: 'properties_v2',
           size: safePageSize,
           from: (safePage - 1) * safePageSize,
           query,
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       } else if (canAggregate) {
         // Use composite aggregation for deduplication
         const result = await esClient.search({
-          index: 'properties',
+          index: 'properties_v2',
           size: 0, // no hits, just aggs
           query,
           aggs: {
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       } else {
         // Fallback: normal search
         const result = await esClient.search({
-          index: 'properties',
+          index: 'properties_v2',
           size: safePageSize,
           from: (safePage - 1) * safePageSize,
           query,

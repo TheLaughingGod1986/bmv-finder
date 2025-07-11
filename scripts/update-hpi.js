@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 // Load environment variables from .env.local
-require('dotenv').config({ path: '.env.local' });
+require('dotenv').config();
 
 const { Client } = require('@elastic/elasticsearch');
 const axios = require('axios');
@@ -13,24 +13,11 @@ const INDEX_NAME = 'house_price_index';
 const HPI_FILE_PATH = './data/hpi-full.csv'; // Use local file instead of URL
 const LOG_FILE = 'hpi-update.log';
 
-// Initialize Elasticsearch client with same config as main app
-const clientConfig = {
-  node: process.env.ELASTICSEARCH_URL || 'https://localhost:9200',
-};
-
-// Prefer API key authentication if available
-if (process.env.ELASTICSEARCH_API_KEY) {
-  clientConfig.auth = {
-    apiKey: process.env.ELASTICSEARCH_API_KEY
-  };
-} else if (process.env.ELASTICSEARCH_USERNAME && process.env.ELASTICSEARCH_PASSWORD) {
-  clientConfig.auth = {
-    username: process.env.ELASTICSEARCH_USERNAME,
-    password: process.env.ELASTICSEARCH_PASSWORD
-  };
-}
-
-const esClient = new Client(clientConfig);
+// Initialize Elasticsearch client with Elastic Cloud config
+const esClient = new Client({
+  cloud: { id: process.env.ES_CLOUD_ID },
+  auth: { apiKey: process.env.ES_API_KEY }
+});
 
 // Logging function
 function log(message, level = 'INFO') {

@@ -1,15 +1,15 @@
 const { Client } = require('@elastic/elasticsearch');
 require('dotenv').config();
 
+console.log('DEBUG: ES_CLOUD_ID =', process.env.ES_CLOUD_ID);
+
 const client = new Client({
   cloud: {
     id: process.env.ES_CLOUD_ID,
   },
   auth: {
-    username: process.env.ES_USERNAME,
-    password: process.env.ES_PASSWORD
-  },
-  caFingerprint: process.env.ES_CA_FINGERPRINT,
+    apiKey: process.env.ES_API_KEY
+  }
 });
 
 async function checkElasticsearch() {

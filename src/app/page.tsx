@@ -96,6 +96,22 @@ export default function Home() {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [salesCountMap, setSalesCountMap] = useState<Record<string, number>>({});
 
+  // Gamification state
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
+  const [showAchievementToast, setShowAchievementToast] = useState(false);
+  const [currentAchievement, setCurrentAchievement] = useState<string | null>(null);
+
+  // Mock usage data - replace with real data from your backend
+  const usageData = {
+    lookupsUsed: 3,
+    lookupsLimit: 5,
+    searchesThisMonth: 12,
+    propertiesSaved: 8,
+    daysActive: 15
+  };
+  
+  const usagePercentage = Math.round((usageData.lookupsUsed / usageData.lookupsLimit) * 100);
+
   const { showToast } = useToast();
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -115,6 +131,15 @@ export default function Home() {
       ].join('|') === key)
       .sort((a, b) => new Date(a.dateOfTransfer).getTime() - new Date(b.dateOfTransfer).getTime());
   }, [soldPrices]);
+
+  // Check for achievements on search
+  const checkAchievements = (searchCount: number) => {
+    if (searchCount === 1 && !showAchievementToast) {
+      setCurrentAchievement('First Search');
+      setShowAchievementToast(true);
+      setTimeout(() => setShowAchievementToast(false), 5000);
+    }
+  };
 
   // Search handler
   const handleSearch = useCallback(
@@ -596,6 +621,81 @@ export default function Home() {
 
              {/* Pagination Loading Overlay */}
        <PaginationLoadingOverlay isLoading={isPaginationLoading} direction={paginationDirection} />
+
+      {/* Usage Progress for Free Users */}
+      {usageData && (
+        <section className="mb-8 bg-[#F5F5DC] rounded-xl p-6 border border-[#D2B48C]">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-[#2C6E91] flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Your Free Lookups
+            </h2>
+            <span className="text-sm font-semibold text-[#3B755D]">
+              {usageData.lookupsUsed}/{usageData.lookupsLimit} remaining
+            </span>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="mb-4">
+            <div className="w-full bg-[#E5E5E5] rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-500 ${
+                  usagePercentage >= 80 ? 'bg-red-500' : 
+                  usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-[#5DA271]'
+                }`}
+                style={{ width: `${usagePercentage}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-sm text-[#3B755D] mt-2">
+              <span>{usagePercentage}% used</span>
+              {usagePercentage >= 80 && (
+                <span className="text-red-600 font-semibold">Almost at limit!</span>
+              )}
+            </div>
+          </div>
+          
+          {/* Upgrade CTA for high usage */}
+          {usagePercentage >= 60 && (
+            <div className="p-4 bg-gradient-to-r from-[#3A7CA5] to-[#2C6E91] rounded-lg text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold mb-1">Ready for unlimited access?</h3>
+                  <p className="text-sm opacity-90">Upgrade to Pro for unlimited lookups and advanced features</p>
+                </div>
+                <a
+                  href="/account/upgrade"
+                  className="px-4 py-2 bg-white text-[#2C6E91] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Upgrade Now
+                </a>
+              </div>
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* Achievement Toast */}
+      {showAchievementToast && currentAchievement && (
+        <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-[#D4AF37] to-[#C0C0C0] text-white p-4 rounded-lg shadow-lg border border-white">
+          <div className="flex items-center gap-3">
+            <div className="text-2xl">🏆</div>
+            <div>
+              <h3 className="font-bold">Achievement Unlocked!</h3>
+              <p className="text-sm opacity-90">{currentAchievement}</p>
+            </div>
+            <button
+              onClick={() => setShowAchievementToast(false)}
+              className="text-white text-opacity-70 hover:text-opacity-100"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
