@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, TrendingUp, Building, Home, Sparkles, Clock, X } from 'lucide-react';
+import { Search, MapPin, TrendingUp, Building, Home, Sparkles, Clock, X, Loader2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from './UpgradePrompt';
+import Link from 'next/link';
 
 interface EnhancedSearchProps {
   value: string;
@@ -180,16 +181,16 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
     <div className={cn("relative w-full", className)}>
       <div className="max-w-4xl mx-auto">
         {/* Search Form */}
-        <form onSubmit={handleSubmit} className="relative mb-8">
+        <form onSubmit={handleSubmit} className="relative mb-6 sm:mb-8">
           <div className="relative">
             <div className="relative flex items-center bg-white rounded-2xl border-2 border-gray-200 focus-within:border-primary-500 focus-within:ring-4 focus-within:ring-primary-500/10 transition-all duration-200 shadow-soft hover:shadow-medium">
               <div className="absolute left-4 text-text-tertiary">
-                <Search className="w-6 h-6" />
+                <Search className="w-5 h-5 sm:w-6 sm:h-6" />
               </div>
               <input
                 ref={inputRef}
                 type="text"
-                className="w-full bg-transparent outline-none text-lg px-12 py-4 placeholder-gray-400 text-text-primary"
+                className="w-full bg-transparent outline-none text-base sm:text-lg px-12 py-4 sm:py-4 placeholder-gray-400 text-text-primary"
                 placeholder="Search by postcode, street name, or town"
                 value={value}
                 onChange={handleInputChange}
@@ -202,7 +203,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="absolute right-20 p-2 text-text-tertiary hover:text-text-secondary transition-colors"
+                  className="absolute right-4 p-1 text-text-tertiary hover:text-text-primary transition-colors touch-target"
                   aria-label="Clear search"
                 >
                   <X className="w-5 h-5" />
@@ -211,64 +212,106 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
               <button
                 type="submit"
                 disabled={isLoading || !value.trim()}
-                className="absolute right-2 p-2 bg-primary-500 text-white rounded-xl hover:bg-primary-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="absolute right-4 sm:right-6 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white rounded-full p-2 sm:p-3 transition-colors touch-target disabled:cursor-not-allowed"
                 aria-label="Search"
               >
                 {isLoading ? (
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                 ) : (
-                  <Search className="w-5 h-5" />
+                  <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                 )}
               </button>
             </div>
           </div>
 
-          {/* Suggestions and History Dropdown */}
+          {/* Suggestions Dropdown */}
           <AnimatePresence>
             {showSuggestions && (suggestions.length > 0 || history.length > 0) && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-large z-dropdown overflow-hidden"
+                transition={{ duration: 0.2 }}
+                className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-xl border border-gray-200 shadow-large max-h-80 overflow-y-auto"
               >
-                {/* Suggestions */}
-                {suggestions.length > 0 && (
-                  <div className="p-2">
-                    <div className="text-xs font-medium text-text-secondary px-3 py-2">Suggestions</div>
-                    {suggestions.slice(0, 5).map((suggestion, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleSuggestionClick(suggestion.text)}
-                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
-                      >
-                        <MapPin className="w-4 h-4 text-text-tertiary" />
-                        <span className="text-text-primary">{suggestion.text}</span>
-                      </button>
-                    ))}
+                {/* Search History */}
+                {history.length > 0 && (
+                  <div className="p-4 border-b border-gray-100">
+                    <h3 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
+                      <Clock className="w-4 h-4" />
+                      Recent Searches
+                    </h3>
+                    <div className="space-y-2">
+                      {history.slice(0, 3).map((query, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleHistoryClick(query)}
+                          className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors touch-target flex items-center gap-3"
+                        >
+                          <Clock className="w-4 h-4 text-text-tertiary flex-shrink-0" />
+                          <span className="text-sm text-text-primary truncate">{query}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 
-                {/* History */}
-                {history.length > 0 && (
-                  <div className="p-2 border-t border-gray-100">
-                    <div className="text-xs font-medium text-text-secondary px-3 py-2">Recent Searches</div>
-                    {history.slice(0, 3).map((query, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleHistoryClick(query)}
-                        className="w-full text-left px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center gap-2"
-                      >
-                        <Clock className="w-4 h-4 text-text-tertiary" />
-                        <span className="text-text-primary">{query}</span>
-                      </button>
-                    ))}
+                {/* Suggestions */}
+                {suggestions.length > 0 && (
+                  <div className="p-4">
+                    <h3 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Suggestions
+                    </h3>
+                    <div className="space-y-2">
+                      {suggestions.slice(0, 5).map((suggestion, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleSuggestionClick(suggestion.text)}
+                          className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors touch-target flex items-center gap-3"
+                        >
+                          <MapPin className="w-4 h-4 text-text-tertiary flex-shrink-0" />
+                          <span className="text-sm text-text-primary truncate">{suggestion.text}</span>
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
               </motion.div>
             )}
           </AnimatePresence>
         </form>
+
+        {/* Postcode Validation */}
+        {isPostcode && !isValidPostcode && (
+          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              Please enter a valid UK postcode format (e.g., SW1A 1AA)
+            </p>
+          </div>
+        )}
+
+        {/* Usage Limit Warning */}
+        {limitHit && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="text-sm font-semibold text-red-800 mb-1">Search Limit Reached</h3>
+                <p className="text-sm text-red-700 mb-3">
+                  You've reached your free search limit. Upgrade to continue searching.
+                </p>
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors touch-target"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Upgrade Now
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

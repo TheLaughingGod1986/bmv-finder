@@ -4,7 +4,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, TrendingUp, BarChart3, Filter, X, MapPin, Download, Share2, ArrowUp, Search, Home as HomeIcon, Calculator, BarChart, BookOpen } from 'lucide-react';
+import { Loader2, TrendingUp, BarChart3, Filter, X, MapPin, Download, Share2, ArrowUp, Search, Home as HomeIcon, Calculator, BarChart, BookOpen, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
@@ -315,330 +315,268 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F5F5DC]">
+    <div className="min-h-screen bg-background-primary">
       <Analytics />
       <SpeedInsights />
       
-      {/* Hero Section with Search */}
-      <HeroSection onSearch={handleHeroSearch} />
-      
-      {/* Features Section */}
-      <Section id="features" background="white">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
-            Powerful Property Insights
-          </h2>
-          <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
-            Everything you need to make informed property decisions, from market analysis to investment opportunities.
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-10">
-          <FeatureCard
-            icon="📈"
-            title="Comprehensive Analytics"
-            description="Analyse local markets, trends, and yields with up-to-date Land Registry data."
-          />
-          <FeatureCard
-            icon="🔍"
-            title="Smart Search Tools"
-            description="Find properties by postcode, street, or town. Filter by price, type, and more."
-          />
-          <FeatureCard
-            icon="💡"
-            title="Investor Insights"
-            description="Get BMV scores, investment ratings, and actionable insights for every property."
-          />
-        </div>
-      </Section>
+      {/* Hero Section */}
+      <section className="relative bg-gradient-to-br from-primary-50 to-primary-100 py-8 sm:py-12 lg:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8 sm:mb-12">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary mb-4 sm:mb-6"
+            >
+              UK Property Price Search
+            </motion.h1>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto mb-6 sm:mb-8"
+            >
+              Search millions of UK property sales with instant access to Land Registry data, market trends, and investment insights.
+            </motion.p>
+          </div>
 
-      {/* Search Results Section */}
-      {hasSearched && (
-        <Section background="light">
-          <div ref={resultsRef} className="space-y-6">
-            {/* Sticky Search Bar in Results Section */}
-            <div className="sticky top-[64px] z-30 bg-white py-4 shadow-md border-b border-[#E5E5E5]">
-              <EnhancedSearch
-                value={searchTerm}
-                onChange={setSearchTerm}
-                onSearch={handleSearch}
-                isLoading={isLoading}
-              />
+          {/* Search Component */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+            className="max-w-4xl mx-auto"
+          >
+            <EnhancedSearch
+              value={searchTerm}
+              onChange={setSearchTerm}
+              onSearch={handleHeroSearch}
+              isLoading={isLoading}
+            />
+          </motion.div>
+
+          {/* Quick Stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12"
+          >
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-soft text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">25M+</div>
+              <div className="text-sm sm:text-base text-text-secondary">Property Sales</div>
             </div>
-            {/* Filters Button Only (if you want to keep filters) */}
-            <div className="flex justify-end mb-4">
-              <Button
-                variant="outline"
-                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                className="flex items-center gap-2"
-              >
-                <Filter className="w-4 h-4" />
-                Filters
-              </Button>
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-soft text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">1995-2024</div>
+              <div className="text-sm sm:text-base text-text-secondary">Data Range</div>
             </div>
+            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-soft text-center">
+              <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">Free</div>
+              <div className="text-sm sm:text-base text-text-secondary">Basic Search</div>
+            </div>
+          </motion.div>
+        </div>
+      </section>
 
-            {/* Filters Panel */}
-            <AnimatePresence>
-              {isFiltersOpen && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="overflow-hidden"
-                >
-                  <EnhancedFilters
-                    isOpen={isFiltersOpen}
-                    onClose={() => setIsFiltersOpen(false)}
-                    filters={filters}
-                    onFiltersChange={setFilters}
-                    onReset={() => {
-                      setFilters({
-                        priceRange: { min: 0, max: 10000000 },
-                        dateRange: { start: '', end: '' },
-                        propertyType: [],
-                        duration: [],
-                        year: []
-                      });
-                    }}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* Results Section */}
+        {hasSearched && (
+          <div ref={resultsRef} className="space-y-6 sm:space-y-8">
             {/* Results Summary */}
-            {!isLoading && displayedSoldPrices.length > 0 && (
-              <EnhancedResultsSummary
-                totalCount={totalCount}
-                displayedCount={displayedSoldPrices.length}
-                searchTerm={searchTerm}
-                lastUpdatedData={lastUpdatedData}
-              />
+            {soldPrices.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+              >
+                                 <EnhancedResultsSummary
+                   totalCount={totalCount}
+                   displayedCount={displayedSoldPrices.length}
+                   searchTerm={searchTerm}
+                   lastUpdatedData={lastUpdatedData}
+                   className="mb-6"
+                 />
+              </motion.div>
             )}
 
-            {/* Loading State */}
-            {isLoading && (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-[#3A7CA5]" />
-                <span className="ml-2 text-[#2C6E91]">Searching properties...</span>
-              </div>
-            )}
-
-            {/* Error State */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-                <p className="font-medium">Search Error</p>
-                <p>{error}</p>
-              </div>
-            )}
+            
 
             {/* Results Table */}
-            {!isLoading && displayedSoldPrices.length > 0 && (
-              <div className="space-y-6">
+            {soldPrices.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.3 }}
+              >
                 <EnhancedSoldPricesTable
                   soldPrices={displayedSoldPrices}
                   allSales={soldPrices}
-                  onRowClick={(property) => handleRowSelect(property)}
-                  onShowHistory={(property, history) => {
-                    setPropertyHistory(history);
-                    setSelectedProperty(property);
-                    setShowHistoryModal(true);
-                  }}
-                  selectedRowId={selectedRowId}
+                  onRowClick={handleRowSelect}
+                  onShowHistory={handlePropertyClick}
                   sortConfig={sortConfig}
                   onSort={key => setSortConfig(cfg => ({ ...cfg, key, direction: cfg.direction === 'ascending' ? 'descending' : 'ascending' }))}
                   isLoading={isLoading}
+                  selectedRowId={selectedRowId}
+                  className="mb-6 sm:mb-8"
                 />
-                
-                {/* Analytics Section */}
-                {showHpiData && (
-                  <div className="space-y-6">
-                    <HpiDataDisplay 
-                      query={hpiQuery} 
-                      isVisible={showHpiData && !!hpiQuery.value}
-                      onClose={() => setShowHpiData(false)}
-                    />
-                    {showRecentSales && (
-                      <RecentSalesDisplay 
-                        postcode={recentSalesPostcode}
-                        isVisible={showRecentSales}
-                        onClose={() => setShowRecentSales(false)}
-                      />
-                    )}
-                  </div>
-                )}
-              </div>
+              </motion.div>
             )}
 
-            {/* Empty State */}
-            {!isLoading && hasSearched && displayedSoldPrices.length === 0 && !error && (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🏠</div>
-                <h3 className="text-xl font-semibold text-[#2C6E91] mb-2">
-                  No properties found
-                </h3>
-                <p className="text-[#3B755D] mb-4">
-                  Try adjusting your search terms or filters to find more properties.
-                </p>
-                <Button onClick={() => setHasSearched(false)}>
-                  Start New Search
-                </Button>
-              </div>
+            {/* Pagination */}
+            {soldPrices.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.4 }}
+                className="flex flex-col sm:flex-row items-center justify-between gap-4"
+              >
+                <div className="text-sm text-text-secondary">
+                  Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} results
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleSearch(searchTerm, page - 1, 'previous')}
+                    disabled={page === 1 || isPaginationLoading}
+                    className="px-4 py-2 text-sm font-medium text-text-primary bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target"
+                  >
+                    Previous
+                  </button>
+                  <span className="px-4 py-2 text-sm font-medium text-text-primary bg-gray-100 rounded-lg">
+                    Page {page}
+                  </span>
+                  <button
+                    onClick={() => handleSearch(searchTerm, page + 1, 'next')}
+                    disabled={!hasMore || isPaginationLoading}
+                    className="px-4 py-2 text-sm font-medium text-text-primary bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target"
+                  >
+                    Next
+                  </button>
+                </div>
+              </motion.div>
             )}
+
+            {/* Error Display */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4 }}
+                className="bg-red-50 border border-red-200 rounded-xl p-6 text-center"
+              >
+                <div className="text-red-600 mb-2">
+                  <AlertTriangle className="w-8 h-8 mx-auto" />
+                </div>
+                <h3 className="text-lg font-semibold text-red-800 mb-2">Search Error</h3>
+                <p className="text-red-700">{error}</p>
+              </motion.div>
+            )}
+
+                         {/* Empty State */}
+             {hasSearched && soldPrices.length === 0 && !isLoading && !error && (
+               <motion.div
+                 initial={{ opacity: 0, y: 20 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 transition={{ duration: 0.4 }}
+                 className="text-center py-12"
+               >
+                 <div className="text-6xl mb-4">🏠</div>
+                 <h3 className="text-xl font-semibold text-text-primary mb-2">
+                   No properties found
+                 </h3>
+                 <p className="text-text-secondary mb-4">
+                   Try adjusting your search terms or filters to find more properties.
+                 </p>
+                 <button
+                   onClick={() => setHasSearched(false)}
+                   className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-target"
+                 >
+                   Start New Search
+                 </button>
+               </motion.div>
+             )}
           </div>
-        </Section>
-      )}
+        )}
 
-      {/* Quick Actions Section */}
-      {!hasSearched && (
-        <Section background="light">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
-              Explore Our Tools
-            </h2>
-            <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
-              Discover additional tools to help with your property research and investment decisions.
-            </p>
-          </div>
-          
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Button
-              href="/what-should-i-pay"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <HomeIcon className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">What Should I Pay?</span>
-              <span className="text-sm text-[#3B755D]">Get property valuations</span>
-            </Button>
-            
-            <Button
-              href="/deal-calculator"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <Calculator className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">Deal Calculator</span>
-              <span className="text-sm text-[#3B755D]">Calculate investment returns</span>
-            </Button>
-            
-            <Button
-              href="/hpi-dashboard"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <BarChart className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">HPI Dashboard</span>
-              <span className="text-sm text-[#3B755D]">View market trends</span>
-            </Button>
-            
-            <Button
-              href="/portfolio-tracker"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
-            >
-              <BookOpen className="w-8 h-8 text-[#3A7CA5]" />
-              <span className="font-semibold">Portfolio Tracker</span>
-              <span className="text-sm text-[#3B755D]">Track your investments</span>
-            </Button>
-          </div>
-        </Section>
-      )}
+        {/* Features Section */}
+        {!hasSearched && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="py-8 sm:py-12"
+          >
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary mb-4">
+                Powerful Property Insights
+              </h2>
+              <p className="text-lg text-text-secondary max-w-3xl mx-auto">
+                Get comprehensive property data and market analysis to make informed decisions.
+              </p>
+            </div>
 
-      {/* Pricing Section */}
-      <Section id="plans" background="light">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
-            Simple, Transparent Plans
-          </h2>
-          <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
-            Choose the plan that fits your needs. All plans include our core search and analytics features.
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          <PricingCard
-            title="Starter"
-            price="Free"
-            period=""
-            features={[
-              "✔️ Basic search & analytics",
-              "✔️ Access to public data",
-              "✔️ Limited saved searches"
-            ]}
-            ctaText="Get Started"
-            ctaHref="/account"
-          />
-          
-          <PricingCard
-            title="Pro"
-            price="£14"
-            period="/mo"
-            features={[
-              "✔️ All Starter features",
-              "✔️ Unlimited searches",
-              "✔️ Download CSV",
-              "✔️ Priority support"
-            ]}
-            ctaText="Upgrade to Pro"
-            ctaHref="/account"
-            isPopular={true}
-          />
-          
-          <PricingCard
-            title="Elite"
-            price="£29"
-            period="/mo"
-            features={[
-              "✔️ All Pro features",
-              "✔️ API access",
-              "✔️ Advanced analytics",
-              "✔️ Early feature access"
-            ]}
-            ctaText="Go Elite"
-            ctaHref="/account"
-          />
-        </div>
-      </Section>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
+                 <Search className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                 <h3 className="text-lg font-semibold text-text-primary mb-2">Instant Search</h3>
+                 <p className="text-text-secondary">Search millions of property sales instantly with our powerful database.</p>
+               </div>
+               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
+                 <BarChart className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                 <h3 className="text-lg font-semibold text-text-primary mb-2">Market Trends</h3>
+                 <p className="text-text-secondary">Analyze price trends and market performance over time.</p>
+               </div>
+               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
+                 <Calculator className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                 <h3 className="text-lg font-semibold text-text-primary mb-2">Investment Tools</h3>
+                 <p className="text-text-secondary">Calculate potential returns and analyze investment opportunities.</p>
+               </div>
+               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
+                 <BookOpen className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                 <h3 className="text-lg font-semibold text-text-primary mb-2">Detailed Reports</h3>
+                 <p className="text-text-secondary">Get comprehensive property reports and market analysis.</p>
+               </div>
+               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
+                 <MapPin className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                 <h3 className="text-lg font-semibold text-text-primary mb-2">Location Insights</h3>
+                 <p className="text-text-secondary">Understand local market conditions and property values.</p>
+               </div>
+               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
+                 <TrendingUp className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                 <h3 className="text-lg font-semibold text-text-primary mb-2">Growth Analysis</h3>
+                 <p className="text-text-secondary">Track property value growth and investment performance.</p>
+               </div>
+             </div>
+          </motion.section>
+        )}
+      </main>
 
-      {/* Testimonials Section */}
-      <Section id="testimonials" background="white">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
-            What Our Users Say
-          </h2>
-          <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
-            Join thousands of property professionals who trust our platform for their research needs.
-          </p>
-        </div>
-        
-        <div className="grid md:grid-cols-3 gap-8">
-          <TestimonialCard
-            rating={5}
-            text="The analytics and search tools are a game changer for my investment strategy."
-            author="Tom H."
-          />
-          <TestimonialCard
-            rating={5}
-            text="I love the clean interface and the depth of data available."
-            author="Michelle T."
-          />
-          <TestimonialCard
-            rating={5}
-            text="A must-have tool for any serious property investor."
-            author="Richard D."
-          />
-        </div>
-      </Section>
+      {/* Filters Modal */}
+      <EnhancedFilters
+        isOpen={isFiltersOpen}
+        onClose={() => setIsFiltersOpen(false)}
+        filters={filters}
+        onFiltersChange={setFilters}
+        onReset={() => {
+          setFilters({
+            priceRange: { min: 0, max: 10000000 },
+            dateRange: { start: '', end: '' },
+            propertyType: [],
+            duration: [],
+            year: []
+          });
+        }}
+      />
 
-      {/* Property History Modal */}
-      {showHistoryModal && selectedProperty && (
-        <PropertyHistoryModal
-          onClose={() => setShowHistoryModal(false)}
-          property={selectedProperty}
-          history={propertyHistory}
-        />
-      )}
+             {/* Property History Modal */}
+       {showHistoryModal && selectedProperty && (
+         <PropertyHistoryModal
+           onClose={() => setShowHistoryModal(false)}
+           property={selectedProperty}
+           history={propertyHistory}
+         />
+       )}
 
       {/* Back to Top Button */}
       <AnimatePresence>
@@ -648,7 +586,7 @@ export default function Home() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={scrollToTop}
-            className="fixed bottom-6 right-6 bg-[#3A7CA5] text-white p-3 rounded-full shadow-lg hover:bg-[#2C6E91] transition-colors z-50"
+            className="fixed bottom-6 right-6 z-50 p-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors touch-target"
             aria-label="Back to top"
           >
             <ArrowUp className="w-5 h-5" />
@@ -656,8 +594,8 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Pagination Loading Overlay */}
-      <PaginationLoadingOverlay isLoading={isPaginationLoading} direction={paginationDirection} />
+             {/* Pagination Loading Overlay */}
+       <PaginationLoadingOverlay isLoading={isPaginationLoading} direction={paginationDirection} />
     </div>
   );
 }
