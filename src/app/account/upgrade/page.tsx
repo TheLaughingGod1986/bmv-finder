@@ -184,6 +184,7 @@ const UpgradePage = () => {
   } | null>(null);
 
   const [managingSubscription, setManagingSubscription] = useState(false);
+  const [hoveredPlan, setHoveredPlan] = useState<UserTier | null>(null);
 
   // Helper to get renewal date and interval from billing_metadata
   let renewalDate: string | null = null;
