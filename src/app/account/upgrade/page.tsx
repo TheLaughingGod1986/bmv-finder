@@ -550,11 +550,40 @@ const UpgradePage = () => {
               {/* Button and message always at the bottom */}
               <div className="w-full flex flex-col items-center mt-auto">
                 <button
-                  className={`w-full py-3 rounded-lg font-semibold text-base transition mt-8 focus:outline-none focus:ring-2 focus:ring-blue-400 ${buttonDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
+                  className={`w-full py-3 rounded-lg font-semibold text-base transition mt-8 focus:outline-none focus:ring-2 focus:ring-blue-400 relative ${buttonDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
                   disabled={buttonDisabled || loading || !currentPlanPricing?.priceId}
                   onClick={buttonAction}
+                  aria-label={buttonLabel}
+                  tabIndex={0}
+                  onMouseEnter={() => setHoveredPlan(plan.tier)}
+                  onMouseLeave={() => setHoveredPlan(null)}
+                  onFocus={() => setHoveredPlan(plan.tier)}
+                  onBlur={() => setHoveredPlan(null)}
                 >
                   {buttonLabel}
+                  <span className="ml-2 align-middle inline-block">
+                    <InformationCircleIcon className="w-5 h-5 text-blue-200 hover:text-white inline" title={
+                      isCurrentTier && isCurrentInterval ? 'This is your current plan.' :
+                      isCurrentTier && isSwitchInterval ? `Switch your billing interval to ${billingInterval}.` :
+                      isLowerTier ? `Upgrade to ${plan.name}: Unlock more features and higher limits.` :
+                      isHigherTier ? `Downgrade to ${plan.name}: Your plan will change at renewal.` :
+                      plan.tier === 'free' ? 'Choose the free Starter plan.' :
+                      `Choose the ${plan.name} plan.`
+                    } />
+                  </span>
+                  {/* Tooltip */}
+                  {hoveredPlan === plan.tier && (
+                    <span className="absolute left-1/2 -translate-x-1/2 top-full mt-2 z-20 bg-white border border-blue-200 text-blue-900 text-xs rounded shadow-lg px-3 py-2 whitespace-nowrap">
+                      {
+                        isCurrentTier && isCurrentInterval ? 'This is your current plan.' :
+                        isCurrentTier && isSwitchInterval ? `Switch your billing interval to ${billingInterval}.` :
+                        isLowerTier ? `Upgrade to ${plan.name}: Unlock more features and higher limits.` :
+                        isHigherTier ? `Downgrade to ${plan.name}: Your plan will change at renewal.` :
+                        plan.tier === 'free' ? 'Choose the free Starter plan.' :
+                        `Choose the ${plan.name} plan.`
+                      }
+                    </span>
+                  )}
                 </button>
                 {buttonError[currentPlanPricing?.priceId || ''] && (
                   <div className="text-red-600 text-sm mt-2">{buttonError[currentPlanPricing?.priceId || '']}</div>
