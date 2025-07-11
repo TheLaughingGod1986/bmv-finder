@@ -201,7 +201,7 @@ export default function Home() {
 
           // --- GROUP BY ADDRESS FOR SALES COUNT & DEDUPLICATION ---
           const grouped: Record<string, SoldPrice[]> = {};
-          enhancedProperties.forEach((sp) => {
+          enhancedProperties.forEach((sp: SoldPrice) => {
             const addressKey = [
               sp.paon?.trim().toLowerCase() || '',
               sp.street?.trim().toLowerCase() || '',
