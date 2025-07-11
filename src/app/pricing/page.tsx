@@ -206,6 +206,76 @@ export default function PricingPage() {
             )}
           </div>
         </div>
+        {/* Feature Comparison Table */}
+        <div className="overflow-x-auto mt-10">
+          <table className="min-w-full border rounded-xl overflow-hidden bg-white shadow">
+            <thead>
+              <tr className="bg-[#F5F5DC] text-[#2C6E91]">
+                <th className="py-3 px-4 text-left font-semibold text-lg">Feature</th>
+                <th className="py-3 px-4 font-semibold text-lg">Starter</th>
+                <th className="py-3 px-4 font-semibold text-lg">Pro</th>
+                <th className="py-3 px-4 font-semibold text-lg">Elite</th>
+              </tr>
+            </thead>
+            <tbody className="text-gray-800">
+              {/* Example features, update as needed */}
+              <tr className="border-t">
+                <td className="py-3 px-4">Basic Search & Analytics</td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">Unlimited Lookups</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">Export Data (CSV)</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">Email Alerts & Notifications</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">Full Analytics Dashboard</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">PDF Reports</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-[#D4AF37] font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">Bulk Analysis</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-[#D4AF37] font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">CRM Export</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-[#D4AF37] font-bold">✔️</span></td>
+              </tr>
+              <tr className="border-t">
+                <td className="py-3 px-4">Priority Support</td>
+                <td className="text-center text-gray-400">—</td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       {/* Screenshots/Visuals */}
