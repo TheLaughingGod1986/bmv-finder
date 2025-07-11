@@ -5,36 +5,76 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
 import { ToastProvider } from './components/ToastProvider';
 import Navigation from './components/Navigation';
-import ResponsiveHeader from './components/ResponsiveHeader';
-// import AnchorLinks from './components/AnchorLinks';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
-  title: "UK Property Prices | Search House Prices & Market Trends",
-  description: "Instantly search and analyze UK sold house prices using the latest Land Registry data. View historical property data, market trends, and regional price analysis for free. Your go-to tool for property research.",
-  keywords: "sold property prices, uk house prices, land registry data, property price check, house price trends, property market analysis, property valuation, real estate data",
-  manifest: "/manifest.json",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "UK Property Prices"
-  },
+  title: "BMV Finder | UK Property Investment Insights & Market Analysis",
+  description: "Professional property investment platform with BMV scoring, market analysis, and UK Land Registry data. Find below-market-value properties and make informed investment decisions.",
+  keywords: "BMV properties, below market value, property investment, UK property prices, land registry data, property analysis, investment opportunities, property market trends",
+  authors: [{ name: "BMV Finder" }],
+  creator: "BMV Finder",
+  publisher: "BMV Finder",
   formatDetection: {
-    telephone: false
-  }
+    telephone: false,
+    email: false,
+    address: false,
+  },
+  metadataBase: new URL('https://bmvfinder.com'),
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: "BMV Finder | UK Property Investment Insights",
+    description: "Find below-market-value properties with professional analysis and BMV scoring. Access UK Land Registry data and make informed investment decisions.",
+    url: 'https://bmvfinder.com',
+    siteName: 'BMV Finder',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'BMV Finder - UK Property Investment Platform',
+      },
+    ],
+    locale: 'en_GB',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'BMV Finder | UK Property Investment Insights',
+    description: 'Find below-market-value properties with professional analysis and BMV scoring.',
+    images: ['/og-image.png'],
+    creator: '@bmvfinder',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  verification: {
+    google: 'your-google-verification-code',
+  },
 };
 
 export const viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: "no",
-  themeColor: "#3b82f6"
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: "#3A7CA5",
+  colorScheme: "light",
 };
 
 export default function RootLayout({
@@ -43,26 +83,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <head>
-        <meta property="og:title" content="UK Property Prices" />
-        <meta property="og:description" content="View UK Land Registry sold property prices, trends, and analytics in a modern, mobile-friendly interface." />
-        <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://yourdomain.com/" />
-        <meta property="og:image" content="/og-image.png" />
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="UK Property Prices" />
-        <meta name="twitter:description" content="View UK Land Registry sold property prices, trends, and analytics in a modern, mobile-friendly interface." />
-        <meta name="twitter:image" content="/og-image.png" />
+        {/* Preconnect to external domains for performance */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="UK Property Prices" />
+        <meta name="application-name" content="BMV Finder" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="UK Property Prices" />
+        <meta name="apple-mobile-web-app-title" content="BMV Finder" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="msapplication-TileColor" content="#3b82f6" />
+        <meta name="msapplication-TileColor" content="#3A7CA5" />
         <meta name="msapplication-tap-highlight" content="no" />
+        <meta name="theme-color" content="#3A7CA5" />
         
         {/* Apple Touch Icons */}
         <link rel="apple-touch-icon" href="/icon-192.png" />
@@ -73,22 +108,95 @@ export default function RootLayout({
         {/* Favicon */}
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3b82f6" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3A7CA5" />
+        
+        {/* Manifest */}
+        <link rel="manifest" href="/manifest.json" />
+        {/* Organization & Product JSON-LD Structured Data */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": "BMV Finder",
+            "url": "https://bmvfinder.com",
+            "logo": "https://bmvfinder.com/icon-192.png",
+            "sameAs": [
+              "https://twitter.com/bmvfinder"
+            ],
+            "description": "Professional property investment platform with BMV scoring, market analysis, and UK Land Registry data. Find below-market-value properties and make informed investment decisions."
+          })
+        }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "BMV Finder Property Insights Platform",
+            "image": [
+              "https://bmvfinder.com/og-image.png"
+            ],
+            "description": "Instantly analyze UK property prices, BMV opportunities, and market trends. Compare plans for investors, buyers, and professionals.",
+            "brand": {
+              "@type": "Brand",
+              "name": "BMV Finder"
+            },
+            "offers": {
+              "@type": "AggregateOffer",
+              "lowPrice": "0",
+              "highPrice": "490",
+              "priceCurrency": "GBP",
+              "offerCount": 3,
+              "offers": [
+                {
+                  "@type": "Offer",
+                  "name": "Starter Plan",
+                  "price": "0",
+                  "priceCurrency": "GBP",
+                  "availability": "https://schema.org/InStock"
+                },
+                {
+                  "@type": "Offer",
+                  "name": "Pro Plan",
+                  "price": "19",
+                  "priceCurrency": "GBP",
+                  "availability": "https://schema.org/InStock"
+                },
+                {
+                  "@type": "Offer",
+                  "name": "Elite Plan",
+                  "price": "49",
+                  "priceCurrency": "GBP",
+                  "availability": "https://schema.org/InStock"
+                }
+              ]
+            }
+          })
+        }} />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-white text-gray-900`}>
-        <a href="#main-content" className="sr-only focus:not-sr-only absolute left-2 top-2 bg-blue-600 text-white px-3 py-1 rounded z-50">Skip to main content</a>
+      <body className={`${inter.variable} font-sans antialiased bg-[#F5F5DC] text-[#2C6E91] leading-relaxed`}>
+        {/* Skip to main content link for accessibility */}
+        <a 
+          href="#main-content" 
+          className="sr-only focus:not-sr-only absolute left-4 top-4 bg-[#3A7CA5] text-white px-4 py-2 rounded-lg z-50 font-semibold shadow-lg transition-all duration-200 hover:bg-[#2C6E91]"
+        >
+          Skip to main content
+        </a>
+        
         <SupabaseUserProvider>
           <Navigation />
-          <ResponsiveHeader />
-          {/* <AnchorLinks /> */}
-          <main id="main-content" tabIndex={-1} className="min-h-screen bg-[#F5F5DC]">
+          <main 
+            id="main-content" 
+            tabIndex={-1} 
+            className="min-h-screen bg-[#F5F5DC] relative"
+          >
             <ToastProvider>
               {children}
             </ToastProvider>
           </main>
         </SupabaseUserProvider>
+        
         <Analytics />
         <SpeedInsights />
+        
         {/* Service Worker Registration */}
         <script
           dangerouslySetInnerHTML={{
@@ -100,7 +208,8 @@ export default function RootLayout({
               }
             `,
           }}
-        ></script>
+        />
+        
         {/* Unregister all service workers for all users */}
         <script
           dangerouslySetInnerHTML={{
@@ -114,7 +223,7 @@ export default function RootLayout({
               }
             `,
           }}
-        ></script>
+        />
       </body>
     </html>
   );

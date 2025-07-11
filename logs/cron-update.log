@@ -1,0 +1,26 @@
+bash: /usr/bin/node: No such file or directory
+Starting Elasticsearch data update...
+Creating backup of current data...
+Backup created: properties-backup-2025-07-11t16-28-43-599z
+Downloading pp-complete.csv...
+
+Download completed: pp-complete.csv
+Deleting old index...
+Index deleted.
+Re-importing data...
+
+> bmv-finder@0.1.0 populate-es
+> node scripts/populate-elasticsearch.js
+
+Creating index 'properties'...
+Index 'properties' created successfully!
+Starting to index CSV data (resuming from line 0)...
+This may take a while for the full dataset...
+
+🎉 Indexing completed successfully!
+📊 Total records indexed: 0
+⏱️  Total time: 0.76 seconds
+🚀 Average rate: 0 records/second
+📁 Lines processed: 0
+✅ Index refreshed and ready for search!
+✅ Data update completed successfully!
