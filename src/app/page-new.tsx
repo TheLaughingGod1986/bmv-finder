@@ -484,7 +484,11 @@ export default function HomeNew() {
                       onClose={() => setShowHpiData(false)}
                     />
                     {showRecentSales && (
-                      <RecentSalesDisplay postcode={recentSalesPostcode} />
+                      <RecentSalesDisplay 
+                        postcode={recentSalesPostcode} 
+                        isVisible={showRecentSales}
+                        onClose={() => setShowRecentSales(false)}
+                      />
                     )}
                   </div>
                 )}
