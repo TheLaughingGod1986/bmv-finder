@@ -386,12 +386,18 @@ export default function Home() {
                   className="overflow-hidden"
                 >
                   <EnhancedFilters
+                    isOpen={isFiltersOpen}
+                    onClose={() => setIsFiltersOpen(false)}
                     filters={filters}
                     onFiltersChange={setFilters}
-                    onApplyFilters={() => {
-                      if (searchTerm) {
-                        handleSearch(searchTerm);
-                      }
+                    onReset={() => {
+                      setFilters({
+                        priceRange: { min: 0, max: 10000000 },
+                        dateRange: { start: '', end: '' },
+                        propertyType: [],
+                        duration: [],
+                        year: []
+                      });
                     }}
                   />
                 </motion.div>
@@ -430,7 +436,7 @@ export default function Home() {
                 <EnhancedSoldPricesTable
                   soldPrices={displayedSoldPrices}
                   allSales={soldPrices}
-                  onRowClick={handleRowSelect}
+                  onRowClick={(property) => handleRowSelect(property)}
                   onShowHistory={(property, history) => {
                     setPropertyHistory(history);
                     setSelectedProperty(property);
@@ -445,7 +451,11 @@ export default function Home() {
                 {/* Analytics Section */}
                 {showHpiData && (
                   <div className="space-y-6">
-                    <HpiDataDisplay query={hpiQuery} />
+                    <HpiDataDisplay 
+                      query={hpiQuery} 
+                      isVisible={showHpiData && !!hpiQuery.value}
+                      onClose={() => setShowHpiData(false)}
+                    />
                     {showRecentSales && (
                       <RecentSalesDisplay postcode={recentSalesPostcode} />
                     )}
@@ -618,7 +628,6 @@ export default function Home() {
       {/* Property History Modal */}
       {showHistoryModal && selectedProperty && (
         <PropertyHistoryModal
-          isOpen={showHistoryModal}
           onClose={() => setShowHistoryModal(false)}
           property={selectedProperty}
           history={propertyHistory}
