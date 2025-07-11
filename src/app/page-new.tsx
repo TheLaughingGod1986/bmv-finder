@@ -478,7 +478,11 @@ export default function HomeNew() {
                 {/* Analytics Section */}
                 {showHpiData && (
                   <div className="space-y-6">
-                    <HpiDataDisplay query={hpiQuery} />
+                    <HpiDataDisplay 
+                      query={hpiQuery} 
+                      isVisible={showHpiData}
+                      onClose={() => setShowHpiData(false)}
+                    />
                     {showRecentSales && (
                       <RecentSalesDisplay postcode={recentSalesPostcode} />
                     )}
