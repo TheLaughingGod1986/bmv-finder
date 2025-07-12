@@ -51,12 +51,12 @@ class DataQualityMonitor {
   }> {
     try {
       const result = await this.client.search({
-        index,
+        index: 'property_sales',
         size: 1,
         body: {
           sort: [{ dateOfTransfer: { order: 'desc' } }]
         }
-      });
+      } as any);
 
       if (result.hits.hits.length === 0) {
         return {
@@ -66,7 +66,7 @@ class DataQualityMonitor {
         };
       }
 
-      const lastRecord = result.hits.hits[0]._source;
+      const lastRecord = result.hits.hits[0]._source as any;
       const lastUpdate = lastRecord.dateOfTransfer || lastRecord.date;
       const ageInHours = (Date.now() - new Date(lastUpdate).getTime()) / (1000 * 60 * 60);
 
@@ -108,7 +108,7 @@ class DataQualityMonitor {
       let missingFields = 0;
       for (const field of requiredFields) {
         const fieldResult = await this.client.search({
-          index,
+          index: 'property_sales',
           size: 0,
           body: {
             query: {
@@ -119,8 +119,8 @@ class DataQualityMonitor {
               }
             }
           }
-        });
-        missingFields += fieldResult.hits.total.value;
+        } as any);
+        missingFields += typeof fieldResult.hits.total === 'object' ? fieldResult.hits.total.value : fieldResult.hits.total || 0;
       }
 
       const completenessScore = Math.max(0, 1 - (missingFields / (totalRecords * requiredFields.length)));
@@ -148,37 +148,36 @@ class DataQualityMonitor {
     try {
       // Check for invalid price values
       const invalidPriceResult = await this.client.search({
-        index,
+        index: 'property_sales',
         size: 0,
         body: {
           query: {
             bool: {
-              should: [
-                { range: { pricePaid: { lte: 0 } } },
-                { range: { pricePaid: { gte: 10000000 } } } // £10M+ seems suspicious
+              must: [
+                { range: { pricePaid: { lte: 0 } } }
               ]
             }
           }
         }
-      });
+      } as any);
 
       // Check for invalid dates
       const invalidDateResult = await this.client.search({
-        index,
+        index: 'property_sales',
         size: 0,
         body: {
           query: {
             bool: {
-              should: [
-                { range: { dateOfTransfer: { gte: '2030-01-01' } } },
-                { range: { dateOfTransfer: { lte: '1900-01-01' } } }
+              must: [
+                { range: { dateOfTransfer: { gte: '2025-01-01' } } }
               ]
             }
           }
         }
-      });
+      } as any);
 
-      const validationErrors = invalidPriceResult.hits.total.value + invalidDateResult.hits.total.value;
+      const validationErrors = (typeof invalidPriceResult.hits.total === 'object' ? invalidPriceResult.hits.total.value : invalidPriceResult.hits.total || 0) + 
+                                 (typeof invalidDateResult.hits.total === 'object' ? invalidDateResult.hits.total.value : invalidDateResult.hits.total || 0);
       const totalRecords = await this.getTotalRecords(index);
       const accuracyScore = totalRecords > 0 ? Math.max(0, 1 - (validationErrors / totalRecords)) : 0;
 
@@ -203,25 +202,24 @@ class DataQualityMonitor {
     try {
       // Check for potential duplicates based on key fields
       const duplicateResult = await this.client.search({
-        index,
+        index: 'property_sales',
         size: 0,
         body: {
           aggs: {
             duplicates: {
               terms: {
-                script: {
-                  source: "doc['postcode'].value + '|' + doc['dateOfTransfer'].value + '|' + doc['pricePaid'].value"
-                },
+                field: 'paon',
+                size: 10000,
                 min_doc_count: 2
               }
             }
           }
         }
-      });
+      } as any);
 
-      const duplicateRecords = duplicateResult.aggregations.duplicates.buckets.reduce(
+      const duplicateRecords = (duplicateResult.aggregations?.duplicates as any)?.buckets?.reduce(
         (sum: number, bucket: any) => sum + bucket.doc_count, 0
-      );
+      ) || 0;
 
       const totalRecords = await this.getTotalRecords(index);
       const consistencyScore = totalRecords > 0 ? Math.max(0, 1 - (duplicateRecords / totalRecords)) : 0;

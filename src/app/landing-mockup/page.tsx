@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 export default function LandingMockup() {
   return (
@@ -118,8 +119,8 @@ export default function LandingMockup() {
           </div>
         </div>
         <div className="flex justify-center gap-6 mt-10">
-          <img src="/public/trustpilot.svg" alt="Trustpilot" className="h-8" />
-          <img src="/public/press-logo.svg" alt="Press" className="h-8" />
+          <Image src="/public/trustpilot.svg" alt="Trustpilot" className="h-8" width={32} height={32} />
+          <Image src="/public/press-logo.svg" alt="Press" className="h-8" width={32} height={32} />
         </div>
       </section>
 

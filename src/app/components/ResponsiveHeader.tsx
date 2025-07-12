@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Menu, X } from 'lucide-react';
 
 interface ResponsiveHeaderProps {
@@ -31,7 +32,7 @@ export default function ResponsiveHeader({ className = '' }: ResponsiveHeaderPro
       <div className="max-w-7xl mx-auto flex items-center justify-between px-4 py-2">
         {/* Logo */}
         <span className="flex items-center gap-2">
-          <img src="/icon.svg" alt="UK Property Insights Logo" className="w-7 h-7" />
+          <Image src="/icon.svg" alt="UK Property Insights Logo" className="w-7 h-7" width={28} height={28} />
           <span className="text-2xl font-extrabold text-[#3A7CA5] tracking-tight">UK Property Insights</span>
         </span>
         {/* Desktop Navigation */}

@@ -431,7 +431,7 @@ const UpgradePage = () => {
                 <h2 className="text-xl font-bold">Welcome to {upgradedPlan}!</h2>
               </div>
               <p className="text-white text-opacity-90 mb-4 leading-relaxed">
-                Your upgrade is complete and your new features are now active. Here's what you can do next:
+                Your upgrade is complete and your new features are now active. Here&apos;s what you can do next:
               </p>
               <div className="grid md:grid-cols-2 gap-4 mb-4">
                 <div className="bg-white bg-opacity-10 rounded-lg p-3">

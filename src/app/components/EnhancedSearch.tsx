@@ -301,7 +301,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
               <div>
                 <h3 className="text-sm font-semibold text-red-800 mb-1">Search Limit Reached</h3>
                 <p className="text-sm text-red-700 mb-3">
-                  You've reached your free search limit. Upgrade to continue searching.
+                  You&apos;ve reached your free search limit. Upgrade to continue searching.
                 </p>
                 <Link
                   href="/pricing"

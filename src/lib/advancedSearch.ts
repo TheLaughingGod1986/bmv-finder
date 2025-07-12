@@ -94,11 +94,11 @@ class AdvancedSearch {
           }
         }
       }
-    });
+    } as any);
 
     return {
       properties: result.hits.hits.map((hit: any) => hit._source),
-      total: result.hits.total.value,
+      total: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total || 0,
       aggregations: result.aggregations,
       searchId: this.generateSearchId()
     };
@@ -156,13 +156,13 @@ class AdvancedSearch {
               }
             }
           }
-        });
+        } as any);
 
         comparisonData.push({
           area,
-          averagePrice: result.aggregations.avg_price.value,
-          priceTrend: result.aggregations.price_trend.buckets,
-          dataPoints: result.hits.total.value
+          averagePrice: (result.aggregations?.avg_price as any)?.value || 0,
+          priceTrend: (result.aggregations?.price_trend as any)?.buckets || [],
+          dataPoints: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total || 0
         });
       } catch (error) {
         console.error(`Error fetching data for area ${area}:`, error);
@@ -248,11 +248,11 @@ class AdvancedSearch {
           }
         }
       }
-    });
+    } as any);
 
     return {
       properties: result.hits.hits.map((hit: any) => hit._source),
-      total: result.hits.total.value,
+      total: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total || 0,
       aggregations: result.aggregations,
       searchId: this.generateSearchId()
     };

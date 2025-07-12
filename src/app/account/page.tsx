@@ -190,7 +190,7 @@ export default function AccountPage() {
             Hi{userName ? `, ${userName}` : ''}!
           </h1>
           <p className="text-lg md:text-xl text-[#3B755D] font-medium leading-relaxed">
-            You're currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
+            You&apos;re currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
           </p>
         </div>
       )}

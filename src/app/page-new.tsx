@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, TrendingUp, BarChart3, Filter, X, MapPin, Download, Share2, ArrowUp, Search, Home, Calculator, BarChart, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 
 // New UI Components
 import { 
@@ -282,7 +283,7 @@ export default function HomeNew() {
       setIsLoading(false);
       setIsPaginationLoading(false);
     }
-  }, [searchAfter, searchAfterHistory, soldPrices.length, enhancePropertiesWithBMVScores, groupPropertiesByAddress, showToast]);
+  }, [searchAfter, searchAfterHistory, soldPrices.length, enhancePropertiesWithBMVScores, groupPropertiesByAddress, showToast, pageSize]);
 
   // Handle search from hero section
   const handleHeroSearch = (query: string) => {
@@ -527,45 +528,41 @@ export default function HomeNew() {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Button
+            <Link
               href="/what-should-i-pay"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
               <Home className="w-8 h-8 text-[#3A7CA5]" />
               <span className="font-semibold">What Should I Pay?</span>
               <span className="text-sm text-[#3B755D]">Get property valuations</span>
-            </Button>
+            </Link>
             
-            <Button
+            <Link
               href="/deal-calculator"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
               <Calculator className="w-8 h-8 text-[#3A7CA5]" />
               <span className="font-semibold">Deal Calculator</span>
               <span className="text-sm text-[#3B755D]">Calculate investment returns</span>
-            </Button>
+            </Link>
             
-            <Button
+            <Link
               href="/hpi-dashboard"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
-                              <BarChart className="w-8 h-8 text-[#3A7CA5]" />
+              <BarChart className="w-8 h-8 text-[#3A7CA5]" />
               <span className="font-semibold">HPI Dashboard</span>
               <span className="text-sm text-[#3B755D]">View market trends</span>
-            </Button>
+            </Link>
             
-            <Button
+            <Link
               href="/portfolio-tracker"
-              variant="outline"
-              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
               <BookOpen className="w-8 h-8 text-[#3A7CA5]" />
               <span className="font-semibold">Portfolio Tracker</span>
               <span className="text-sm text-[#3B755D]">Track your investments</span>
-            </Button>
+            </Link>
           </div>
         </Section>
       )}

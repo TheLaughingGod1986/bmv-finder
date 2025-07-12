@@ -27,7 +27,7 @@ export default function HeroSection({ className = '', onSearch }: HeroSectionPro
         Discover the True Value of UK Homes
       </h1>
       <p className="text-lg md:text-xl text-[#3B755D] mb-8 max-w-2xl mx-auto">
-        Instantly see recent sales, market trends, and get smart tools to help you decide what's a fair price—whether you're buying, selling, or investing.
+        Instantly see recent sales, market trends, and get smart tools to help you decide what&apos;s a fair price—whether you&apos;re buying, selling, or investing.
       </p>
 
       {/* Sticky Search Bar */}

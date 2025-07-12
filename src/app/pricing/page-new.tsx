@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from "react";
+import Link from 'next/link';
 import { createClient } from '@supabase/supabase-js';
 import { useUserTier } from '@/hooks/useUserTier';
 import { CheckIcon, StarIcon, ShieldCheckIcon, ChartBarIcon, ArrowDownTrayIcon, BellIcon } from '@heroicons/react/24/outline';
@@ -176,7 +177,7 @@ export default function PricingPageNew() {
             Find the Right Plan for Your Property Journey
           </h1>
           <p className="text-lg md:text-xl text-[#3B755D] mb-8 max-w-3xl mx-auto">
-            Compare features, see what's included, and choose the perfect plan for you. Upgrade anytime.
+            Compare features, see what&apos;s included, and choose the perfect plan for you. Upgrade anytime.
           </p>
           
           {/* Billing Toggle */}
@@ -288,7 +289,7 @@ export default function PricingPageNew() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">Detailed Feature Comparison</h2>
-            <p className="text-lg text-[#3B755D]">See exactly what's included in each plan</p>
+            <p className="text-lg text-[#3B755D]">See exactly what&apos;s included in each plan</p>
           </div>
           
           <div className="overflow-x-auto">
@@ -398,7 +399,7 @@ export default function PricingPageNew() {
             
             <div className="bg-[#F5F5DC] rounded-lg p-6">
               <h3 className="font-semibold text-[#2C6E91] mb-2">Can I cancel my subscription?</h3>
-              <p className="text-[#3B755D]">Yes, you can cancel your subscription at any time. You'll continue to have access until the end of your billing period.</p>
+              <p className="text-[#3B755D]">Yes, you can cancel your subscription at any time. You&apos;ll continue to have access until the end of your billing period.</p>
             </div>
           </div>
         </div>
@@ -410,12 +411,18 @@ export default function PricingPageNew() {
           <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">Ready to Get Started?</h2>
           <p className="text-lg text-[#3B755D] mb-8">Join thousands of property professionals using our platform</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button href="/account" variant="primary" size="lg">
+            <Link
+              href="/account"
+              className="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 px-8 py-4 text-lg bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-soft"
+            >
               Start Free Trial
-            </Button>
-            <Button href="/" variant="outline" size="lg">
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 px-8 py-4 text-lg border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500"
+            >
               Explore Features
-            </Button>
+            </Link>
           </div>
         </div>
       </Section>
