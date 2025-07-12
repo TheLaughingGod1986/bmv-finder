@@ -54,7 +54,15 @@ jobs:
         git add .
         git commit -m "🤖 Automated HPI data update - $(date +'%Y-%m-%d')" || echo "No changes to commit"
         git remote set-url origin https://x-access-token:${GH_PAT}@github.com/TheLaughingGod1986/bmv-finder.git
-        git push origin HEAD:main
+        git push origin HEAD:automation-updates
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v6
+      with:
+        token: ${{ secrets.GH_PAT }}
+        branch: automation-updates
+        base: main
+        title: "🤖 Automated HPI data update"
+        body: "This PR was created automatically by the update-hpi workflow."
     - name: Debug GH_PAT
       if: always()
       run: |
