@@ -9,7 +9,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { useSession } from '@supabase/auth-helpers-react';
 import { parseSubscriptionMetadata, getSubscriptionStatusText, canManageSubscription } from '@/utils/subscriptionUtils';
 import { CalendarIcon, ArrowUpRightIcon } from '@heroicons/react/24/outline';
-import { useToast } from './components/ToastProvider';
+import { useToast } from '../components/ToastProvider';
 import { getUserProfile } from '@/utils/getUserProfile';
 import { format } from 'date-fns';
 import { 
