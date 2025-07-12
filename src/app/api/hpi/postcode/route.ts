@@ -9,14 +9,12 @@ async function searchHpiByPostcode(postcode: string) {
     const result = await esClient.search({
       index: INDEX_NAME,
       size: 100,
-      body: {
-        query: {
-          term: { postcode: postcode.toUpperCase() }
-        },
-        sort: [
-          { date: { order: 'desc' } }
-        ]
-      }
+      query: {
+        term: { postcode: postcode.toUpperCase() }
+      },
+      sort: [
+        { date: { order: 'desc' } }
+      ]
     });
     
     const hits = result.hits.hits;
@@ -33,14 +31,12 @@ async function searchHpiByRegion(region: string) {
     const result = await esClient.search({
       index: INDEX_NAME,
       size: 100,
-      body: {
-        query: {
-          term: { region: region }
-        },
-        sort: [
-          { date: { order: 'desc' } }
-        ]
-      }
+      query: {
+        term: { region: region }
+      },
+      sort: [
+        { date: { order: 'desc' } }
+      ]
     });
     
     const hits = result.hits.hits;

@@ -42,18 +42,16 @@ export async function GET(request: NextRequest) {
     // Get properties with ROI analysis
     const response = await client.search({
       index: PROPERTIES_INDEX,
-      body: {
-        query,
-        sort: [
-          { growthPercentage: { order: 'desc' } }
-        ],
-        size: limit * 2, // Get more to filter
-        _source: [
-          'id', 'price', 'estimatedValue', 'growthPercentage', 
-          'postcode', 'street', 'town_city', 'propertyType',
-          'dateOfTransfer', 'hpiRegion', 'hpiGrowthFactor'
-        ]
-      }
+      query,
+      sort: [
+        { growthPercentage: { order: 'desc' } }
+      ],
+      size: limit * 2, // Get more to filter
+      _source: [
+        'id', 'price', 'estimatedValue', 'growthPercentage', 
+        'postcode', 'street', 'town_city', 'propertyType',
+        'dateOfTransfer', 'hpiRegion', 'hpiGrowthFactor'
+      ]
     });
 
     const properties = response.hits.hits.map(hit => hit._source as any);
