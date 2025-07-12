@@ -173,7 +173,6 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
       {soldPrices.map((property, index) => {
         const key = addressKey(property);
         const count = allSales.filter(sale => addressKey(sale) === key).length;
-        // eslint-disable-next-line no-console
         console.log(`[DEBUG] Row ${index}: addressKey=${key}, count=${count}`);
         return null;
       })}

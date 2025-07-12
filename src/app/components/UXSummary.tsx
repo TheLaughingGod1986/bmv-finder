@@ -81,7 +81,7 @@ export default function UXSummary({ className = '' }: UXSummaryProps) {
           UX/UI Improvements Summary
         </h2>
         <p className="text-lg text-[#3B755D] max-w-3xl mx-auto">
-          We've transformed the application with a comprehensive set of improvements 
+          We&apos;ve transformed the application with a comprehensive set of improvements 
           that enhance usability, accessibility, and visual appeal.
         </p>
       </motion.div>

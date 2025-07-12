@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, TrendingUp, BarChart3, Target, Filter } from 'lucide-react';
 import { BMVScoreEngine } from '../../lib/bmvScoreEngine';
@@ -22,9 +22,15 @@ const HeatmapView: React.FC<HeatmapViewProps> = ({
 }) => {
   const [mode, setMode] = useState<HeatmapMode>('yield');
   const [selectedPostcode, setSelectedPostcode] = useState<string | null>(null);
+  const [heatmapData, setHeatmapData] = useState<any[]>([]);
 
-  const heatmapData = useMemo(() => {
-    return BMVScoreEngine.calculateHeatmapData(properties);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const data = await BMVScoreEngine.calculateHeatmapData(properties);
+      if (!cancelled) setHeatmapData(data);
+    })();
+    return () => { cancelled = true; };
   }, [properties]);
 
   const getColorForValue = (value: number, mode: HeatmapMode) => {

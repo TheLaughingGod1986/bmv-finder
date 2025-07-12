@@ -14,4 +14,4 @@ export { default as Navigation } from './Navigation';
 export { default as PropertyHistoryModal } from './PropertyHistoryModal';
 export { default as EnhancedSoldPricesTable } from './EnhancedSoldPricesTable';
 export { default as EnhancedSearch } from './EnhancedSearch';
-export { default as ToastProvider, useToast } from './ToastProvider'; 
+export { ToastProvider, useToast } from './ToastProvider'; 

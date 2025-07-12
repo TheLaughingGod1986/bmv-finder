@@ -7,6 +7,7 @@ interface PricingCardProps {
   title: string;
   price: string;
   period?: string;
+  description?: string;
   features: string[];
   ctaText: string;
   ctaHref?: string;
@@ -15,6 +16,11 @@ interface PricingCardProps {
   className?: string;
   disabled?: boolean;
   loading?: boolean;
+  href?: string;
+  buttonClassName?: string;
+  buttonText?: string;
+  onClick?: () => void;
+  savings?: string | null;
   'aria-label'?: string;
   'aria-describedby'?: string;
 }
@@ -23,6 +29,7 @@ export default function PricingCard({
   title, 
   price, 
   period = '/mo', 
+  description,
   features, 
   ctaText, 
   ctaHref, 
@@ -31,6 +38,11 @@ export default function PricingCard({
   className = '',
   disabled = false,
   loading = false,
+  href,
+  buttonClassName,
+  buttonText,
+  onClick,
+  savings,
   'aria-label': ariaLabel,
   'aria-describedby': ariaDescribedby
 }: PricingCardProps) {

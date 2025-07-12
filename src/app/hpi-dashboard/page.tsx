@@ -370,7 +370,7 @@ export default function HpiDashboard() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <h3 className="font-semibold mb-2">What is HPI?</h3>
-                  <p className="mb-2">The House Price Index (HPI) measures changes in house prices over time. It's calculated using data from property sales and provides a standardized way to track market trends.</p>
+                  <p className="mb-2">The House Price Index (HPI) measures changes in house prices over time. It&apos;s calculated using data from property sales and provides a standardized way to track market trends.</p>
                   <p><strong>Base year:</strong> 2015 = 100. An index of 120 means prices are 20% higher than in 2015.</p>
                 </div>
                 <div>

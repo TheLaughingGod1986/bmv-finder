@@ -284,14 +284,14 @@ export default function PricingPage() {
               Welcome back{userName ? `, ${userName}` : ''}!
             </h1>
             <p className="text-lg md:text-xl text-[#3B755D] font-medium leading-relaxed">
-              You're currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
+              You&apos;re currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
             </p>
           </div>
         )}
         {/* Hero Section */}
         <section className="mb-10 text-center">
           <h1 className="text-4xl font-extrabold mb-4">Find the Right Plan for Your Property Journey</h1>
-          <p className="text-lg text-gray-600 mb-6">Compare features, see what's included, and choose the perfect plan for you. Upgrade anytime.</p>
+          <p className="text-lg text-gray-600 mb-6">Compare features, see what&apos;s included, and choose the perfect plan for you. Upgrade anytime.</p>
           <a href="#plans" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow transition-colors text-lg">See Plans</a>
         </section>
 
@@ -325,6 +325,7 @@ export default function PricingPage() {
                 period={billingInterval === 'year' ? plan.periodYear : plan.period}
                 description={plan.description}
                 features={plan.features}
+                ctaText={plan.buttonText}
                 buttonText={plan.buttonText}
                 href={plan.href}
                 isPopular={plan.isPopular}
@@ -419,7 +420,7 @@ export default function PricingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
-                <p>We offer both monthly and yearly billing. Yearly plans come with a discount. You can upgrade, downgrade, or cancel at any time. Changes take effect immediately, and we'll prorate any adjustments to your next billing cycle.</p>
+                <p>We offer both monthly and yearly billing. Yearly plans come with a discount. You can upgrade, downgrade, or cancel at any time. Changes take effect immediately, and we&apos;ll prorate any adjustments to your next billing cycle.</p>
               </div>
             </details>
 
@@ -431,7 +432,7 @@ export default function PricingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
-                <p>Yes! You can upgrade or downgrade at any time. Upgrades take effect immediately with prorated billing. Downgrades take effect at your next billing cycle. You'll always keep access to your current plan until the change takes effect.</p>
+                <p>Yes! You can upgrade or downgrade at any time. Upgrades take effect immediately with prorated billing. Downgrades take effect at your next billing cycle. You&apos;ll always keep access to your current plan until the change takes effect.</p>
               </div>
             </details>
 
@@ -443,7 +444,7 @@ export default function PricingPage() {
                 </svg>
               </summary>
               <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
-                <p>You can cancel anytime from your account settings. You'll keep access to your plan until the end of your current billing period. No hidden fees or penalties - we want you to be happy with our service.</p>
+                <p>You can cancel anytime from your account settings. You&apos;ll keep access to your plan until the end of your current billing period. No hidden fees or penalties - we want you to be happy with our service.</p>
               </div>
             </details>
 
@@ -462,7 +463,7 @@ export default function PricingPage() {
 
           {/* Support Links */}
           <div className="text-center mt-12">
-            <h3 className="text-xl font-bold text-[#2C6E91] mb-4">Still have questions? We're here to help!</h3>
+            <h3 className="text-xl font-bold text-[#2C6E91] mb-4">Still have questions? We&apos;re here to help!</h3>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <a 
                 href="/contact" 
@@ -590,7 +591,7 @@ export default function PricingPage() {
                   <p className="text-sm text-[#3B755D]">Property Investor</p>
                 </div>
               </div>
-              <p className="text-[#3B755D] leading-relaxed">"Found my dream investment property using their BMV scoring. Saved me hours of research!"</p>
+              <p className="text-[#3B755D] leading-relaxed">&ldquo;Found my dream investment property using their BMV scoring. Saved me hours of research!&rdquo;</p>
             </div>
             <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
               <div className="flex items-center mb-4">
@@ -600,7 +601,7 @@ export default function PricingPage() {
                   <p className="text-sm text-[#3B755D]">First-time Buyer</p>
                 </div>
               </div>
-              <p className="text-[#3B755D] leading-relaxed">"The property history feature helped me understand the market value perfectly."</p>
+              <p className="text-[#3B755D] leading-relaxed">&ldquo;The property history feature helped me understand the market value perfectly.&rdquo;</p>
             </div>
             <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
               <div className="flex items-center mb-4">
@@ -610,7 +611,7 @@ export default function PricingPage() {
                   <p className="text-sm text-[#3B755D]">Estate Agent</p>
                 </div>
               </div>
-              <p className="text-[#3B755D] leading-relaxed">"Professional tool that gives my clients the insights they need to make informed decisions."</p>
+              <p className="text-[#3B755D] leading-relaxed">&ldquo;Professional tool that gives my clients the insights they need to make informed decisions.&rdquo;</p>
             </div>
           </div>
         </section>

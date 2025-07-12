@@ -44,7 +44,7 @@ class ElasticsearchOptimizer {
         body: query,
         requestTimeout: 30000,
         maxRetries: 3,
-      });
+      } as any);
 
       const data = result.hits.hits.map((hit: any) => hit._source);
       
@@ -89,11 +89,11 @@ class ElasticsearchOptimizer {
         body: query,
         requestTimeout: 30000,
         maxRetries: 3,
-      });
+      } as any);
 
       const data = {
         hits: result.hits.hits.map((hit: any) => hit._source),
-        total: result.hits.total.value,
+        total: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total || 0,
         aggregations: result.aggregations,
       };
 
@@ -179,9 +179,9 @@ class ElasticsearchOptimizer {
         body: query,
         timeout: '30s',
         requestTimeout: 30000,
-      });
+      } as any);
 
-      const data = result.aggregations[params.field].buckets;
+      const data = (result.aggregations as any)?.[params.field]?.buckets || [];
       
       this.queryCache.set(cacheKey, {
         data,
@@ -201,14 +201,13 @@ class ElasticsearchOptimizer {
     if (!this.connectionPool.has(index)) {
       // Create new client for this index with optimized settings
       const client = new Client({
-        node: this.client.connectionPool.connections[0].url,
-        auth: this.client.connectionPool.connections[0].auth,
+        node: this.client.connectionPool.connections[0].url.toString(),
         tls: { rejectUnauthorized: false },
         maxRetries: 3,
         requestTimeout: 30000,
         sniffOnStart: false,
         sniffInterval: false,
-      });
+      } as any);
       
       this.connectionPool.set(index, client);
     }

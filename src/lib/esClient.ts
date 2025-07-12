@@ -24,7 +24,7 @@ if (process.env.ES_CLOUD_ID) {
 // Prefer API key authentication if available
 if (process.env.ES_API_KEY || process.env.ELASTICSEARCH_API_KEY) {
   clientConfig.auth = {
-    apiKey: process.env.ES_API_KEY || process.env.ELASTICSEARCH_API_KEY
+    apiKey: (process.env.ES_API_KEY || process.env.ELASTICSEARCH_API_KEY) as string
   };
 } else if (process.env.ES_USERNAME && process.env.ES_PASSWORD) {
   clientConfig.auth = {
