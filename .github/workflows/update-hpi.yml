@@ -46,9 +46,11 @@ jobs:
       run: node scripts/update-hpi.js
       
     - name: Commit and push updated data
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
         git commit -m "🤖 Automated HPI data update - $(date +'%Y-%m-%d')" || echo "No changes to commit"
-        git push 
+        git push https://x-access-token:${GH_PAT}@github.com/TheLaughingGod1986/bmv-finder.git HEAD:main 
