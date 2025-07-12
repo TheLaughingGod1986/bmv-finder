@@ -3,6 +3,9 @@ import React, { useState, useEffect, useMemo } from "react";
 import { createClient } from '@supabase/supabase-js';
 import { useUserTier } from '@/hooks/useUserTier';
 import Head from 'next/head';
+import TrustBadges from "./components/TrustBadges";
+import PartnerLogos from "./components/PartnerLogos";
+import Testimonials from "./components/Testimonials";
 
 // Client-side only Supabase client
 function getSupabase() {
@@ -251,6 +254,9 @@ export default function PricingPage() {
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingJsonLd) }} />
       </Head>
       <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow relative">
+        {/* Trust Badges and Partner Logos */}
+        <TrustBadges />
+        <PartnerLogos />
         {/* Sticky Mobile CTA Banner */}
         {showStickyCTA && (
           <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-[#3A7CA5] shadow-lg z-50 md:hidden">
@@ -397,6 +403,8 @@ export default function PricingPage() {
             </table>
           </div>
         </section>
+        {/* Testimonials Section */}
+        <Testimonials />
 
         {/* FAQ Section */}
         <section className="mb-16">

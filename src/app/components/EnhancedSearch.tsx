@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, TrendingUp, Building, Home, Sparkles, Clock, X, Loader2, AlertTriangle } from 'lucide-react';
+import { Search, MapPin, TrendingUp, Building, Home, Sparkles, Clock, X, Loader2, AlertTriangle, BarChart3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from './UpgradePrompt';
 import Link from 'next/link';
+import HpiPostcodeSearch from './HpiPostcodeSearch';
 
 interface EnhancedSearchProps {
   value: string;
@@ -54,6 +55,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   const { tier, loading: tierLoading } = useUserTier(user?.id);
   const [lookupCount, setLookupCount] = useState<number>(0);
   const [limitHit, setLimitHit] = useState(false);
+  const [showHpiSearch, setShowHpiSearch] = useState(false);
 
   useEffect(() => {
     const safeValue = value || '';
@@ -312,6 +314,35 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
             </div>
           </div>
         )}
+
+        {/* HPI Search Toggle */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={() => setShowHpiSearch(!showHpiSearch)}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 hover:bg-primary-200 text-primary-700 rounded-lg transition-colors touch-target"
+            aria-label="Toggle HPI search"
+          >
+            <BarChart3 className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {showHpiSearch ? 'Hide' : 'Show'} HPI Search
+            </span>
+          </button>
+        </div>
+
+        {/* HPI Search Component */}
+        <AnimatePresence>
+          {showHpiSearch && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              className="mb-8 overflow-hidden"
+            >
+              <HpiPostcodeSearch onClose={() => setShowHpiSearch(false)} />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
