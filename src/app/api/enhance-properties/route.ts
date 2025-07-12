@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Enhance each property with BMV score data
-    const enhancedProperties = properties.map((property: SoldPrice) => {
-      const bmvData = BMVScoreEngine.calculateBMVScore(property, properties);
+    const enhancedProperties = await Promise.all(properties.map(async (property: SoldPrice) => {
+      const bmvData = await BMVScoreEngine.calculateBMVScore(property, properties);
       
       return {
         ...property,
@@ -24,10 +24,10 @@ export async function POST(req: NextRequest) {
         postcodeYield: bmvData.postcodeYield,
         postcodeGrowth: bmvData.postcodeGrowth
       };
-    });
+    }));
 
     // Calculate heatmap data
-    const heatmapData = BMVScoreEngine.calculateHeatmapData(properties);
+    const heatmapData = await BMVScoreEngine.calculateHeatmapData(properties);
 
     return NextResponse.json({
       enhancedProperties,
