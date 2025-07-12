@@ -57,6 +57,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git add .
         git commit -m "🤖 Automated HPI data update - $(date +'%Y-%m-%d')" || echo "No changes to commit"
+        git pull --rebase git@github.com:TheLaughingGod1986/bmv-finder.git automation-updates || true
         git push git@github.com:TheLaughingGod1986/bmv-finder.git HEAD:automation-updates
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v6
