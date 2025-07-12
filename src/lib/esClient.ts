@@ -4,6 +4,9 @@ import { Client, ClientOptions } from '@elastic/elasticsearch';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env' });
 
+import fs from 'fs';
+import path from 'path';
+
 // Configuration for different environments
 const isDevelopment = process.env.NODE_ENV === 'development';
 const isVercel = process.env.VERCEL === '1';
@@ -41,8 +44,25 @@ if (process.env.ES_API_KEY || process.env.ELASTICSEARCH_API_KEY) {
 }
 
 // Always allow self-signed certs for this client (fixes Next.js API route issues)
-clientConfig.tls = {
-  rejectUnauthorized: false
-};
+const caPath = process.env.ELASTIC_CA_CERT_PATH || 'elasticsearch-8.13.0/config/certs/http_ca.crt';
+let caCert: Buffer | undefined = undefined;
+try {
+  if (fs.existsSync(caPath)) {
+    caCert = fs.readFileSync(caPath);
+  }
+} catch (err) {
+  // Ignore error, fallback to insecure
+}
+
+if (caCert) {
+  clientConfig.tls = {
+    ca: caCert,
+    rejectUnauthorized: true
+  };
+} else {
+  clientConfig.tls = {
+    rejectUnauthorized: false
+  };
+}
 
 export const esClient = new Client(clientConfig); 
