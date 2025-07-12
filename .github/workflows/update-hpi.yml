@@ -25,8 +25,8 @@ jobs:
       
     - name: Update HPI data
       env:
-        ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
-        ELASTICSEARCH_API_KEY: ${{ secrets.ELASTICSEARCH_API_KEY }}
+        ES_CLOUD_ID: ${{ secrets.ES_CLOUD_ID }}
+        ES_API_KEY: ${{ secrets.ES_API_KEY }}
       run: node scripts/update-hpi.js
       
     - name: Commit and push updated data
