@@ -17,17 +17,22 @@ jobs:
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '18'
+        node-version: '20'
         cache: 'npm'
         
     - name: Install dependencies
       run: npm ci
       
+    - name: Print debug info
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Listing files:" && ls -al
+        echo "Environment variables:" && printenv
     - name: Download and import Land Registry data
       env:
-        ES_NODE: ${{ secrets.ELASTICSEARCH_URL }}
-        ES_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
-        ES_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
+        ELASTICSEARCH_URL: ${{ secrets.ELASTICSEARCH_URL }}
+        ELASTICSEARCH_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+        ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
       run: node scripts/import-land-registry-sales.js
       
     - name: Commit and push updated data
