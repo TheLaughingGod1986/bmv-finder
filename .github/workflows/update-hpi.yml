@@ -53,6 +53,7 @@ jobs:
         git config --local user.name "GitHub Action"
         git add .
         git commit -m "🤖 Automated HPI data update - $(date +'%Y-%m-%d')" || echo "No changes to commit"
+        git config --local credential.helper ""
         git remote set-url origin https://x-access-token:${GH_PAT}@github.com/TheLaughingGod1986/bmv-finder.git
         git push origin HEAD:automation-updates
     - name: Create Pull Request
