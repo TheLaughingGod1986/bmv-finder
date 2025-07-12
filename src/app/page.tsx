@@ -34,6 +34,9 @@ import RecentSalesDisplay from './components/RecentSalesDisplay';
 import PaginationLoadingOverlay from './components/PaginationLoadingOverlay';
 import BMVLegend from './components/BMVLegend';
 import PropertyHistoryModal from './components/PropertyHistoryModal';
+import TrustBadges from './components/TrustBadges';
+import PartnerLogos from './components/PartnerLogos';
+import Testimonials from './components/Testimonials';
 
 // Replace the dynamic import for AreaPriceTrendChart and SalesPerYearBarChart with a static import:
 import AreaPriceTrendChart, { SalesPerYearBarChart, PropertyTypePieChart, AreaGrowthTable, PriceDistributionHistogram, RecentSalesTable, TenurePieChart, SalesAndPropertyTypeCharts, PriceAndTenureCharts } from './components/AreaPriceTrendChart';
@@ -574,6 +577,15 @@ export default function Home() {
                </div>
              </div>
           </motion.section>
+        )}
+
+        {/* Trust and Social Proof */}
+        {!hasSearched && (
+          <>
+            <TrustBadges />
+            <PartnerLogos />
+            <Testimonials />
+          </>
         )}
       </main>
 

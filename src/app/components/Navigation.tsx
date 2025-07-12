@@ -18,6 +18,7 @@ import { useUserTier } from '@/hooks/useUserTier';
 
 const minimalistNavItems = [
   { name: 'Past Sales Search', href: '/', icon: Search },
+  { name: 'HPI Search', href: '/hpi-search', icon: BarChart3 },
   { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: BarChart3 },
   { name: 'What Should I Pay?', href: '/what-should-i-pay', icon: PoundSterling },
   { name: 'Deal Calculator', href: '/deal-calculator', icon: Calculator },

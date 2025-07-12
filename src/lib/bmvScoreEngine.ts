@@ -15,6 +15,13 @@ export interface PostcodeMetrics {
   priceGrowth: number;
   rentalYield: number;
   transactionCount: number;
+  hpiData?: {
+    currentIndex: number;
+    yearOverYearGrowth: number;
+    monthOverMonthGrowth: number;
+    region: string;
+    lastUpdated: string;
+  };
 }
 
 export class BMVScoreEngine {
@@ -35,10 +42,32 @@ export class BMVScoreEngine {
   };
 
   /**
-   * Calculate BMV score for a single property
+   * Calculate BMV score for a single property (with HPI data integration)
    */
-  static calculateBMVScore(property: SoldPrice, allProperties: SoldPrice[]): BMVScoreData {
-    const postcodeMetrics = this.calculatePostcodeMetrics(property.postcode, allProperties);
+  static async calculateBMVScore(property: SoldPrice, allProperties: SoldPrice[]): Promise<BMVScoreData> {
+    const postcodeMetrics = await this.calculatePostcodeMetrics(property.postcode, allProperties);
+    const marketValue = this.calculateMarketValue(property, postcodeMetrics);
+    const askingPrice = this.estimateAskingPrice(property, marketValue);
+    const rentalYield = this.calculateYield(property, askingPrice);
+    const areaGrowth = postcodeMetrics.priceGrowth;
+    const bmvScore = this.calculateScore(property, marketValue, askingPrice, rentalYield, areaGrowth, postcodeMetrics);
+
+    return {
+      bmvScore,
+      marketValue,
+      askingPrice,
+      rentalYield,
+      areaGrowth,
+      postcodeYield: postcodeMetrics.rentalYield,
+      postcodeGrowth: postcodeMetrics.priceGrowth
+    };
+  }
+
+  /**
+   * Calculate BMV score for a single property (synchronous fallback without HPI data)
+   */
+  static calculateBMVScoreSync(property: SoldPrice, allProperties: SoldPrice[]): BMVScoreData {
+    const postcodeMetrics = this.calculatePostcodeMetricsSync(property.postcode, allProperties);
     const marketValue = this.calculateMarketValue(property, postcodeMetrics);
     const askingPrice = this.estimateAskingPrice(property, marketValue);
     const rentalYield = this.calculateYield(property, askingPrice);
@@ -122,7 +151,100 @@ export class BMVScoreEngine {
   /**
    * Calculate postcode-level metrics
    */
-  private static calculatePostcodeMetrics(postcode: string, allProperties: SoldPrice[]): PostcodeMetrics {
+  private static async calculatePostcodeMetrics(postcode: string, allProperties: SoldPrice[]): Promise<PostcodeMetrics> {
+    const postcodeProperties = allProperties.filter(p => 
+      p.postcode.replace(/\s/g, '').toUpperCase().startsWith(postcode.replace(/\s/g, '').toUpperCase())
+    );
+
+    if (postcodeProperties.length === 0) {
+      return {
+        averagePrice: 250000,
+        priceGrowth: 0,
+        rentalYield: 4.5,
+        transactionCount: 0
+      };
+    }
+
+    const prices = postcodeProperties.map(p => p.price);
+    const averagePrice = prices.reduce((sum, price) => sum + price, 0) / prices.length;
+
+    // Calculate price growth (comparing recent vs older sales)
+    const recentSales = postcodeProperties
+      .filter(p => new Date(p.dateOfTransfer) > new Date(Date.now() - 365 * 24 * 60 * 60 * 1000))
+      .map(p => p.price);
+    
+    const olderSales = postcodeProperties
+      .filter(p => new Date(p.dateOfTransfer) <= new Date(Date.now() - 365 * 24 * 60 * 60 * 1000))
+      .map(p => p.price);
+
+    let priceGrowth = 0;
+    if (recentSales.length > 0 && olderSales.length > 0) {
+      const recentAvg = recentSales.reduce((sum, price) => sum + price, 0) / recentSales.length;
+      const olderAvg = olderSales.reduce((sum, price) => sum + price, 0) / olderSales.length;
+      priceGrowth = ((recentAvg - olderAvg) / olderAvg) * 100;
+    }
+
+    // Estimate yield for the area
+    const estimatedRent = this.estimateMonthlyRent({ ...postcodeProperties[0], price: averagePrice }) * 12;
+    const rentalYield = (estimatedRent / averagePrice) * 100;
+
+    // Fetch HPI data for enhanced growth calculation
+    let hpiData = undefined;
+    try {
+      hpiData = await this.fetchHPIData(postcode);
+    } catch (error) {
+      console.warn(`Failed to fetch HPI data for ${postcode}:`, error);
+    }
+
+    // Use HPI data if available, otherwise fall back to sales-based growth
+    let enhancedPriceGrowth = priceGrowth;
+    if (hpiData && hpiData.yearOverYearGrowth !== undefined) {
+      // Blend HPI data with sales data (70% HPI, 30% sales data for more accurate growth)
+      enhancedPriceGrowth = (hpiData.yearOverYearGrowth * 0.7) + (priceGrowth * 0.3);
+    }
+
+    return {
+      averagePrice: Math.round(averagePrice),
+      priceGrowth: Math.round(enhancedPriceGrowth * 100) / 100,
+      rentalYield: Math.round(rentalYield * 100) / 100,
+      transactionCount: postcodeProperties.length,
+      hpiData
+    };
+  }
+
+  /**
+   * Fetch HPI data for a postcode
+   */
+  private static async fetchHPIData(postcode: string): Promise<PostcodeMetrics['hpiData']> {
+    try {
+      // Use absolute URL for server-side fetch
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
+      const response = await fetch(`${baseUrl}/api/hpi/postcode?postcode=${encodeURIComponent(postcode)}`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        const latestData = data.results[0];
+        return {
+          currentIndex: latestData.index,
+          yearOverYearGrowth: latestData.yearOverYear || 0,
+          monthOverMonthGrowth: latestData.monthOverMonth || 0,
+          region: latestData.region,
+          lastUpdated: latestData.lastUpdated
+        };
+      }
+    } catch (error) {
+      console.error(`Error fetching HPI data for ${postcode}:`, error);
+    }
+    return undefined;
+  }
+
+  /**
+   * Calculate postcode-level metrics (synchronous version without HPI data)
+   */
+  private static calculatePostcodeMetricsSync(postcode: string, allProperties: SoldPrice[]): PostcodeMetrics {
     const postcodeProperties = allProperties.filter(p => 
       p.postcode.replace(/\s/g, '').toUpperCase().startsWith(postcode.replace(/\s/g, '').toUpperCase())
     );
@@ -196,11 +318,18 @@ export class BMVScoreEngine {
                       rentalYield > 2 ? 40 : 20;
     score += yieldScore * this.BMV_WEIGHTS.rentalYield;
 
-    // Area Growth Score (20% weight)
-    const growthScore = areaGrowth > 10 ? 100 :
-                       areaGrowth > 5 ? 80 :
-                       areaGrowth > 0 ? 60 :
-                       areaGrowth > -5 ? 40 : 20;
+    // Area Growth Score (20% weight) - Enhanced with HPI data
+    let growthScore = areaGrowth > 10 ? 100 :
+                     areaGrowth > 5 ? 80 :
+                     areaGrowth > 0 ? 60 :
+                     areaGrowth > -5 ? 40 : 20;
+    
+    // Bonus points for strong HPI growth
+    if (postcodeMetrics.hpiData) {
+      const hpiBonus = this.calculateHPIGrowthBonus(postcodeMetrics.hpiData);
+      growthScore = Math.min(100, growthScore + hpiBonus);
+    }
+    
     score += growthScore * this.BMV_WEIGHTS.areaGrowth;
 
     // Property Type Score (15% weight)
@@ -219,6 +348,33 @@ export class BMVScoreEngine {
     score += volumeScore * this.BMV_WEIGHTS.transactionVolume;
 
     return Math.round(score);
+  }
+
+  /**
+   * Calculate bonus points for strong HPI growth
+   */
+  private static calculateHPIGrowthBonus(hpiData: PostcodeMetrics['hpiData']): number {
+    if (!hpiData) return 0;
+    
+    let bonus = 0;
+    
+    // Year-over-year growth bonus (up to 15 points)
+    if (hpiData.yearOverYearGrowth > 10) {
+      bonus += 15;
+    } else if (hpiData.yearOverYearGrowth > 5) {
+      bonus += 10;
+    } else if (hpiData.yearOverYearGrowth > 0) {
+      bonus += 5;
+    }
+    
+    // Month-over-month growth bonus (up to 5 points)
+    if (hpiData.monthOverMonthGrowth > 2) {
+      bonus += 5;
+    } else if (hpiData.monthOverMonthGrowth > 0) {
+      bonus += 2;
+    }
+    
+    return bonus;
   }
 
   /**
@@ -261,7 +417,53 @@ export class BMVScoreEngine {
   /**
    * Calculate heatmap data for postcodes
    */
-  static calculateHeatmapData(properties: SoldPrice[]): Array<{
+  static async calculateHeatmapData(properties: SoldPrice[]): Promise<Array<{
+    postcode: string;
+    rentalYield: number;
+    growth: number;
+    bmvScore: number;
+    transactionCount: number;
+    coordinates?: { lat: number; lng: number };
+  }>> {
+    const postcodeGroups = new Map<string, SoldPrice[]>();
+    
+    // Group properties by postcode
+    properties.forEach(property => {
+      const postcode = property.postcode.replace(/\s/g, '').toUpperCase();
+      if (!postcodeGroups.has(postcode)) {
+        postcodeGroups.set(postcode, []);
+      }
+      postcodeGroups.get(postcode)!.push(property);
+    });
+
+    const heatmapData = [];
+    for (const [postcode, postcodeProperties] of postcodeGroups.entries()) {
+      const metrics = await this.calculatePostcodeMetrics(postcode, properties);
+      let totalBMVScore = 0;
+      
+      for (const property of postcodeProperties) {
+        const bmvData = await this.calculateBMVScore(property, properties);
+        totalBMVScore += bmvData.bmvScore;
+      }
+      
+      const avgBMVScore = totalBMVScore / postcodeProperties.length;
+
+      heatmapData.push({
+        postcode,
+        rentalYield: metrics.rentalYield,
+        growth: metrics.priceGrowth,
+        bmvScore: Math.round(avgBMVScore),
+        transactionCount: metrics.transactionCount
+      });
+    }
+
+    return heatmapData;
+  }
+
+  /**
+   * Calculate heatmap data for postcodes (synchronous version without HPI data)
+   */
+  static calculateHeatmapDataSync(properties: SoldPrice[]): Array<{
     postcode: string;
     rentalYield: number;
     growth: number;
@@ -281,9 +483,9 @@ export class BMVScoreEngine {
     });
 
     return Array.from(postcodeGroups.entries()).map(([postcode, postcodeProperties]) => {
-      const metrics = this.calculatePostcodeMetrics(postcode, properties);
+      const metrics = this.calculatePostcodeMetricsSync(postcode, properties);
       const avgBMVScore = postcodeProperties.reduce((sum, p) => {
-        const bmvData = this.calculateBMVScore(p, properties);
+        const bmvData = this.calculateBMVScoreSync(p, properties);
         return sum + bmvData.bmvScore;
       }, 0) / postcodeProperties.length;
 

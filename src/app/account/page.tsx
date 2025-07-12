@@ -22,6 +22,9 @@ import {
   UserGroupIcon,
   SparklesIcon
 } from '@heroicons/react/24/outline';
+import TrustBadges from '../components/TrustBadges';
+import PartnerLogos from '../components/PartnerLogos';
+import Testimonials from '../components/Testimonials';
 
 const PLANS = [
   {
@@ -443,6 +446,11 @@ export default function AccountPage() {
         </div>
         <blockquote className="italic text-gray-600 max-w-md mx-auto mt-2">“This platform is a game changer for property research and investment.”</blockquote>
       </section>
+
+      {/* Trust and Social Proof */}
+      <TrustBadges />
+      <PartnerLogos />
+      <Testimonials />
 
       {/* Support/Help Link */}
       <div className="text-center mb-2">

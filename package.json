@@ -14,7 +14,12 @@
     "populate-es-continue": "node --expose-gc scripts/populate-elasticsearch-continue.js",
     "update-es": "node scripts/update-elasticsearch.js",
     "update-es-incremental": "node scripts/incremental-update.js",
-    "index-recent-sales": "node scripts/populate-recent-sales.js"
+    "index-recent-sales": "node scripts/populate-recent-sales.js",
+    "test-hpi": "node src/testHpiSystem.js",
+    "test-hpi-upload": "node src/testHpiSystem.js --mode upload",
+    "test-hpi-search": "node src/testHpiSystem.js --mode search",
+    "test-hpi-api": "node src/testHpiSystem.js --mode api-disabled",
+    "test-hpi-errors": "node src/testHpiSystem.js --mode error-handling"
   },
   "resolutions": {
     "postcss": "8.5.6"
