@@ -24,12 +24,12 @@ jobs:
       run: npm ci
       
     - name: Download and import Land Registry data
-      run: node import_land_registry.js
+      run: node scripts/import-land-registry-sales.js
       
     - name: Commit and push updated data
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
-        git add land_registry.db
+        git add .
         git commit -m "🤖 Automated daily Land Registry data update" || echo "No changes to commit"
         git push 
