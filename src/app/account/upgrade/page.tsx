@@ -9,6 +9,7 @@ import { format } from 'date-fns';
 import { parseSubscriptionMetadata } from '@/utils/subscriptionUtils';
 import { ShieldCheckIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 
 // Client-side only Stripe initialization
 function getStripePromise() {
@@ -462,7 +463,7 @@ const UpgradePage = () => {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
-                <a
+                <Link
                   href="/"
                   className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#3B755D] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                 >
@@ -470,8 +471,8 @@ const UpgradePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   Start Searching
-                </a>
-                <a
+                </Link>
+                <Link
                   href="/account"
                   className="inline-flex items-center gap-2 px-4 py-2 border border-white text-white rounded-lg font-semibold hover:bg-white hover:text-[#3B755D] transition-colors"
                 >
@@ -479,7 +480,7 @@ const UpgradePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   View Account
-                </a>
+                </Link>
               </div>
             </div>
             <button
