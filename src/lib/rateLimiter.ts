@@ -112,8 +112,12 @@ setInterval(() => {
 // Rate limiting middleware for Next.js API routes
 export function withRateLimit(handler: Function) {
   return async (req: any, res: any) => {
-    const identifier = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown';
-    const userTier = req.headers['x-user-tier'] || 'default';
+    // Handle different request object structures (Express vs Next.js App Router)
+    const identifier = req.headers?.['x-forwarded-for'] || 
+                      req.connection?.remoteAddress || 
+                      req.socket?.remoteAddress ||
+                      'unknown';
+    const userTier = req.headers?.['x-user-tier'] || 'default';
     
     const { allowed, remaining, resetTime } = rateLimiter.isAllowed(identifier, userTier);
     
