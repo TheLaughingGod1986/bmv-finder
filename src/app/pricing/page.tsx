@@ -3,9 +3,10 @@ import React, { useState, useEffect, useMemo } from "react";
 import { createClient } from '@supabase/supabase-js';
 import { useUserTier } from '@/hooks/useUserTier';
 import Head from 'next/head';
-import TrustBadges from "./components/TrustBadges";
-import PartnerLogos from "./components/PartnerLogos";
-import Testimonials from "./components/Testimonials";
+import TrustBadges from "../components/TrustBadges";
+import PartnerLogos from "../components/PartnerLogos";
+import Testimonials from "../components/Testimonials";
+import PricingCard from "../components/PricingCard";
 
 // Client-side only Supabase client
 function getSupabase() {
