@@ -8,11 +8,9 @@ async function fetchLatestTransactionDateFromElasticsearch(): Promise<{ date: st
     // Get the latest transaction date from Elasticsearch
     const response = await esClient.search({
       index: 'properties',
-      body: {
-        size: 1,
-        sort: [{ dateOfTransfer: { order: 'desc' } }],
-        _source: ['dateOfTransfer']
-      }
+      size: 1,
+      sort: [{ dateOfTransfer: { order: 'desc' } }],
+      _source: ['dateOfTransfer']
     });
 
     if (response.hits.hits.length > 0) {
