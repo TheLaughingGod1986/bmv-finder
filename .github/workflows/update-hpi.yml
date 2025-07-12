@@ -23,6 +23,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    - name: Print debug info
+      run: |
+        echo "Current directory: $(pwd)"
+        echo "Listing files:" && ls -al
+        echo "Environment variables:" && printenv
     - name: Update HPI data
       env:
         ES_CLOUD_ID: ${{ secrets.ES_CLOUD_ID }}
