@@ -17,7 +17,7 @@
     "index-recent-sales": "node scripts/populate-recent-sales.js"
   },
   "resolutions": {
-    "postcss": "8.4.31"
+    "postcss": "8.5.6"
   },
   "dependencies": {
     "@elastic/elasticsearch": "^9.0.3",
