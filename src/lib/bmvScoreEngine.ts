@@ -198,9 +198,19 @@ export class BMVScoreEngine {
 
     // Use HPI data if available, otherwise fall back to sales-based growth
     let enhancedPriceGrowth = priceGrowth;
-    if (hpiData && hpiData.yearOverYearGrowth !== undefined) {
-      // Blend HPI data with sales data (70% HPI, 30% sales data for more accurate growth)
-      enhancedPriceGrowth = (hpiData.yearOverYearGrowth * 0.7) + (priceGrowth * 0.3);
+    if (hpiData) {
+      // Use year-over-year growth if available and non-zero, otherwise use month-over-month growth
+      let hpiGrowth = 0;
+      if (hpiData.yearOverYearGrowth !== undefined && hpiData.yearOverYearGrowth !== 0) {
+        hpiGrowth = hpiData.yearOverYearGrowth;
+      } else if (hpiData.monthOverMonthGrowth !== undefined && hpiData.monthOverMonthGrowth !== 0) {
+        hpiGrowth = hpiData.monthOverMonthGrowth * 12; // Annualize monthly growth
+      }
+      
+      if (hpiGrowth !== 0) {
+        // Blend HPI data with sales data (70% HPI, 30% sales data for more accurate growth)
+        enhancedPriceGrowth = (hpiGrowth * 0.7) + (priceGrowth * 0.3);
+      }
     }
 
     return {
@@ -218,27 +228,101 @@ export class BMVScoreEngine {
   private static async fetchHPIData(postcode: string): Promise<PostcodeMetrics['hpiData']> {
     try {
       // Use absolute URL for server-side fetch
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
-      const response = await fetch(`${baseUrl}/api/hpi/postcode?postcode=${encodeURIComponent(postcode)}`);
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      
+      // First try postcode-level HPI data
+      let response = await fetch(`${baseUrl}/api/hpi/postcode?postcode=${encodeURIComponent(postcode)}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.results && data.results.length > 0) {
+          const latestData = data.results[0];
+          return {
+            currentIndex: latestData.index,
+            yearOverYearGrowth: latestData.yearOverYear || 0,
+            monthOverMonthGrowth: latestData.monthOverMonth || 0,
+            region: latestData.region,
+            lastUpdated: latestData.lastUpdated
+          };
+        }
       }
       
-      const data = await response.json();
-      if (data.results && data.results.length > 0) {
-        const latestData = data.results[0];
-        return {
-          currentIndex: latestData.index,
-          yearOverYearGrowth: latestData.yearOverYear || 0,
-          monthOverMonthGrowth: latestData.monthOverMonth || 0,
-          region: latestData.region,
-          lastUpdated: latestData.lastUpdated
-        };
+      // Fallback to region-level HPI data
+      const region = this.getRegionFromPostcode(postcode);
+      if (region && region !== 'United Kingdom') {
+        response = await fetch(`${baseUrl}/api/hpi/postcode?region=${encodeURIComponent(region)}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.results && data.results.length > 0) {
+            const latestData = data.results[0];
+            return {
+              currentIndex: latestData.index,
+              yearOverYearGrowth: latestData.yearOverYear || 0,
+              monthOverMonthGrowth: latestData.monthOverMonth || 0,
+              region: latestData.region,
+              lastUpdated: latestData.lastUpdated
+            };
+          }
+        }
       }
     } catch (error) {
       console.error(`Error fetching HPI data for ${postcode}:`, error);
     }
     return undefined;
+  }
+
+  /**
+   * Get region from postcode
+   */
+  private static getRegionFromPostcode(postcode: string): string {
+    if (!postcode || typeof postcode !== 'string') {
+      return 'United Kingdom';
+    }
+    
+    // Clean and normalize the postcode
+    const cleanPostcode = postcode.replace(/\s+/g, '').toUpperCase();
+    
+    // Simple region mapping for common postcode areas
+    const regionMap: { [key: string]: string } = {
+      'E': 'London', 'N': 'London', 'W': 'London', 'SW': 'London', 'SE': 'London', 'NW': 'London',
+      'GU': 'South East', 'RG': 'South East', 'SL': 'South East', 'SO': 'South East', 'PO': 'South East',
+      'BN': 'South East', 'TN': 'South East', 'CT': 'South East', 'ME': 'South East', 'DA': 'South East',
+      'RH': 'South East', 'HP': 'South East', 'LU': 'South East', 'MK': 'South East', 'OX': 'South East',
+      'BA': 'South West', 'BS': 'South West', 'DT': 'South West', 'EX': 'South West', 'GL': 'South West',
+      'PL': 'South West', 'SN': 'South West', 'SP': 'South West', 'TA': 'South West', 'TQ': 'South West',
+      'TR': 'South West', 'AL': 'East of England', 'CB': 'East of England', 'CM': 'East of England',
+      'CO': 'East of England', 'IP': 'East of England', 'NR': 'East of England', 'SG': 'East of England',
+      'SS': 'East of England', 'B': 'West Midlands', 'CV': 'West Midlands', 'DY': 'West Midlands',
+      'HR': 'West Midlands', 'LE': 'West Midlands', 'NG': 'West Midlands', 'ST': 'West Midlands',
+      'TF': 'West Midlands', 'WS': 'West Midlands', 'WV': 'West Midlands', 'DE': 'East Midlands',
+      'DN': 'East Midlands', 'LN': 'East Midlands', 'PE': 'East Midlands', 'S': 'East Midlands',
+      'BD': 'Yorkshire and The Humber', 'HD': 'Yorkshire and The Humber', 'HG': 'Yorkshire and The Humber',
+      'HU': 'Yorkshire and The Humber', 'HX': 'Yorkshire and The Humber', 'LS': 'Yorkshire and The Humber',
+      'WF': 'Yorkshire and The Humber', 'YO': 'Yorkshire and The Humber', 'BB': 'North West',
+      'BL': 'North West', 'CA': 'North West', 'CH': 'North West', 'CW': 'North West', 'FY': 'North West',
+      'L': 'North West', 'LA': 'North West', 'M': 'North West', 'OL': 'North West', 'PR': 'North West',
+      'SK': 'North West', 'WA': 'North West', 'WN': 'North West', 'DH': 'North East', 'DL': 'North East',
+      'NE': 'North East', 'SR': 'North East', 'TS': 'North East', 'CF': 'Wales', 'LD': 'Wales',
+      'LL': 'Wales', 'NP': 'Wales', 'SA': 'Wales', 'SY': 'Wales', 'AB': 'Scotland', 'DD': 'Scotland',
+      'DG': 'Scotland', 'EH': 'Scotland', 'FK': 'Scotland', 'G': 'Scotland', 'HS': 'Scotland',
+      'IV': 'Scotland', 'KA': 'Scotland', 'KW': 'Scotland', 'KY': 'Scotland', 'ML': 'Scotland',
+      'PA': 'Scotland', 'PH': 'Scotland', 'TD': 'Scotland', 'ZE': 'Scotland', 'BT': 'Northern Ireland'
+    };
+    
+    // Try 2-letter prefixes first (more specific)
+    for (const [prefix, region] of Object.entries(regionMap)) {
+      if (prefix.length === 2 && cleanPostcode.startsWith(prefix)) {
+        return region;
+      }
+    }
+    
+    // Try 1-letter prefixes
+    const firstChar = cleanPostcode.charAt(0);
+    if (regionMap[firstChar]) {
+      return regionMap[firstChar];
+    }
+    
+    // Default fallback
+    return 'United Kingdom';
   }
 
   /**

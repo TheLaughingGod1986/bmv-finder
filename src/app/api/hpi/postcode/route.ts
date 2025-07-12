@@ -1,96 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
-import axios from 'axios';
-import { postcodeToRegion } from '../../../../utils/postcodeToRegion';
-import { hpiCache, cacheKeys, CACHE_TTL } from '@/lib/cache';
-import { withRateLimit } from '@/lib/rateLimiter';
-import ElasticsearchOptimizer from '@/lib/elasticsearchOptimizer';
 
 const INDEX_NAME = 'house_price_index';
-const LAND_REGISTRY_API_BASE = 'https://landregistry.data.gov.uk/data/ppi/';
 
-// Search HPI by postcode (Elasticsearch)
+// Simple HPI search by postcode
 async function searchHpiByPostcode(postcode: string) {
-  const result = await esClient.search({
-    index: INDEX_NAME,
-    size: 100,
-    body: {
-      query: {
-        term: { postcode: postcode },
-      },
-      sort: [
-        { date: { order: 'desc' } },
-      ],
-    },
-  });
-  const hits = result.hits.hits;
-  return hits.map((hit: any) => hit._source);
-}
-
-// Search HPI by region (Elasticsearch)
-async function searchHpiByRegion(region: string) {
-  const result = await esClient.search({
-    index: INDEX_NAME,
-    size: 100,
-    body: {
-      query: {
-        term: { region: region },
-      },
-      sort: [
-        { date: { order: 'desc' } },
-      ],
-    },
-  });
-  const hits = result.hits.hits;
-  return hits.map((hit: any) => hit._source);
-}
-
-// Fetch HPI from Land Registry API
-async function fetchHpiFromLandRegistry(postcode: string) {
   try {
-    const response = await axios.get(`${LAND_REGISTRY_API_BASE}transaction-record.json`, {
-      params: {
-        postcode: postcode,
-      },
-      timeout: 30000,
-    });
-    if (!response.data || !response.data.result || !response.data.result.items) {
-      console.log(`No data returned from Land Registry API for postcode: ${postcode}`);
-      return [];
-    }
-    const transactions = response.data.result.items;
-    console.log(`Found ${transactions.length} transactions from Land Registry API for ${postcode}`);
-    if (transactions.length === 0) {
-      return [];
-    }
-    return transactions.map((transaction: any) => {
-      const dateOfTransfer = transaction['http://landregistry.data.gov.uk/def/ppi/dateOfTransfer']?.[0]?.['@value'];
-      const pricePaid = transaction['http://landregistry.data.gov.uk/def/ppi/pricePaid']?.[0]?.['@value'];
-      const propertyType = transaction['http://landregistry.data.gov.uk/def/ppi/propertyType']?.[0]?.['@value'];
-      let date = new Date();
-      if (dateOfTransfer) {
-        date = new Date(dateOfTransfer);
+    const result = await esClient.search({
+      index: INDEX_NAME,
+      size: 100,
+      body: {
+        query: {
+          term: { postcode: postcode.toUpperCase() }
+        },
+        sort: [
+          { date: { order: 'desc' } }
+        ]
       }
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1;
-      return {
-        region: 'Unknown',
-        regionCode: '',
-        date: `${year}-${month.toString().padStart(2, '0')}`,
-        year: year,
-        month: month,
-        index: parseFloat(pricePaid) || 0,
-        postcode: postcode,
-        regionType: 'England',
-        source: 'Land Registry API',
-        lastUpdated: new Date().toISOString(),
-        transactionId: transaction['@id'] || '',
-        propertyType: propertyType || 'Unknown',
-        pricePaid: parseFloat(pricePaid) || 0,
-      };
     });
+    
+    const hits = result.hits.hits;
+    return hits.map((hit: any) => hit._source);
   } catch (error) {
-    console.error('Error fetching from Land Registry API:', error instanceof Error ? error.message : error);
+    console.error('Error searching HPI by postcode:', error);
+    return [];
+  }
+}
+
+// Simple HPI search by region
+async function searchHpiByRegion(region: string) {
+  try {
+    const result = await esClient.search({
+      index: INDEX_NAME,
+      size: 100,
+      body: {
+        query: {
+          term: { region: region }
+        },
+        sort: [
+          { date: { order: 'desc' } }
+        ]
+      }
+    });
+    
+    const hits = result.hits.hits;
+    return hits.map((hit: any) => hit._source);
+  } catch (error) {
+    console.error('Error searching HPI by region:', error);
     return [];
   }
 }
@@ -100,7 +56,6 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const postcode = searchParams.get('postcode');
     const regionParam = searchParams.get('region');
-    const fetchApi = searchParams.get('fetchApi') !== 'false';
 
     // If region is provided, search by region
     if (regionParam) {
@@ -112,29 +67,14 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // If postcode is provided, try postcode-level, then Land Registry, then region fallback
+    // If postcode is provided, search by postcode
     if (postcode) {
-      // 1. Try postcode-level HPI
-      let results = await searchHpiByPostcode(postcode);
+      const results = await searchHpiByPostcode(postcode);
       if (results.length > 0) {
         return NextResponse.json({ source: 'elasticsearch_postcode', results });
+      } else {
+        return NextResponse.json({ error: 'No HPI data found for postcode', results: [] }, { status: 404 });
       }
-      // 2. Try Land Registry API
-      if (fetchApi) {
-        results = await fetchHpiFromLandRegistry(postcode);
-        if (results.length > 0) {
-          return NextResponse.json({ source: 'land_registry_api', results });
-        }
-      }
-      // 3. Fallback to region HPI
-      const region = postcodeToRegion(postcode);
-      if (region && region !== 'United Kingdom') {
-        results = await searchHpiByRegion(region);
-        if (results.length > 0) {
-          return NextResponse.json({ source: 'elasticsearch_region_fallback', region, results });
-        }
-      }
-      return NextResponse.json({ error: 'No HPI data found for postcode or region', results: [] }, { status: 404 });
     }
 
     // If neither provided
@@ -149,4 +89,4 @@ export async function GET(req: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
