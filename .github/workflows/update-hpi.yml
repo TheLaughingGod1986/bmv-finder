@@ -45,17 +45,19 @@ jobs:
         ES_INDEX: ${{ secrets.ES_INDEX }}
       run: node scripts/update-hpi.js
       
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
     - name: Commit and push updated data
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
         git commit -m "🤖 Automated HPI data update - $(date +'%Y-%m-%d')" || echo "No changes to commit"
-        git config --local credential.helper ""
-        git remote set-url origin https://x-access-token:${GH_PAT}@github.com/TheLaughingGod1986/bmv-finder.git
-        git push origin HEAD:automation-updates
+        git push git@github.com:TheLaughingGod1986/bmv-finder.git HEAD:automation-updates
     - name: Create Pull Request
       uses: peter-evans/create-pull-request@v6
       with:
