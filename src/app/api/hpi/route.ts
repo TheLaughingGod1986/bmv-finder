@@ -34,35 +34,33 @@ export async function GET(request: NextRequest) {
       // 1. Get latest data for each region
       const response = await esClient.search({
         index: HPI_INDEX,
-        body: {
-          query: { match_all: {} },
-          sort: [
-            { region: { order: 'asc' } },
-            { date: { order: 'desc' } }
-          ],
-          size: 0,
-          aggs: {
-            regions: {
-              terms: {
-                field: 'region',
-                size: 50
+        query: { match_all: {} },
+        sort: [
+          { region: { order: 'asc' } },
+          { date: { order: 'desc' } }
+        ],
+        size: 0,
+        aggs: {
+          regions: {
+            terms: {
+              field: 'region',
+              size: 50
+            },
+            aggs: {
+              latest_data: {
+                top_hits: {
+                  size: 1,
+                  sort: [{ date: { order: 'desc' } }]
+                }
               },
-              aggs: {
-                latest_data: {
-                  top_hits: {
-                    size: 1,
-                    sort: [{ date: { order: 'desc' } }]
-                  }
-                },
-                prev_year_data: {
-                  top_hits: {
-                    size: 1,
-                    sort: [{ date: { order: 'desc' } }],
-                    script_fields: {
-                      prev_year_date: {
-                        script: {
-                          source: "def latest = doc['date'].value; return latest.minusYears(1).toString().substring(0,7);"
-                        }
+              prev_year_data: {
+                top_hits: {
+                  size: 1,
+                  sort: [{ date: { order: 'desc' } }],
+                  script_fields: {
+                    prev_year_date: {
+                      script: {
+                        source: "def latest = doc['date'].value; return latest.minusYears(1).toString().substring(0,7);"
                       }
                     }
                   }
@@ -83,17 +81,15 @@ export async function GET(request: NextRequest) {
         const prevYear = (parseInt(latestDate.substring(0, 4)) - 1) + latestDate.substring(4);
         const prevYearRes = await esClient.search({
           index: HPI_INDEX,
-          body: {
-            query: {
-              bool: {
-                must: [
-                  { term: { region } },
-                  { term: { date: prevYear } }
-                ]
-              }
-            },
-            size: 1
-          }
+          query: {
+            bool: {
+              must: [
+                { term: { region } },
+                { term: { date: prevYear } }
+              ]
+            }
+          },
+          size: 1
         });
         let yoyGrowth = null;
         if (prevYearRes.hits.hits.length > 0) {
@@ -117,14 +113,12 @@ export async function GET(request: NextRequest) {
     // Execute search
     const response = await esClient.search({
       index: HPI_INDEX,
-      body: {
-        query,
-        sort: [
-          { region: { order: 'asc' } },
-          { date: { order: 'asc' } }
-        ],
-        size: limit
-      }
+      query,
+      sort: [
+        { region: { order: 'asc' } },
+        { date: { order: 'asc' } }
+      ],
+      size: limit
     });
 
     const data = response.hits.hits.map(hit => hit._source);
@@ -195,11 +189,9 @@ export async function POST(request: NextRequest) {
 
     const response = await esClient.search({
       index: HPI_INDEX,
-      body: {
-        query,
-        size: 0,
-        aggs
-      }
+      query,
+      size: 0,
+      aggs
     });
 
     const buckets = (response.aggregations?.time_series as any)?.buckets || [];

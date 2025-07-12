@@ -11,14 +11,12 @@ async function searchRecentSalesFromES(postcode: string, limit: number = 50) {
     const result = await esClient.search({
       index: RECENT_SALES_INDEX,
       size: limit,
-      body: {
-        query: {
-          term: { postcode: postcode }
-        },
-        sort: [
-          { dateOfTransfer: { order: 'desc' } }
-        ]
-      }
+      query: {
+        term: { postcode: postcode }
+      },
+      sort: [
+        { dateOfTransfer: { order: 'desc' } }
+      ]
     });
 
     const hits = result.hits.hits;

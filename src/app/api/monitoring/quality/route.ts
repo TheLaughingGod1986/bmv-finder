@@ -22,7 +22,7 @@ export const GET = withRateLimit(async (req: NextRequest) => {
       metrics,
       alerts: alerts.alerts,
       severity: alerts.severity
-    };
+    } as any;
 
     // Add detailed breakdown if requested
     if (detailed) {
