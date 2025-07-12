@@ -24,6 +24,10 @@ jobs:
       run: npm ci
       
     - name: Download and import Land Registry data
+      env:
+        ES_NODE: ${{ secrets.ELASTICSEARCH_URL }}
+        ES_USERNAME: ${{ secrets.ELASTICSEARCH_USERNAME }}
+        ES_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
       run: node scripts/import-land-registry-sales.js
       
     - name: Commit and push updated data
