@@ -54,3 +54,13 @@ jobs:
         git add .
         git commit -m "🤖 Automated HPI data update - $(date +'%Y-%m-%d')" || echo "No changes to commit"
         git push https://x-access-token:${GH_PAT}@github.com/TheLaughingGod1986/bmv-finder.git HEAD:main 
+    - name: Debug GH_PAT
+      run: |
+        if [ -z "$GH_PAT" ]; then
+          echo "GH_PAT is not set!"
+          exit 1
+        else
+          echo "GH_PAT is set."
+        fi
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }} 
