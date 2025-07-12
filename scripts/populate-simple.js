@@ -2,10 +2,12 @@ const fs = require('fs');
 const readline = require('readline');
 const { Client } = require('@elastic/elasticsearch');
 
+require('dotenv').config();
+
 const esClient = new Client({
-  node: 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
+  node: process.env.ELASTICSEARCH_URL,
   auth: {
-    apiKey: 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
+    apiKey: process.env.ELASTICSEARCH_API_KEY
   },
   tls: {
     rejectUnauthorized: false
