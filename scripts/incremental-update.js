@@ -1,5 +1,7 @@
 const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
+const fetch = require('node-fetch');
 const { Client } = require('@elastic/elasticsearch');
 require('dotenv').config();
 
@@ -7,17 +9,74 @@ require('dotenv').config();
 const esClient = new Client({
   node: process.env.ELASTICSEARCH_URL || 'https://localhost:9200',
   auth: {
-    username: 'elastic',
-    password: 'TIRv--dMe*rHmuRMm-b4'
+    username: process.env.ES_USERNAME || 'elastic',
+    password: process.env.ES_PASSWORD || 'TIRv--dMe*rHmuRMm-b4'
   },
   tls: {
-    ca: fs.readFileSync('elasticsearch-8.13.0/config/certs/http_ca.crt'),
+    ca: fs.existsSync('elasticsearch-8.13.0/config/certs/http_ca.crt') ? fs.readFileSync('elasticsearch-8.13.0/config/certs/http_ca.crt') : undefined,
     rejectUnauthorized: true
   }
 });
 
 const INDEX_NAME = 'properties';
 const BATCH_SIZE = 100;
+const DATA_DIR = path.join(__dirname, '../data/land-registry');
+
+function ensureDirSync(dir) {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+}
+
+function getCsvUrl(year, month) {
+  const mm = String(month).padStart(2, '0');
+  return `https://landregistry.data.gov.uk/data/ppd/monthly/file-${year}-${mm}.csv`;
+}
+
+function getCsvPath(year, month) {
+  const mm = String(month).padStart(2, '0');
+  return path.join(DATA_DIR, `${year}`, `pp-${year}-${mm}.csv`);
+}
+
+function getNextYearMonth(latestDate) {
+  if (!latestDate) {
+    // If no data, use current year/month
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() + 1 };
+  }
+  const date = new Date(latestDate);
+  let year = date.getFullYear();
+  let month = date.getMonth() + 2; // Next month
+  if (month > 12) {
+    year += 1;
+    month = 1;
+  }
+  return { year, month };
+}
+
+async function downloadCsvIfMissing(year, month) {
+  const csvPath = getCsvPath(year, month);
+  ensureDirSync(path.dirname(csvPath));
+  if (!fs.existsSync(csvPath)) {
+    const csvUrl = getCsvUrl(year, month);
+    console.log(`Downloading ${csvUrl} ...`);
+    try {
+      const res = await fetch(csvUrl);
+      if (!res.ok) {
+        console.warn(`  Not found: ${csvUrl}`);
+        return null;
+      }
+      const fileStream = fs.createWriteStream(csvPath);
+      await new Promise((resolve, reject) => {
+        res.body.pipe(fileStream);
+        res.body.on('error', reject);
+        fileStream.on('finish', resolve);
+      });
+    } catch (err) {
+      console.error(`  Error downloading ${csvUrl}:`, err);
+      return null;
+    }
+  }
+  return csvPath;
+}
 
 async function getLatestTransactionDate() {
   try {
@@ -29,7 +88,6 @@ async function getLatestTransactionDate() {
         _source: ['dateOfTransfer']
       }
     });
-    
     if (response.hits.hits.length > 0) {
       return response.hits.hits[0]._source.dateOfTransfer;
     }
@@ -42,20 +100,16 @@ async function getLatestTransactionDate() {
 
 async function indexBatch(batch) {
   if (batch.length === 0) return 0;
-  
   const operations = batch.flatMap(doc => [
     { index: { _index: INDEX_NAME } },
     doc
   ]);
-  
   try {
     const response = await esClient.bulk({ body: operations });
-    
     if (response.errors) {
       const errors = response.items.filter(item => item.index?.error);
       console.error('Bulk indexing errors:', errors.length);
     }
-    
     return batch.length;
   } catch (error) {
     console.error('Bulk indexing failed:', error);
@@ -66,49 +120,40 @@ async function indexBatch(batch) {
 async function incrementalUpdate() {
   try {
     console.log('Starting incremental update...');
-    
     // Get the latest transaction date from current data
     const latestDate = await getLatestTransactionDate();
     console.log(`Latest transaction date in index: ${latestDate || 'None'}`);
-    
-    if (!fs.existsSync('pp-complete.csv')) {
-      console.error('CSV file not found. Please download it first.');
+    const { year, month } = getNextYearMonth(latestDate);
+    const csvPath = await downloadCsvIfMissing(year, month);
+    if (!csvPath || !fs.existsSync(csvPath)) {
+      console.error('CSV file not found and could not be downloaded.');
       return;
     }
-    
-    const fileStream = fs.createReadStream('pp-complete.csv');
+    const fileStream = fs.createReadStream(csvPath);
     const rl = readline.createInterface({
       input: fileStream,
       crlfDelay: Infinity
     });
-    
     let lineCount = 0;
     let newRecords = 0;
     let batch = [];
     const startTime = Date.now();
-    
     for await (const line of rl) {
       lineCount++;
-      
       // Skip header
       if (lineCount === 1) continue;
-      
       // Parse the line
       const record = parseCSVLine(line);
       if (!record) continue;
-      
       // Check if this record is newer than our latest date
       if (latestDate && record.dateOfTransfer <= latestDate) {
         continue; // Skip older records
       }
-      
       batch.push(record);
       newRecords++;
-      
       if (batch.length >= BATCH_SIZE) {
         await indexBatch(batch);
         batch = [];
-        
         if (newRecords % 1000 === 0) {
           const elapsed = (Date.now() - startTime) / 1000;
           const rate = Math.round(newRecords / elapsed);
@@ -116,17 +161,14 @@ async function incrementalUpdate() {
         }
       }
     }
-    
     // Index remaining records
     if (batch.length > 0) {
       await indexBatch(batch);
     }
-    
     const totalTime = (Date.now() - startTime) / 1000;
     console.log(`✅ Incremental update completed!`);
     console.log(`📊 New records added: ${newRecords.toLocaleString()}`);
     console.log(`⏱️  Total time: ${totalTime.toFixed(2)} seconds`);
-    
   } catch (error) {
     console.error('❌ Incremental update failed:', error);
     process.exit(1);
