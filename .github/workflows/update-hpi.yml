@@ -60,13 +60,24 @@ jobs:
         git pull --rebase git@github.com:TheLaughingGod1986/bmv-finder.git automation-updates || true
         git push git@github.com:TheLaughingGod1986/bmv-finder.git HEAD:automation-updates
     - name: Create Pull Request
+      id: create_pr
       uses: peter-evans/create-pull-request@v6
       with:
-        token: ${{ secrets.GH_PAT }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         branch: automation-updates
         base: main
         title: "🤖 Automated HPI data update"
         body: "This PR was created automatically by the update-hpi workflow."
+    - name: Auto-approve PR
+      uses: hmarr/auto-approve-action@v3
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Enable auto-merge for PR
+      uses: peter-evans/enable-pull-request-automerge@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
+        merge-method: SQUASH
     - name: Debug GH_PAT
       if: always()
       run: |
