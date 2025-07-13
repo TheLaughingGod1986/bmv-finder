@@ -54,6 +54,7 @@ jobs:
     - name: Clean up local automation branch (if needed)
       run: |
         git fetch origin
+        git reset --hard origin/main
         git branch -D automation-updates || true
     - name: Commit and push updated data
       run: |
