@@ -75,7 +75,7 @@ jobs:
       id: create_pr
       uses: peter-evans/create-pull-request@v6
       with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GH_PAT }}
         branch: automation-updates
         base: main
         title: "🤖 Automated HPI data update"
