@@ -77,15 +77,4 @@ jobs:
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
-        merge-method: SQUASH
-    - name: Debug GH_PAT
-      if: always()
-      run: |
-        if [ -z "$GH_PAT" ]; then
-          echo "GH_PAT is not set!"
-          exit 1
-        else
-          echo "GH_PAT is set."
-        fi
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }} 
+        merge-method: SQUASH 
