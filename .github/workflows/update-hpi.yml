@@ -75,14 +75,4 @@ jobs:
         branch: automation-updates
         base: main
         title: "🤖 Automated HPI data update"
-        body: "This PR was created automatically by the update-hpi workflow."
-    - name: Auto-approve PR
-      uses: hmarr/auto-approve-action@v3
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-    - name: Enable auto-merge for PR
-      uses: peter-evans/enable-pull-request-automerge@v3
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
-        pull-request-number: ${{ steps.create_pr.outputs.pull-request-number }}
-        merge-method: SQUASH 
+        body: "This PR was created automatically by the update-hpi workflow." 
