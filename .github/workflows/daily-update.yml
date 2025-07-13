@@ -48,15 +48,19 @@ jobs:
         ELASTICSEARCH_PASSWORD: ${{ secrets.ELASTICSEARCH_PASSWORD }}
       run: node scripts/import-land-registry-sales.js
       
+    - name: Set up SSH key
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
+        chmod 600 ~/.ssh/id_ed25519
+        ssh-keyscan github.com >> ~/.ssh/known_hosts
     - name: Commit and push updated data
-      env:
-        GH_PAT: ${{ secrets.GH_PAT }}
       run: |
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add .
         git commit -m "🤖 Automated daily Land Registry data update" || echo "No changes to commit"
-        git push https://x-access-token:${GH_PAT}@github.com/TheLaughingGod1986/bmv-finder.git HEAD:main 
+        git push git@github.com:TheLaughingGod1986/bmv-finder.git HEAD:main 
     - name: Debug GH_PAT
       run: |
         if [ -z "$GH_PAT" ]; then
