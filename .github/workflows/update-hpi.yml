@@ -51,6 +51,10 @@ jobs:
         echo "${{ secrets.ACTIONS_DEPLOY_KEY }}" > ~/.ssh/id_ed25519
         chmod 600 ~/.ssh/id_ed25519
         ssh-keyscan github.com >> ~/.ssh/known_hosts
+    - name: Clean up local automation branch (if needed)
+      run: |
+        git fetch origin
+        git branch -D automation-updates || true
     - name: Commit and push updated data
       run: |
         git config --local user.email "action@github.com"
