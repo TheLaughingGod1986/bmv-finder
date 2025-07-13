@@ -133,3 +133,18 @@
 [2025-07-12T20:01:03.631Z] [INFO] Indexed batch: 424/424 records
 [2025-07-12T20:01:03.631Z] [INFO] Successfully indexed 424 HPI records
 [2025-07-12T20:01:03.631Z] [INFO] HPI update completed successfully. Indexed 424 records.
+[2025-07-13T00:05:24.167Z] [INFO] Starting HPI update process...
+[2025-07-13T00:05:24.399Z] [INFO] Elasticsearch connection successful
+[2025-07-13T00:05:24.549Z] [INFO] HPI index already exists: house_price_index
+[2025-07-13T00:05:24.549Z] [INFO] Reading HPI data from local file...
+[2025-07-13T00:05:24.550Z] [INFO] Read 105679 characters from local HPI file
+[2025-07-13T00:05:24.551Z] [INFO] Parsing 425 HPI records...
+[2025-07-13T00:05:24.558Z] [INFO] Parsed 424 valid HPI records out of 425 total records
+[2025-07-13T00:05:24.559Z] [INFO] Indexing 424 HPI records...
+[2025-07-13T00:05:24.689Z] [INFO] Indexed batch: 100/424 records
+[2025-07-13T00:05:24.726Z] [INFO] Indexed batch: 200/424 records
+[2025-07-13T00:05:24.762Z] [INFO] Indexed batch: 300/424 records
+[2025-07-13T00:05:24.796Z] [INFO] Indexed batch: 400/424 records
+[2025-07-13T00:05:24.828Z] [INFO] Indexed batch: 424/424 records
+[2025-07-13T00:05:24.828Z] [INFO] Successfully indexed 424 HPI records
+[2025-07-13T00:05:24.828Z] [INFO] HPI update completed successfully. Indexed 424 records.
