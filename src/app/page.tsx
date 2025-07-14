@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, TrendingUp, BarChart3, Filter, X, MapPin, Download, Share2, ArrowUp, Search, Home as HomeIcon, Calculator, BarChart, BookOpen, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import { apiClient } from '@/lib/apiClient';
 
 // New UI Components
 import { 
@@ -123,12 +124,14 @@ export default function Home() {
     if (!property) return [];
     const key = [
       property.paon?.trim().toLowerCase() || '',
+      property.saon?.trim().toLowerCase() || '',  // Include saon (flat number)
       property.street?.trim().toLowerCase() || '',
       property.postcode?.trim().toLowerCase() || ''
     ].join('|');
     return soldPrices
       .filter((p) => [
         p.paon?.trim().toLowerCase() || '',
+        p.saon?.trim().toLowerCase() || '',  // Include saon (flat number)
         p.street?.trim().toLowerCase() || '',
         p.postcode?.trim().toLowerCase() || ''
       ].join('|') === key)
@@ -197,34 +200,24 @@ export default function Home() {
           setSearchAfterHistory(newHistory);
         }
 
-        const response = await fetch('/api/property-es', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            searchTerm: searchInput.trim(), 
-            page: pageNum, 
-            pageSize,
-            searchAfter: currentSearchAfter
-          }),
+        const response = await apiClient.searchProperties(searchInput.trim(), {
+          page: pageNum,
+          pageSize,
+          searchAfter: currentSearchAfter
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.error) {
+          throw new Error(response.error);
         }
 
-        const data = await response.json();
+        const data = response.data;
         
-        if (data.data && Array.isArray(data.data)) {
+        if (data && typeof data === 'object' && 'data' in data && Array.isArray((data as any).data)) {
           // --- ENHANCE PROPERTIES WITH BMV SCORE ---
-          const enhanceRes = await fetch('/api/enhance-properties', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ properties: data.data }),
-          });
-          let enhancedProperties = data.data;
-          if (enhanceRes.ok) {
-            const enhanceData = await enhanceRes.json();
-            enhancedProperties = enhanceData.enhancedProperties || data.data;
+          const enhanceRes = await apiClient.enhanceProperties((data as any).data);
+          let enhancedProperties = (data as any).data;
+          if (!enhanceRes.error && enhanceRes.data && typeof enhanceRes.data === 'object' && 'enhancedProperties' in enhanceRes.data) {
+            enhancedProperties = (enhanceRes.data as any).enhancedProperties || (data as any).data;
           }
 
           // --- GROUP BY ADDRESS FOR SALES COUNT & DEDUPLICATION ---
@@ -232,6 +225,7 @@ export default function Home() {
           enhancedProperties.forEach((sp: SoldPrice) => {
             const addressKey = [
               sp.paon?.trim().toLowerCase() || '',
+              sp.saon?.trim().toLowerCase() || '',  // Include saon (flat number)
               sp.street?.trim().toLowerCase() || '',
               sp.postcode?.trim().toLowerCase() || ''
             ].join('|');
@@ -252,9 +246,9 @@ export default function Home() {
 
           setSoldPrices(enhancedProperties);
           setDisplayedSoldPrices(mostRecentSales);
-          setTotalCount(data.totalCount || 0);
-          setSearchAfter(data.searchAfter || null);
-          setHasMore(data.hasMore || false);
+          setTotalCount((data as any).totalCount || 0);
+          setSearchAfter((data as any).searchAfter || null);
+          setHasMore((data as any).hasMore || false);
           setSalesCountMap(countMap);
           setError(null);
 
@@ -270,7 +264,7 @@ export default function Home() {
             }
           }, 100);
         } else {
-          setError(data.error || 'Failed to fetch property data');
+          setError((data as any).error || 'Failed to fetch property data');
           setSoldPrices([]);
           setDisplayedSoldPrices([]);
           setSalesCountMap({});
@@ -328,10 +322,9 @@ export default function Home() {
   // Fetch last updated data
   const fetchLastUpdated = async () => {
     try {
-      const response = await fetch('/api/last-updated');
-      if (response.ok) {
-        const data = await response.json();
-        setLastUpdatedData(data);
+      const response = await apiClient.getLastUpdated();
+      if (!response.error) {
+        setLastUpdatedData(response.data as { lastUpdated: string; totalRecords?: number; indexSize?: string; source: string; note?: string; });
       }
     } catch (error) {
       console.error('Failed to fetch last updated data:', error);

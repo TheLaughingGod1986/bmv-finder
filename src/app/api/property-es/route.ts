@@ -37,9 +37,9 @@ export async function POST(req: NextRequest) {
       query = {
         bool: {
           should: [
-            { match_phrase: { 'postcode.keyword': normalizedInput } },
-            { match_phrase: { 'postcode.keyword': inputNoSpace } },
-            { match_phrase: { 'postcode.keyword': inputWithSpace } }
+            { match_phrase: { 'postcode': normalizedInput } },
+            { match_phrase: { 'postcode': inputNoSpace } },
+            { match_phrase: { 'postcode': inputWithSpace } }
           ]
         }
       };
@@ -49,8 +49,8 @@ export async function POST(req: NextRequest) {
       query = {
         bool: {
           should: [
-            { prefix: { 'postcode.keyword': normalizedInput } },
-            { prefix: { 'postcode.keyword': normalizedInput + ' ' } }
+            { prefix: { 'postcode': normalizedInput } },
+            { prefix: { 'postcode': normalizedInput + ' ' } }
           ]
         }
       };
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
       if (isPostcodeSearch) {
         // Return all sales for postcode (no deduplication)
         const result = await esClient.search({
-          index: 'properties_v2',
+          index: 'properties',
           size: safePageSize,
           from: (safePage - 1) * safePageSize,
           query,
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       } else if (canAggregate) {
         // Use composite aggregation for deduplication
         const result = await esClient.search({
-          index: 'properties_v2',
+          index: 'properties',
           size: 0, // no hits, just aggs
           query,
           aggs: {
@@ -146,7 +146,7 @@ export async function POST(req: NextRequest) {
       } else {
         // Fallback: normal search
         const result = await esClient.search({
-          index: 'properties_v2',
+          index: 'properties',
           size: safePageSize,
           from: (safePage - 1) * safePageSize,
           query,

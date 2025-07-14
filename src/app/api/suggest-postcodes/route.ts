@@ -6,11 +6,13 @@ export async function GET(req: NextRequest) {
   const query = searchParams.get('q')?.toUpperCase() || '';
   if (!query) return NextResponse.json({ suggestions: [] });
 
-  const result = await esClient.search({
-    index: 'properties_v2',
-    size: 20, // get more to ensure uniqueness
+  const response = await esClient.search({
+    index: 'properties',
+    size: 10,
     query: {
-      match_phrase_prefix: { postcode: query }
+      prefix: {
+        'postcode': query
+      }
     },
     _source: ['postcode']
   });
@@ -18,7 +20,7 @@ export async function GET(req: NextRequest) {
   // Unique postcodes only, cast _source to correct type
   const suggestions = Array.from(
     new Set(
-      result.hits.hits.map(hit => (hit._source as { postcode: string }).postcode)
+      response.hits.hits.map(hit => (hit._source as { postcode: string }).postcode)
     )
   ).slice(0, 10);
   return NextResponse.json({ suggestions });

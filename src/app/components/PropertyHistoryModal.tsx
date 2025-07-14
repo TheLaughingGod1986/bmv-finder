@@ -5,7 +5,7 @@ import { SoldPrice } from '../../../types/sold-price';
 import { formatPrice } from '../../lib/utils';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
 import BMVScoreExplanation from './BMVScoreExplanation';
-import { X, Home, TrendingUp, MapPin, Calendar, PoundSterling } from 'lucide-react';
+import { X, Home, TrendingUp, MapPin, Calendar, PoundSterling, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface PropertyHistoryModalProps {
@@ -15,11 +15,24 @@ interface PropertyHistoryModalProps {
   allSales?: SoldPrice[];
 }
 
+interface RecentSale {
+  id: string;
+  postcode: string;
+  dateOfTransfer: string;
+  propertyType: string;
+  newBuild: boolean;
+  estateType: string;
+  paon: string;
+  saon: string;
+  street: string;
+  price: number;
+}
+
 const TABS = [
   { key: 'details', label: 'Property Details' },
   { key: 'trend', label: 'Area Price Trends' },
   { key: 'growth', label: 'Property Price Growth' },
-  { key: 'similar', label: 'Similar Sales Nearby' },
+  { key: 'similar', label: 'Recent Sales Nearby' },
 ];
 
 export default function PropertyHistoryModal({ 
@@ -32,7 +45,10 @@ export default function PropertyHistoryModal({
   const [fullHistory, setFullHistory] = useState<SoldPrice[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'details' | 'trend' | 'growth' | 'similar'>('details');
-  const [similarSalesOption, setSimilarSalesOption] = useState<'default' | 'nearby' | 'postcode' | 'broader'>('default');
+  const [recentSales, setRecentSales] = useState<RecentSale[]>([]);
+  const [recentSalesLoading, setRecentSalesLoading] = useState(false);
+  const [recentSalesError, setRecentSalesError] = useState<string | null>(null);
+  const [searchScope, setSearchScope] = useState<'area' | 'broader'>('area');
 
   useEffect(() => {
     if (property && history.length > 0) {
@@ -42,6 +58,38 @@ export default function PropertyHistoryModal({
       setActiveTab('details');
     }
   }, [property, history]);
+
+  // Fetch recent sales with searchScope
+  const fetchRecentSales = useCallback(async (scope = searchScope) => {
+    if (!property?.postcode) return;
+    setRecentSalesLoading(true);
+    setRecentSalesError(null);
+    try {
+      const response = await fetch(`/api/recent-sales?postcode=${encodeURIComponent(property.postcode)}&limit=15&months=12&searchScope=${scope}`);
+      const data = await response.json();
+      if (data.success) {
+        setRecentSales(data.data);
+        // If fallback was used, update dropdown
+        if (data.usedBroaderArea && scope !== 'broader') {
+          setSearchScope('broader');
+        }
+        console.log(`[PropertyHistoryModal] Fetched ${data.data.length} recent sales for ${property.postcode} (scope: ${scope}, usedBroaderArea: ${data.usedBroaderArea})`);
+      } else {
+        setRecentSalesError(data.error || 'Failed to fetch recent sales');
+      }
+    } catch (error) {
+      console.error('[PropertyHistoryModal] Error fetching recent sales:', error);
+      setRecentSalesError('Failed to fetch recent sales');
+    } finally {
+      setRecentSalesLoading(false);
+    }
+  }, [property?.postcode, searchScope]);
+
+  useEffect(() => {
+    if (activeTab === 'similar') {
+      fetchRecentSales(searchScope);
+    }
+  }, [activeTab, fetchRecentSales, searchScope]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -87,46 +135,14 @@ export default function PropertyHistoryModal({
     return addressParts.join(', ');
   };
 
-  // Helper to normalize address for comparison
-  const normalizeAddress = (sp: SoldPrice | null | undefined) => {
-    if (!sp) return '';
-    return [sp.paon, sp.saon, sp.street, sp.postcode]
-      .map(x => (x || '').trim().toLowerCase())
-      .join('|');
+  const formatRecentSaleAddress = (sale: RecentSale) => {
+    const addressParts = [];
+    if (sale.saon && sale.saon.trim()) addressParts.push(sale.saon.trim());
+    if (sale.paon && sale.paon.trim()) addressParts.push(sale.paon.trim());
+    if (sale.street && sale.street.trim()) addressParts.push(sale.street.trim());
+    return addressParts.join(', ');
   };
 
-  // Helper to check if streets are similar (fuzzy matching)
-  const areStreetsSimilar = (street1: string, street2: string) => {
-    if (!street1 || !street2) return false;
-    
-    const s1 = street1.toLowerCase().trim();
-    const s2 = street2.toLowerCase().trim();
-    
-    // Exact match
-    if (s1 === s2) return true;
-    
-    // Same street with different suffixes (e.g., "Belgrave Road" vs "Belgrave Avenue")
-    const s1Words = s1.split(' ').filter(w => w.length > 2);
-    const s2Words = s2.split(' ').filter(w => w.length > 2);
-    
-    if (s1Words.length >= 2 && s2Words.length >= 2) {
-      // Check if first word matches (e.g., "Belgrave")
-      if (s1Words[0] === s2Words[0]) return true;
-    }
-    
-    // Check for street name variations
-    const commonSuffixes = ['road', 'street', 'avenue', 'lane', 'close', 'drive', 'way', 'crescent', 'grove'];
-    const s1Base = s1Words.find(w => !commonSuffixes.includes(w)) || s1Words[0];
-    const s2Base = s2Words.find(w => !commonSuffixes.includes(w)) || s2Words[0];
-    
-    return s1Base === s2Base;
-  };
-
-  // Helper to normalize address for grouping (same as table)
-  const addressKey = (sp: SoldPrice) =>
-    [sp.paon, sp.street, sp.postcode].map(x => (x || '').trim().toLowerCase()).join('|');
-
-  // Remove deduplication logic from the modal, use the passed-in history prop directly
   // Calculate price changes for the passed-in history
   const historyWithChanges = history.map((sale, index) => {
     if (index === 0) return { ...sale, priceChange: 0, priceChangePercent: 0 };
@@ -137,95 +153,7 @@ export default function PropertyHistoryModal({
     return { ...sale, priceChange, priceChangePercent };
   });
 
-  // Get the normalized address of the current property
-  const currentAddressKey = normalizeAddress(property);
-
-  // Use allSales for similar sales, fallback to fullHistory
-  const similarSalesSource = allSales && allSales.length > 0 ? allSales : fullHistory;
-  
-  // Debug logging
-  console.log('[SimilarSalesSource] allSales length:', allSales?.length || 0);
-  console.log('[SimilarSalesSource] fullHistory length:', fullHistory.length);
-  console.log('[SimilarSalesSource] final source length:', similarSalesSource.length);
-
-  // Find similar properties based on selected option
-  const similarProperties = React.useMemo(() => {
-    console.log('[SimilarProperties] Recalculating with option:', similarSalesOption);
-    if (!property) {
-      console.warn('[SimilarProperties] property is null or undefined');
-      return [];
-    }
-            console.log('[SimilarProperties] Property street:', property?.street);
-        console.log('[SimilarProperties] Property postcode:', property?.postcode);
-    console.log('[SimilarProperties] Source data length:', similarSalesSource.length);
-    
-    let filtered = [] as SoldPrice[];
-    switch (similarSalesOption) {
-      case 'default':
-        filtered = similarSalesSource.filter(sp =>
-          sp.street === property?.street &&
-          normalizeAddress(sp) !== currentAddressKey
-        );
-        console.log('[SimilarProperties] Default filter - same street matches:', filtered.length);
-        break;
-      case 'nearby':
-        filtered = similarSalesSource.filter(sp =>
-          (sp.street === property?.street || areStreetsSimilar(sp.street, property?.street || '')) &&
-          normalizeAddress(sp) !== currentAddressKey
-        );
-        console.log('[SimilarProperties] Nearby filter - similar streets matches:', filtered.length);
-        break;
-      case 'postcode':
-        filtered = similarSalesSource.filter(sp =>
-          sp.postcode === property?.postcode &&
-          normalizeAddress(sp) !== currentAddressKey
-        );
-        console.log('[SimilarProperties] Postcode filter - same postcode matches:', filtered.length);
-        break;
-      case 'broader':
-        filtered = similarSalesSource.filter(sp => {
-          const isSamePostcode = sp.postcode === property?.postcode;
-          const isSimilarStreet = areStreetsSimilar(sp.street, property?.street || '');
-          const isNotCurrentProperty = normalizeAddress(sp) !== currentAddressKey;
-          return (isSamePostcode || isSimilarStreet) && isNotCurrentProperty;
-        });
-        console.log('[SimilarProperties] Broader filter - broader area matches:', filtered.length);
-        break;
-      default:
-        filtered = similarSalesSource.filter(sp =>
-          sp.street === property?.street &&
-          normalizeAddress(sp) !== currentAddressKey
-        );
-        console.log('[SimilarProperties] Default case - same street matches:', filtered.length);
-    }
-    
-    console.log('[SimilarProperties] After filtering, before grouping:', filtered.length);
-    
-    // Group by normalized address and keep only the most recent sale for each property
-    const grouped: { [address: string]: SoldPrice } = {};
-    filtered.forEach(sp => {
-      const addr = normalizeAddress(sp);
-      if (!grouped[addr] || new Date(sp.dateOfTransfer) > new Date(grouped[addr].dateOfTransfer)) {
-        grouped[addr] = sp;
-      }
-    });
-    
-    console.log('[SimilarProperties] After grouping:', Object.keys(grouped).length);
-    
-    // Only include sales from the last 3 years
-    const threeYearsAgo = new Date();
-    threeYearsAgo.setFullYear(threeYearsAgo.getFullYear() - 3);
-    const finalResult = Object.values(grouped)
-      .filter(sp => new Date(sp.dateOfTransfer) >= threeYearsAgo)
-      .sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime());
-    
-    console.log('[SimilarProperties] Final result length:', finalResult.length);
-    console.log('[SimilarProperties] Final result addresses:', finalResult.map(sp => formatAddress(sp)));
-    
-    return finalResult;
-  }, [similarSalesOption, similarSalesSource, property, currentAddressKey]);
-
-  // Guard clause for null property (must be after all hooks)
+  // Guard clause for null property
   if (!property) {
     return null;
   }
@@ -254,18 +182,61 @@ export default function PropertyHistoryModal({
   const chartData = prepareChartData();
 
   // Overlay click handler
-
-  // Overlay click handler
   const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
 
-  // Guard clause for null property
-  if (!property) {
-    return null;
-  }
+  // Guarded price calculations for summary stats
+  const validPrices = recentSales.map(sale => Number(sale.price)).filter(p => !isNaN(p) && p > 0);
+  const avgPrice = validPrices.length ? Math.round(validPrices.reduce((a, b) => a + b, 0) / validPrices.length) : null;
+  const maxPrice = validPrices.length ? Math.max(...validPrices) : null;
+
+  // Calculate median price for price indicators
+  const calculateMedian = (prices: number[]) => {
+    if (prices.length === 0) return null;
+    const sorted = [...prices].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 
+      ? (sorted[mid - 1] + sorted[mid]) / 2 
+      : sorted[mid];
+  };
+
+  const medianPrice = calculateMedian(validPrices);
+
+  // Function to determine price indicator
+  const getPriceIndicator = (price: number | null, median: number | null) => {
+    if (!price || !median) return { label: 'N/A', color: 'gray', bgColor: 'bg-gray-100', textColor: 'text-gray-600' };
+    
+    const diff = (price - median) / median;
+    
+    if (diff <= -0.05) {
+      return { 
+        label: 'Good Deal', 
+        color: 'green', 
+        bgColor: 'bg-[#5DA271]', 
+        textColor: 'text-white',
+        icon: '↓'
+      };
+    } else if (diff >= 0.05) {
+      return { 
+        label: 'Expensive', 
+        color: 'red', 
+        bgColor: 'bg-red-100', 
+        textColor: 'text-red-800',
+        icon: '↑'
+      };
+    } else {
+      return { 
+        label: 'Fair Price', 
+        color: 'yellow', 
+        bgColor: 'bg-yellow-100', 
+        textColor: 'text-yellow-800',
+        icon: '→'
+      };
+    }
+  };
 
   return (
     <AnimatePresence>
@@ -464,24 +435,83 @@ export default function PropertyHistoryModal({
 
             {activeTab === 'similar' && (
               <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 space-y-4">
-                {/* Similar Sales Options Selector */}
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-lg font-semibold text-text-primary">Similar Sales Nearby</h4>
+                {/* Recent Sales Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h4 className="text-lg font-semibold text-text-primary">Recent Sales in This Area</h4>
+                    <p className="text-sm text-text-secondary">
+                      Properties sold in {property.postcode} and nearby areas in the last 12 months
+                    </p>
+                  </div>
                   <div className="flex items-center gap-2">
-                    <label className="text-sm text-text-secondary">Compare with:</label>
+                    <label htmlFor="searchScope" className="text-sm text-text-secondary mr-2">Compare with:</label>
                     <select
-                      value={similarSalesOption}
-                      onChange={(e) => setSimilarSalesOption(e.target.value as any)}
-                      className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg bg-white focus:border-primary-500 focus:ring-2 focus:ring-primary-500 focus:ring-offset-0 transition-colors"
+                      id="searchScope"
+                      value={searchScope}
+                      onChange={e => setSearchScope(e.target.value as 'area' | 'broader')}
+                      className="border rounded px-2 py-1 text-sm"
+                      disabled={recentSalesLoading}
                     >
-                      <option value="default">Same Street</option>
-                      <option value="nearby">Nearby Streets</option>
-                      <option value="postcode">Same Postcode</option>
+                      <option value="area">Postcode Area</option>
                       <option value="broader">Broader Area</option>
                     </select>
+                    <button
+                      onClick={() => fetchRecentSales(searchScope)}
+                      disabled={recentSalesLoading}
+                      className="flex items-center gap-2 px-3 py-2 text-sm bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${recentSalesLoading ? 'animate-spin' : ''}`} />
+                      Refresh
+                    </button>
                   </div>
                 </div>
-                {similarProperties.length === 0 ? (
+                {/* Fallback message */}
+                {searchScope === 'broader' && (
+                  <div className="mb-2 text-xs text-yellow-700 bg-yellow-50 rounded p-2">
+                    No recent sales found in the postcode area. Showing results for the broader district instead.
+                  </div>
+                )}
+
+                {/* Price Indicator Legend */}
+                {recentSales.length > 0 && medianPrice !== null && (
+                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                    <div className="text-sm font-medium text-gray-700 mb-2">Price Indicators:</div>
+                    <div className="flex flex-wrap gap-3 text-xs">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: '#5DA271', color: '#fff' }}>
+                        <span>↓</span> Good Deal (5%+ below median)
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">
+                        <span>→</span> Fair Price (within 5% of median)
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-800">
+                        <span>↑</span> Expensive (5%+ above median)
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {recentSalesLoading ? (
+                  <div className="text-center py-8">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                    <p className="text-text-secondary">Loading recent sales...</p>
+                  </div>
+                ) : recentSalesError ? (
+                  <div className="text-center py-8">
+                    <div className="text-red-400 mb-2">
+                      <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                      </svg>
+                    </div>
+                    <p className="text-text-secondary mb-2">Failed to load recent sales</p>
+                    <p className="text-sm text-text-tertiary">{recentSalesError}</p>
+                    <button
+                      onClick={fetchRecentSales}
+                      className="mt-4 px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                ) : recentSales.length === 0 ? (
                   <div className="text-center py-8">
                     <div className="text-gray-400 mb-2">
                       <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,10 +519,10 @@ export default function PropertyHistoryModal({
                       </svg>
                     </div>
                     <p className="text-text-secondary">
-                      No similar properties found in this area.
+                      No recent sales found in this area.
                     </p>
                     <p className="text-sm text-text-tertiary mt-1">
-                      Try selecting a different comparison option above.
+                      This could mean no properties have sold recently, or the data is still being updated.
                     </p>
                   </div>
                 ) : (
@@ -504,30 +534,82 @@ export default function PropertyHistoryModal({
                           <th className="text-left py-3 px-4 font-semibold">Price</th>
                           <th className="text-left py-3 px-4 font-semibold">Date</th>
                           <th className="text-left py-3 px-4 font-semibold">Type</th>
+                          <th className="text-left py-3 px-4 font-semibold">New Build</th>
+                          <th className="text-left py-3 px-4 font-semibold">Indicator</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {similarProperties.slice(0, 10).map((sp, index) => (
-                          <tr key={normalizeAddress(sp) + '-' + sp.dateOfTransfer} className={index === 0 ? 'bg-yellow-50' : ''}>
+                        {recentSales.map((sale, index) => (
+                          <tr key={sale.id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="py-3 px-4 font-medium text-text-primary">
-                              {formatAddress(sp)}
-                              <div className="text-xs text-text-tertiary">{sp.postcode}</div>
+                              {formatRecentSaleAddress(sale)}
+                              <div className="text-xs text-text-tertiary">{sale.postcode}</div>
                             </td>
                             <td className="py-3 px-4 font-semibold text-text-primary">
-                              £{sp.price.toLocaleString()}
+                              {!isNaN(Number(sale.price)) && Number(sale.price) > 0 ? formatPrice(Number(sale.price)) : 'N/A'}
                             </td>
                             <td className="py-3 px-4 text-text-secondary">
-                              {formatDate(sp.dateOfTransfer)}
+                              {formatDate(sale.dateOfTransfer)}
                             </td>
                             <td className="py-3 px-4">
                               <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                {formatPropertyType(sp.propertyType)}
+                                {formatPropertyType(sale.propertyType)}
                               </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                sale.newBuild 
+                                  ? 'bg-green-100 text-green-800' 
+                                  : 'bg-gray-100 text-gray-800'
+                              }`}>
+                                {sale.newBuild ? 'Yes' : 'No'}
+                              </span>
+                            </td>
+                            <td className="py-3 px-4">
+                              {(() => {
+                                const indicator = getPriceIndicator(Number(sale.price), medianPrice);
+                                return (
+                                  <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${indicator.bgColor} ${indicator.textColor}`}>
+                                    <span className="text-xs">{indicator.icon}</span>
+                                    {indicator.label}
+                                  </span>
+                                );
+                              })()}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
+                    
+                    {/* Summary Stats */}
+                    {recentSales.length > 0 && (
+                      <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-blue-50 rounded-lg p-4 text-center">
+                          <div className="text-2xl font-bold text-blue-600">{recentSales.length}</div>
+                          <div className="text-sm text-blue-800">Total Sales</div>
+                        </div>
+                        <div className="bg-green-50 rounded-lg p-4 text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {avgPrice !== null ? formatPrice(avgPrice) : 'N/A'}
+                          </div>
+                          <div className="text-sm text-green-800">Average Price</div>
+                        </div>
+                        <div className="bg-purple-50 rounded-lg p-4 text-center">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {maxPrice !== null ? formatPrice(maxPrice) : 'N/A'}
+                          </div>
+                          <div className="text-sm text-purple-800">Highest Price</div>
+                        </div>
+                        {medianPrice !== null && (
+                          <div className="bg-yellow-50 rounded-lg p-4 text-center">
+                            <div className="text-2xl font-bold text-yellow-600">
+                              {formatPrice(medianPrice)}
+                            </div>
+                            <div className="text-sm text-yellow-800">Median Price</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -7,6 +7,7 @@ import CompSlider from '../components/CompSlider';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from '../components/UpgradePrompt';
+import { apiClient } from '@/lib/apiClient';
 
 export default function WhatShouldIPayPage() {
   const [postcode, setPostcode] = useState('');
@@ -23,9 +24,12 @@ export default function WhatShouldIPayPage() {
   useEffect(() => {
     if (!user) return;
     // Fetch usage count from profile
-    fetch(`/api/profile-usage?userId=${user.id}&type=pay`)
-      .then(res => res.json())
-      .then(data => setPayCount(data.pay_count || 0));
+    apiClient.getUserProfile(user.id, 'pay')
+      .then(response => {
+        if (!response.error && response.data && typeof response.data === 'object' && 'pay_count' in response.data) {
+          setPayCount((response.data as any).pay_count || 0);
+        }
+      });
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -39,20 +43,18 @@ export default function WhatShouldIPayPage() {
     setResult(null);
     try {
       if (tier === 'free' && payCount < 1) {
-        await fetch('/api/increment-usage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user?.id, type: 'pay' }),
-        });
+        await apiClient.incrementUsage(user?.id, 'pay');
       }
-      const res = await fetch('/api/what-should-i-pay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ postcode, propertyType, offerMargin }),
+      const response = await apiClient.getWhatShouldIPay({
+        postcode,
+        propertyType,
+        offerMargin
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Unknown error');
-      setResult(data);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      setResult(response.data);
     } catch (err: any) {
       setError(err.message);
     } finally {

@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { X, MapPin, Calendar, Home, Building2, Clock } from 'lucide-react';
+import React, { useState, useCallback, useEffect } from 'react';
+import { X, MapPin, Calendar, PoundSterling, Home, TrendingUp, TrendingDown, Info, Building2, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../lib/utils';
+import { apiClient } from '@/lib/apiClient';
 
 export interface PropertyData {
   id: string;
@@ -40,20 +42,14 @@ export default function PropertyModal({ isOpen, onClose, property }: PropertyMod
     
     setIsLoading(true);
     try {
-      const response = await fetch('/api/property-es', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          searchTerm: property.postcode,
-          page: 1,
-          pageSize: 5
-        })
+      const response = await apiClient.searchProperties(property.postcode, {
+        page: 1,
+        pageSize: 5
       });
 
-      if (response.ok) {
-        const data = await response.json();
+      if (!response.error && response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray((response.data as any).data)) {
         // Filter out the current property and get similar ones
-        const similar = data.data
+        const similar = (response.data as any).data
           .filter((p: PropertyData) => p.id !== property.id)
           .slice(0, 4);
         setSimilarProperties(similar);

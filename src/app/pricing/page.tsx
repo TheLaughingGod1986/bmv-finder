@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect, useMemo } from "react";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabaseClient';
 import { useUserTier } from '@/hooks/useUserTier';
 import Head from 'next/head';
 import TrustBadges from "../components/TrustBadges";
@@ -8,28 +8,10 @@ import PartnerLogos from "../components/PartnerLogos";
 import Testimonials from "../components/Testimonials";
 import PricingCard from "../components/PricingCard";
 
-// Client-side only Supabase client
-function getSupabase() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
 // Custom hook for user management
 function useClientUser() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  const supabase = useMemo(() => getSupabase(), []);
   
   useEffect(() => {
     if (!supabase) {
@@ -55,7 +37,7 @@ function useClientUser() {
     });
     
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
   
   return { user, loading };
 }

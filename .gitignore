@@ -49,7 +49,9 @@ elasticsearch-8.13.0/logs/
 elasticsearch-8.13.0/config/certs/
 
 # env
-.env
 recent-sales-indexing.log
 github-actions
 github-actions.pub
+
+# Sentry Config File
+.env.sentry-build-plugin

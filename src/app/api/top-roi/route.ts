@@ -1,15 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@elastic/elasticsearch';
-
-const client = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
-  auth: {
-    apiKey: process.env.ELASTICSEARCH_API_KEY || ''
-  },
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+import { esClient as client } from '../../../lib/esClient';
 
 const PROPERTIES_INDEX = 'properties';
 const HPI_INDEX = 'house_price_index';

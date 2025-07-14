@@ -3,29 +3,52 @@ import { esClient } from '@/lib/esClient';
 
 const INDEX_NAME = 'house_price_index';
 
-// Simple HPI search by postcode
-async function searchHpiByPostcode(postcode: string) {
-  try {
-    const result = await esClient.search({
-      index: INDEX_NAME,
-      size: 100,
-      query: {
-        term: { postcode: postcode.toUpperCase() }
-      },
-      sort: [
-        { date: { order: 'desc' } }
-      ]
-    });
-    
-    const hits = result.hits.hits;
-    return hits.map((hit: any) => hit._source);
-  } catch (error) {
-    console.error('Error searching HPI by postcode:', error);
-    return [];
+// Map postcodes to regions (simplified mapping)
+function getRegionFromPostcode(postcode: string): string {
+  const upperPostcode = postcode.toUpperCase();
+  
+  // North East
+  if (upperPostcode.startsWith('NE') || upperPostcode.startsWith('SR') || upperPostcode.startsWith('DL') || upperPostcode.startsWith('TS')) {
+    return 'north-east';
   }
+  // North West
+  if (upperPostcode.startsWith('L') || upperPostcode.startsWith('M') || upperPostcode.startsWith('PR') || upperPostcode.startsWith('BB') || upperPostcode.startsWith('OL') || upperPostcode.startsWith('SK') || upperPostcode.startsWith('WA') || upperPostcode.startsWith('WN') || upperPostcode.startsWith('BL') || upperPostcode.startsWith('CA') || upperPostcode.startsWith('LA')) {
+    return 'north-west';
+  }
+  // Yorkshire and the Humber
+  if (upperPostcode.startsWith('BD') || upperPostcode.startsWith('HD') || upperPostcode.startsWith('HG') || upperPostcode.startsWith('HX') || upperPostcode.startsWith('LS') || upperPostcode.startsWith('S') || upperPostcode.startsWith('WF') || upperPostcode.startsWith('YO')) {
+    return 'yorkshire-and-the-humber';
+  }
+  // East Midlands
+  if (upperPostcode.startsWith('DE') || upperPostcode.startsWith('LE') || upperPostcode.startsWith('NG') || upperPostcode.startsWith('LN') || upperPostcode.startsWith('PE')) {
+    return 'east-midlands';
+  }
+  // West Midlands
+  if (upperPostcode.startsWith('B') || upperPostcode.startsWith('CV') || upperPostcode.startsWith('DY') || upperPostcode.startsWith('HR') || upperPostcode.startsWith('TF') || upperPostcode.startsWith('WS') || upperPostcode.startsWith('WV')) {
+    return 'west-midlands-region';
+  }
+  // East of England
+  if (upperPostcode.startsWith('AL') || upperPostcode.startsWith('CB') || upperPostcode.startsWith('CM') || upperPostcode.startsWith('CO') || upperPostcode.startsWith('IP') || upperPostcode.startsWith('LU') || upperPostcode.startsWith('MK') || upperPostcode.startsWith('NN') || upperPostcode.startsWith('NR') || upperPostcode.startsWith('PE') || upperPostcode.startsWith('SG') || upperPostcode.startsWith('SS')) {
+    return 'east-of-england';
+  }
+  // London
+  if (upperPostcode.startsWith('E') || upperPostcode.startsWith('EC') || upperPostcode.startsWith('N') || upperPostcode.startsWith('NW') || upperPostcode.startsWith('SE') || upperPostcode.startsWith('SW') || upperPostcode.startsWith('W') || upperPostcode.startsWith('WC')) {
+    return 'london';
+  }
+  // South East
+  if (upperPostcode.startsWith('BN') || upperPostcode.startsWith('GU') || upperPostcode.startsWith('HP') || upperPostcode.startsWith('ME') || upperPostcode.startsWith('OX') || upperPostcode.startsWith('PO') || upperPostcode.startsWith('RG') || upperPostcode.startsWith('RH') || upperPostcode.startsWith('SL') || upperPostcode.startsWith('SO') || upperPostcode.startsWith('TN') || upperPostcode.startsWith('TW')) {
+    return 'south-east';
+  }
+  // South West
+  if (upperPostcode.startsWith('BA') || upperPostcode.startsWith('BS') || upperPostcode.startsWith('DT') || upperPostcode.startsWith('EX') || upperPostcode.startsWith('GL') || upperPostcode.startsWith('PL') || upperPostcode.startsWith('SN') || upperPostcode.startsWith('SP') || upperPostcode.startsWith('TA') || upperPostcode.startsWith('TQ') || upperPostcode.startsWith('TR')) {
+    return 'south-west';
+  }
+  
+  // Default to England if no match
+  return 'england';
 }
 
-// Simple HPI search by region
+// HPI search by region
 async function searchHpiByRegion(region: string) {
   try {
     const result = await esClient.search({
@@ -63,13 +86,19 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // If postcode is provided, search by postcode
+    // If postcode is provided, map to region and search
     if (postcode) {
-      const results = await searchHpiByPostcode(postcode);
+      const region = getRegionFromPostcode(postcode);
+      const results = await searchHpiByRegion(region);
       if (results.length > 0) {
-        return NextResponse.json({ source: 'elasticsearch_postcode', results });
+        return NextResponse.json({ 
+          source: 'elasticsearch_region', 
+          region: region,
+          postcode: postcode,
+          results 
+        });
       } else {
-        return NextResponse.json({ error: 'No HPI data found for postcode', results: [] }, { status: 404 });
+        return NextResponse.json({ error: 'No HPI data found for postcode region', results: [] }, { status: 404 });
       }
     }
 

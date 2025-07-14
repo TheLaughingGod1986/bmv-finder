@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState, useMemo } from "react";
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabaseClient';
 import AuthForm from "./AuthForm";
 import { useUserTier } from '@/hooks/useUserTier';
 import dayjs from 'dayjs';
@@ -14,22 +14,6 @@ export default function UserProfile() {
   const [pwMsg, setPwMsg] = useState<string | null>(null);
   const [billingMetadata, setBillingMetadata] = useState<any>(null);
   const { tier } = useUserTier(user?.id);
-
-  const supabase = useMemo(() => {
-    // Only create client on the client side
-    if (typeof window === 'undefined') {
-      return null;
-    }
-    
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      throw new Error('Supabase environment variables are not set');
-    }
-    
-    return createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-  }, []);
 
   useEffect(() => {
     const getUser = async () => {

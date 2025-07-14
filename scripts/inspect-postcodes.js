@@ -13,7 +13,7 @@ async function run() {
     term: { 'postcode.keyword': 'SS9 5EL' }
   };
   const result = await esClient.search({
-    index: 'properties_v2',
+    index: 'properties',
     size: 100,
     query,
     _source: ['postcode', 'postcode.keyword', 'fullAddress', 'dateOfTransfer']

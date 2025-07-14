@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Home, TrendingUp, Search, MapPin, Sparkles, Clock, BarChart3, Calculator, BookOpen, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { Search, MapPin, Home, TrendingUp, AlertCircle, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from './UpgradePrompt';
+import { apiClient } from '@/lib/apiClient';
 
 interface EnhancedEmptyStateProps {
   postcode: string;
@@ -36,19 +37,21 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
 
   useEffect(() => {
     if (!user?.id) return;
-    fetch(`/api/profile-usage?userId=${user.id}`)
-      .then(res => res.json())
-      .then(data => setLookupCount(data.lookup_count || 0));
+    apiClient.getUserProfile(user.id)
+      .then(response => {
+        if (!response.error && response.data && typeof response.data === 'object' && 'lookup_count' in response.data) {
+          setLookupCount((response.data as any).lookup_count || 0);
+        }
+      });
   }, [user]);
 
   useEffect(() => {
     async function fetchPopularAreas() {
       try {
-        const res = await fetch('/api/suggest-postcodes?q= ');
-        const data = await res.json();
-        if (data.suggestions && data.suggestions.length > 0) {
+        const response = await apiClient.suggestPostcodes(' ');
+        if (!response.error && response.data && typeof response.data === 'object' && 'suggestions' in response.data && Array.isArray((response.data as any).suggestions) && (response.data as any).suggestions.length > 0) {
           setPopularAreas(
-            data.suggestions.slice(0, 6).map((postcode: string) => ({
+            (response.data as any).suggestions.slice(0, 6).map((postcode: string) => ({
               area: postcode,
               description: '', // Optionally fetch area descriptions if available
               icon: <Home className="w-4 h-4" />
@@ -135,13 +138,13 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
           <TipCard
             title="New or Small Area"
             description="The postcode might be very new or cover a small area with no recent sales."
-            icon={<AlertCircle className="w-5 h-5" />}
+            icon={<AlertTriangle className="w-5 h-5" />}
             delay={0.2}
           />
           <TipCard
             title="Try Different Search"
             description="Try searching for a broader area or nearby postcode to see more results."
-            icon={<Lightbulb className="w-5 h-5" />}
+            icon={<Sparkles className="w-5 h-5" />}
             delay={0.3}
           />
           <TipCard
@@ -200,7 +203,7 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
         className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-200"
       >
         <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
-          <Lightbulb className="w-5 h-5 text-yellow-600" />
+          <Sparkles className="w-5 h-5 text-yellow-600" />
           Search Tips
         </h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-slate-700">

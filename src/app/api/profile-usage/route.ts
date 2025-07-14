@@ -1,19 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../lib/supabaseClient';
 
 // Force dynamic rendering to prevent build-time issues
 export const dynamic = 'force-dynamic';
-
-// Initialize Supabase client only when environment variables are available
-const getSupabase = () => {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-};
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,7 +14,6 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
-    const supabase = getSupabase();
     const { data, error } = await supabase
       .from('profiles')
       .select('*')

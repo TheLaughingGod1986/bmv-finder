@@ -5,23 +5,7 @@ import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Tar
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import UserProfile from '../components/UserProfile';
-import { createClient } from '@supabase/supabase-js';
-
-function getSupabase() {
-  // Only create client on the client side
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
+import { supabase } from '../../lib/supabaseClient';
 
 interface PortfolioProperty {
   id: string;
@@ -38,6 +22,11 @@ interface PortfolioProperty {
 
 export default function PortfolioTrackerPage() {
   // Restore session after OAuth redirect (handle hash tokens) with debug logging
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.hash) {
       const hash = window.location.hash.substring(1);
@@ -46,22 +35,16 @@ export default function PortfolioTrackerPage() {
       const refresh_token = params.get('refresh_token');
       console.log('Parsed tokens:', { access_token, refresh_token });
       if (access_token && refresh_token) {
-        const supabase = getSupabase();
-        if (supabase) {
         supabase.auth.setSession({ access_token, refresh_token })
           .then(({ data, error }) => {
             console.log('setSession result:', { data, error });
           });
-        }
         window.location.hash = '';
       }
     }
-    const supabase = getSupabase();
-    if (supabase) {
     supabase.auth.getSession().then(({ data }) => {
       console.log('getSession after setSession:', data);
     });
-    }
   }, []);
 
   // All hooks at the top
@@ -71,12 +54,9 @@ export default function PortfolioTrackerPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'sold' | 'watching'>('all');
 
-  const supabase = useMemo(() => getSupabase(), []);
-
   useEffect(() => {
+    if (typeof window === 'undefined') return;
     const initializeAuth = async () => {
-      if (!supabase) return;
-
       // Check for tokens in URL (OAuth callback)
       const urlParams = new URLSearchParams(window.location.search);
       const access_token = urlParams.get('access_token');
@@ -107,8 +87,6 @@ export default function PortfolioTrackerPage() {
     };
 
     const getUser = async () => {
-      if (!supabase) return;
-      
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
     };
@@ -282,6 +260,7 @@ export default function PortfolioTrackerPage() {
   };
 
   // Don't render the component if we're on the server side
+  if (!mounted) return null;
   if (!supabase) {
     return null;
   }
@@ -362,7 +341,7 @@ export default function PortfolioTrackerPage() {
                     <h3 className="text-lg font-semibold text-gray-900">Total Growth</h3>
                   </div>
                   <p className={`text-2xl font-bold ${getTotalGrowth() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {getTotalGrowth().toFixed(1)}%
+                    {typeof getTotalGrowth() === 'number' && !isNaN(getTotalGrowth()) ? getTotalGrowth().toFixed(1) : 'N/A'}%
                   </p>
                 </motion.div>
 
@@ -513,7 +492,7 @@ export default function PortfolioTrackerPage() {
                               </div>
                               <div className="bg-slate-50 rounded-lg p-3">
                                 <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Growth</p>
-                                <p className="font-semibold text-green-600">+{((property.currentValue - property.purchasePrice) / property.purchasePrice * 100).toFixed(1)}%</p>
+                                <p className="font-semibold text-green-600">+{typeof growth === 'number' && !isNaN(growth) ? growth.toFixed(1) : 'N/A'}%</p>
                               </div>
                               <div className="bg-slate-50 rounded-lg p-3">
                                 <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">BMV Score</p>

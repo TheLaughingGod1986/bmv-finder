@@ -10,33 +10,17 @@ const path = require('path');
 
 // Configuration
 const INDEX_NAME = 'recent_sales';
-const PROPERTIES_INDEX = 'properties'; // Our main properties index
+const PROPERTIES_INDEX = 'properties'; // Use canonical index
 const BATCH_SIZE = 100;
-const MAX_POSTCODES_PER_RUN = 1000; // Limit to prevent overwhelming the API
+const MAX_POSTCODES_PER_RUN = 1000000; // Large enough for all postcodes
 const LOG_FILE = 'recent-sales-indexing.log';
 
-// Initialize Elasticsearch client with same config as main app
+// Initialize Elasticsearch client for localhost
 const clientConfig = {
-  node: process.env.ELASTICSEARCH_URL || 'https://localhost:9200',
-};
-
-// Prefer API key authentication if available
-if (process.env.ELASTICSEARCH_API_KEY) {
-  clientConfig.auth = {
-    apiKey: process.env.ELASTICSEARCH_API_KEY
-  };
-} else if (process.env.ELASTICSEARCH_USERNAME && process.env.ELASTICSEARCH_PASSWORD) {
-  clientConfig.auth = {
-    username: process.env.ELASTICSEARCH_USERNAME,
-    password: process.env.ELASTICSEARCH_PASSWORD
-  };
-} else {
-  throw new Error('Missing Elasticsearch credentials in environment variables.');
-}
-
-// Always allow self-signed certs for this client
-clientConfig.tls = {
-  rejectUnauthorized: false
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
+  requestTimeout: 60000,
+  maxRetries: 3,
+  retryOnTimeout: true,
 };
 
 const esClient = new Client(clientConfig);
@@ -296,42 +280,47 @@ async function getPostcodesToProcess() {
   try {
     log('Fetching postcodes from existing property data...');
     
-    // Get a sample of postcodes that have recent activity
-    const response = await esClient.search({
+    // Use scroll search to get postcodes without aggregation limits
+    const postcodes = new Set();
+    let response = await esClient.search({
       index: PROPERTIES_INDEX,
+      scroll: '30s',
+      size: 1000,
       body: {
+        _source: ['postcode'],
         query: {
-          range: {
-            dateOfTransfer: {
-              gte: 'now-1y/d' // Last year
-            }
-          }
-        },
-        aggs: {
-          postcodes: {
-            terms: {
-              field: 'postcode.keyword',
-              size: MAX_POSTCODES_PER_RUN
-            }
-          }
-        },
-        size: 0
+          exists: { field: 'postcode' }
+        }
       }
     });
 
-    if (!response.aggregations || !response.aggregations.postcodes) {
-      log('No postcodes found in aggregation');
-      return [];
+    let scrollId = response._scroll_id;
+    let processed = 0;
+
+    while (response.hits.hits.length > 0 && postcodes.size < MAX_POSTCODES_PER_RUN) {
+      // Extract postcodes from this batch
+      response.hits.hits.forEach(hit => {
+        if (hit._source.postcode) {
+          postcodes.add(hit._source.postcode);
+        }
+      });
+
+      processed += response.hits.hits.length;
+      log(`Processed ${processed} documents, found ${postcodes.size} unique postcodes`);
+
+      // Get next batch
+      response = await esClient.scroll({
+        scrollId: scrollId,
+        scroll: '30s'
+      });
     }
 
-    const postcodes = response.aggregations.postcodes.buckets.map(bucket => bucket.key);
-    log(`Found ${postcodes.length} postcodes with recent activity`);
-    
-    // For testing, limit to first 10 postcodes
-    const testPostcodes = postcodes.slice(0, 10);
-    log(`Using first ${testPostcodes.length} postcodes for testing`);
-    
-    return testPostcodes;
+    // Clear scroll
+    await esClient.clearScroll({ scrollId: scrollId });
+
+    const postcodeArray = Array.from(postcodes);
+    log(`Found ${postcodeArray.length} unique postcodes with activity`);
+    return postcodeArray;
   } catch (error) {
     log(`Error getting postcodes: ${error.message}`, 'ERROR');
     // Fallback to some known postcodes

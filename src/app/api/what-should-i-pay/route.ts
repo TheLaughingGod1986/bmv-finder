@@ -44,7 +44,7 @@ async function fetchComps(postcode: string, propertyType: string, maxDistanceKm 
   }
   const resp = await esClient.search({
     index: 'properties',
-    size: 20,
+    size: 1000,
     query: {
       bool: {
         must: [
@@ -57,6 +57,7 @@ async function fetchComps(postcode: string, propertyType: string, maxDistanceKm 
       },
     },
     sort: [{ dateOfTransfer: { order: 'desc' } }],
+    _source: ['pricePaid', 'dateOfTransfer', 'propertyType', 'postcode', 'town_city', 'county', 'paon', 'street', 'locality', 'tenure']
   });
   return resp.hits.hits.map((hit: any) => hit._source);
 }

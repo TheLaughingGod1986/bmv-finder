@@ -3,15 +3,9 @@ const readline = require('readline');
 const { Client } = require('@elastic/elasticsearch');
 require('dotenv').config();
 
-// Elasticsearch client
+// Elasticsearch client - using localhost
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
-  auth: {
-    apiKey: process.env.ELASTICSEARCH_API_KEY || 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
   requestTimeout: 60000, // 60 seconds timeout
   maxRetries: 3,
   retryOnTimeout: true,
@@ -303,7 +297,7 @@ async function populateElasticsearch() {
 
     return new Promise((resolve, reject) => {
       const rl = readline.createInterface({
-        input: fs.createReadStream('pp-complete.csv'),
+        input: fs.createReadStream('pp-complete-cleaned.csv'),
         crlfDelay: Infinity
       });
 

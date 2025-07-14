@@ -9,6 +9,7 @@ import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from './UpgradePrompt';
 import Link from 'next/link';
 import HpiPostcodeSearch from './HpiPostcodeSearch';
+import { apiClient } from '@/lib/apiClient';
 
 interface EnhancedSearchProps {
   value: string;
@@ -66,10 +67,9 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
     let ignore = false;
     async function fetchSuggestions() {
       try {
-        const res = await fetch(`/api/suggest-postcodes?q=${encodeURIComponent(value)}`);
-        const data = await res.json();
-        if (!ignore && data.suggestions) {
-          setSuggestions(data.suggestions.map((s: string) => ({ text: s })));
+        const response = await apiClient.suggestPostcodes(value);
+        if (!ignore && !response.error && response.data && typeof response.data === 'object' && 'suggestions' in response.data && Array.isArray((response.data as any).suggestions)) {
+          setSuggestions((response.data as any).suggestions.map((s: string) => ({ text: s })));
         }
       } catch (e) {
         if (!ignore) setSuggestions([]);
@@ -105,9 +105,12 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
 
   useEffect(() => {
     if (!user) return;
-    fetch(`/api/profile-usage?userId=${user.id}`)
-      .then(res => res.json())
-      .then(data => setLookupCount(data.lookup_count || 0));
+    apiClient.getUserProfile(user.id)
+      .then(response => {
+        if (!response.error && response.data && typeof response.data === 'object' && 'lookup_count' in response.data) {
+          setLookupCount((response.data as any).lookup_count || 0);
+        }
+      });
   }, [user]);
 
   if (tier === 'free' && lookupCount >= 3) {

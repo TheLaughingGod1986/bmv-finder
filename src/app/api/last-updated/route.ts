@@ -17,9 +17,9 @@ async function fetchLatestTransactionDateFromElasticsearch(): Promise<{ date: st
       const latestDate = (response.hits.hits[0]._source as { dateOfTransfer: string }).dateOfTransfer;
       
       // Also get the total count of records
-      const countResponse = await esClient.count({
-        index: 'properties'
-      });
+          const countResponse = await esClient.count({
+      index: 'properties'
+    });
       
       return {
         date: latestDate,

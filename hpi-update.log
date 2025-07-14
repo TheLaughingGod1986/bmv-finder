@@ -148,3 +148,33 @@
 [2025-07-13T00:05:24.828Z] [INFO] Indexed batch: 424/424 records
 [2025-07-13T00:05:24.828Z] [INFO] Successfully indexed 424 HPI records
 [2025-07-13T00:05:24.828Z] [INFO] HPI update completed successfully. Indexed 424 records.
+[2025-07-13T02:00:01.441Z] [INFO] Starting HPI update process...
+[2025-07-13T02:00:01.938Z] [INFO] Elasticsearch connection successful
+[2025-07-13T02:00:02.354Z] [INFO] HPI index already exists: house_price_index
+[2025-07-13T02:00:02.355Z] [INFO] Reading HPI data from local file...
+[2025-07-13T02:00:02.357Z] [INFO] Read 105679 characters from local HPI file
+[2025-07-13T02:00:02.357Z] [INFO] Parsing 425 HPI records...
+[2025-07-13T02:00:02.366Z] [INFO] Parsed 424 valid HPI records out of 425 total records
+[2025-07-13T02:00:02.366Z] [INFO] Indexing 424 HPI records...
+[2025-07-13T02:00:02.791Z] [INFO] Indexed batch: 100/424 records
+[2025-07-13T02:00:02.902Z] [INFO] Indexed batch: 200/424 records
+[2025-07-13T02:00:03.011Z] [INFO] Indexed batch: 300/424 records
+[2025-07-13T02:00:03.121Z] [INFO] Indexed batch: 400/424 records
+[2025-07-13T02:00:03.231Z] [INFO] Indexed batch: 424/424 records
+[2025-07-13T02:00:03.232Z] [INFO] Successfully indexed 424 HPI records
+[2025-07-13T02:00:03.232Z] [INFO] HPI update completed successfully. Indexed 424 records.
+[2025-07-14T15:58:35.917Z] [INFO] Starting HPI update process...
+[2025-07-14T15:58:36.413Z] [INFO] Elasticsearch connection successful
+[2025-07-14T15:58:36.818Z] [INFO] HPI index already exists: house_price_index
+[2025-07-14T15:58:36.818Z] [INFO] Reading HPI data from local file...
+[2025-07-14T15:58:36.820Z] [INFO] Read 105679 characters from local HPI file
+[2025-07-14T15:58:36.820Z] [INFO] Parsing 425 HPI records...
+[2025-07-14T15:58:36.823Z] [INFO] Parsed 424 valid HPI records out of 425 total records
+[2025-07-14T15:58:36.823Z] [INFO] Indexing 424 HPI records...
+[2025-07-14T15:58:37.244Z] [INFO] Indexed batch: 100/424 records
+[2025-07-14T15:58:37.354Z] [INFO] Indexed batch: 200/424 records
+[2025-07-14T15:58:37.463Z] [INFO] Indexed batch: 300/424 records
+[2025-07-14T15:58:37.574Z] [INFO] Indexed batch: 400/424 records
+[2025-07-14T15:58:37.683Z] [INFO] Successfully indexed 424 HPI records
+[2025-07-14T15:58:37.683Z] [INFO] Indexed batch: 424/424 records
+[2025-07-14T15:58:37.683Z] [INFO] HPI update completed successfully. Indexed 424 records.
