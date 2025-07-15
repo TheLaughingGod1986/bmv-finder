@@ -2,7 +2,7 @@ import { Client } from '@elastic/elasticsearch';
 import fs from 'fs';
 import path from 'path';
 import { parse } from 'csv-parse';
-import { format } from 'date-fns';
+import { parse as parseDate, format } from 'date-fns';
 
 const HPI_INDEX = 'house_price_index';
 
@@ -87,7 +87,7 @@ export function calculateYoYGrowth(
 ): number | null {
   const thisIndex = getIndex(hpiData, region, date);
   // Subtract 1 year (assume date is YYYY-MM)
-  const dt = parse(date + '-01', 'yyyy-MM-dd', new Date());
+  const dt = parseDate(date + '-01', 'yyyy-MM-dd', new Date());
   const prevYear = format(new Date(dt.setFullYear(dt.getFullYear() - 1)), 'yyyy-MM');
   const lastYearIndex = getIndex(hpiData, region, prevYear);
   if (thisIndex == null || lastYearIndex == null) return null;

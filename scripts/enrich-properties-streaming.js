@@ -31,7 +31,6 @@ async function enrichPropertiesStreaming({
       .on('data', (row) => {
         const uprn = row.UPRN || row.uprn;
         if (!uprn) return;
-        
         // Keep most recent EPC for each UPRN
         const date = row['INSPECTION_DATE'] || row['LODGEMENT_DATE'];
         if (!epcMap.has(uprn) || (date && epcMap.get(uprn).date < date)) {
@@ -46,69 +45,65 @@ async function enrichPropertiesStreaming({
       })
       .on('end', () => {
         console.log(`✅ Loaded ${epcCount.toLocaleString()} EPC records for ${epcMap.size.toLocaleString()} unique UPRNs`);
-        processProperties(epcMap);
+        processProperties(epcMap, resolve, reject);
       })
       .on('error', reject);
+
+    function processProperties(epcMap, resolve, reject) {
+      console.log('\n🔄 Processing properties in streaming mode...');
+      let processedCount = 0;
+      let enrichedCount = 0;
+      let batchCount = 0;
+      let headers = null;
+      const outputStream = fs.createWriteStream(outputPath);
+      const csvStream = fastcsv.format({ headers: true });
+      csvStream.pipe(outputStream);
+
+      fs.createReadStream(propertiesPath)
+        .pipe(csv())
+        .on('headers', (headerList) => {
+          headers = headerList;
+          // Add new fields if not present
+          if (!headers.includes('bedrooms')) headers.push('bedrooms');
+          if (!headers.includes('property_size')) headers.push('property_size');
+          if (!headers.includes('epc_rating')) headers.push('epc_rating');
+          csvStream.write(headers);
+        })
+        .on('data', (row) => {
+          const uprn = row.UPRN || row.uprn;
+          // Add enriched fields
+          if (uprn && epcMap.has(uprn)) {
+            const epc = epcMap.get(uprn);
+            row.bedrooms = epc.bedrooms;
+            row.property_size = epc.property_size;
+            row.epc_rating = epc.epc_rating;
+            enrichedCount++;
+          } else {
+            row.bedrooms = '';
+            row.property_size = '';
+            row.epc_rating = '';
+          }
+          csvStream.write(row);
+          processedCount++;
+          // Progress reporting
+          if (processedCount % batchSize === 0) {
+            batchCount++;
+            const enrichmentRate = ((enrichedCount / processedCount) * 100).toFixed(2);
+            console.log(`📊 Batch ${batchCount}: ${processedCount.toLocaleString()} processed, ${enrichedCount.toLocaleString()} enriched (${enrichmentRate}%)`);
+          }
+        })
+        .on('end', () => {
+          csvStream.end();
+          const finalEnrichmentRate = ((enrichedCount / processedCount) * 100).toFixed(2);
+          console.log(`\n🎉 Enrichment complete!`);
+          console.log(`📈 Total processed: ${processedCount.toLocaleString()}`);
+          console.log(`✨ Total enriched: ${enrichedCount.toLocaleString()} (${finalEnrichmentRate}%)`);
+          console.log(`💾 Output saved to: ${outputPath}`);
+          resolve({ processedCount, enrichedCount, enrichmentRate: finalEnrichmentRate });
+        })
+        .on('error', reject);
+    }
   });
-
-  function processProperties(epcMap) {
-    console.log('\n🔄 Processing properties in streaming mode...');
-    
-    let processedCount = 0;
-    let enrichedCount = 0;
-    let batchCount = 0;
-    let headers = null;
-    const outputStream = fs.createWriteStream(outputPath);
-    const csvStream = fastcsv.format({ headers: true });
-    csvStream.pipe(outputStream);
-
-    fs.createReadStream(propertiesPath)
-      .pipe(csv())
-      .on('headers', (headerList) => {
-        headers = headerList;
-        // Add new fields if not present
-        if (!headers.includes('bedrooms')) headers.push('bedrooms');
-        if (!headers.includes('property_size')) headers.push('property_size');
-        if (!headers.includes('epc_rating')) headers.push('epc_rating');
-        csvStream.write(headers);
-      })
-      .on('data', (row) => {
-        const uprn = row.UPRN || row.uprn;
-        
-        // Add enriched fields
-        if (uprn && epcMap.has(uprn)) {
-          const epc = epcMap.get(uprn);
-          row.bedrooms = epc.bedrooms;
-          row.property_size = epc.property_size;
-          row.epc_rating = epc.epc_rating;
-          enrichedCount++;
-        } else {
-          row.bedrooms = '';
-          row.property_size = '';
-          row.epc_rating = '';
-        }
-
-        csvStream.write(row);
-        processedCount++;
-
-        // Progress reporting
-        if (processedCount % batchSize === 0) {
-          batchCount++;
-          const enrichmentRate = ((enrichedCount / processedCount) * 100).toFixed(2);
-          console.log(`📊 Batch ${batchCount}: ${processedCount.toLocaleString()} processed, ${enrichedCount.toLocaleString()} enriched (${enrichmentRate}%)`);
-        }
-      })
-      .on('end', () => {
-        csvStream.end();
-        const finalEnrichmentRate = ((enrichedCount / processedCount) * 100).toFixed(2);
-        console.log(`\n🎉 Enrichment complete!`);
-        console.log(`📈 Total processed: ${processedCount.toLocaleString()}`);
-        console.log(`✨ Total enriched: ${enrichedCount.toLocaleString()} (${finalEnrichmentRate}%)`);
-        console.log(`💾 Output saved to: ${outputPath}`);
-        resolve({ processedCount, enrichedCount, enrichmentRate: finalEnrichmentRate });
-      })
-      .on('error', reject);
-  }
 }
 
 // If run directly, execute the enrichment

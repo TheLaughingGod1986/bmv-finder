@@ -42,6 +42,7 @@
     "mobile-app/**/*",
     ".next",
     "out",
-    "dist"
+    "dist",
+    "instrumentation-client.ts"
   ]
 }

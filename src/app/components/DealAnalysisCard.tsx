@@ -137,6 +137,22 @@ export default function DealAnalysisCard({ data, loading = false }: DealAnalysis
     });
   };
 
+  // Calculate predictions for the value table
+  const currentValue = data.deal_metrics.hpi_adjusted_value || data.deal_metrics.last_sold_price || 0;
+  // Try to get a growth rate from HPI data or market_insights, fallback to 0.03 (3%)
+  let annualGrowthRate = 0.03;
+  if (data.hpi_data && data.hpi_data.length > 0) {
+    // Use the most recent hpi_change as annualized rate if available
+    const recentHpi = data.hpi_data[0];
+    if (recentHpi && typeof recentHpi.hpi_change === 'number') {
+      annualGrowthRate = recentHpi.hpi_change / 100;
+    }
+  } else if (typeof data.market_insights.price_trend === 'string') {
+    if (data.market_insights.price_trend === 'rising') annualGrowthRate = 0.04;
+    if (data.market_insights.price_trend === 'falling') annualGrowthRate = 0.01;
+  }
+  const predictions = predictFutureValues(currentValue, annualGrowthRate);
+
   return (
     <Card className="w-full">
       <CardHeader>
