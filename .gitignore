@@ -55,3 +55,5 @@ github-actions.pub
 
 # Sentry Config File
 .env.sentry-build-plugin
+*.csv
+data/
