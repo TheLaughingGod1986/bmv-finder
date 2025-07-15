@@ -8,6 +8,8 @@ import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from '../components/UpgradePrompt';
 import { apiClient } from '@/lib/apiClient';
+import { formatPostcode } from '@/utils/formatPostcode';
+import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 
 export default function WhatShouldIPayPage() {
   const [postcode, setPostcode] = useState('');
@@ -20,6 +22,7 @@ export default function WhatShouldIPayPage() {
   const { tier, loading: tierLoading } = useUserTier(user?.id);
   const [payCount, setPayCount] = useState<number>(0);
   const [limitHit, setLimitHit] = useState(false);
+  const { history, saveToHistory } = usePostcodeHistory();
 
   useEffect(() => {
     if (!user) return;
@@ -34,6 +37,7 @@ export default function WhatShouldIPayPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const formattedPostcode = formatPostcode(postcode.trim());
     if (tier === 'free' && payCount >= 1) {
       setLimitHit(true);
       return;
@@ -46,7 +50,7 @@ export default function WhatShouldIPayPage() {
         await apiClient.incrementUsage(user?.id, 'pay');
       }
       const response = await apiClient.getWhatShouldIPay({
-        postcode,
+        postcode: formattedPostcode,
         propertyType,
         offerMargin
       });
@@ -55,6 +59,7 @@ export default function WhatShouldIPayPage() {
         throw new Error(response.error);
       }
       setResult(response.data);
+      saveToHistory(formattedPostcode);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -84,10 +89,40 @@ export default function WhatShouldIPayPage() {
           <input
             type="text"
             value={postcode}
-            onChange={e => setPostcode(e.target.value)}
+            onChange={e => {
+              const input = e.target.value;
+              // Format as user types if it looks like a postcode
+              if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
+                const formatted = formatPostcode(input);
+                setPostcode(formatted);
+              } else {
+                setPostcode(input.toUpperCase());
+              }
+            }}
+            onBlur={e => {
+              const formatted = formatPostcode(e.target.value);
+              if (formatted !== e.target.value) {
+                setPostcode(formatted);
+              }
+            }}
             className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400"
             required
           />
+          {/* History dropdown */}
+          {history.length > 0 && (
+            <div className="mt-1 text-xs text-gray-500">
+              Recent: {history.slice(0, 3).map((h, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setPostcode(h)}
+                  className="mr-2 text-blue-600 hover:text-blue-800 underline"
+                >
+                  {h}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div>
           <label className="block font-medium mb-1">Property Type</label>

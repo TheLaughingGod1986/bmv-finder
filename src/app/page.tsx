@@ -367,14 +367,21 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-4xl mx-auto"
+            className="max-w-6xl mx-auto"
           >
-            <EnhancedSearch
-              value={searchTerm}
-              onChange={setSearchTerm}
-              onSearch={handleHeroSearch}
-              isLoading={isLoading}
-            />
+            <Section className="mb-12">
+              <EnhancedSearch
+                value={searchTerm}
+                onChange={setSearchTerm}
+                onSearch={handleSearch}
+                isLoading={isLoading}
+              />
+              <div className="mt-6 text-center">
+                <a href="/advanced-deal-analysis" className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold shadow hover:bg-primary-700 transition">
+                  Try Advanced Deal Analysis
+                </a>
+              </div>
+            </Section>
           </motion.div>
 
           {/* Quick Stats */}

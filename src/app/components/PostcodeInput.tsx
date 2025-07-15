@@ -5,6 +5,8 @@ import { Search, MapPin, Clock, X, Loader2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { apiClient } from '@/lib/apiClient';
+import { formatPostcode } from '../../utils/formatPostcode';
+import { usePostcodeHistory } from '../../utils/usePostcodeHistory';
 
 interface PostcodeInputProps {
   value: string;
@@ -60,7 +62,7 @@ const PostcodeInput: React.FC<PostcodeInputProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPostcode, setIsPostcode] = useState(false);
   const [isValidPostcode, setIsValidPostcode] = useState(true);
-  const [history, setHistory] = useState<string[]>([]);
+  const { history, saveToHistory } = usePostcodeHistory(showHistory);
 
   // Load history from localStorage
   useEffect(() => {
@@ -119,14 +121,15 @@ const PostcodeInput: React.FC<PostcodeInputProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const safeValue = value || '';
-    if (safeValue.trim() && !isLoading && !disabled) {
+    let safeValue = value || '';
+    safeValue = formatPostcode(safeValue.trim());
+    if (safeValue && !isLoading && !disabled) {
       if (onSubmit) {
         onSubmit(e);
       } else if (onSearch) {
-        onSearch(safeValue.trim());
+        onSearch(safeValue);
       }
-      saveToHistory(safeValue.trim());
+      saveToHistory(safeValue);
       setShowDropdown(false);
     }
   };
@@ -158,7 +161,13 @@ const PostcodeInput: React.FC<PostcodeInputProps> = ({
 
   const handleBlur = () => {
     setFocused(false);
-    // Delay hiding dropdown to allow for clicks
+    // Format postcode on blur
+    if (value) {
+      const formatted = formatPostcode(value);
+      if (formatted !== value) {
+        onChange(formatted);
+      }
+    }
     setTimeout(() => setShowDropdown(false), 200);
   };
 
@@ -169,9 +178,9 @@ const PostcodeInput: React.FC<PostcodeInputProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let input = e.target.value || '';
-    // If it looks like a postcode (starts with a letter and contains a digit), format it
+    // Format as user types if it looks like a postcode
     if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
-      input = formatIfPostcode(input);
+      input = formatPostcode(input);
       onChange(input.toUpperCase());
     } else {
       onChange(input);

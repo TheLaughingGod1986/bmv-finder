@@ -11,7 +11,12 @@ import {
   Calculator,
   Building2,
   X,
-  Map
+  Map,
+  TrendingUp,
+  Target,
+  Home,
+  PieChart,
+  FileText
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -25,13 +30,14 @@ interface UpdateStats {
 }
 
 const minimalistNavItems = [
-  { name: 'Past Sales Search', href: '/', icon: Search },
-  { name: 'HPI Search', href: '/hpi-search', icon: BarChart3 },
-  { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: BarChart3 },
-  { name: 'What Should I Pay?', href: '/what-should-i-pay', icon: PoundSterling },
-  { name: 'Deal Calculator', href: '/deal-calculator', icon: Calculator },
-  { name: 'Portfolio Tracker', href: '/portfolio-tracker', icon: BarChart3 },
-  { name: 'Project Roadmap', href: '/roadmap', icon: Map }
+  { name: 'Property Search', href: '/', icon: Search, description: 'Find sold prices' },
+  { name: 'Deal Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'Investment analysis' },
+  { name: 'HPI Trends', href: '/hpi-search', icon: TrendingUp, description: 'Price trends' },
+  { name: 'Valuation Tool', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },
+  { name: 'ROI Calculator', href: '/deal-calculator', icon: Calculator, description: 'Calculate returns' },
+  { name: 'Portfolio', href: '/portfolio-tracker', icon: PieChart, description: 'Track investments' },
+  { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: BarChart3, description: 'Market insights' },
+  { name: 'Roadmap', href: '/roadmap', icon: Map, description: 'Development plan' }
 ];
 
 export default function Navigation() {
@@ -199,7 +205,10 @@ export default function Navigation() {
                       aria-label={item.name}
                     >
                       <Icon className="w-6 h-6 flex-shrink-0" />
-                      <span className="text-base font-medium">{item.name}</span>
+                      <div className="flex flex-col">
+                        <span className="text-base font-medium">{item.name}</span>
+                        <span className="text-sm text-gray-500">{item.description}</span>
+                      </div>
                     </Link>
                   );
                 })}
