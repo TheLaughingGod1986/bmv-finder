@@ -4,7 +4,7 @@ const path = require('path');
 const https = require('https');
 const { pipeline } = require('stream');
 const { promisify } = require('util');
-const csv = require('csv-parser');
+const { parse } = require('csv-parse');
 const AdmZip = require('adm-zip');
 require('dotenv').config();
 
@@ -144,7 +144,15 @@ function parseHpiData(csvPath) {
     const results = [];
     
     fs.createReadStream(csvPath)
-      .pipe(csv())
+      .pipe(parse({
+        delimiter: ',',
+        skip_empty_lines: true,
+        columns: true,
+        trim: true,
+        skip_records_with_empty_values: true,
+        skip_records_with_error: true,
+        bom: true
+      }))
       .on('data', (row) => {
         // Skip header rows and empty data
         if (!row['V4_0'] || row['V4_0'] === 'V4_0') return;

@@ -1,8 +1,8 @@
 import { Client } from '@elastic/elasticsearch';
 import fs from 'fs';
 import path from 'path';
-import csv from 'csv-parser';
-import { parse, format } from 'date-fns';
+import { parse } from 'csv-parse';
+import { format } from 'date-fns';
 
 const HPI_INDEX = 'house_price_index';
 
@@ -14,7 +14,10 @@ async function loadHpiCsv() {
   const file = path.join(process.cwd(), 'data/hpi.csv');
   return new Promise((resolve, reject) => {
     fs.createReadStream(file)
-      .pipe(csv())
+      .pipe(parse({
+        columns: true,
+        skip_empty_lines: true,
+      }))
       .on('data', (row) => {
         const region = row.region;
         const date = row.date;

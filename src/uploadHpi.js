@@ -1,7 +1,7 @@
 const { Client } = require('@elastic/elasticsearch');
 const fs = require('fs');
 const path = require('path');
-const csv = require('csv-parser');
+const { parse } = require('csv-parse');
 require('dotenv').config();
 const yargs = require('yargs/yargs');
 const { hideBin } = require('yargs/helpers');
@@ -75,7 +75,11 @@ function parseLocalHpiData(csvPath) {
     }
     
     fs.createReadStream(csvPath)
-      .pipe(csv())
+      .pipe(parse({
+        columns: true, // Parse headers
+        skip_empty_lines: true,
+        trim: true
+      }))
       .on('data', (row) => {
         // Handle different CSV formats
         const region = row.region || row.Region || row.REGION;
