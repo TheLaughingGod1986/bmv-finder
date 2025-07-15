@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Search, MapPin, TrendingUp, TrendingDown, Calendar, Building, PoundSterling, Info, X, Loader2, AlertTriangle, BarChart3 } from 'lucide-react';
+import React, { useState } from 'react';
+import { TrendingUp, TrendingDown, Calendar, Building, PoundSterling, Info, BarChart3, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
+import PostcodeInput from './PostcodeInput';
+import { apiClient } from '../../lib/apiClient';
 
 interface HpiRecord {
   region: string;
@@ -64,33 +66,12 @@ function MiniTrendChart({ data }: { data: HpiRecord[] }) {
 
 const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClose }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [isValidPostcode, setIsValidPostcode] = useState(true);
   const [data, setData] = useState<HpiRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<string | null>(null);
   const [region, setRegion] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const trimmed = searchTerm.trim();
-    if (trimmed.length > 0) {
-      setIsValidPostcode(POSTCODE_REGEX.test(trimmed.toUpperCase()));
-    } else {
-      setIsValidPostcode(true);
-    }
-  }, [searchTerm]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    let input = e.target.value || '';
-    if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
-      input = formatIfPostcode(input);
-      setSearchTerm(input.toUpperCase());
-    } else {
-      setSearchTerm(input);
-    }
-  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,18 +93,16 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
     setHasSearched(true);
 
     try {
-      const response = await fetch(`/api/hpi/postcode?postcode=${encodeURIComponent(trimmed)}`);
-      const result = await response.json();
-      
-      if (response.ok && result.results && result.results.length > 0) {
-        setData(result.results);
-        setSource(result.source);
-        if (result.region) setRegion(result.region);
+      const response = await apiClient.getHpiData(trimmed);
+      if (!response.error && response.data && typeof response.data === 'object' && 'results' in response.data && Array.isArray((response.data as any).results) && (response.data as any).results.length > 0) {
+        setData((response.data as any).results);
+        setSource((response.data as any).source);
+        if ((response.data as any).region) setRegion((response.data as any).region);
       } else {
         setData([]);
-        setSource(result.source || null);
-        setRegion(result.region || null);
-        setError(result.error || 'No HPI data found for this postcode');
+        setSource((response.data as any).source || null);
+        setRegion((response.data as any).region || null);
+        setError((response.data as any).error || 'No HPI data found for this postcode');
       }
     } catch (err) {
       setError('Failed to fetch HPI data. Please try again.');
@@ -136,15 +115,7 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
     }
   };
 
-  const handleClear = () => {
-    setSearchTerm('');
-    setData([]);
-    setError(null);
-    setHasSearched(false);
-    setSource(null);
-    setRegion(null);
-    inputRef.current?.focus();
-  };
+
 
   const latestData = data[0];
   const hasGrowthData = latestData?.monthOverMonth !== undefined || latestData?.yearOverYear !== undefined;
@@ -174,57 +145,16 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
       </div>
 
       {/* Search Form */}
-      <form onSubmit={handleSearch} className="mb-6">
-        <div className="relative">
-          <div className="relative flex items-center bg-gray-50 rounded-lg border-2 border-gray-200 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20 transition-all duration-200">
-            <div className="absolute left-4 text-text-tertiary">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <input
-              ref={inputRef}
-              type="text"
-              className="w-full bg-transparent outline-none text-base px-12 py-4 placeholder-gray-400 text-text-primary"
-              placeholder="Enter UK postcode (e.g., SW1A 1AA)"
-              value={searchTerm}
-              onChange={handleInputChange}
-              aria-label="Enter UK postcode"
-              autoComplete="off"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={handleClear}
-                className="absolute right-16 p-1 text-text-tertiary hover:text-text-primary transition-colors"
-                aria-label="Clear search"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            )}
-            <button
-              type="submit"
-              disabled={loading || !searchTerm.trim() || !isValidPostcode}
-              className="absolute right-2 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white rounded-md p-2 transition-colors disabled:cursor-not-allowed"
-              aria-label="Search HPI data"
-            >
-              {loading ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Search className="w-4 h-4" />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Postcode Validation */}
-        {searchTerm && !isValidPostcode && (
-          <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" />
-              Please enter a valid UK postcode format (e.g., SW1A 1AA)
-            </p>
-          </div>
-        )}
-      </form>
+      <div className="mb-6">
+        <PostcodeInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          onSubmit={handleSearch}
+          placeholder="Enter UK postcode (e.g., SW1A 1AA)"
+          isLoading={loading}
+          aria-label="Enter UK postcode for HPI search"
+        />
+      </div>
 
       {/* Results */}
       <AnimatePresence>
@@ -281,7 +211,7 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
                       <span className="text-sm font-medium text-gray-700">HPI Index</span>
                     </div>
                     <div className="text-lg font-semibold text-text-primary">
-                      {latestData.index.toFixed(1)}
+                      {latestData && typeof latestData.index === 'number' ? latestData.index.toFixed(1) : 'N/A'}
                     </div>
                   </div>
                 </div>
@@ -352,7 +282,7 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
                       {data.slice(0, 5).map((record, index) => (
                         <div key={index} className="flex justify-between items-center text-sm">
                           <span className="text-text-secondary">{record.date}</span>
-                          <span className="font-medium text-text-primary">{record.index.toFixed(1)}</span>
+                          <span className="font-medium text-text-primary">{typeof record.index === 'number' && !isNaN(record.index) ? record.index.toFixed(1) : 'N/A'}</span>
                         </div>
                       ))}
                     </div>

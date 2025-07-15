@@ -1,15 +1,8 @@
-const { Client } = require('@elastic/elasticsearch');
+const { esClient } = require('../src/lib/esClient.cjs.js');
 
-const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
-  auth: {
-    apiKey: process.env.ELASTICSEARCH_API_KEY || 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
-  },
-  tls: { rejectUnauthorized: false }
-});
-
-const OLD_INDEX = 'properties';
-const NEW_INDEX = 'properties_v2';
+// Configuration
+const OLD_INDEX = 'properties_v2'; // Source index (if it exists)
+const NEW_INDEX = 'properties';     // Target index (current Docker index)
 
 async function createNewIndex() {
   const exists = await esClient.indices.exists({ index: NEW_INDEX });

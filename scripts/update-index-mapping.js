@@ -121,7 +121,7 @@ async function updateIndexMapping() {
       console.log('This error might be expected if the fields already exist. Trying alternative approach...');
       
       // Try to create a new index with a different name
-      const newIndexName = 'properties_v2';
+      const newIndexName = 'properties';
       console.log(`Creating new index: ${newIndexName}`);
       
       await esClient.indices.create({

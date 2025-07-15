@@ -7,15 +7,7 @@ require('dotenv').config();
 
 // Elasticsearch client
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'https://localhost:9200',
-  auth: {
-    username: process.env.ES_USERNAME || 'elastic',
-    password: process.env.ES_PASSWORD || 'TIRv--dMe*rHmuRMm-b4'
-  },
-  tls: {
-    ca: fs.existsSync('elasticsearch-8.13.0/config/certs/http_ca.crt') ? fs.readFileSync('elasticsearch-8.13.0/config/certs/http_ca.crt') : undefined,
-    rejectUnauthorized: true
-  }
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201'
 });
 
 const INDEX_NAME = 'properties';
@@ -117,8 +109,50 @@ async function indexBatch(batch) {
   }
 }
 
+async function createIndexIfNotExists() {
+  const exists = await esClient.indices.exists({ index: INDEX_NAME });
+  if (!exists) {
+    await esClient.indices.create({
+      index: INDEX_NAME,
+      body: {
+        settings: {
+          number_of_shards: 1,
+          number_of_replicas: 0
+        },
+        mappings: {
+          properties: {
+            id: { type: 'keyword' },
+            price: { type: 'long' },
+            dateOfTransfer: { type: 'date' },
+            postcode: { type: 'keyword' },
+            propertyType: { type: 'keyword' },
+            propertyTypeLabel: { type: 'text' },
+            street: { type: 'text' },
+            town_city: { type: 'text' },
+            county: { type: 'keyword' },
+            paon: { type: 'text' },
+            saon: { type: 'text' },
+            duration: { type: 'keyword' },
+            durationLabel: { type: 'text' },
+            locality: { type: 'text' },
+            fullAddress: { type: 'text' },
+            year: { type: 'integer' },
+            month: { type: 'integer' },
+            priceRange: { type: 'keyword' }
+          }
+        }
+      }
+    });
+    console.log(`Index '${INDEX_NAME}' created successfully!`);
+  } else {
+    console.log(`Index '${INDEX_NAME}' already exists.`);
+  }
+}
+
+// Call createIndexIfNotExists at the start of incrementalUpdate
 async function incrementalUpdate() {
   try {
+    await createIndexIfNotExists();
     console.log('Starting incremental update...');
     // Get the latest transaction date from current data
     const latestDate = await getLatestTransactionDate();

@@ -60,7 +60,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
 
   // Helper to normalize address for grouping
   const addressKey = (sp: SoldPrice) =>
-    [sp.paon, sp.street, sp.postcode].map(x => (x || '').trim().toLowerCase()).join('|');
+    [sp.saon, sp.paon, sp.street, sp.postcode].map(x => (x || '').trim().toLowerCase()).join('|');
 
   const formatPropertyType = (type: string) => {
     const types: { [key: string]: string } = {
@@ -99,6 +99,29 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);
+  };
+
+  // Calculate median price for price indicators
+  const validPrices = soldPrices.map(p => Number(p.price)).filter(p => !isNaN(p) && p > 0);
+  const calculateMedian = (prices: number[]) => {
+    if (prices.length === 0) return null;
+    const sorted = [...prices].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0 
+      ? (sorted[mid - 1] + sorted[mid]) / 2 
+      : sorted[mid];
+  };
+  const medianPrice = calculateMedian(validPrices);
+  const getPriceIndicator = (price: number | null, median: number | null) => {
+    if (!price || !median) return { label: 'N/A', color: 'gray', bgColor: 'bg-gray-100', textColor: 'text-gray-600', icon: '' };
+    const diff = (price - median) / median;
+    if (diff <= -0.05) {
+      return { label: 'Good Deal', color: 'green', bgColor: 'bg-[#5DA271]', textColor: 'text-white', icon: '↓' };
+    } else if (diff >= 0.05) {
+      return { label: 'Expensive', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-800', icon: '↑' };
+    } else {
+      return { label: 'Fair Price', color: 'yellow', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: '→' };
+    }
   };
 
   const SortableHeader = ({ 
@@ -177,6 +200,24 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
         return null;
       })}
       
+      {/* Price Indicator Legend */}
+      {soldPrices.length > 0 && medianPrice !== null && (
+        <div className="mb-2 p-2 bg-gray-50 rounded-lg">
+          <div className="text-xs font-medium text-gray-700 mb-1">Price Indicators:</div>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: '#5DA271', color: '#fff' }}>
+              <span>↓</span> Good Deal (5%+ below median)
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
+              <span>→</span> Fair Price (within 5% of median)
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800">
+              <span>↑</span> Expensive (5%+ above median)
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Desktop Table View */}
       <div className="hidden lg:block overflow-x-auto">
         <table className="w-full border-collapse">
@@ -275,11 +316,21 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                   <td className="px-6 py-4 text-sm text-text-primary">
                     {formatDate(property.dateOfTransfer)}
                   </td>
-                  <td className="px-6 py-4">
+                  <td className="px-4 py-2">
                     <div className="text-sm font-semibold text-text-primary">
                       {formatPrice(property.price)}
                     </div>
-                                         <BMVScoreBadge score={property.bmvScore || 0} className="mt-1" />
+                    {/* Price Indicator Badge */}
+                    {(() => {
+                      const indicator = getPriceIndicator(Number(property.price), medianPrice);
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-0.5 ${indicator.bgColor} ${indicator.textColor}`}
+                          style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}}>
+                          <span className="text-xs">{indicator.icon}</span>
+                          {indicator.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-6 py-4">
                     <span className={cn(
@@ -382,12 +433,23 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                 </div>
 
                 {/* Property Details */}
-                <div className="grid grid-cols-2 gap-4 mb-3">
+                <div className="grid grid-cols-2 gap-3 mb-2">
                   <div>
-                    <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1">Price</p>
+                    <p className="text-xs text-text-tertiary uppercase tracking-wide mb-0.5">Price</p>
                     <p className="text-lg font-bold text-text-primary">
                       {formatPrice(property.price)}
                     </p>
+                    {/* Price Indicator Badge (Mobile) */}
+                    {(() => {
+                      const indicator = getPriceIndicator(Number(property.price), medianPrice);
+                      return (
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-0.5 ${indicator.bgColor} ${indicator.textColor}`}
+                          style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}}>
+                          <span className="text-xs">{indicator.icon}</span>
+                          {indicator.label}
+                        </span>
+                      );
+                    })()}
                   </div>
                   <div>
                     <p className="text-xs text-text-tertiary uppercase tracking-wide mb-1">Date</p>
@@ -409,11 +471,6 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                     {property.duration === 'F' ? 'Freehold' : 'Leasehold'}
                   </span>
                 </div>
-
-                                 {/* BMV Score */}
-                 <div className="mb-3">
-                   <BMVScoreBadge score={property.bmvScore || 0} />
-                 </div>
 
                 {/* Multiple Sales Indicator */}
                 {count > 1 && (

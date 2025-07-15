@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Home, Calendar, PoundSterling, MapPin, TrendingUp, TrendingDown, Minus, Building, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Info, MapPin, Calendar, PoundSterling, X, Home, Building } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../lib/utils';
+import { apiClient } from '@/lib/apiClient';
 
 interface SaleRecord {
   transactionId: string;
@@ -57,14 +59,13 @@ const RecentSalesDisplay: React.FC<RecentSalesDisplayProps> = ({ postcode, isVis
       setError(null);
       
       try {
-        const response = await fetch(`/api/recent-sales?postcode=${encodeURIComponent(postcode)}`);
+        const response = await apiClient.getRecentSales(postcode);
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.error) {
+          throw new Error(response.error);
         }
         
-        const result = await response.json();
-        setData(result);
+        setData(response.data as RecentSalesData);
       } catch (err) {
         console.error('Error fetching recent sales:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch recent sales data');

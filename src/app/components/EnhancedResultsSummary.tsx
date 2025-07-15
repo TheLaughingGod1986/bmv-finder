@@ -80,11 +80,19 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
             <div className="text-xs text-text-secondary">Total Properties</div>
           </div>
           
-          <div className="text-center">
+          <div className="text-center relative group">
             <div className="text-2xl font-bold text-secondary-600">
               {displayedCount}
             </div>
-            <div className="text-xs text-text-secondary">Displayed</div>
+            <div className="text-xs text-text-secondary inline-flex items-center gap-1">
+              Displayed
+              <span className="ml-1 cursor-pointer">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 text-gray-400 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 16v-4m0-4h.01" /></svg>
+                <span className="absolute left-1/2 -translate-x-1/2 mt-2 w-64 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20 whitespace-normal shadow-lg pointer-events-none">
+                  Only properties with complete price and address details are shown. Duplicates are also removed.
+                </span>
+              </span>
+            </div>
           </div>
           {totalGrowth && (
             <div className="text-center flex flex-col items-center">
@@ -101,6 +109,13 @@ const EnhancedResultsSummary: React.FC<EnhancedResultsSummaryProps> = ({
             </div>
           )}
         </div>
+        {/* Inline explanation note */}
+        {displayedCount < totalCount && (
+          <div className="mt-2 text-xs text-gray-500 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="10" strokeWidth="2" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 16v-4m0-4h.01" /></svg>
+            Some results are hidden due to missing price or address details, or because they are duplicates.
+          </div>
+        )}
       </div>
     </div>
   );

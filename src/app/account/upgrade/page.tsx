@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../lib/supabaseClient';
 import { getUserProfile } from '@/utils/getUserProfile';
 import { useToast } from '@/app/components/ToastProvider';
 import { format } from 'date-fns';
@@ -24,28 +24,10 @@ if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
   return loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY);
 }
 
-// Client-side only Supabase client
-function getSupabase() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
 // Custom hook for session management
 function useClientSession() {
   const [session, setSession] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  const supabase = useMemo(() => getSupabase(), []);
   
   useEffect(() => {
     if (!supabase) {
@@ -71,7 +53,7 @@ function useClientSession() {
     });
     
     return () => subscription.unsubscribe();
-  }, [supabase]);
+  }, []);
   
   return { session, loading };
 }

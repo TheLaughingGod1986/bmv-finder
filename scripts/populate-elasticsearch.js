@@ -3,15 +3,9 @@ const readline = require('readline');
 const { Client } = require('@elastic/elasticsearch');
 require('dotenv').config();
 
-// Elasticsearch client
+// Elasticsearch client - using localhost
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
-  auth: {
-    apiKey: process.env.ELASTICSEARCH_API_KEY || 'RXR5QXdKY0JuWEhXbkJLZ0JhZVo6N3AwRk9tdFBzcENwV2hwdzVudjJ4Zw=='
-  },
-  tls: {
-    rejectUnauthorized: false
-  },
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
   requestTimeout: 60000, // 60 seconds timeout
   maxRetries: 3,
   retryOnTimeout: true,
@@ -132,7 +126,11 @@ async function createIndex() {
             fullAddress: { type: 'text' },
             year: { type: 'integer' },
             month: { type: 'integer' },
-            priceRange: { type: 'keyword' }
+            priceRange: { type: 'keyword' },
+            // New fields for enrichment
+            bedrooms: { type: 'keyword' },
+            property_size: { type: 'float' },
+            epc_rating: { type: 'keyword' }
           }
         }
       }
@@ -179,29 +177,36 @@ function parseCSVLine(line, lineNumber) {
     return null;
   }
 
+  // Support for enriched CSV with new fields
+  // Standard columns (16): transactionId, price, dateOfTransfer, postcode, propertyType, old_new, duration, paon, saon, street, locality, town_city, district, county, transactionCategory, recordStatus
+  // Enriched columns (may be at 16, 17, 18): bedrooms, property_size, epc_rating
   const [
     transactionId, price, dateOfTransfer, postcode, propertyType,
     old_new, duration, paon, saon, street, locality, town_city,
-    district, county, transactionCategory, recordStatus
+    district, county, transactionCategory, recordStatus,
+    bedrooms, property_size, epc_rating
   ] = values;
 
   // Clean up the values (remove quotes)
-  const cleanTransactionId = transactionId.replace(/"/g, '');
-  const cleanPrice = price.replace(/"/g, '');
-  const cleanDateOfTransfer = dateOfTransfer.replace(/"/g, '').split(' ')[0]; // Take only the date part
-  const cleanPostcode = postcode.replace(/"/g, '');
-  const cleanPropertyType = propertyType.replace(/"/g, '');
-  const cleanOldNew = old_new.replace(/"/g, '');
-  const cleanDuration = duration.replace(/"/g, '');
-  const cleanPaon = paon.replace(/"/g, '');
-  const cleanSaon = saon.replace(/"/g, '');
-  const cleanStreet = street.replace(/"/g, '');
-  const cleanLocality = locality.replace(/"/g, '');
-  const cleanTownCity = town_city.replace(/"/g, '');
-  const cleanDistrict = district.replace(/"/g, '');
-  const cleanCounty = county.replace(/"/g, '');
-  const cleanTransactionCategory = transactionCategory.replace(/"/g, '');
-  const cleanRecordStatus = recordStatus.replace(/"/g, '');
+  const cleanTransactionId = transactionId?.replace(/"/g, '');
+  const cleanPrice = price?.replace(/"/g, '');
+  const cleanDateOfTransfer = dateOfTransfer?.replace(/"/g, '').split(' ')[0]; // Take only the date part
+  const cleanPostcode = postcode?.replace(/"/g, '');
+  const cleanPropertyType = propertyType?.replace(/"/g, '');
+  const cleanOldNew = old_new?.replace(/"/g, '');
+  const cleanDuration = duration?.replace(/"/g, '');
+  const cleanPaon = paon?.replace(/"/g, '');
+  const cleanSaon = saon?.replace(/"/g, '');
+  const cleanStreet = street?.replace(/"/g, '');
+  const cleanLocality = locality?.replace(/"/g, '');
+  const cleanTownCity = town_city?.replace(/"/g, '');
+  const cleanDistrict = district?.replace(/"/g, '');
+  const cleanCounty = county?.replace(/"/g, '');
+  const cleanTransactionCategory = transactionCategory?.replace(/"/g, '');
+  const cleanRecordStatus = recordStatus?.replace(/"/g, '');
+  const cleanBedrooms = bedrooms?.replace(/"/g, '');
+  const cleanEpcRating = epc_rating?.replace(/"/g, '');
+  const cleanPropertySize = property_size ? parseFloat(property_size.replace(/"/g, '')) : undefined;
 
   // Skip if price is not a valid number
   const priceNum = parseInt(cleanPrice);
@@ -235,7 +240,11 @@ function parseCSVLine(line, lineNumber) {
     fullAddress: `${cleanPaon || ''} ${cleanSaon || ''} ${cleanStreet || ''} ${cleanTownCity || ''}`.trim(),
     year: new Date(cleanDateOfTransfer).getFullYear(),
     month: new Date(cleanDateOfTransfer).getMonth() + 1,
-    priceRange: getPriceRange(priceNum)
+    priceRange: getPriceRange(priceNum),
+    // New enrichment fields
+    bedrooms: cleanBedrooms || undefined,
+    property_size: isNaN(cleanPropertySize) ? undefined : cleanPropertySize,
+    epc_rating: cleanEpcRating || undefined
   };
 }
 
@@ -303,7 +312,7 @@ async function populateElasticsearch() {
 
     return new Promise((resolve, reject) => {
       const rl = readline.createInterface({
-        input: fs.createReadStream('pp-complete.csv'),
+        input: fs.createReadStream('pp-complete-updated.csv'),
         crlfDelay: Infinity
       });
 

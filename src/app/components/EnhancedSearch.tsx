@@ -9,6 +9,9 @@ import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from './UpgradePrompt';
 import Link from 'next/link';
 import HpiPostcodeSearch from './HpiPostcodeSearch';
+import { apiClient } from '@/lib/apiClient';
+import { formatPostcode } from '@/utils/formatPostcode';
+import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 
 interface EnhancedSearchProps {
   value: string;
@@ -20,20 +23,6 @@ interface EnhancedSearchProps {
 
 // UK postcode regex (loose, covers most cases)
 const POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]? ?[0-9][A-Z]{2}$/i;
-
-function formatIfPostcode(input: string) {
-  const upper = input.toUpperCase();
-  // Remove all non-alphanumeric except space
-  const cleaned = upper.replace(/[^A-Z0-9 ]/g, '');
-  // Remove all spaces for formatting
-  const noSpace = cleaned.replace(/\s+/g, '');
-  // Only format if it looks like a postcode (6 or 7 chars, ends with 3 letters/digits)
-  if (noSpace.length >= 5 && noSpace.length <= 8) {
-    // Insert space before last 3 chars
-    return noSpace.slice(0, -3) + ' ' + noSpace.slice(-3);
-  }
-  return cleaned;
-}
 
 const MAX_HISTORY = 5;
 
@@ -50,12 +39,12 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPostcode, setIsPostcode] = useState(false);
   const [isValidPostcode, setIsValidPostcode] = useState(true);
-  const [history, setHistory] = useState<string[]>([]);
   const user = useUser();
   const { tier, loading: tierLoading } = useUserTier(user?.id);
   const [lookupCount, setLookupCount] = useState<number>(0);
   const [limitHit, setLimitHit] = useState(false);
   const [showHpiSearch, setShowHpiSearch] = useState(false);
+  const { history, saveToHistory } = usePostcodeHistory();
 
   useEffect(() => {
     const safeValue = value || '';
@@ -66,10 +55,9 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
     let ignore = false;
     async function fetchSuggestions() {
       try {
-        const res = await fetch(`/api/suggest-postcodes?q=${encodeURIComponent(value)}`);
-        const data = await res.json();
-        if (!ignore && data.suggestions) {
-          setSuggestions(data.suggestions.map((s: string) => ({ text: s })));
+        const response = await apiClient.suggestPostcodes(value);
+        if (!ignore && !response.error && response.data && typeof response.data === 'object' && 'suggestions' in response.data && Array.isArray((response.data as any).suggestions)) {
+          setSuggestions((response.data as any).suggestions.map((s: string) => ({ text: s })));
         }
       } catch (e) {
         if (!ignore) setSuggestions([]);
@@ -95,31 +83,23 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
     }
   }, [value]);
 
-  // Load history from localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const stored = localStorage.getItem('searchHistory');
-      if (stored) setHistory(JSON.parse(stored));
-    }
-  }, []);
+
 
   useEffect(() => {
     if (!user) return;
-    fetch(`/api/profile-usage?userId=${user.id}`)
-      .then(res => res.json())
-      .then(data => setLookupCount(data.lookup_count || 0));
+    apiClient.getUserProfile(user.id)
+      .then(response => {
+        if (!response.error && response.data && typeof response.data === 'object' && 'lookup_count' in response.data) {
+          setLookupCount((response.data as any).lookup_count || 0);
+        }
+      });
   }, [user]);
 
   if (tier === 'free' && lookupCount >= 3) {
     return <UpgradePrompt />;
   }
 
-  // Save to history on search
-  const saveToHistory = (query: string) => {
-    let newHistory = [query, ...history.filter(h => h !== query)].slice(0, MAX_HISTORY);
-    setHistory(newHistory);
-    localStorage.setItem('searchHistory', JSON.stringify(newHistory));
-  };
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,7 +152,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
     let input = e.target.value || '';
     // If it looks like a postcode (starts with a letter and contains a digit), format it
     if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
-      input = formatIfPostcode(input);
+      input = formatPostcode(input);
       onChange(input.toUpperCase());
     } else {
       onChange(input);
@@ -194,14 +174,14 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
                 type="text"
                 className="w-full bg-transparent outline-none text-base sm:text-lg px-12 py-4 sm:py-4 placeholder-gray-400 text-text-primary"
                 placeholder="Search by postcode, street name, or town"
-                value={value}
+                value={value || ''}
                 onChange={handleInputChange}
                 onFocus={handleFocus}
                 onBlur={handleBlur}
                 aria-label="Search by postcode, street, or town"
                 autoComplete="off"
               />
-              {value && (
+              {(value || '').trim() && (
                 <button
                   type="button"
                   onClick={handleClear}
@@ -213,7 +193,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
               )}
               <button
                 type="submit"
-                disabled={isLoading || !value.trim()}
+                disabled={isLoading || !(value || '').trim()}
                 className="absolute right-4 sm:right-6 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white rounded-full p-2 sm:p-3 transition-colors touch-target disabled:cursor-not-allowed"
                 aria-label="Search"
               >

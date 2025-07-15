@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../../lib/supabaseClient';
 
 // Force dynamic rendering to prevent build-time issues
 export const dynamic = 'force-dynamic';
@@ -15,17 +15,6 @@ const getStripe = () => {
 });
 };
 
-// Initialize Supabase client only when environment variables are available
-const getSupabase = () => {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
-};
-
 export async function POST(req: NextRequest) {
   try {
     // Get the access token from the Authorization header
@@ -34,7 +23,6 @@ export async function POST(req: NextRequest) {
     const token = authHeader?.replace('Bearer ', '');
 
     // Use the token to get the user
-    const supabase = getSupabase();
     const { data: { user } } = await supabase.auth.getUser(token);
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

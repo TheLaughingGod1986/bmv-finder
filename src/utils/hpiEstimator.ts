@@ -1,8 +1,8 @@
 import { Client } from '@elastic/elasticsearch';
 import fs from 'fs';
 import path from 'path';
-import csv from 'csv-parser';
-import { parse, format } from 'date-fns';
+import { parse } from 'csv-parse';
+import { parse as parseDate, format } from 'date-fns';
 
 const HPI_INDEX = 'house_price_index';
 
@@ -14,7 +14,10 @@ async function loadHpiCsv() {
   const file = path.join(process.cwd(), 'data/hpi.csv');
   return new Promise((resolve, reject) => {
     fs.createReadStream(file)
-      .pipe(csv())
+      .pipe(parse({
+        columns: true,
+        skip_empty_lines: true,
+      }))
       .on('data', (row) => {
         const region = row.region;
         const date = row.date;
@@ -84,7 +87,7 @@ export function calculateYoYGrowth(
 ): number | null {
   const thisIndex = getIndex(hpiData, region, date);
   // Subtract 1 year (assume date is YYYY-MM)
-  const dt = parse(date + '-01', 'yyyy-MM-dd', new Date());
+  const dt = parseDate(date + '-01', 'yyyy-MM-dd', new Date());
   const prevYear = format(new Date(dt.setFullYear(dt.getFullYear() - 1)), 'yyyy-MM');
   const lastYearIndex = getIndex(hpiData, region, prevYear);
   if (thisIndex == null || lastYearIndex == null) return null;

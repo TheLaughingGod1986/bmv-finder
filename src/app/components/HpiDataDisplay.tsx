@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, TrendingDown, Calendar, MapPin, Building, PoundSterling, Info } from 'lucide-react';
+import { TrendingUp, TrendingDown, Info, MapPin, Calendar, BarChart3, X, Building, PoundSterling } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '../../lib/utils';
+import { apiClient } from '@/lib/apiClient';
 
 interface HpiRecord {
   region: string;
@@ -67,23 +69,22 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
       setError(null);
       setRegion(null);
       try {
-        let url = '/api/hpi/postcode?';
+        let response;
         if (query.type === 'postcode') {
-          url += `postcode=${encodeURIComponent(query.value)}`;
+          response = await apiClient.getHpiData(query.value);
         } else if (query.type === 'region' || query.type === 'region_fallback') {
-          url += `region=${encodeURIComponent(query.value)}`;
+          response = await apiClient.getHpiData(query.value, { regionType: query.type });
         }
-        const response = await fetch(url);
-        const result = await response.json();
-        if (response.ok && result.results && result.results.length > 0) {
-          setData(result.results);
-          setSource(result.source);
-          if (result.region) setRegion(result.region);
+        
+        if (!response.error && response.data.results && response.data.results.length > 0) {
+          setData(response.data.results);
+          setSource(response.data.source);
+          if (response.data.region) setRegion(response.data.region);
         } else {
           setData([]);
-          setSource(result.source || null);
-          setRegion(result.region || null);
-          setError(result.error || 'No HPI data found');
+          setSource(response.data.source || null);
+          setRegion(response.data.region || null);
+          setError(response.data.error || 'No HPI data found');
         }
       } catch (err) {
         setError('Failed to fetch HPI data');
@@ -211,7 +212,7 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
                   </div>
                 </div>
                 <div className="text-lg font-semibold text-text-primary">
-                  {latestData.index.toFixed(1)}
+                  {typeof latestData.index === 'number' && !isNaN(latestData.index) ? latestData.index.toFixed(1) : 'N/A'}
                 </div>
               </div>
             </div>
@@ -257,7 +258,7 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
                     <div className={`text-lg font-semibold ${
                       latestData.monthOverMonth >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {latestData.monthOverMonth >= 0 ? '+' : ''}{latestData.monthOverMonth.toFixed(2)}%
+                      {latestData.monthOverMonth >= 0 ? '+' : ''}{typeof latestData.monthOverMonth === 'number' && !isNaN(latestData.monthOverMonth) ? latestData.monthOverMonth.toFixed(2) : 'N/A'}%
                     </div>
                   </div>
                 )}
@@ -282,7 +283,7 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
                     <div className={`text-lg font-semibold ${
                       latestData.yearOverYear >= 0 ? 'text-green-600' : 'text-red-600'
                     }`}>
-                      {latestData.yearOverYear >= 0 ? '+' : ''}{latestData.yearOverYear.toFixed(2)}%
+                      {latestData.yearOverYear >= 0 ? '+' : ''}{typeof latestData.yearOverYear === 'number' && !isNaN(latestData.yearOverYear) ? latestData.yearOverYear.toFixed(2) : 'N/A'}%
                     </div>
                   </div>
                 )}
@@ -303,7 +304,7 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
                   {data.slice(0, 5).map((record, index) => (
                     <div key={index} className="flex justify-between items-center text-sm">
                       <span className="text-text-secondary">{record.date}</span>
-                      <span className="font-medium text-text-primary">{record.index.toFixed(1)}</span>
+                      <span className="font-medium text-text-primary">{typeof record.index === 'number' && !isNaN(record.index) ? record.index.toFixed(1) : 'N/A'}</span>
                     </div>
                   ))}
                 </div>

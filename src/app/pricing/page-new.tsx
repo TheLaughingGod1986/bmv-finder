@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../../lib/supabaseClient';
 import { useUserTier } from '@/hooks/useUserTier';
 import { CheckIcon, StarIcon, ShieldCheckIcon, ChartBarIcon, ArrowDownTrayIcon, BellIcon } from '@heroicons/react/24/outline';
 
@@ -16,28 +16,10 @@ import {
   StripeCheckoutButton 
 } from '../components/ui';
 
-// Client-side only Supabase client
-function getSupabase() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('Supabase environment variables are not set');
-  }
-  
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
-}
-
 // Custom hook for user management
 function useClientUser() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  
-  const supabase = useMemo(() => getSupabase(), []);
   
   useEffect(() => {
     if (!supabase) {

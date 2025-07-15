@@ -68,20 +68,10 @@ export async function POST(req: NextRequest) {
       // Elasticsearch aggregation: group by year, average price
       const result = await esClient.search({
         index: 'properties',
-        size: 0, // no hits, just aggs
+        size: 1000,
         query,
-        aggs: {
-          prices_by_year: {
-            terms: {
-              field: 'year',
-              size: 100,
-              order: { _key: 'asc' }
-            },
-            aggs: {
-              avg_price: { avg: { field: 'price' } }
-            }
-          }
-        }
+        sort: [{ dateOfTransfer: { order: 'desc' } }],
+        _source: ['pricePaid', 'dateOfTransfer', 'propertyType', 'postcode', 'town_city', 'county', 'paon', 'street', 'locality', 'tenure']
       });
 
       const buckets = (result.aggregations?.prices_by_year as any)?.buckets || [];
