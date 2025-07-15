@@ -3,9 +3,60 @@ const csv = require('csv-parser');
 const fastcsv = require('fast-csv');
 const fuzz = require('fuzzball');
 
-/**
- * Advanced Address Matching with Fuzzy Token Sort Ratio and Confidence Scoring
- */
+// Abbreviation map for UK addresses
+const ABBREVIATIONS = {
+  'ST': 'STREET',
+  'RD': 'ROAD',
+  'AVE': 'AVENUE',
+  'CRES': 'CRESCENT',
+  'DR': 'DRIVE',
+  'LN': 'LANE',
+  'PL': 'PLACE',
+  'CT': 'COURT',
+  'GR': 'GROVE',
+  'CL': 'CLOSE',
+  'SQ': 'SQUARE',
+  'TCE': 'TERRACE',
+  'PK': 'PARK',
+  'GDNS': 'GARDENS',
+  'FLAT': 'FLAT',
+  'UNIT': 'UNIT',
+  'APT': 'APARTMENT',
+  'BLDG': 'BUILDING',
+};
+
+function expandAbbreviations(str) {
+  return str.split(' ').map(word => ABBREVIATIONS[word] || word).join(' ');
+}
+
+function normalizeAddress(str) {
+  if (!str) return '';
+  let s = str.toUpperCase();
+  s = s.replace(/[^A-Z0-9 ]/g, ' '); // Remove punctuation
+  s = s.replace(/\s+/g, ' '); // Collapse spaces
+  s = expandAbbreviations(s);
+  return s.trim();
+}
+
+function extractComponents(address) {
+  // Try to extract flat/unit, number, street
+  let flat = '', number = '', street = '';
+  let m = address.match(/^(FLAT|UNIT|APT)\s*([A-Z0-9]+)[ ,]+([0-9A-Z]+)\s+(.*)$/);
+  if (m) {
+    flat = `${m[1]} ${m[2]}`;
+    number = m[3];
+    street = m[4];
+  } else {
+    m = address.match(/^([0-9A-Z]+)\s+(.*)$/);
+    if (m) {
+      number = m[1];
+      street = m[2];
+    } else {
+      street = address;
+    }
+  }
+  return { flat, number, street };
+}
 
 async function enrichWithAdvancedAddressMatching({
   propertiesPath = 'pp-complete-cleaned.csv',
@@ -19,403 +70,170 @@ async function enrichWithAdvancedAddressMatching({
   console.log(`📁 EPC Data: ${epcPath}`);
   console.log(`📁 Output: ${outputPath}`);
 
-  // Step 1: Build comprehensive EPC lookup
-  console.log('\n📖 Loading and parsing EPC data...');
+  // Step 1: Build EPC lookups
   const epcByPostcode = new Map();
-  const epcByPostcodeNumber = new Map();
+  const epcByPostcodeNumberStreet = new Map();
   const epcByPostcodeStreet = new Map();
-  let epcCount = 0;
-
-  return new Promise((resolve, reject) => {
+  await new Promise((resolve, reject) => {
     fs.createReadStream(epcPath)
       .pipe(csv())
-      .on('data', (row) => {
-        const address = row.ADDRESS || row.ADDRESS1;
-        const postcode = row.POSTCODE;
-        
-        if (address && postcode) {
-          const normalizedPostcode = normalizePostcode(postcode);
-          const parsedAddress = parseAddress(address);
-          
-          if (normalizedPostcode && parsedAddress) {
-            // Store by postcode
-            if (!epcByPostcode.has(normalizedPostcode)) {
-              epcByPostcode.set(normalizedPostcode, []);
-            }
-            epcByPostcode.get(normalizedPostcode).push({
-              bedrooms: row.NUMBER_HABITABLE_ROOMS || '',
-              property_size: row.TOTAL_FLOOR_AREA || '',
-              epc_rating: row.CURRENT_ENERGY_RATING || '',
-              address: address,
-              postcode: postcode,
-              parsed: parsedAddress
-            });
-            
-            // Store by postcode + number
-            if (parsedAddress.number) {
-              const numberKey = `${normalizedPostcode}|${parsedAddress.number}`;
-              epcByPostcodeNumber.set(numberKey, {
-                bedrooms: row.NUMBER_HABITABLE_ROOMS || '',
-                property_size: row.TOTAL_FLOOR_AREA || '',
-                epc_rating: row.CURRENT_ENERGY_RATING || '',
-                address: address,
-                postcode: postcode,
-                parsed: parsedAddress
-              });
-            }
-            
-            // Store by postcode + street
-            if (parsedAddress.street) {
-              const streetKey = `${normalizedPostcode}|${parsedAddress.street}`;
-              if (!epcByPostcodeStreet.has(streetKey)) {
-                epcByPostcodeStreet.set(streetKey, []);
-              }
-              epcByPostcodeStreet.get(streetKey).push({
-                bedrooms: row.NUMBER_HABITABLE_ROOMS || '',
-                property_size: row.TOTAL_FLOOR_AREA || '',
-                epc_rating: row.CURRENT_ENERGY_RATING || '',
-                address: address,
-                postcode: postcode,
-                parsed: parsedAddress
-              });
-            }
-            
-            epcCount++;
-          }
+      .on('data', row => {
+        const postcode = normalizeAddress(row['postcode']);
+        const address = normalizeAddress(row['address']);
+        const { flat, number, street } = extractComponents(address);
+        // Key: postcode+number+street
+        if (postcode && number && street) {
+          const key = `${postcode}|${number}|${street}`;
+          epcByPostcodeNumberStreet.set(key, row);
         }
-      })
-      .on('end', () => {
-        console.log(`✅ Loaded EPC data for ${epcCount.toLocaleString()} records`);
-        console.log(`✅ Created ${epcByPostcodeNumber.size.toLocaleString()} postcode+number combinations`);
-        console.log(`✅ Created ${epcByPostcodeStreet.size.toLocaleString()} postcode+street combinations`);
-        processProperties();
-      })
-      .on('error', reject);
-
-    function processProperties() {
-      console.log('\n🔄 Processing properties with advanced matching...');
-      let processedCount = 0;
-      let highMatches = 0;
-      let mediumMatches = 0;
-      let lowMatches = 0;
-      let postcodeMatches = 0;
-      let noMatches = 0;
-      let batchCount = 0;
-      
-      const outputStream = fs.createWriteStream(outputPath);
-      const csvStream = fastcsv.format();
-      csvStream.pipe(outputStream);
-
-      const unmatchedStream = fs.createWriteStream(unmatchedOutputPath);
-      const unmatchedCsv = fastcsv.format();
-      unmatchedCsv.pipe(unmatchedStream);
-
-      fs.createReadStream(propertiesPath)
-        .pipe(fastcsv.parse({ headers: false }))
-        .on('data', (rowArr) => {
-          // Properties file columns: GUID, price, date, postcode, property_type, new_build, estate_type, 
-          // transaction_id, paon, street, locality, town_city, district, county, transaction_category, record_status
-          const postcode = (rowArr[3] || '').trim().toUpperCase();
-          const paon = (rowArr[8] || '').trim();
-          const street = (rowArr[9] || '').trim();
-          
-          let enrichment = { bedrooms: '', property_size: '', epc_rating: '' };
-          let matchType = 'none';
-          let matchConfidence = 'none';
-          let matchScore = 0;
-          let matchedEpc = null;
-          
-          if (postcode) {
-            const normalizedPostcode = normalizePostcode(postcode);
-            const normalizedPaon = normalizePaon(paon);
-            const normalizedStreet = normalizeStreet(street);
-            
-            if (normalizedPostcode) {
-              // Strategy 1: Exact postcode + number match (high confidence)
-              if (normalizedPaon) {
-                const numberKey = `${normalizedPostcode}|${normalizedPaon}`;
-                if (epcByPostcodeNumber.has(numberKey)) {
-                  enrichment = epcByPostcodeNumber.get(numberKey);
-                  matchType = 'exact';
-                  matchConfidence = 'high';
-                  highMatches++;
-                  matchedEpc = enrichment;
-                }
-              }
-              // Strategy 2: Fuzzy token sort ratio on postcode+number (medium/low confidence)
-              if (matchType === 'none' && normalizedPaon) {
-                // Get all EPCs for this postcode
-                const epcList = epcByPostcode.get(normalizedPostcode) || [];
-                let bestScore = 0;
-                let bestEpc = null;
-                for (const epc of epcList) {
-                  if (epc.parsed && epc.parsed.number) {
-                    const score = fuzz.token_sort_ratio(normalizedPaon, epc.parsed.number);
-                    if (score > bestScore) {
-                      bestScore = score;
-                      bestEpc = epc;
-                    }
-                  }
-                }
-                if (bestScore >= 90) {
-                  enrichment = bestEpc;
-                  matchType = 'fuzzy_number';
-                  matchConfidence = 'medium';
-                  matchScore = bestScore;
-                  mediumMatches++;
-                  matchedEpc = enrichment;
-                } else if (bestScore >= 80) {
-                  enrichment = bestEpc;
-                  matchType = 'fuzzy_number';
-                  matchConfidence = 'low';
-                  matchScore = bestScore;
-                  lowMatches++;
-                  matchedEpc = enrichment;
-                }
-              }
-              // Strategy 3: Postcode + street match (low confidence)
-              if (matchType === 'none' && normalizedStreet) {
-                const streetKey = `${normalizedPostcode}|${normalizedStreet}`;
-                if (epcByPostcodeStreet.has(streetKey)) {
-                  const epcList = epcByPostcodeStreet.get(streetKey);
-                  if (epcList.length > 0) {
-                    enrichment = epcList[0];
-                    matchType = 'street';
-                    matchConfidence = 'low';
-                    lowMatches++;
-                    matchedEpc = enrichment;
-                  }
-                }
-              }
-              // Strategy 4: Postcode-only match (very low confidence)
-              if (matchType === 'none') {
-                if (epcByPostcode.has(normalizedPostcode)) {
-                  const epcList = epcByPostcode.get(normalizedPostcode);
-                  if (epcList.length > 0) {
-                    enrichment = epcList[0];
-                    matchType = 'postcode';
-                    matchConfidence = 'low';
-                    postcodeMatches++;
-                    matchedEpc = enrichment;
-                  }
-                }
-              }
-            }
-          }
-          
-          if (matchType === 'none') {
-            noMatches++;
-            unmatchedCsv.write([...rowArr, 'none', 'none', 'none', 'none', 'none']);
-          }
-
-          // Output enriched row with confidence and score
-          csvStream.write([
-            ...rowArr,
-            enrichment.bedrooms,
-            enrichment.property_size,
-            enrichment.epc_rating,
-            matchType,
-            matchConfidence,
-            matchScore
-          ]);
-          
-          processedCount++;
-          if (processedCount % batchSize === 0) {
-            batchCount++;
-            const totalEnriched = highMatches + mediumMatches + lowMatches + postcodeMatches;
-            const enrichmentRate = ((totalEnriched / processedCount) * 100).toFixed(2);
-            console.log(`📊 Batch ${batchCount}: ${processedCount.toLocaleString()} processed, ${totalEnriched.toLocaleString()} enriched (${enrichmentRate}%)`);
-          }
-        })
-        .on('end', () => {
-          csvStream.end();
-          unmatchedCsv.end();
-          const totalEnriched = highMatches + mediumMatches + lowMatches + postcodeMatches;
-          const finalEnrichmentRate = ((totalEnriched / processedCount) * 100).toFixed(2);
-          
-          console.log('\n🎉 Advanced address matching complete!');
-          console.log(`📈 Total processed: ${processedCount.toLocaleString()}`);
-          console.log(`✨ Total enriched: ${totalEnriched.toLocaleString()} (${finalEnrichmentRate}%)`);
-          console.log(`🏅 High confidence: ${highMatches.toLocaleString()}`);
-          console.log(`🥈 Medium confidence: ${mediumMatches.toLocaleString()}`);
-          console.log(`🥉 Low confidence: ${lowMatches.toLocaleString()}`);
-          console.log(`📮 Postcode-only matches: ${postcodeMatches.toLocaleString()}`);
-          console.log(`❌ No matches: ${noMatches.toLocaleString()}`);
-          console.log(`💾 Output saved to: ${outputPath}`);
-          console.log(`📝 Unmatched records saved to: ${unmatchedOutputPath}`);
-          resolve();
-        })
-        .on('error', reject);
-    }
-  });
-}
-
-/**
- * Parse address into components
- */
-function parseAddress(address) {
-  if (!address) return null;
-  
-  // Clean the address
-  let cleanAddress = address
-    .replace(/[.,]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  
-  const result = {
-    number: null,
-    street: null,
-    full: cleanAddress
-  };
-  
-  // Extract number (various patterns)
-  const numberPatterns = [
-    /^(\d+[A-Za-z]?)\s/,           // "10A High Street"
-    /^(\d+[A-Za-z]?)$/,            // "10A"
-    /^([A-Za-z]+\s+\d+[A-Za-z]?)\s/, // "Flat 2A High Street"
-    /^(\d+[A-Za-z]?[A-Za-z]+)\s/,  // "10AFlat High Street"
-  ];
-  
-  for (const pattern of numberPatterns) {
-    const match = cleanAddress.match(pattern);
-    if (match) {
-      result.number = normalizeNumber(match[1]);
-      break;
-    }
-  }
-  
-  // Extract street name (everything after the number)
-  if (result.number) {
-    const streetMatch = cleanAddress.match(new RegExp(`^[^\\s]*\\s+(.+)$`));
-    if (streetMatch) {
-      result.street = normalizeStreet(streetMatch[1]);
-    }
-  } else {
-    // No number found, try to extract street
-    result.street = normalizeStreet(cleanAddress);
-  }
-  
-  return result;
-}
-
-/**
- * Normalize postcode
- */
-function normalizePostcode(postcode) {
-  if (!postcode) return null;
-  return postcode.replace(/\s/g, '').toUpperCase();
-}
-
-/**
- * Normalize PAON (Property Address Number)
- */
-function normalizePaon(paon) {
-  if (!paon) return null;
-  
-  let clean = String(paon)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-  
-  // Handle common variations
-  clean = clean
-    .replace(/^flat\s*/, '')
-    .replace(/^apartment\s*/, '')
-    .replace(/^apt\s*/, '')
-    .replace(/^unit\s*/, '');
-  
-  return clean || null;
-}
-
-/**
- * Normalize street name
- */
-function normalizeStreet(street) {
-  if (!street) return null;
-  
-  let clean = String(street)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-  
-  // Remove common words that don't help matching
-  const stopWords = ['street', 'road', 'avenue', 'lane', 'close', 'drive', 'way', 'place', 'court', 'crescent'];
-  const words = clean.split(' ');
-  const filteredWords = words.filter(word => !stopWords.includes(word));
-  
-  return filteredWords.join(' ') || null;
-}
-
-/**
- * Normalize number
- */
-function normalizeNumber(number) {
-  if (!number) return null;
-  
-  let clean = String(number)
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '');
-  
-  return clean || null;
-}
-
-/**
- * Test address parsing with sample data
- */
-async function testAddressParsing() {
-  console.log('\n🧪 Testing address parsing...');
-  
-  const testAddresses = [
-    '10 High Street',
-    '25A Oak Road',
-    'Flat 2, 15 Main Street',
-    'Apartment 3B, 42 Park Avenue',
-    '1 The Mews',
-    '12B-14C Station Road',
-    'Unit 5, 100 Industrial Estate',
-    '15-17 Church Lane'
-  ];
-  
-  console.log('\n📝 Address Parsing Results:');
-  for (const address of testAddresses) {
-    const parsed = parseAddress(address);
-    console.log(`"${address}" → Number: "${parsed?.number}", Street: "${parsed?.street}"`);
-  }
-  
-  // Test with some real data
-  console.log('\n📊 Testing with sample EPC data...');
-  let sampleCount = 0;
-  
-  return new Promise((resolve, reject) => {
-    fs.createReadStream('data/epc-certificates-combined.csv')
-      .pipe(csv())
-      .on('data', (row) => {
-        if (sampleCount < 10) {
-          const address = row.ADDRESS || row.ADDRESS1;
-          if (address) {
-            const parsed = parseAddress(address);
-            console.log(`"${address}" → Number: "${parsed?.number}", Street: "${parsed?.street}"`);
-            sampleCount++;
-          }
+        // Key: postcode+street
+        if (postcode && street) {
+          const key = `${postcode}|${street}`;
+          if (!epcByPostcodeStreet.has(key)) epcByPostcodeStreet.set(key, []);
+          epcByPostcodeStreet.get(key).push(row);
+        }
+        // Key: postcode
+        if (postcode) {
+          if (!epcByPostcode.has(postcode)) epcByPostcode.set(postcode, []);
+          epcByPostcode.get(postcode).push(row);
         }
       })
       .on('end', resolve)
       .on('error', reject);
   });
+
+  // Step 2: Process properties in batches
+  const unmatched = [];
+  const output = fs.createWriteStream(outputPath);
+  const unmatchedOut = fs.createWriteStream(unmatchedOutputPath);
+  let headerWritten = false;
+  let unmatchedHeaderWritten = false;
+  let total = 0, enriched = 0;
+
+  await new Promise((resolve, reject) => {
+    const batch = [];
+    fs.createReadStream(propertiesPath)
+      .pipe(csv())
+      .on('data', row => {
+        batch.push(row);
+        if (batch.length >= batchSize) {
+          processBatch(batch.splice(0, batch.length));
+        }
+      })
+      .on('end', async () => {
+        if (batch.length) processBatch(batch);
+        resolve();
+      })
+      .on('error', reject);
+
+    function processBatch(rows) {
+      for (const row of rows) {
+        total++;
+        const postcode = normalizeAddress(row['postcode']);
+        const address = normalizeAddress(row['address']);
+        const { flat, number, street } = extractComponents(address);
+        let match = null, matchType = 'none', confidence = 'none', score = 0;
+        // Pass 1: Exact postcode+number+street
+        if (postcode && number && street) {
+          const key = `${postcode}|${number}|${street}`;
+          if (epcByPostcodeNumberStreet.has(key)) {
+            match = epcByPostcodeNumberStreet.get(key);
+            matchType = 'exact_number_street';
+            confidence = 'high';
+            score = 100;
+          }
+        }
+        // Pass 2: Fuzzy postcode+number+street
+        if (!match && postcode && number && street) {
+          const candidates = Array.from(epcByPostcodeStreet.keys())
+            .filter(k => k.startsWith(`${postcode}|`));
+          let best = null, bestScore = 0;
+          for (const k of candidates) {
+            const [pc, n, s] = k.split('|');
+            const fuzzScore = fuzz.token_sort_ratio(`${number} ${street}`, `${n} ${s}`);
+            if (fuzzScore > bestScore) {
+              bestScore = fuzzScore;
+              best = epcByPostcodeNumberStreet.get(k);
+            }
+          }
+          if (best && bestScore >= 90) {
+            match = best;
+            matchType = 'fuzzy_number_street';
+            confidence = bestScore >= 95 ? 'medium' : 'low';
+            score = bestScore;
+          }
+        }
+        // Pass 3: Fuzzy postcode+street
+        if (!match && postcode && street) {
+          const key = `${postcode}|${street}`;
+          if (epcByPostcodeStreet.has(key)) {
+            // Try fuzzy match among all in this postcode+street
+            let best = null, bestScore = 0;
+            for (const epcRow of epcByPostcodeStreet.get(key)) {
+              const epcAddr = normalizeAddress(epcRow['address']);
+              const epcComp = extractComponents(epcAddr);
+              const fuzzScore = fuzz.token_sort_ratio(address, epcAddr);
+              if (fuzzScore > bestScore) {
+                bestScore = fuzzScore;
+                best = epcRow;
+              }
+            }
+            if (best && bestScore >= 90) {
+              match = best;
+              matchType = 'fuzzy_street';
+              confidence = bestScore >= 95 ? 'medium' : 'low';
+              score = bestScore;
+            }
+          }
+        }
+        // Pass 4: Postcode-only
+        if (!match && postcode && epcByPostcode.has(postcode)) {
+          match = epcByPostcode.get(postcode)[0];
+          matchType = 'postcode_only';
+          confidence = 'low';
+          score = 0;
+        }
+        // Write output
+        if (!headerWritten) {
+          output.write(fastcsv.writeToStringSync([{
+            ...row,
+            epc_bedrooms: '',
+            epc_size: '',
+            epc_rating: '',
+            match_type: '',
+            match_confidence: '',
+            match_score: ''
+          }], { headers: true }));
+          headerWritten = true;
+        }
+        if (!unmatchedHeaderWritten) {
+          unmatchedOut.write(fastcsv.writeToStringSync([row], { headers: true }));
+          unmatchedHeaderWritten = true;
+        }
+        if (match) {
+          enriched++;
+          output.write(fastcsv.writeToStringSync([{
+            ...row,
+            epc_bedrooms: match['bedrooms'] || '',
+            epc_size: match['property_size'] || '',
+            epc_rating: match['epc_rating'] || '',
+            match_type: matchType,
+            match_confidence: confidence,
+            match_score: score
+          }], { headers: false }));
+        } else {
+          unmatchedOut.write(fastcsv.writeToStringSync([row], { headers: false }));
+        }
+      }
+      console.log(`📊 Batch ${total}: ${enriched} enriched (${((enriched/total)*100).toFixed(2)}%)`);
+    }
+  });
+
+  output.end();
+  unmatchedOut.end();
+  console.log(`\n✅ Done. Total: ${total}, Enriched: ${enriched} (${((enriched/total)*100).toFixed(2)}%)`);
 }
 
-// Run if called directly
 if (require.main === module) {
-  const args = process.argv.slice(2);
-  
-  if (args.includes('--test')) {
-    testAddressParsing().catch(console.error);
-  } else {
-    enrichWithAdvancedAddressMatching().catch(console.error);
-  }
-}
-
-module.exports = { enrichWithAdvancedAddressMatching, testAddressParsing }; 
+  enrichWithAdvancedAddressMatching();
+} 
