@@ -56,6 +56,7 @@ interface DealAnalysisData {
     deal_score: number;
     deal_rating: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Overpriced';
     analysis: string[];
+    current_value_estimate: number | null;
   };
   market_insights: {
     average_price_per_sqm: number | null;
@@ -137,6 +138,37 @@ export default function DealAnalysisSearch() {
       }
 
       const data = await response.json();
+      // Ensure deal_metrics is always fully typed with current_value_estimate present and not optional
+      if (data && data.deal_metrics) {
+        const {
+          last_sold_price,
+          hpi_adjusted_value,
+          price_per_sqm,
+          price_per_bedroom,
+          deal_score,
+          deal_rating,
+          analysis,
+        } = data.deal_metrics;
+        data.deal_metrics = {
+          last_sold_price,
+          hpi_adjusted_value,
+          price_per_sqm,
+          price_per_bedroom,
+          deal_score,
+          deal_rating,
+          analysis,
+          current_value_estimate: typeof data.deal_metrics.current_value_estimate === 'number' ? data.deal_metrics.current_value_estimate : 0,
+        } as {
+          last_sold_price: number | null;
+          hpi_adjusted_value: number | null;
+          price_per_sqm: number | null;
+          price_per_bedroom: number | null;
+          deal_score: number;
+          deal_rating: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Overpriced';
+          analysis: string[];
+          current_value_estimate: number;
+        };
+      }
       setDealAnalysis(data);
       
       // Show toast with deal rating

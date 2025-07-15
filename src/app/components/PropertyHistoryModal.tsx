@@ -505,7 +505,7 @@ export default function PropertyHistoryModal({
                     <p className="text-text-secondary mb-2">Failed to load recent sales</p>
                     <p className="text-sm text-text-tertiary">{recentSalesError}</p>
                     <button
-                      onClick={fetchRecentSales}
+                      onClick={() => fetchRecentSales()}
                       className="mt-4 px-4 py-2 text-sm bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
                     >
                       Try Again

@@ -2,6 +2,7 @@
 
 const { updateDataSources } = require('./update-data-sources');
 const { updateElasticsearchIndices } = require('./update-elasticsearch-indices');
+const { combineEpcCertificates } = require('./combine-epc-certificates');
 require('dotenv').config();
 
 // Configuration
@@ -25,6 +26,14 @@ async function runFullDataPipeline(options = {}) {
   log('🚀 Starting full data pipeline...');
   
   try {
+    // Step 0: Combine EPC certificates
+    log('🗂️  Step 0: Combining EPC certificates...');
+    await combineEpcCertificates().catch(err => {
+      log(`❌ Failed to combine EPC certificates: ${err.message}`, 'ERROR');
+      throw err;
+    });
+    log('✅ EPC certificates combined.');
+    
     // Step 1: Update CSV data sources
     log('📥 Step 1: Updating CSV data sources...');
     const dataUpdateResult = await updateDataSources();

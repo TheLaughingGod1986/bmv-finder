@@ -583,3 +583,22 @@ export class BMVScoreEngine {
     });
   }
 } 
+
+// Predicts future property values and growth percentages
+export function predictFutureValues(currentValue: number, annualGrowthRate: number) {
+  const periods = [2, 5, 10];
+  const results = {} as Record<string, { value: number, growth: number }>;
+  for (const n of periods) {
+    const value = currentValue * Math.pow(1 + annualGrowthRate, n);
+    const growth = ((value / currentValue) - 1) * 100;
+    results[n] = { value: Math.round(value), growth: parseFloat(growth.toFixed(1)) };
+  }
+  // High-growth badge: 5-year growth > 25%
+  const highGrowth = results[5].growth > 25;
+  return {
+    now: Math.round(currentValue),
+    ...results,
+    highGrowth,
+    explanation: `Future Value = Current Value × (1 + growth rate)^years. Growth rate used: ${(annualGrowthRate*100).toFixed(2)}% per year.`
+  };
+} 

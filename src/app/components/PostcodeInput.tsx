@@ -67,8 +67,7 @@ const PostcodeInput: React.FC<PostcodeInputProps> = ({
   // Load history from localStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && showHistory) {
-      const stored = localStorage.getItem('postcodeHistory');
-      if (stored) setHistory(JSON.parse(stored));
+      // if (stored) setHistory(JSON.parse(stored)); // Removed: use saveToHistory or update hook if needed
     }
   }, [showHistory]);
 
@@ -111,13 +110,7 @@ const PostcodeInput: React.FC<PostcodeInputProps> = ({
     }
   }, [value]);
 
-  // Save to history
-  const saveToHistory = (query: string) => {
-    if (!showHistory) return;
-    let newHistory = [query, ...history.filter(h => h !== query)].slice(0, MAX_HISTORY);
-    setHistory(newHistory);
-    localStorage.setItem('postcodeHistory', JSON.stringify(newHistory));
-  };
+  // Save to history using the hook's function
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

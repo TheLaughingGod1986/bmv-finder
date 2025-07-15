@@ -17,6 +17,7 @@ import {
   CheckCircle,
   XCircle
 } from 'lucide-react';
+import { predictFutureValues } from '../../lib/bmvScoreEngine';
 
 interface DealAnalysisProps {
   data: {
@@ -323,6 +324,33 @@ export default function DealAnalysisCard({ data, loading = false }: DealAnalysis
                 </div>
               </div>
             )}
+
+            {/* Predicted Value Table */}
+            <table className="mt-4 w-full text-sm border">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th>Predicted Value</th>
+                  <th>Growth (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Now</td><td>£{predictions.now.toLocaleString()}</td><td>—</td></tr>
+                <tr><td>2</td><td>£{predictions[2].value.toLocaleString()}</td><td>+{predictions[2].growth}%</td></tr>
+                <tr><td>5</td><td>£{predictions[5].value.toLocaleString()}</td><td>+{predictions[5].growth}%</td></tr>
+                <tr><td>10</td><td>£{predictions[10].value.toLocaleString()}</td><td>+{predictions[10].growth}%</td></tr>
+              </tbody>
+            </table>
+            {predictions.highGrowth && (
+              <div className="mt-2 inline-flex items-center px-2 py-1 bg-yellow-200 text-yellow-900 rounded-full font-semibold">
+                <span role="img" aria-label="High Growth">🏅</span> High-Growth Area
+              </div>
+            )}
+            <div className="mt-2 text-xs text-gray-500">
+              <span title={predictions.explanation}>
+                <strong>How is this calculated?</strong> {predictions.explanation}
+              </span>
+            </div>
           </div>
         )}
       </CardContent>

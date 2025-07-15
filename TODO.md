@@ -230,13 +230,15 @@
   - [ ] Maintenance cost estimators
 
 #### **Advanced AI & Intelligence Features**
-- [ ] **Predictive Analytics**
-  - [ ] Property value forecasting models
-  - [ ] Market timing algorithms
-  - [ ] Investment risk assessment
-  - [ ] Portfolio optimization recommendations
-  - [ ] Market bubble detection
-  - [ ] Seasonal trend analysis
+- [x] **Hybrid Automated Valuation Model (AVM)** _(In Progress)_
+  - [x] Implement feature-based regression (hedonic model) using EPC, bedrooms, property size, and comparables _(In Progress)_
+  - [ ] Integrate Comparable Market Analysis (CMA)
+  - [ ] Add HPI-based fallback for value prediction
+  - [ ] Document data sources, equations, and logic for transparency
+- [ ] **Advanced Deal Analysis UI Enhancements** _(Pending)_
+  - [ ] Display refined current value using AVM
+  - [ ] Show predicted growth (2, 5, 10 years) and comparables (EPC, bedrooms, property size)
+  - [ ] Add high-growth badge and user-facing explanation
 
 - [ ] **Real-time Market Monitoring**
   - [ ] Live market data feeds
@@ -317,16 +319,20 @@
 
 **Ready for production deployment and user acquisition!** 🎉 
 
-# BMV Finder Project Roadmap
+## BMV Finder Project Roadmap
 
 ## 🚀 **HIGH PRIORITY - IMMEDIATE ACTION REQUIRED**
 
-### **Data Pipeline & Infrastructure**
+### **Data Pipeline & Intelligence**
 - [x] ✅ **Elasticsearch Setup** - Complete (running with 16GB memory)
-- [x] ✅ **HPI Data Indexing** - Complete (197,826 records)
-- [ ] 🔄 **Properties Indexing** - IN PROGRESS (403,500/30,289,104 records - 1.33% complete)
-- [ ] 🔄 **Recent Sales Indexing** - Pending (waiting for properties to complete)
-- [ ] **Elasticsearch Authentication** - Fix API access (password reset completed)
+- [x] ✅ **HPI Data Indexing** - Complete (216,854 records)
+- [x] ✅ **Properties Indexing** - Complete (24,660,393 records - 10.6GB)
+- [x] ✅ **Recent Sales Indexing** - Complete (50,005 records)
+- [x] ✅ **Elasticsearch Authentication** - Complete (API access working)
+- [x] ✅ **EPC Data Infrastructure** - Complete (index ready, API service configured)
+- [x] Hybrid Automated Valuation Model (AVM) for property value prediction _(In Progress)_
+- [ ] Advanced Deal Analysis UI with comparables and growth predictions _(Pending)_
+- [ ] Documentation of value prediction logic _(Pending)_
 
 ### **Frontend & Mobile Development**
 - [x] ✅ **Visual Roadmap System** - Complete (`/roadmap`)

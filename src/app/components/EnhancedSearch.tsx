@@ -152,7 +152,7 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
     let input = e.target.value || '';
     // If it looks like a postcode (starts with a letter and contains a digit), format it
     if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
-      input = formatIfPostcode(input);
+      input = formatPostcode(input);
       onChange(input.toUpperCase());
     } else {
       onChange(input);

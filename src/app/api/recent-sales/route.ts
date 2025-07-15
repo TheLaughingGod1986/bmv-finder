@@ -105,11 +105,12 @@ export async function GET(request: NextRequest) {
     }
 
     const recentSales = hits.map(hit => {
-      const pricePaid = hit._source.pricePaid;
+      const source = hit._source as any;
+      const pricePaid = source.pricePaid;
       return {
         id: hit._id,
         price: typeof pricePaid === 'number' && pricePaid > 0 ? pricePaid : null,
-        ...hit._source
+        ...source
       };
     });
 
@@ -118,7 +119,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: recentSales,
-      total: response.hits?.total?.value || 0,
+      total: typeof response.hits?.total === 'object' ? response.hits.total.value : response.hits?.total || 0,
       postcode: postcode,
       area: postcodeArea,
       broaderArea,
@@ -132,7 +133,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[recent-sales] Error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch recent sales', details: error.message },
+      { error: 'Failed to fetch recent sales', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
