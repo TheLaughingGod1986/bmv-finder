@@ -50,6 +50,7 @@
     "csv-parse": "^6.0.0",
     "csv-parser": "^3.2.0",
     "csv-stringify": "^6.5.2",
+    "csv-writer": "^1.6.0",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
     "dotenv": "^17.2.0",
