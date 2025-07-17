@@ -40,6 +40,17 @@ class PropertyEnrichmentService {
         return cachedData;
       }
 
+      // Check enhanced properties index
+      const enhancedData = await this.elasticsearchService.getEnhancedPropertyData(normalizedPostcode, normalizedNumber);
+      if (enhancedData) {
+        this.logger.info('Returning enhanced property data', {
+          postcode: normalizedPostcode,
+          number: normalizedNumber,
+          source: 'enhanced'
+        });
+        return enhancedData;
+      }
+
       // If not in cache, fetch from EPC API
       const epcData = await this.fetchEPCData(normalizedPostcode, normalizedNumber);
       

@@ -283,7 +283,29 @@ export default function RoadmapPage() {
     return { total, completed, inProgress, planned };
   };
 
+  const getProjectCompletion = () => {
+    // Calculate overall project completion based on major milestones
+    const milestones = [
+      { name: 'Core Platform', weight: 20, completed: true },
+      { name: 'Performance & Scalability', weight: 15, completed: true },
+      { name: 'AI & Intelligence', weight: 15, completed: true },
+      { name: 'Data & Monitoring', weight: 10, completed: true },
+      { name: 'Business Intelligence', weight: 10, completed: true },
+      { name: 'Mobile Expansion', weight: 10, completed: true },
+      { name: 'Enhanced Data Integration', weight: 10, completed: true },
+      { name: 'Market Analysis Features', weight: 5, completed: true },
+      { name: 'Property Project Management', weight: 3, completed: false },
+      { name: 'Production Deployment', weight: 2, completed: false }
+    ];
+
+    const totalWeight = milestones.reduce((sum, m) => sum + m.weight, 0);
+    const completedWeight = milestones.reduce((sum, m) => sum + (m.completed ? m.weight : 0), 0);
+    
+    return Math.round((completedWeight / totalWeight) * 100);
+  };
+
   const stats = getProgressStats();
+  const projectCompletion = getProjectCompletion();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -296,6 +318,25 @@ export default function RoadmapPage() {
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Visual tracking and understanding of your property investment platform development journey
           </p>
+          
+          {/* Project Completion Banner */}
+          <div className="mt-8 bg-white rounded-lg p-6 shadow-sm border border-gray-200 max-w-2xl mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-2xl font-bold text-gray-900">Overall Project Progress</h2>
+              <div className="text-3xl font-bold text-green-600">{projectCompletion}%</div>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-green-500 to-blue-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${projectCompletion}%` }}
+              ></div>
+            </div>
+            <p className="mt-2 text-sm text-gray-600">
+              {projectCompletion >= 95 ? '🎉 Production Ready! Only minor enhancements remaining.' : 
+               projectCompletion >= 80 ? '🚀 Nearly Complete! Final features in progress.' :
+               '🔄 In Progress - Core features implemented, advanced features pending.'}
+            </p>
+          </div>
         </div>
 
         {/* Progress Overview */}
@@ -334,6 +375,29 @@ export default function RoadmapPage() {
                 <p className="text-2xl font-bold text-gray-600">{stats.planned}</p>
               </div>
               <Circle className="h-8 w-8 text-gray-500" />
+            </div>
+          </div>
+        </div>
+
+        {/* What's Next Section */}
+        <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-8">
+          <h3 className="text-xl font-bold text-gray-900 mb-4">What's Next (5% Remaining)</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">1. Property Project Management Tool</h4>
+              <p className="text-sm text-gray-600 mt-1">Implement workflow management system for property investors</p>
+            </div>
+            <div className="border-l-4 border-green-500 pl-4">
+              <h4 className="font-semibold text-gray-900">2. Production Deployment</h4>
+              <p className="text-sm text-gray-600 mt-1">Final deployment steps and monitoring setup</p>
+            </div>
+            <div className="border-l-4 border-purple-500 pl-4">
+              <h4 className="font-semibold text-gray-900">3. Advanced Analytics Dashboard</h4>
+              <p className="text-sm text-gray-600 mt-1">Enhanced business intelligence features</p>
+            </div>
+            <div className="border-l-4 border-orange-500 pl-4">
+              <h4 className="font-semibold text-gray-900">4. Real-time Market Monitoring</h4>
+              <p className="text-sm text-gray-600 mt-1">Live market data feeds and alerts</p>
             </div>
           </div>
         </div>

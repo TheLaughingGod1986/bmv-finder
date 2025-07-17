@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
         'saon', 
         'street',
         'postcode',
-        'pricePaid',
+        'price',
         'dateOfTransfer',
         'propertyType',
         'newBuild',
@@ -93,7 +93,7 @@ export async function GET(request: NextRequest) {
           'saon', 
           'street',
           'postcode',
-          'pricePaid',
+          'price',
           'dateOfTransfer',
           'propertyType',
           'newBuild',
@@ -106,10 +106,10 @@ export async function GET(request: NextRequest) {
 
     const recentSales = hits.map(hit => {
       const source = hit._source as any;
-      const pricePaid = source.pricePaid;
+      const price = source.price;
       return {
         id: hit._id,
-        price: typeof pricePaid === 'number' && pricePaid > 0 ? pricePaid : null,
+        price: typeof price === 'number' && price > 0 ? price : null,
         ...source
       };
     });

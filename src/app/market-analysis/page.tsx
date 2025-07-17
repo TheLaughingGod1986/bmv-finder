@@ -10,6 +10,7 @@ import TopPerformingRegions from '../components/TopPerformingRegions';
 import MarketVolatilityMap from '../components/MarketVolatilityMap';
 import InvestmentOpportunities from '../components/InvestmentOpportunities';
 import MarketComparisonTable from '../components/MarketComparisonTable';
+import MarketSearchBar from '../components/MarketSearchBar';
 
 interface MarketData {
   region: string;
@@ -21,6 +22,15 @@ interface MarketData {
   riskLevel: 'low' | 'medium' | 'high';
   investmentScore: number;
   lastUpdated: string;
+  dataPoints: number; // Added for historical data points
+  timeframeGrowth: number; // Added for timeframe-specific growth
+  propertyCount: number;
+  averagePrice: number;
+  priceRange: {
+    min: number;
+    max: number;
+    median: number;
+  };
 }
 
 interface MarketSummary {
@@ -34,39 +44,42 @@ interface MarketSummary {
 
 export default function MarketAnalysisPage() {
   const [marketData, setMarketData] = useState<MarketData[]>([]);
+  const [filteredData, setFilteredData] = useState<MarketData[]>([]);
   const [summary, setSummary] = useState<MarketSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedRegion, setSelectedRegion] = useState<string>('all');
   const [timeframe, setTimeframe] = useState<'1y' | '2y' | '5y'>('1y');
   const [viewMode, setViewMode] = useState<'overview' | 'trends' | 'opportunities' | 'comparison'>('overview');
+  const [currentSearchTerm, setCurrentSearchTerm] = useState<string>('');
+  const [autoSelectedRegions, setAutoSelectedRegions] = useState<string[]>([]);
 
   useEffect(() => {
-    loadMarketData();
-  }, [timeframe]);
+    // Load market data with current search term when timeframe changes
+    loadMarketData(currentSearchTerm);
+  }, [timeframe, currentSearchTerm]);
 
-  const loadMarketData = async () => {
+  useEffect(() => {
+    // Initialize filtered data with all market data
+    setFilteredData(marketData);
+  }, [marketData]);
+
+  const loadMarketData = async (searchTerm?: string) => {
     try {
       setLoading(true);
       
-      // Fetch latest HPI data for all regions
-      const response = await fetch('/api/hpi');
+      // Use the new enhanced market analysis API
+      const url = searchTerm 
+        ? `/api/market-analysis/enhanced?timeframe=${timeframe}&search=${encodeURIComponent(searchTerm)}`
+        : `/api/market-analysis/enhanced?timeframe=${timeframe}`;
+      
+      const response = await fetch(url);
       const data = await response.json();
       
+      console.log('Market Analysis API Response:', data); // Debug logging
+      
       if (data.success && data.data) {
-        const processedData = data.data.map((region: any) => ({
-          region: region.regionLabel || region.region,
-          currentIndex: region.index,
-          yoyGrowth: region.yoyGrowth || 0,
-          momGrowth: region.percentageChangeMonthly || 0,
-          volatility: calculateVolatility(region),
-          trend: determineTrend(region.yoyGrowth, region.percentageChangeMonthly),
-          riskLevel: determineRiskLevel(region.yoyGrowth, region.percentageChangeMonthly),
-          investmentScore: calculateInvestmentScore(region),
-          lastUpdated: region.date
-        }));
-
-        setMarketData(processedData);
-        setSummary(calculateSummary(processedData));
+        setMarketData(data.data);
+        setFilteredData(data.data);
+        setSummary(calculateSummary(data.data));
       }
     } catch (error) {
       console.error('Error loading market data:', error);
@@ -75,11 +88,33 @@ export default function MarketAnalysisPage() {
     }
   };
 
+  const handleSearchChange = (searchTerm: string, newFilteredData: MarketData[]) => {
+    setCurrentSearchTerm(searchTerm);
+    setFilteredData(newFilteredData);
+    
+    // Clear auto-selected regions if search is empty
+    if (!searchTerm.trim()) {
+      setAutoSelectedRegions([]);
+    }
+    // Auto-select regions if search term looks like a postcode and returns results
+    else if (newFilteredData.length > 0) {
+      const isPostcode = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i.test(searchTerm.trim());
+      if (isPostcode) {
+        const regionsToSelect = newFilteredData.map(item => item.region);
+        setAutoSelectedRegions(regionsToSelect);
+      }
+    }
+    
+    if (newFilteredData.length > 0) {
+      setSummary(calculateSummary(newFilteredData));
+    }
+  };
+
   const calculateVolatility = (region: any) => {
-    // Simplified volatility calculation
+    // Simplified volatility calculation based on YoY growth
     const growth = region.yoyGrowth || 0;
-    const monthlyChange = region.percentageChangeMonthly || 0;
-    return Math.abs(growth - monthlyChange * 12) / 12;
+    // Use a simplified volatility calculation since we don't have monthly data
+    return Math.abs(growth) * 0.1; // 10% of the growth rate as volatility
   };
 
   const determineTrend = (yoyGrowth: number, momGrowth: number): 'rising' | 'falling' | 'stable' => {
@@ -97,19 +132,15 @@ export default function MarketAnalysisPage() {
 
   const calculateInvestmentScore = (region: any) => {
     const yoyGrowth = region.yoyGrowth || 0;
-    const monthlyChange = region.percentageChangeMonthly || 0;
     const volatility = calculateVolatility(region);
     
-    // Score based on growth, stability, and momentum
+    // Score based on growth and stability
     let score = 50; // Base score
     
-    // Growth factor (40% weight)
-    score += (yoyGrowth * 2);
+    // Growth factor (60% weight)
+    score += (yoyGrowth * 3);
     
-    // Momentum factor (30% weight)
-    score += (monthlyChange * 10);
-    
-    // Stability factor (30% weight)
+    // Stability factor (40% weight)
     score -= (volatility * 5);
     
     return Math.max(0, Math.min(100, Math.round(score)));
@@ -117,22 +148,32 @@ export default function MarketAnalysisPage() {
 
   const calculateSummary = (data: MarketData[]): MarketSummary => {
     const totalRegions = data.length;
-    const averageGrowth = data.reduce((sum, region) => sum + region.yoyGrowth, 0) / totalRegions;
+    const averageGrowth = data.reduce((sum, region) => sum + region.timeframeGrowth, 0) / totalRegions;
     
-    const sortedByGrowth = [...data].sort((a, b) => b.yoyGrowth - a.yoyGrowth);
+    const sortedByGrowth = [...data].sort((a, b) => b.timeframeGrowth - a.timeframeGrowth);
     const bestPerformingRegion = sortedByGrowth[0]?.region || 'N/A';
     const worstPerformingRegion = sortedByGrowth[sortedByGrowth.length - 1]?.region || 'N/A';
     
-    const bullishRegions = data.filter(r => r.trend === 'rising').length;
-    const bearishRegions = data.filter(r => r.trend === 'falling').length;
-    
+    // Improved market sentiment logic based on average growth
     let marketSentiment: 'bullish' | 'bearish' | 'neutral' = 'neutral';
-    if (bullishRegions > bearishRegions * 1.5) marketSentiment = 'bullish';
-    else if (bearishRegions > bullishRegions * 1.5) marketSentiment = 'bearish';
+    if (averageGrowth > 2) marketSentiment = 'bullish';
+    else if (averageGrowth < -1) marketSentiment = 'bearish';
     
-    const highRiskRegions = data.filter(r => r.riskLevel === 'high').length;
-    const overallRisk = highRiskRegions > totalRegions * 0.3 ? 'high' : 
-                       highRiskRegions > totalRegions * 0.1 ? 'medium' : 'low';
+    // Improved risk calculation that considers negative growth as higher risk
+    let overallRisk: 'low' | 'medium' | 'high' = 'low';
+    const absGrowth = Math.abs(averageGrowth);
+    
+    if (averageGrowth < 0) {
+      // Negative growth indicates higher risk
+      if (absGrowth > 5) overallRisk = 'high';
+      else if (absGrowth > 2) overallRisk = 'medium';
+      else overallRisk = 'low';
+    } else {
+      // Positive growth - risk based on volatility
+      if (absGrowth > 10) overallRisk = 'high';
+      else if (absGrowth > 5) overallRisk = 'medium';
+      else overallRisk = 'low';
+    }
     
     return {
       totalRegions,
@@ -143,10 +184,6 @@ export default function MarketAnalysisPage() {
       overallRisk
     };
   };
-
-  const filteredData = selectedRegion === 'all' 
-    ? marketData 
-    : marketData.filter(region => region.region === selectedRegion);
 
   if (loading) {
     return (
@@ -200,15 +237,27 @@ export default function MarketAnalysisPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-green-500">
+            <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 ${
+              summary.averageGrowth > 0 ? 'border-green-500' : 
+              summary.averageGrowth < 0 ? 'border-red-500' : 'border-yellow-500'
+            }`}>
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Average Growth</p>
-                  <p className="text-2xl font-bold text-gray-900">
+                  <p className={`text-2xl font-bold ${
+                    summary.averageGrowth > 0 ? 'text-green-600' : 
+                    summary.averageGrowth < 0 ? 'text-red-600' : 'text-yellow-600'
+                  }`}>
                     {summary.averageGrowth > 0 ? '+' : ''}{summary.averageGrowth}%
                   </p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-green-500" />
+                {summary.averageGrowth > 0 ? (
+                  <TrendingUp className="w-8 h-8 text-green-500" />
+                ) : summary.averageGrowth < 0 ? (
+                  <TrendingDown className="w-8 h-8 text-red-500" />
+                ) : (
+                  <Target className="w-8 h-8 text-yellow-500" />
+                )}
               </div>
             </div>
 
@@ -241,19 +290,15 @@ export default function MarketAnalysisPage() {
           className="bg-white rounded-xl shadow-lg p-6 mb-8"
         >
           <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex gap-4">
-              <select
-                value={selectedRegion}
-                onChange={(e) => setSelectedRegion(e.target.value)}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="all">All Regions</option>
-                {marketData.map(region => (
-                  <option key={region.region} value={region.region}>
-                    {region.region}
-                  </option>
-                ))}
-              </select>
+            <div className="flex gap-4 flex-1">
+              <div className="flex-1 max-w-md">
+                <MarketSearchBar 
+                  onSearchChange={handleSearchChange}
+                  placeholder="Search regions, cities, or postcodes..."
+                  initialValue={currentSearchTerm}
+                  timeframe={timeframe}
+                />
+              </div>
 
               <select
                 value={timeframe}
@@ -293,7 +338,11 @@ export default function MarketAnalysisPage() {
         >
           {viewMode === 'overview' && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <RegionalTrendsChart data={filteredData} timeframe={timeframe} />
+              <RegionalTrendsChart 
+                data={filteredData} 
+                timeframe={timeframe}
+                autoSelectRegions={autoSelectedRegions}
+              />
               <MarketInsightsCard data={filteredData} summary={summary} />
             </div>
           )}
@@ -301,19 +350,19 @@ export default function MarketAnalysisPage() {
           {viewMode === 'trends' && (
             <div className="space-y-8">
               <RegionalTrendsChart data={filteredData} timeframe={timeframe} />
-              <MarketVolatilityMap data={marketData} />
+              <MarketVolatilityMap data={filteredData} />
             </div>
           )}
 
           {viewMode === 'opportunities' && (
             <div className="space-y-8">
-              <TopPerformingRegions data={marketData} />
-              <InvestmentOpportunities data={marketData} />
+              <TopPerformingRegions data={filteredData} />
+              <InvestmentOpportunities data={filteredData} />
             </div>
           )}
 
           {viewMode === 'comparison' && (
-            <MarketComparisonTable data={marketData} />
+            <MarketComparisonTable data={filteredData} />
           )}
         </motion.div>
       </div>

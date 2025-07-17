@@ -124,7 +124,13 @@ export function withRateLimit(handler: Function) {
     // Add rate limit headers
     const headers = rateLimiter.getHeaders(identifier, userTier);
     Object.entries(headers).forEach(([key, value]) => {
-      res.setHeader(key, value);
+      if (res.setHeader) {
+        res.setHeader(key, value);
+      } else if (res.headers && res.headers.set) {
+        res.headers.set(key, value);
+      } else if (res.headers && typeof res.headers === 'object') {
+        res.headers[key] = value;
+      }
     });
 
     if (!allowed) {

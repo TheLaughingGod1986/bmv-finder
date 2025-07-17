@@ -14,21 +14,21 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Search for properties in the land registry
+    // Search for properties in the correct index
     const response = await esClient.search({
-      index: 'land_registry_sales',
+      index: 'properties',
       body: {
         query: {
           bool: {
             must: [
-              { match: { postcode: postcode } },
-              { match: { number: number } }
+              { term: { postcode: postcode.toUpperCase() } },
+              { term: { paon: number.trim().toLowerCase() } }
             ]
           }
         },
         size: 10,
         sort: [
-          { date: { order: 'desc' } }
+          { dateOfTransfer: { order: 'desc' } }
         ]
       }
     });
@@ -36,14 +36,14 @@ export async function GET(request: NextRequest) {
     const results = response.hits.hits.map(hit => {
       const source = hit._source as any;
       return {
-        address: `${source.number} ${source.street}, ${source.postcode}`,
+        address: `${source.paon} ${source.street}, ${source.postcode}`,
         postcode: source.postcode,
         price: source.price,
-        date: source.date,
-        property_type: source.property_type,
-        new_build: source.new_build,
-        estate_type: source.estate_type,
-        transaction_type: source.transaction_type
+        date: source.dateOfTransfer,
+        property_type: source.propertyType,
+        new_build: source.old_new === 'Y',
+        estate_type: source.transactionCategory,
+        transaction_type: source.transactionCategory
       };
     });
 
@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Search error:', error);
-    
     // Return mock data for testing if Elasticsearch is not available
     return NextResponse.json({
       results: [

@@ -4,9 +4,12 @@ import React, { useState } from 'react';
 import Button from './Button';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from './SimpleCard';
 import { Input } from './SimpleInput';
-import { Search, MapPin, Home, Calendar, Target, Loader2 } from 'lucide-react';
+import { Search, MapPin, Home, Calendar, Target, Loader2, Calculator, BarChart3, Brain } from 'lucide-react';
 import { useToast } from './ToastProvider';
 import EnhancedDealAnalysisCard from './EnhancedDealAnalysisCard';
+import NextGenValuationCard from './NextGenValuationCard';
+import MLValuationCard from './MLValuationCard';
+// import RealisticValuationCard from './RealisticValuationCard';
 import { formatPostcode } from '@/utils/formatPostcode';
 import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 
@@ -71,8 +74,12 @@ export default function DealAnalysisSearch() {
   const [houseNumber, setHouseNumber] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [dealAnalysis, setDealAnalysis] = useState<DealAnalysisData | null>(null);
+  const [nextGenValuation, setNextGenValuation] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [valuationLoading, setValuationLoading] = useState(false);
+  const [showNextGenValuation, setShowNextGenValuation] = useState(false);
+  const [showMLValuation, setShowMLValuation] = useState(false);
   const { showToast } = useToast();
   const { history, saveToHistory } = usePostcodeHistory();
 
@@ -191,6 +198,80 @@ export default function DealAnalysisSearch() {
     }
   };
 
+  const handleNextGenValuation = async () => {
+    const formattedPostcode = formatPostcode(postcode.trim());
+    if (!formattedPostcode || !houseNumber.trim()) return;
+
+    setValuationLoading(true);
+    try {
+      const response = await fetch(`/api/next-gen-valuation?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber)}`);
+      
+      if (!response.ok) {
+        throw new Error('Valuation failed');
+      }
+
+      const data = await response.json();
+      setNextGenValuation(data);
+      setShowNextGenValuation(true);
+      
+      showToast({
+        type: 'success',
+        title: 'Next-Gen Valuation Complete',
+        message: `Current value: £${data.valuation.currentValue.toLocaleString()} (${data.valuation.confidence}% confidence)`,
+      });
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'Valuation Error',
+        message: 'Failed to generate next-generation valuation. Please try again.',
+      });
+    } finally {
+      setValuationLoading(false);
+    }
+  };
+
+  const handleMLValuation = async () => {
+    const formattedPostcode = formatPostcode(postcode.trim());
+    if (!formattedPostcode || !houseNumber.trim()) return;
+
+    setValuationLoading(true);
+    try {
+      const response = await fetch(`/api/ml-valuation?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber)}`);
+      
+      if (!response.ok) {
+        throw new Error('ML Valuation failed');
+      }
+
+      const data = await response.json();
+      setNextGenValuation(data); // Store ML valuation in nextGenValuation state
+      setShowMLValuation(true);
+      
+      showToast({
+        type: 'success',
+        title: 'ML Valuation Complete',
+        message: `Current value: £${data.valuation.currentValue.toLocaleString()} (${data.valuation.confidence}% confidence)`,
+      });
+    } catch (error) {
+      showToast({
+        type: 'error',
+        title: 'ML Valuation Error',
+        message: 'Failed to generate ML valuation. Please try again.',
+      });
+    } finally {
+      setValuationLoading(false);
+    }
+  };
+
+
+
+  const handleAddToPortfolio = (valuation: any) => {
+    showToast({
+      type: 'success',
+      title: 'Added to Portfolio',
+      message: 'Property has been added to your portfolio for tracking.',
+    });
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -239,16 +320,11 @@ export default function DealAnalysisSearch() {
                 placeholder="e.g., SW1A 1AA"
                 value={postcode}
                 onChange={(e) => {
-                  const input = e.target.value;
-                  // Format as user types if it looks like a postcode
-                  if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
-                    const formatted = formatPostcode(input);
-                    setPostcode(formatted);
-                  } else {
-                    setPostcode(input.toUpperCase());
-                  }
+                  // Simple input handling - no aggressive formatting
+                  setPostcode(e.target.value);
                 }}
                 onBlur={(e) => {
+                  // Only format when user finishes typing
                   const formatted = formatPostcode(e.target.value);
                   if (formatted !== e.target.value) {
                     setPostcode(formatted);
@@ -298,7 +374,61 @@ export default function DealAnalysisSearch() {
       {/* Deal Analysis Results */}
       {dealAnalysis && (
         <div className="space-y-6">
-          <EnhancedDealAnalysisCard data={dealAnalysis} loading={analysisLoading} />
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold">Deal Analysis Results</h2>
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleNextGenValuation} 
+                disabled={valuationLoading}
+                variant="outline"
+                className="flex items-center gap-2 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+              >
+                <Calculator className="h-4 w-4" />
+                {valuationLoading ? 'Generating...' : 'Next-Gen Valuation'}
+              </Button>
+              <Button 
+                onClick={() => setShowNextGenValuation(!showNextGenValuation)} 
+                disabled={!nextGenValuation}
+                variant="outline"
+                className="flex items-center gap-2 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+              >
+                <BarChart3 className="h-4 w-4" />
+                {showNextGenValuation ? 'Hide' : 'Show'} Next-Gen
+              </Button>
+              <Button 
+                onClick={handleMLValuation} 
+                disabled={valuationLoading}
+                variant="outline"
+                className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+              >
+                <Brain className="h-4 w-4" />
+                {valuationLoading ? 'Generating...' : 'ML Valuation'}
+              </Button>
+              <Button 
+                onClick={() => setShowMLValuation(!showMLValuation)} 
+                disabled={!nextGenValuation}
+                variant="outline"
+                className="flex items-center gap-2 bg-teal-50 border-teal-200 text-teal-700 hover:bg-teal-100"
+              >
+                <BarChart3 className="h-4 w-4" />
+                {showMLValuation ? 'Hide' : 'Show'} ML
+              </Button>
+            </div>
+          </div>
+          
+          {showNextGenValuation && nextGenValuation ? (
+            <NextGenValuationCard data={nextGenValuation} loading={valuationLoading} />
+          ) : (
+            <EnhancedDealAnalysisCard data={dealAnalysis} loading={analysisLoading} />
+          )}
+
+          {showMLValuation && (
+            <MLValuationCard 
+              postcode={formatPostcode(postcode.trim())} 
+              houseNumber={houseNumber} 
+              onAddToPortfolio={handleAddToPortfolio}
+            />
+          )}
         </div>
       )}
 

@@ -215,7 +215,38 @@ async function getHPIData(postcode: string): Promise<HPIData[]> {
       region = property.county || 'England';
     }
     
-    console.log(`📊 Fetching HPI data for region: ${region}`);
+    // Map English county names to Welsh HPI region names
+    const countyToHpiRegionMap: { [key: string]: string } = {
+      'TYNE AND WEAR': 'north-east',
+      'NORTHUMBERLAND': 'north-east',
+      'DURHAM': 'north-east',
+      'CLEVELAND': 'north-east',
+      'GREATER LONDON': 'london',
+      'GREATER MANCHESTER': 'gorllewin-canolbarth-lloegr',
+      'WEST MIDLANDS': 'gorllewin-canolbarth-lloegr',
+      'WEST YORKSHIRE': 'yorkshire-and-the-humber',
+      'KENT': 'de-orllewin-lloegr',
+      'ESSEX': 'de-orllewin-lloegr',
+      'HAMPSHIRE': 'de-orllewin-lloegr',
+      'LANCASHIRE': 'gorllewin-canolbarth-lloegr',
+      'SURREY': 'de-orllewin-lloegr',
+      'MERSEYSIDE': 'gorllewin-canolbarth-lloegr',
+      'NORTH YORKSHIRE': 'yorkshire-and-the-humber',
+      'SOUTH YORKSHIRE': 'yorkshire-and-the-humber',
+      'EAST YORKSHIRE': 'yorkshire-and-the-humber',
+      'LINCOLNSHIRE': 'east-midlands',
+      'NOTTINGHAMSHIRE': 'east-midlands',
+      'DERBYSHIRE': 'east-midlands',
+      'LEICESTERSHIRE': 'east-midlands',
+      'NORTHAMPTONSHIRE': 'east-midlands',
+      'CAMBRIDGESHIRE': 'east-of-england',
+      'BEDFORDSHIRE': 'east-of-england'
+    };
+
+    // Get the correct HPI region name
+    const hpiRegion = countyToHpiRegionMap[region] || region.toLowerCase().replace(/\s+/g, '-');
+    
+    console.log(`📊 Fetching HPI data for region: ${region} -> ${hpiRegion}`);
     
     const response = await esClient.search({
       index: 'house_price_index',
@@ -223,7 +254,7 @@ async function getHPIData(postcode: string): Promise<HPIData[]> {
         query: {
           bool: {
             should: [
-              { term: { region: region.toLowerCase().replace(/\s+/g, '-') } },
+              { term: { region: hpiRegion } },
               { term: { regionLabel: region } },
               { term: { region: 'england' } } // Fallback to England
             ]
@@ -405,21 +436,46 @@ function calculateDealAnalysis(
   if (lastSoldPrice && lastSoldDate && hpiData.length > 0) {
     const soldDate = new Date(lastSoldDate);
     const currentDate = new Date();
-    const monthsDiff = (currentDate.getFullYear() - soldDate.getFullYear()) * 12 + 
-                      (currentDate.getMonth() - soldDate.getMonth());
     
-    // Find HPI data closest to sold date and current date
-    const soldHPI = hpiData.find(hpi => new Date(hpi.date) >= soldDate) || hpiData[hpiData.length - 1];
-    const currentHPI = hpiData[0];
+    // Filter for the specific region (prefer regional data over England)
+    const regionalHPIData = hpiData.filter(hpi => hpi.region !== 'England');
+    const hpiDataToUse = regionalHPIData.length > 0 ? regionalHPIData : hpiData;
     
-    if (soldHPI && currentHPI) {
+    // Find HPI data for the exact month of sale
+    const soldYearMonth = lastSoldDate.substring(0, 7); // "2024-02"
+    const soldHPI = hpiDataToUse.find(hpi => hpi.date === soldYearMonth) || 
+                   hpiDataToUse.find(hpi => hpi.date >= soldYearMonth) || 
+                   hpiDataToUse[hpiDataToUse.length - 1];
+    
+    // Find current HPI data (most recent)
+    const currentHPI = hpiDataToUse[0];
+    
+    console.log(`🔍 HPI Calculation Debug:`);
+    console.log(`   Sold date: ${lastSoldDate} (${soldYearMonth})`);
+    console.log(`   Sold HPI: ${soldHPI?.hpi_value} (${soldHPI?.date})`);
+    console.log(`   Current HPI: ${currentHPI?.hpi_value} (${currentHPI?.date})`);
+    console.log(`   Region: ${currentHPI?.region}`);
+    
+    if (soldHPI && currentHPI && soldHPI.date !== currentHPI.date) {
       const hpiMultiplier = currentHPI.hpi_value / soldHPI.hpi_value;
       hpiAdjustedValue = lastSoldPrice * hpiMultiplier;
+      console.log(`   HPI Multiplier: ${hpiMultiplier.toFixed(4)}`);
+      console.log(`   Original Price: £${lastSoldPrice.toLocaleString()}`);
+      console.log(`   HPI Adjusted Value: £${hpiAdjustedValue.toLocaleString()}`);
+      console.log(`   Growth: ${((hpiMultiplier - 1) * 100).toFixed(2)}%`);
+    } else {
+      console.log(`   ⚠️  No HPI growth detected (same date or missing data)`);
+      hpiAdjustedValue = lastSoldPrice;
     }
   }
 
-  // Calculate current value estimate
-  const currentValueEstimate = calculateCurrentValueEstimate(propertyData, soldPrices, hpiData, marketInsights);
+  // Calculate current value estimate - prioritize HPI-adjusted value
+  let currentValueEstimate = hpiAdjustedValue; // Use HPI-adjusted value as primary estimate
+  
+  // If no HPI data, fall back to other methods
+  if (!currentValueEstimate) {
+    currentValueEstimate = calculateCurrentValueEstimate(propertyData, soldPrices, hpiData, marketInsights);
+  }
 
   // Calculate price per sqm and per bedroom
   const pricePerSqm = propertyData?.floor_area_m2 && lastSoldPrice 

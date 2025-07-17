@@ -8,12 +8,14 @@ interface MarketData {
   region: string;
   currentIndex: number;
   yoyGrowth: number;
+  timeframeGrowth: number;
   momGrowth: number;
   volatility: number;
   trend: 'rising' | 'falling' | 'stable';
   riskLevel: 'low' | 'medium' | 'high';
   investmentScore: number;
   lastUpdated: string;
+  dataPoints: number;
 }
 
 interface MarketSummary {
@@ -88,12 +90,28 @@ export default function MarketInsightsCard({ data, summary }: MarketInsightsCard
     }
 
     // Regional performance insights
-    insights.push({
-      type: 'info',
-      icon: Target,
-      title: 'Regional Performance',
-      description: `${summary.bestPerformingRegion} leads with strongest growth, while ${summary.worstPerformingRegion} shows weakest performance.`
-    });
+    if (summary.totalRegions === 1) {
+      // Single region analysis
+      const region = data[0];
+      const growthText = region.timeframeGrowth > 0 ? 
+        `shows strong growth of ${region.timeframeGrowth.toFixed(1)}%` : 
+        `shows a decline of ${Math.abs(region.timeframeGrowth).toFixed(1)}%`;
+      
+      insights.push({
+        type: 'info',
+        icon: Target,
+        title: 'Regional Performance',
+        description: `${region.region} ${growthText} over the selected timeframe.`
+      });
+    } else {
+      // Multiple regions comparison
+      insights.push({
+        type: 'info',
+        icon: Target,
+        title: 'Regional Performance',
+        description: `${summary.bestPerformingRegion} leads with strongest growth, while ${summary.worstPerformingRegion} shows weakest performance.`
+      });
+    }
 
     return insights;
   };
@@ -259,7 +277,7 @@ export default function MarketInsightsCard({ data, summary }: MarketInsightsCard
                   <div>
                     <p className="font-medium text-gray-900">{region.region}</p>
                     <p className="text-sm text-gray-600">
-                      {region.yoyGrowth > 0 ? '+' : ''}{region.yoyGrowth.toFixed(1)}% growth
+                      {region.timeframeGrowth > 0 ? '+' : ''}{region.timeframeGrowth.toFixed(1)}% growth
                     </p>
                   </div>
                 </div>

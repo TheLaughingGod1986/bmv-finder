@@ -154,7 +154,7 @@ class DataQualityMonitor {
           query: {
             bool: {
               must: [
-                { range: { pricePaid: { lte: 0 } } }
+                { range: { price: { lte: 0 } } }
               ]
             }
           }
@@ -239,7 +239,7 @@ class DataQualityMonitor {
 
   // Comprehensive data quality assessment
   async assessDataQuality(index: string): Promise<DataQualityMetrics> {
-    const requiredFields = ['postcode', 'dateOfTransfer', 'pricePaid', 'propertyType'];
+    const requiredFields = ['postcode', 'dateOfTransfer', 'price', 'propertyType'];
 
     const [freshness, completeness, accuracy, consistency] = await Promise.all([
       this.checkDataFreshness(index),

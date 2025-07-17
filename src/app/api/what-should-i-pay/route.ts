@@ -57,7 +57,7 @@ async function fetchComps(postcode: string, propertyType: string, maxDistanceKm 
       },
     },
     sort: [{ dateOfTransfer: { order: 'desc' } }],
-    _source: ['pricePaid', 'dateOfTransfer', 'propertyType', 'postcode', 'town_city', 'county', 'paon', 'street', 'locality', 'tenure']
+    _source: ['price', 'dateOfTransfer', 'propertyType', 'postcode', 'town_city', 'county', 'paon', 'street', 'locality', 'tenure']
   });
   return resp.hits.hits.map((hit: any) => hit._source);
 }

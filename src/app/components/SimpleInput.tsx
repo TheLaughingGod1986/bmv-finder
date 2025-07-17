@@ -15,7 +15,8 @@ export const Input: React.FC<InputProps> = ({
   id,
   ...props 
 }) => {
-  const inputId = id || `input-${Math.random().toString(36).substr(2, 9)}`;
+  // Use a more deterministic approach to avoid hydration mismatches
+  const inputId = id || `input-${React.useId()}`;
 
   return (
     <div className="w-full">

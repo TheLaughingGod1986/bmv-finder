@@ -1,5 +1,5 @@
 import { adjustForInflation, getRecentAdjustedPrices } from './inflationAdjustment';
-import { SoldPrice } from '@/types/sold-price';
+import { SoldPrice } from '../../types/sold-price';
 
 export interface PriceIndicator {
   label: string;

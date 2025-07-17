@@ -93,8 +93,8 @@ export async function GET(request: NextRequest) {
         });
         let yoyGrowth = null;
         if (prevYearRes.hits.hits.length > 0) {
-          const prevIndex = (prevYearRes.hits.hits[0]._source as any).index;
-          yoyGrowth = prevIndex !== 0 ? ((latest.index - prevIndex) / prevIndex) * 100 : null;
+          const prevIndex = (prevYearRes.hits.hits[0]._source as any).hpiIndex;
+          yoyGrowth = prevIndex !== 0 ? ((latest.hpiIndex - prevIndex) / prevIndex) * 100 : null;
         }
         return {
           ...latest,
@@ -158,13 +158,13 @@ export async function POST(request: NextRequest) {
         },
         aggs: {
           avg_index: {
-            avg: { field: 'index' }
+            avg: { field: 'hpiIndex' }
           },
           min_index: {
-            min: { field: 'index' }
+            min: { field: 'hpiIndex' }
           },
           max_index: {
-            max: { field: 'index' }
+            max: { field: 'hpiIndex' }
           }
         }
       }

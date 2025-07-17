@@ -8,12 +8,14 @@ interface MarketData {
   region: string;
   currentIndex: number;
   yoyGrowth: number;
+  timeframeGrowth: number;
   momGrowth: number;
   volatility: number;
   trend: 'rising' | 'falling' | 'stable';
   riskLevel: 'low' | 'medium' | 'high';
   investmentScore: number;
   lastUpdated: string;
+  dataPoints: number;
 }
 
 interface InvestmentOpportunitiesProps {
@@ -24,9 +26,9 @@ export default function InvestmentOpportunities({ data }: InvestmentOpportunitie
   const [filterType, setFilterType] = useState<'all' | 'growth' | 'stability' | 'value'>('all');
 
   const getOpportunityType = (region: MarketData) => {
-    if (region.yoyGrowth > 8 && region.volatility < 3) return 'growth';
-    if (region.volatility < 2 && region.yoyGrowth > 0) return 'stability';
-    if (region.currentIndex < 100 && region.yoyGrowth > 0) return 'value';
+    if (region.timeframeGrowth > 8 && region.volatility < 3) return 'growth';
+    if (region.volatility < 2 && region.timeframeGrowth > 0) return 'stability';
+    if (region.currentIndex < 100 && region.timeframeGrowth > 0) return 'value';
     return 'balanced';
   };
 
@@ -67,13 +69,13 @@ export default function InvestmentOpportunities({ data }: InvestmentOpportunitie
     
     switch (filterType) {
       case 'growth':
-        filtered = data.filter(r => r.yoyGrowth > 5 && r.trend === 'rising');
+        filtered = data.filter(r => r.timeframeGrowth > 5 && r.trend === 'rising');
         break;
       case 'stability':
         filtered = data.filter(r => r.volatility < 3 && r.riskLevel === 'low');
         break;
       case 'value':
-        filtered = data.filter(r => r.currentIndex < 120 && r.yoyGrowth > 0);
+        filtered = data.filter(r => r.currentIndex < 120 && r.timeframeGrowth > 0);
         break;
       default:
         filtered = data;
@@ -83,6 +85,7 @@ export default function InvestmentOpportunities({ data }: InvestmentOpportunitie
   };
 
   const opportunities = filterOpportunities();
+  const isSingleRegion = opportunities.length === 1;
 
   const getConfidenceLevel = (score: number) => {
     if (score >= 80) return { level: 'High', color: 'text-green-600', bg: 'bg-green-100' };
@@ -90,6 +93,108 @@ export default function InvestmentOpportunities({ data }: InvestmentOpportunitie
     return { level: 'Low', color: 'text-red-600', bg: 'bg-red-100' };
   };
 
+  // If single region, show focused analysis
+  if (isSingleRegion) {
+    const region = opportunities[0];
+    const opportunityType = getOpportunityType(region);
+    const Icon = getOpportunityIcon(opportunityType);
+    const confidence = getConfidenceLevel(region.investmentScore);
+    
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Target className="w-6 h-6 text-green-500" />
+          <h3 className="text-xl font-semibold text-gray-900">Regional Investment Analysis</h3>
+        </div>
+
+        {/* Single Region Focus */}
+        <div className="p-6 border border-gray-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-start gap-4">
+            {/* Icon and Type */}
+            <div className="flex flex-col items-center">
+              <div className={`w-16 h-16 rounded-full bg-gradient-to-r ${getOpportunityColor(opportunityType)} text-white flex items-center justify-center text-lg font-bold`}>
+                <Icon className="w-8 h-8" />
+              </div>
+              <span className="text-sm font-medium text-gray-600 mt-2 capitalize">{opportunityType}</span>
+            </div>
+
+            {/* Region Info */}
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <h4 className="text-2xl font-bold text-gray-900">{region.region}</h4>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${confidence.bg} ${confidence.color}`}>
+                  {confidence.level} Confidence
+                </span>
+              </div>
+              
+              <p className="text-lg text-gray-700 mb-4">
+                {getOpportunityDescription(region)}
+              </p>
+
+              {/* Key Metrics Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <p className="text-sm text-gray-600 mb-1">Growth Rate</p>
+                  <p className={`text-xl font-bold ${(region.timeframeGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                    {(region.timeframeGrowth || 0) > 0 ? '+' : ''}{(region.timeframeGrowth || 0).toFixed(1)}%
+                  </p>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <p className="text-sm text-gray-600 mb-1">HPI Index</p>
+                  <p className="text-xl font-bold text-gray-900">{(region.currentIndex || 0).toLocaleString()}</p>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <p className="text-sm text-gray-600 mb-1">Volatility</p>
+                  <p className="text-xl font-bold text-gray-900">{(region.volatility || 0).toFixed(2)}%</p>
+                </div>
+                <div className="text-center p-3 bg-white rounded-lg shadow-sm">
+                  <p className="text-sm text-gray-600 mb-1">Investment Score</p>
+                  <p className="text-xl font-bold text-blue-600">{region.investmentScore}/100</p>
+                </div>
+              </div>
+
+              {/* Risk Assessment */}
+              <div className="mt-6 p-4 bg-white rounded-lg border border-gray-200">
+                <h5 className="font-semibold text-gray-900 mb-2">Risk Assessment</h5>
+                <div className="flex items-center gap-4">
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    region.riskLevel === 'low' ? 'bg-green-100 text-green-800' :
+                    region.riskLevel === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {region.riskLevel.toUpperCase()} RISK
+                  </span>
+                  <span className="text-sm text-gray-600">
+                    {region.dataPoints} data points analyzed
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Investment Recommendation */}
+        <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+          <div className="flex items-start gap-3">
+            <Info className="w-5 h-5 text-green-600 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-green-900 mb-1">Investment Recommendation</p>
+              <p className="text-sm text-green-700">
+                {region.timeframeGrowth > 5 ? 
+                  `Based on ${region.timeframeGrowth.toFixed(1)}% growth over the selected timeframe, ${region.region} shows strong investment potential.` :
+                  `With ${region.timeframeGrowth.toFixed(1)}% growth over the selected timeframe, ${region.region} requires careful consideration.`
+                }
+                {region.riskLevel === 'low' && ' The low risk profile makes this suitable for conservative investors.'}
+                {region.riskLevel === 'high' && ' The high volatility suggests this may be suitable for risk-tolerant investors.'}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Multi-region view (original logic)
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
@@ -177,17 +282,17 @@ export default function InvestmentOpportunities({ data }: InvestmentOpportunitie
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <p className="text-gray-600">Growth Rate</p>
-                        <p className={`font-semibold ${region.yoyGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {region.yoyGrowth > 0 ? '+' : ''}{region.yoyGrowth.toFixed(1)}%
+                        <p className={`font-semibold ${(region.timeframeGrowth || 0) > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {(region.timeframeGrowth || 0) > 0 ? '+' : ''}{(region.timeframeGrowth || 0).toFixed(1)}%
                         </p>
                       </div>
                       <div>
                         <p className="text-gray-600">Volatility</p>
-                        <p className="font-semibold text-gray-900">{region.volatility.toFixed(2)}%</p>
+                        <p className="font-semibold text-gray-900">{(region.volatility || 0).toFixed(2)}%</p>
                       </div>
                       <div>
                         <p className="text-gray-600">HPI Index</p>
-                        <p className="font-semibold text-gray-900">{region.currentIndex.toLocaleString()}</p>
+                        <p className="font-semibold text-gray-900">{(region.currentIndex || 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-gray-600">Risk Level</p>
@@ -205,73 +310,19 @@ export default function InvestmentOpportunities({ data }: InvestmentOpportunitie
 
                 {/* Investment Score */}
                 <div className="text-right">
-                  <div className="text-2xl font-bold text-gray-900 mb-1">
-                    {region.investmentScore}
-                  </div>
-                  <div className="text-sm text-gray-600 mb-2">Investment Score</div>
-                  <div className="w-20 h-2 bg-gray-200 rounded-full">
+                  <div className="text-2xl font-bold text-blue-600 mb-1">{region.investmentScore}</div>
+                  <div className="text-sm text-gray-500">Investment Score</div>
+                  <div className="w-20 h-2 bg-gray-200 rounded-full mt-2">
                     <div 
-                      className="h-2 rounded-full transition-all duration-300"
-                      style={{ 
-                        width: `${region.investmentScore}%`,
-                        backgroundColor: region.investmentScore >= 80 ? '#10B981' : 
-                                        region.investmentScore >= 60 ? '#F59E0B' : '#EF4444'
-                      }}
-                    ></div>
+                      className="h-2 bg-blue-500 rounded-full transition-all duration-300"
+                      style={{ width: `${region.investmentScore}%` }}
+                    />
                   </div>
                 </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="mt-4 pt-4 border-t border-gray-100 flex gap-2">
-                <button className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-lg text-sm font-medium hover:bg-blue-600 transition-colors">
-                  <MapPin className="w-4 h-4" />
-                  View Properties
-                </button>
-                <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-                  <Calendar className="w-4 h-4" />
-                  Market Analysis
-                </button>
-                <button className="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors">
-                  <ArrowUpRight className="w-4 h-4" />
-                  Compare
-                </button>
               </div>
             </motion.div>
           );
         })}
-      </div>
-
-      {/* Summary Stats */}
-      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-        <h5 className="font-semibold text-gray-900 mb-3">Opportunity Summary</h5>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-600">Total Opportunities</p>
-            <p className="font-semibold text-gray-900">{opportunities.length}</p>
-          </div>
-          <div>
-            <p className="text-gray-600">Avg Investment Score</p>
-            <p className="font-semibold text-gray-900">
-              {Math.round(opportunities.reduce((sum, r) => sum + r.investmentScore, 0) / opportunities.length)}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">High Confidence</p>
-            <p className="font-semibold text-green-600">
-              {opportunities.filter(r => r.investmentScore >= 80).length}
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">Avg Growth Rate</p>
-            <p className="font-semibold text-gray-900">
-              {opportunities.length > 0 ? 
-                (opportunities.reduce((sum, r) => sum + r.yoyGrowth, 0) / opportunities.length).toFixed(1) + '%' : 
-                'N/A'
-              }
-            </p>
-          </div>
-        </div>
       </div>
     </div>
   );

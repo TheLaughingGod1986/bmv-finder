@@ -46,19 +46,19 @@ export default function MarketVolatilityMap({ data }: MarketVolatilityMapProps) 
 
   const getMetricValue = (region: MarketData) => {
     switch (selectedMetric) {
-      case 'volatility': return region.volatility;
+      case 'volatility': return region.volatility || 0;
       case 'risk': return region.riskLevel === 'low' ? 1 : region.riskLevel === 'medium' ? 2 : 3;
-      case 'growth': return region.yoyGrowth;
-      default: return region.volatility;
+      case 'growth': return region.yoyGrowth || 0;
+      default: return region.volatility || 0;
     }
   };
 
   const getMetricLabel = (region: MarketData) => {
     switch (selectedMetric) {
-      case 'volatility': return `${region.volatility.toFixed(2)}%`;
+      case 'volatility': return `${(region.volatility || 0).toFixed(2)}%`;
       case 'risk': return region.riskLevel.toUpperCase();
-      case 'growth': return `${region.yoyGrowth > 0 ? '+' : ''}${region.yoyGrowth.toFixed(1)}%`;
-      default: return `${region.volatility.toFixed(2)}%`;
+      case 'growth': return `${(region.yoyGrowth || 0) > 0 ? '+' : ''}${(region.yoyGrowth || 0).toFixed(1)}%`;
+      default: return `${(region.volatility || 0).toFixed(2)}%`;
     }
   };
 
@@ -153,7 +153,7 @@ export default function MarketVolatilityMap({ data }: MarketVolatilityMapProps) 
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <p className="text-gray-600">HPI Index</p>
-                  <p className="font-semibold text-gray-900">{region.currentIndex.toLocaleString()}</p>
+                  <p className="font-semibold text-gray-900">{(region.currentIndex || 0).toLocaleString()}</p>
                 </div>
                 <div>
                   <p className="text-gray-600">Investment Score</p>

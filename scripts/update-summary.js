@@ -7,7 +7,7 @@ async function updateSummary() {
     
     // Get counts from all indices
     const [propertiesCount, recentSalesCount, hpiCount] = await Promise.all([
-      esClient.count({ index: 'properties' }),
+      esClient.count({ index: 'properties-enhanced' }), // Use enhanced index for property count
       esClient.count({ index: 'recent_sales' }),
       esClient.count({ index: 'house_price_index' })
     ]);

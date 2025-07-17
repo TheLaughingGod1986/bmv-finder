@@ -77,7 +77,7 @@ class AdvancedSearch {
         aggs: {
           price_ranges: {
             range: {
-              field: 'pricePaid',
+              field: 'price',
               ranges: [
                 { to: 100000 },
                 { from: 100000, to: 200000 },
@@ -238,10 +238,10 @@ class AdvancedSearch {
               calendar_interval: 'month',
               aggs: {
                 avg_price: {
-                  avg: { field: 'pricePaid' }
+                  avg: { field: 'price' }
                 },
                 count: {
-                  value_count: { field: 'pricePaid' }
+                  value_count: { field: 'price' }
                 }
               }
             }
@@ -361,7 +361,7 @@ class AdvancedSearch {
     if (filters.priceRange) {
       filterArray.push({
         range: {
-          pricePaid: {
+          price: {
             gte: filters.priceRange.min,
             lte: filters.priceRange.max
           }

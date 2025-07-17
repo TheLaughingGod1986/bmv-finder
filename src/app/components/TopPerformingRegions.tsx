@@ -8,12 +8,14 @@ interface MarketData {
   region: string;
   currentIndex: number;
   yoyGrowth: number;
+  timeframeGrowth: number;
   momGrowth: number;
   volatility: number;
   trend: 'rising' | 'falling' | 'stable';
   riskLevel: 'low' | 'medium' | 'high';
   investmentScore: number;
   lastUpdated: string;
+  dataPoints: number;
 }
 
 interface TopPerformingRegionsProps {
@@ -22,12 +24,14 @@ interface TopPerformingRegionsProps {
 
 export default function TopPerformingRegions({ data }: TopPerformingRegionsProps) {
   const topPerformers = [...data]
-    .sort((a, b) => b.yoyGrowth - a.yoyGrowth)
+    .sort((a, b) => b.timeframeGrowth - a.timeframeGrowth)
     .slice(0, 5);
 
   const worstPerformers = [...data]
-    .sort((a, b) => a.yoyGrowth - b.yoyGrowth)
+    .sort((a, b) => a.timeframeGrowth - b.timeframeGrowth)
     .slice(0, 5);
+
+  const isSingleRegion = data.length === 1;
 
   const getGrowthColor = (growth: number) => {
     if (growth > 5) return 'text-green-600';
@@ -56,6 +60,85 @@ export default function TopPerformingRegions({ data }: TopPerformingRegionsProps
     );
   };
 
+  // If single region, show focused analysis
+  if (isSingleRegion) {
+    const region = data[0];
+    
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <div className="flex items-center gap-2 mb-6">
+          <Trophy className="w-6 h-6 text-yellow-500" />
+          <h3 className="text-xl font-semibold text-gray-900">Regional Performance Analysis</h3>
+        </div>
+
+        {/* Single Region Focus */}
+        <div className="p-6 border border-gray-200 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-4 mb-4">
+            <div className="w-12 h-12 bg-blue-500 text-white rounded-full flex items-center justify-center text-lg font-bold">
+              <MapPin className="w-6 h-6" />
+            </div>
+            <div>
+              <h4 className="text-2xl font-bold text-gray-900">{region.region}</h4>
+              <div className="flex items-center gap-2">
+                {getTrendIcon(region.trend)}
+                <span className="text-sm text-gray-600 capitalize">{region.trend} trend</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Performance Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6">
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Growth Rate</p>
+              <p className={`text-2xl font-bold ${getGrowthColor(region.timeframeGrowth)}`}>
+                {(region.timeframeGrowth || 0) > 0 ? '+' : ''}{(region.timeframeGrowth || 0).toFixed(1)}%
+              </p>
+              <p className="text-xs text-gray-500">Selected timeframe</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">HPI Index</p>
+              <p className="text-2xl font-bold text-gray-900">{(region.currentIndex || 0).toLocaleString()}</p>
+              <p className="text-xs text-gray-500">Current value</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Volatility</p>
+              <p className="text-2xl font-bold text-gray-900">{(region.volatility || 0).toFixed(2)}%</p>
+              <p className="text-xs text-gray-500">Market stability</p>
+            </div>
+            <div className="text-center p-4 bg-white rounded-lg shadow-sm">
+              <p className="text-sm text-gray-600 mb-1">Investment Score</p>
+              <p className="text-2xl font-bold text-blue-600">{region.investmentScore}/100</p>
+              <p className="text-xs text-gray-500">Overall rating</p>
+            </div>
+          </div>
+
+          {/* Risk and Trend Analysis */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <h5 className="font-semibold text-gray-900 mb-2">Risk Assessment</h5>
+              <div className="flex items-center gap-3">
+                {getRiskBadge(region.riskLevel)}
+                <span className="text-sm text-gray-600">
+                  {region.dataPoints} data points analyzed
+                </span>
+              </div>
+            </div>
+            <div className="p-4 bg-white rounded-lg border border-gray-200">
+              <h5 className="font-semibold text-gray-900 mb-2">Performance Summary</h5>
+              <p className="text-sm text-gray-600">
+                {region.timeframeGrowth > 0 ? 
+                  `Strong performance with ${region.timeframeGrowth.toFixed(1)}% growth over the selected timeframe.` :
+                  `Challenging period with ${Math.abs(region.timeframeGrowth).toFixed(1)}% decline over the selected timeframe.`
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Multi-region view (original logic)
   return (
     <div className="bg-white rounded-xl shadow-lg p-6">
       <div className="flex items-center gap-2 mb-6">
@@ -94,22 +177,22 @@ export default function TopPerformingRegions({ data }: TopPerformingRegionsProps
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-lg font-bold ${getGrowthColor(region.yoyGrowth)}`}>
-                      {region.yoyGrowth > 0 ? '+' : ''}{region.yoyGrowth.toFixed(1)}%
+                    <p className={`text-lg font-bold ${getGrowthColor(region.timeframeGrowth)}`}>
+                      {(region.timeframeGrowth || 0) > 0 ? '+' : ''}{(region.timeframeGrowth || 0).toFixed(1)}%
                     </p>
-                    <p className="text-xs text-gray-600">YoY Growth</p>
+                    <p className="text-xs text-gray-600">Growth</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">HPI Index</p>
-                    <p className="font-semibold text-gray-900">{region.currentIndex.toLocaleString()}</p>
+                    <p className="font-semibold text-gray-900">{(region.currentIndex || 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">MoM Change</p>
                     <p className={`font-semibold ${getGrowthColor(region.momGrowth)}`}>
-                      {region.momGrowth > 0 ? '+' : ''}{region.momGrowth.toFixed(1)}%
+                      {(region.momGrowth || 0) > 0 ? '+' : ''}{(region.momGrowth || 0).toFixed(1)}%
                     </p>
                   </div>
                   <div>
@@ -165,22 +248,22 @@ export default function TopPerformingRegions({ data }: TopPerformingRegionsProps
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className={`text-lg font-bold ${getGrowthColor(region.yoyGrowth)}`}>
-                      {region.yoyGrowth > 0 ? '+' : ''}{region.yoyGrowth.toFixed(1)}%
+                    <p className={`text-lg font-bold ${getGrowthColor(region.timeframeGrowth)}`}>
+                      {(region.timeframeGrowth || 0) > 0 ? '+' : ''}{(region.timeframeGrowth || 0).toFixed(1)}%
                     </p>
-                    <p className="text-xs text-gray-600">YoY Growth</p>
+                    <p className="text-xs text-gray-600">Growth</p>
                   </div>
                 </div>
                 
                 <div className="grid grid-cols-3 gap-4 text-sm">
                   <div>
                     <p className="text-gray-600">HPI Index</p>
-                    <p className="font-semibold text-gray-900">{region.currentIndex.toLocaleString()}</p>
+                    <p className="font-semibold text-gray-900">{(region.currentIndex || 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-gray-600">MoM Change</p>
                     <p className={`font-semibold ${getGrowthColor(region.momGrowth)}`}>
-                      {region.momGrowth > 0 ? '+' : ''}{region.momGrowth.toFixed(1)}%
+                      {(region.momGrowth || 0) > 0 ? '+' : ''}{(region.momGrowth || 0).toFixed(1)}%
                     </p>
                   </div>
                   <div>
@@ -203,37 +286,6 @@ export default function TopPerformingRegions({ data }: TopPerformingRegionsProps
                 </div>
               </motion.div>
             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Summary Stats */}
-      <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-        <h5 className="font-semibold text-gray-900 mb-3">Performance Summary</h5>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-          <div>
-            <p className="text-gray-600">Best Growth</p>
-            <p className="font-semibold text-green-600">
-              {topPerformers[0]?.region}: {topPerformers[0]?.yoyGrowth.toFixed(1)}%
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">Worst Growth</p>
-            <p className="font-semibold text-red-600">
-              {worstPerformers[0]?.region}: {worstPerformers[0]?.yoyGrowth.toFixed(1)}%
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">Growth Spread</p>
-            <p className="font-semibold text-gray-900">
-              {((topPerformers[0]?.yoyGrowth || 0) - (worstPerformers[0]?.yoyGrowth || 0)).toFixed(1)}%
-            </p>
-          </div>
-          <div>
-            <p className="text-gray-600">Avg Investment Score</p>
-            <p className="font-semibold text-gray-900">
-              {Math.round(data.reduce((sum, r) => sum + r.investmentScore, 0) / data.length)}
-            </p>
           </div>
         </div>
       </div>

@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
         size: 1000,
         query,
         sort: [{ dateOfTransfer: { order: 'desc' } }],
-        _source: ['pricePaid', 'dateOfTransfer', 'propertyType', 'postcode', 'town_city', 'county', 'paon', 'street', 'locality', 'tenure']
+        _source: ['price', 'dateOfTransfer', 'propertyType', 'postcode', 'town_city', 'county', 'paon', 'street', 'locality', 'tenure']
       });
 
       const buckets = (result.aggregations?.prices_by_year as any)?.buckets || [];

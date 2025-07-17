@@ -111,6 +111,101 @@ class ElasticsearchService {
   }
 
   /**
+   * Get property data from enhanced properties index
+   * @param {string} postcode - Normalized postcode
+   * @param {string} number - Normalized house number
+   * @returns {Object|null} Enhanced property data or null
+   */
+  async getEnhancedPropertyData(postcode, number) {
+    if (!this.client) {
+      this.logger.warn('Elasticsearch client not available, skipping enhanced property lookup');
+      return null;
+    }
+
+    try {
+      // Try both with and without spaces in postcode
+      const postcodeWithSpace = postcode.replace(/(.{3})(.{3})/, '$1 $2'); // Add space: NE52PR -> NE5 2PR
+      const postcodeWithoutSpace = postcode.replace(/\s+/g, ''); // Remove spaces: NE5 2PR -> NE52PR
+      
+      const response = await this.client.search({
+        index: 'properties-enhanced',
+        body: {
+          query: {
+            bool: {
+              should: [
+                { match_phrase: { postcode: postcode } },
+                { match_phrase: { postcode: postcodeWithSpace } },
+                { match_phrase: { postcode: postcodeWithoutSpace } }
+              ],
+              minimum_should_match: 1,
+              must: [
+                {
+                  bool: {
+                    should: [
+                      { match: { paon: number } },
+                      { match: { transaction_id: number } }
+                    ],
+                    minimum_should_match: 1
+                  }
+                }
+              ]
+            }
+          },
+          size: 1,
+          sort: [{ date: { order: 'desc' } }]
+        }
+      });
+
+      this.logger.info('Enhanced property search response', {
+        postcode,
+        number,
+        hits: response.hits.hits.length,
+        total: response.hits.total.value
+      });
+
+      if (response.hits.hits.length > 0) {
+        const propertyData = response.hits.hits[0]._source;
+        
+        this.logger.info('Found enhanced property data', {
+          postcode,
+          number,
+          found: true,
+          data: {
+            bedrooms: propertyData.epc_bedrooms,
+            epc_rating: propertyData.epc_rating,
+            size: propertyData.epc_size
+          }
+        });
+
+        // Format the data to match the expected structure
+        return {
+          address: propertyData.full_address || `${number} ${postcode}`,
+          bedrooms: propertyData.epc_bedrooms,
+          epc_rating: propertyData.epc_rating,
+          floor_area_m2: propertyData.epc_size,
+          property_type: propertyData.property_type_label,
+          construction_year: null, // Not available in this dataset
+          current_energy_rating: propertyData.epc_rating,
+          potential_energy_rating: null, // Not available in this dataset
+          epc_date: null, // Not available in this dataset
+          certificate_id: null // Not available in this dataset
+        };
+      }
+
+      this.logger.info('No enhanced property data found', { postcode, number });
+      return null;
+
+    } catch (error) {
+      this.logger.error('Error retrieving enhanced property data', {
+        error: error.message,
+        postcode,
+        number
+      });
+      return null;
+    }
+  }
+
+  /**
    * Check if cached data exists and is still valid
    * @param {string} postcode - Normalized postcode
    * @param {string} number - Normalized house number
@@ -133,9 +228,13 @@ class ElasticsearchService {
             bool: {
               must: [
                 { term: { postcode: postcode } },
-                { term: { house_number: number } },
                 { range: { expires_at: { gt: now.toISOString() } } }
-              ]
+              ],
+              should: [
+                { term: { house_number: number } },
+                { term: { transaction_id: number } }
+              ],
+              minimum_should_match: 1
             }
           },
           size: 1,

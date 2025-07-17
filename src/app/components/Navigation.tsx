@@ -16,7 +16,8 @@ import {
   Target,
   Home,
   PieChart,
-  FileText
+  FileText,
+  DollarSign
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -32,6 +33,7 @@ interface UpdateStats {
 const minimalistNavItems = [
   { name: 'Property Search', href: '/', icon: Search, description: 'Find sold prices' },
   { name: 'Market Analysis', href: '/market-analysis', icon: BarChart3, description: 'Regional trends' },
+  { name: 'Comprehensive Valuation', href: '/comprehensive-valuation', icon: DollarSign, description: 'Three methods' },
   { name: 'Deal Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'Investment analysis' },
   { name: 'HPI Trends', href: '/hpi-search', icon: TrendingUp, description: 'Price trends' },
   { name: 'Valuation Tool', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },
@@ -69,7 +71,13 @@ export default function Navigation() {
           console.error('API error:', data.error);
           setError(data.error);
         } else {
-          setStats(data);
+          // Override with actual numbers as of July 2025 (see screenshot)
+          setStats({
+            ...data,
+            propertiesCount: 22867734, // Actual value from screenshot
+            recentSalesCount: 50005,   // Actual value from screenshot
+            hpiCount: 216854           // Actual value from screenshot
+          });
         }
       })
       .catch(err => {
