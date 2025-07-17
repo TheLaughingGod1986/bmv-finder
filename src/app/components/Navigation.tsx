@@ -31,6 +31,7 @@ interface UpdateStats {
 
 const minimalistNavItems = [
   { name: 'Property Search', href: '/', icon: Search, description: 'Find sold prices' },
+  { name: 'Market Analysis', href: '/market-analysis', icon: BarChart3, description: 'Regional trends' },
   { name: 'Deal Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'Investment analysis' },
   { name: 'HPI Trends', href: '/hpi-search', icon: TrendingUp, description: 'Price trends' },
   { name: 'Valuation Tool', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },

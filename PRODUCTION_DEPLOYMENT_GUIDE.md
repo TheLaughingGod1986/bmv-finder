@@ -1,380 +1,206 @@
 # BMV Finder - Production Deployment Guide
 
-## 🚀 **Complete Production Deployment Checklist**
+## 🚀 **Production Deployment Overview**
 
-This guide covers everything you need to deploy your BMV Finder platform to production, including the web application, mobile app, and all supporting infrastructure.
-
----
+This guide covers the complete production deployment of the enhanced BMV Finder platform with all new features including Market Analysis, Advanced Deal Analysis, and Enhanced Data Integration.
 
 ## 📋 **Pre-Deployment Checklist**
 
-### ✅ **Environment Setup**
-- [ ] Production server/cloud infrastructure configured
-- [ ] Domain name registered and DNS configured
-- [ ] SSL certificates obtained and installed
-- [ ] Environment variables configured
-- [ ] Database backups and recovery procedures tested
-- [ ] Monitoring and logging systems set up
+### **✅ Core Platform Features**
+- [x] Enhanced Data Integration (EPC + HPI + Land Registry)
+- [x] Market Analysis Dashboard
+- [x] Advanced Deal Analysis UI
+- [x] Energy Efficiency Insights
+- [x] Enhanced Property Cards
+- [x] Real-time HPI Data Integration
+- [x] Investment Opportunity Scoring
+- [x] Regional Trend Analysis
 
-### ✅ **Security Audit**
-- [ ] API rate limiting configured
-- [ ] Input validation implemented
-- [ ] SQL injection protection verified
-- [ ] XSS protection enabled
-- [ ] CORS policies configured
-- [ ] Authentication system tested
-- [ ] Data encryption verified
+### **✅ Infrastructure Requirements**
+- [x] Elasticsearch Cluster (30M+ properties indexed)
+- [x] Enhanced Search API
+- [x] Market Analysis API
+- [x] Deal Analysis API
+- [x] HPI Data Pipeline
+- [x] EPC Data Integration
+- [x] Rate Limiting & Caching
+- [x] User Authentication & Tiers
 
-### ✅ **Performance Testing**
-- [ ] Load testing completed
-- [ ] Response times optimized
-- [ ] Database queries optimized
-- [ ] Caching strategy implemented
-- [ ] CDN configured for static assets
-- [ ] Image optimization completed
+## 🏗️ **Production Architecture**
 
----
-
-## 🏗️ **Infrastructure Setup**
-
-### **1. Cloud Platform Selection**
-
-#### **Option A: Vercel (Recommended for Next.js)**
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy to Vercel
-vercel --prod
+### **Frontend (Vercel)**
+```
+- Next.js 14 Application
+- Enhanced UI Components
+- Market Analysis Dashboard
+- Advanced Deal Analysis
+- Real-time Data Visualization
+- Mobile-Responsive Design
 ```
 
-#### **Option B: AWS (Enterprise)**
-```bash
-# Deploy using AWS Amplify
-npm install -g @aws-amplify/cli
-amplify init
-amplify push
+### **Backend Services**
+```
+- Elasticsearch Cluster (Production)
+- Enhanced Search API
+- Market Analysis API
+- Deal Analysis API
+- HPI Data Pipeline
+- EPC Data Integration
+- User Management
+- Payment Processing (Stripe)
 ```
 
-#### **Option C: DigitalOcean (Cost-effective)**
-```bash
-# Deploy to DigitalOcean App Platform
-# Upload your code and configure build settings
+### **Data Pipeline**
+```
+- Land Registry Data (30M+ properties)
+- EPC Data (20M+ certificates)
+- HPI Data (Regional indices)
+- Automated Updates
+- Data Quality Monitoring
+- Backup & Recovery
 ```
 
-### **2. Database Setup**
+## 🔧 **Deployment Steps**
 
-#### **Elasticsearch Production Configuration**
-```yaml
-# elasticsearch.yml
-cluster.name: bmv-finder-prod
-node.name: node-1
+### **Step 1: Environment Setup**
+
+#### **Production Environment Variables**
+```bash
+# Elasticsearch
+ELASTICSEARCH_URL=https://your-production-es-cluster.com
+ELASTICSEARCH_API_KEY=your-production-api-key
+
+# Database
+DATABASE_URL=your-production-database-url
+SUPABASE_URL=your-production-supabase-url
+SUPABASE_ANON_KEY=your-production-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-production-service-role-key
+
+# Authentication
+NEXTAUTH_SECRET=your-production-secret
+NEXTAUTH_URL=https://your-domain.com
+
+# Payments
+STRIPE_SECRET_KEY=your-production-stripe-secret
+STRIPE_PUBLISHABLE_KEY=your-production-stripe-publishable
+STRIPE_WEBHOOK_SECRET=your-production-webhook-secret
+
+# Analytics
+GOOGLE_ANALYTICS_ID=your-ga-id
+VERCEL_ANALYTICS_ID=your-vercel-analytics-id
+
+# Monitoring
+SENTRY_DSN=your-production-sentry-dsn
+```
+
+#### **Elasticsearch Production Setup**
+```bash
+# Production ES Cluster Configuration
+cluster.name: bmv-finder-production
+node.name: bmv-finder-node-1
 network.host: 0.0.0.0
 http.port: 9200
-discovery.type: single-node
+discovery.seed_hosts: ["node-1", "node-2", "node-3"]
+cluster.initial_master_nodes: ["node-1", "node-2", "node-3"]
+
+# Security
 xpack.security.enabled: true
 xpack.security.transport.ssl.enabled: true
+xpack.security.http.ssl.enabled: true
+
+# Performance
+indices.memory.index_buffer_size: 30%
+indices.queries.cache.size: 20%
 ```
 
-#### **Environment Variables**
-```env
-# .env.production
-ELASTICSEARCH_URL=https://your-elasticsearch-cluster.com
-ELASTICSEARCH_USERNAME=your-username
-ELASTICSEARCH_PASSWORD=your-secure-password
-NEXT_PUBLIC_API_URL=https://api.bmvfinder.com
-DATABASE_URL=your-database-connection-string
-REDIS_URL=your-redis-connection-string
-JWT_SECRET=your-super-secure-jwt-secret
-STRIPE_SECRET_KEY=your-stripe-secret-key
-SENTRY_DSN=your-sentry-dsn
+### **Step 2: Data Migration**
+
+#### **Enhanced Dataset Deployment**
+```bash
+# Deploy enhanced properties index
+curl -X POST "https://your-es-cluster.com/properties-enhanced/_bulk" \
+  -H "Authorization: ApiKey your-api-key" \
+  -H "Content-Type: application/x-ndjson" \
+  --data-binary @enhanced-properties-bulk.json
+
+# Verify indexing
+curl -X GET "https://your-es-cluster.com/properties-enhanced/_count" \
+  -H "Authorization: ApiKey your-api-key"
 ```
 
-### **3. Domain & SSL Setup**
+#### **HPI Data Deployment**
+```bash
+# Deploy HPI indices
+curl -X POST "https://your-es-cluster.com/house_price_index/_bulk" \
+  -H "Authorization: ApiKey your-api-key" \
+  -H "Content-Type: application/x-ndjson" \
+  --data-binary @hpi-data-bulk.json
+```
+
+### **Step 3: API Deployment**
+
+#### **Enhanced Search API**
+```typescript
+// Production API Configuration
+export const enhancedSearchConfig = {
+  index: 'properties-enhanced',
+  maxResults: 1000,
+  cacheTTL: 300, // 5 minutes
+  rateLimit: {
+    free: 10,
+    basic: 100,
+    pro: 1000
+  }
+};
+```
+
+#### **Market Analysis API**
+```typescript
+// Market Analysis Production Config
+export const marketAnalysisConfig = {
+  hpiIndex: 'house_price_index',
+  cacheTTL: 600, // 10 minutes
+  maxRegions: 50,
+  updateFrequency: 'daily'
+};
+```
+
+### **Step 4: Frontend Deployment**
+
+#### **Vercel Production Deployment**
+```bash
+# Deploy to Vercel
+vercel --prod
+
+# Environment Variables
+vercel env add ELASTICSEARCH_URL production
+vercel env add ELASTICSEARCH_API_KEY production
+vercel env add DATABASE_URL production
+# ... add all production environment variables
+```
 
 #### **Domain Configuration**
 ```bash
-# Configure DNS records
-A     @      your-server-ip
-CNAME www    your-domain.com
-CNAME api    api.your-domain.com
+# Custom Domain Setup
+vercel domains add your-domain.com
+vercel domains verify your-domain.com
+
+# SSL Certificate (automatic with Vercel)
+# DNS Configuration
+# A Record: your-domain.com -> Vercel IP
+# CNAME Record: www.your-domain.com -> your-domain.com
 ```
 
-#### **SSL Certificate (Let's Encrypt)**
-```bash
-# Install Certbot
-sudo apt-get install certbot
+### **Step 5: Monitoring & Analytics**
 
-# Obtain SSL certificate
-sudo certbot certonly --standalone -d your-domain.com -d www.your-domain.com
-
-# Auto-renewal
-sudo crontab -e
-# Add: 0 12 * * * /usr/bin/certbot renew --quiet
-```
-
----
-
-## 🌐 **Web Application Deployment**
-
-### **1. Build & Deploy**
-
-#### **Production Build**
-```bash
-# Install dependencies
-npm install
-
-# Build for production
-npm run build
-
-# Test production build locally
-npm start
-```
-
-#### **Deployment Scripts**
-```json
-{
-  "scripts": {
-    "build:prod": "NODE_ENV=production npm run build",
-    "start:prod": "NODE_ENV=production npm start",
-    "deploy": "npm run build:prod && vercel --prod"
-  }
-}
-```
-
-### **2. Environment Configuration**
-
-#### **Production Environment Variables**
-```env
-# .env.production
-NODE_ENV=production
-NEXT_PUBLIC_API_URL=https://api.bmvfinder.com
-NEXT_PUBLIC_APP_URL=https://bmvfinder.com
-ELASTICSEARCH_URL=https://your-elasticsearch-cluster.com
-REDIS_URL=redis://your-redis-instance.com:6379
-JWT_SECRET=your-super-secure-jwt-secret
-STRIPE_SECRET_KEY=sk_live_your_stripe_secret_key_here
-STRIPE_WEBHOOK_SECRET=whsec_your-webhook-secret
-SENTRY_DSN=https://your-sentry-dsn
-GOOGLE_ANALYTICS_ID=GA_MEASUREMENT_ID
-```
-
-### **3. Performance Optimization**
-
-#### **Next.js Configuration**
-```javascript
-// next.config.js
-module.exports = {
-  compress: true,
-  poweredByHeader: false,
-  generateEtags: false,
-  experimental: {
-    optimizeCss: true,
-    optimizeImages: true,
-  },
-  images: {
-    domains: ['your-cdn-domain.com'],
-    formats: ['image/webp', 'image/avif'],
-  },
-  headers: async () => [
-    {
-      source: '/(.*)',
-      headers: [
-        {
-          key: 'X-Frame-Options',
-          value: 'DENY',
-        },
-        {
-          key: 'X-Content-Type-Options',
-          value: 'nosniff',
-        },
-        {
-          key: 'Referrer-Policy',
-          value: 'origin-when-cross-origin',
-        },
-      ],
-    },
-  ],
-}
-```
-
----
-
-## 📱 **Mobile App Deployment**
-
-### **1. iOS App Store Deployment**
-
-#### **Build Configuration**
-```json
-{
-  "expo": {
-    "name": "BMV Finder",
-    "slug": "bmv-finder-mobile",
-    "version": "1.0.0",
-    "ios": {
-      "bundleIdentifier": "com.bmvfinder.mobile",
-      "buildNumber": "1",
-      "supportsTablet": true,
-      "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to scan property details",
-        "NSLocationWhenInUseUsageDescription": "This app uses location to find nearby properties"
-      }
-    }
-  }
-}
-```
-
-#### **Build Commands**
-```bash
-# Install EAS CLI
-npm install -g @expo/eas-cli
-
-# Login to Expo
-eas login
-
-# Configure EAS Build
-eas build:configure
-
-# Build for iOS
-eas build --platform ios --profile production
-
-# Submit to App Store
-eas submit --platform ios
-```
-
-### **2. Android Google Play Deployment**
-
-#### **Build Configuration**
-```json
-{
-  "expo": {
-    "android": {
-      "package": "com.bmvfinder.mobile",
-      "versionCode": 1,
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#3A7CA5"
-      },
-      "permissions": [
-        "CAMERA",
-        "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
-      ]
-    }
-  }
-}
-```
-
-#### **Build Commands**
-```bash
-# Build for Android
-eas build --platform android --profile production
-
-# Submit to Google Play
-eas submit --platform android
-```
-
-### **3. Mobile App Configuration**
-
-#### **API Configuration**
-```javascript
-// mobile-app/src/config/api.js
-export const API_CONFIG = {
-  BASE_URL: 'https://api.bmvfinder.com',
-  TIMEOUT: 10000,
-  RETRY_ATTEMPTS: 3,
-};
-
-export const FEATURE_FLAGS = {
-  OFFLINE_MODE: true,
-  PUSH_NOTIFICATIONS: true,
-  LOCATION_SERVICES: true,
-};
-```
-
----
-
-## 🔧 **Backend Services Deployment**
-
-### **1. API Server Setup**
-
-#### **Production Server Configuration**
-```javascript
-// server.js
-const express = require('express');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const compression = require('compression');
-
-const app = express();
-
-// Security middleware
-app.use(helmet());
-app.use(compression());
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: 'Too many requests from this IP'
-});
-app.use('/api/', limiter);
-
-// CORS configuration
-app.use(cors({
-  origin: ['https://bmvfinder.com', 'https://www.bmvfinder.com'],
-  credentials: true
-}));
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-```
-
-### **2. Database Migration**
-
-#### **Elasticsearch Index Setup**
-```bash
-# Create production indices
-curl -X PUT "https://your-elasticsearch-cluster.com/hpi_data" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "settings": {
-      "number_of_shards": 3,
-      "number_of_replicas": 1
-    },
-    "mappings": {
-      "properties": {
-        "postcode": { "type": "keyword" },
-        "region": { "type": "keyword" },
-        "hpi_value": { "type": "float" },
-        "date": { "type": "date" }
-      }
-    }
-  }'
-```
-
-#### **Data Import Script**
-```bash
-# Import production data
-node scripts/import-hpi-data.js --mode=production --source=ons
-```
-
----
-
-## 📊 **Monitoring & Analytics Setup**
-
-### **1. Application Monitoring**
-
-#### **Sentry Configuration**
-```javascript
-// sentry.js
-import * as Sentry from '@sentry/nextjs';
+#### **Performance Monitoring**
+```typescript
+// Sentry Error Tracking
+import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
-  environment: 'production',
+  environment: "production",
   tracesSampleRate: 0.1,
   integrations: [
     new Sentry.BrowserTracing(),
@@ -383,377 +209,360 @@ Sentry.init({
 });
 ```
 
-#### **Health Check Endpoints**
-```javascript
-// pages/api/health.js
-export default function handler(req, res) {
-  const health = {
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
-    memory: process.memoryUsage(),
-    elasticsearch: await checkElasticsearchHealth(),
-    redis: await checkRedisHealth(),
-  };
-  
-  res.status(200).json(health);
+#### **Analytics Setup**
+```typescript
+// Google Analytics
+import { Analytics } from '@vercel/analytics/react';
+
+export default function App() {
+  return (
+    <>
+      <Analytics />
+      {/* Your app */}
+    </>
+  );
 }
 ```
-
-### **2. Performance Monitoring**
-
-#### **Google Analytics Setup**
-```javascript
-// lib/analytics.js
-import { GA_TRACKING_ID } from '../config';
-
-export const pageview = (url) => {
-  window.gtag('config', GA_TRACKING_ID, {
-    page_location: url,
-  });
-};
-
-export const event = ({ action, category, label, value }) => {
-  window.gtag('event', action, {
-    event_category: category,
-    event_label: label,
-    value: value,
-  });
-};
-```
-
-### **3. Error Tracking**
-
-#### **Error Boundary Setup**
-```javascript
-// components/ErrorBoundary.js
-import React from 'react';
-import * as Sentry from '@sentry/nextjs';
-
-class ErrorBoundary extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError(error) {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error, errorInfo) {
-    Sentry.captureException(error, { contexts: { react: errorInfo } });
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <h1>Something went wrong.</h1>;
-    }
-
-    return this.props.children;
-  }
-}
-```
-
----
 
 ## 🔒 **Security Configuration**
 
-### **1. API Security**
-
-#### **Rate Limiting Configuration**
-```javascript
-// middleware/rateLimiter.js
-import rateLimit from 'express-rate-limit';
-
-export const apiLimiter = rateLimit({
+### **API Security**
+```typescript
+// Rate Limiting
+export const rateLimitConfig = {
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: (req) => {
-    // Different limits for different user types
-    if (req.user?.tier === 'premium') return 1000;
-    if (req.user?.tier === 'pro') return 500;
-    return 100; // Free tier
+  max: {
+    free: 10,
+    basic: 100,
+    pro: 1000
   },
-  message: {
-    error: 'Too many requests, please try again later.',
-    retryAfter: Math.ceil(15 * 60 / 1000),
-  },
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-```
+  message: 'Too many requests from this IP'
+};
 
-#### **CORS Configuration**
-```javascript
-// middleware/cors.js
-import cors from 'cors';
-
-const corsOptions = {
-  origin: [
-    'https://bmvfinder.com',
-    'https://www.bmvfinder.com',
-    'https://admin.bmvfinder.com',
-  ],
+// CORS Configuration
+export const corsConfig = {
+  origin: ['https://your-domain.com', 'https://www.your-domain.com'],
   credentials: true,
-  optionsSuccessStatus: 200,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-};
-
-export const corsMiddleware = cors(corsOptions);
-```
-
-### **2. Data Protection**
-
-#### **Encryption Configuration**
-```javascript
-// lib/encryption.js
-import crypto from 'crypto';
-
-const algorithm = 'aes-256-gcm';
-const secretKey = process.env.ENCRYPTION_KEY;
-
-export const encrypt = (text) => {
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipher(algorithm, secretKey);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  const authTag = cipher.getAuthTag();
-  return `${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted}`;
-};
-
-export const decrypt = (encryptedText) => {
-  const [ivHex, authTagHex, encrypted] = encryptedText.split(':');
-  const iv = Buffer.from(ivHex, 'hex');
-  const authTag = Buffer.from(authTagHex, 'hex');
-  const decipher = crypto.createDecipher(algorithm, secretKey);
-  decipher.setAuthTag(authTag);
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 };
 ```
 
----
+### **Data Protection**
+```typescript
+// GDPR Compliance
+export const dataProtectionConfig = {
+  dataRetention: {
+    userData: '7 years',
+    searchHistory: '2 years',
+    analytics: '1 year'
+  },
+  encryption: {
+    atRest: true,
+    inTransit: true
+  }
+};
+```
 
-## 🚀 **Deployment Commands**
+## 📊 **Performance Optimization**
 
-### **1. Complete Deployment Script**
+### **Caching Strategy**
+```typescript
+// Redis Cache Configuration
+export const cacheConfig = {
+  redis: {
+    host: process.env.REDIS_HOST,
+    port: process.env.REDIS_PORT,
+    password: process.env.REDIS_PASSWORD,
+    ttl: {
+      searchResults: 300, // 5 minutes
+      marketData: 600,    // 10 minutes
+      userData: 3600      // 1 hour
+    }
+  }
+};
+```
+
+### **CDN Configuration**
+```typescript
+// Vercel Edge Functions
+export const edgeConfig = {
+  regions: ['iad1', 'sfo1', 'hnd1'], // US East, US West, Asia
+  maxDuration: 30,
+  memory: 1024
+};
+```
+
+## 🔄 **Automated Updates**
+
+### **Data Pipeline Automation**
 ```bash
 #!/bin/bash
-# deploy.sh
+# Automated data update script
 
-echo "🚀 Starting BMV Finder Production Deployment..."
+# Update HPI data
+curl -X POST "https://your-domain.com/api/update-hpi" \
+  -H "Authorization: Bearer $UPDATE_TOKEN"
 
-# 1. Environment setup
-echo "📋 Setting up environment..."
-cp .env.production .env
-npm install
+# Update EPC data
+curl -X POST "https://your-domain.com/api/update-epc" \
+  -H "Authorization: Bearer $UPDATE_TOKEN"
 
-# 2. Build application
-echo "🏗️ Building application..."
-npm run build:prod
-
-# 3. Run tests
-echo "🧪 Running tests..."
-npm run test:ci
-
-# 4. Deploy to production
-echo "🚀 Deploying to production..."
-vercel --prod
-
-# 5. Verify deployment
-echo "✅ Verifying deployment..."
-curl -f https://bmvfinder.com/api/health || exit 1
-
-echo "🎉 Deployment completed successfully!"
+# Reindex enhanced properties
+curl -X POST "https://your-domain.com/api/reindex-properties" \
+  -H "Authorization: Bearer $UPDATE_TOKEN"
 ```
 
-### **2. Mobile App Deployment**
+### **Cron Jobs**
 ```bash
-#!/bin/bash
-# deploy-mobile.sh
+# Daily HPI updates
+0 6 * * * /usr/bin/curl -X POST "https://your-domain.com/api/update-hpi"
 
-echo "📱 Starting Mobile App Deployment..."
+# Weekly EPC updates
+0 2 * * 0 /usr/bin/curl -X POST "https://your-domain.com/api/update-epc"
 
-# 1. Build iOS app
-echo "🍎 Building iOS app..."
-eas build --platform ios --profile production --non-interactive
-
-# 2. Build Android app
-echo "🤖 Building Android app..."
-eas build --platform android --profile production --non-interactive
-
-# 3. Submit to stores
-echo "📤 Submitting to app stores..."
-eas submit --platform ios --latest
-eas submit --platform android --latest
-
-echo "🎉 Mobile app deployment completed!"
+# Monthly full reindex
+0 3 1 * * /usr/bin/curl -X POST "https://your-domain.com/api/reindex-properties"
 ```
 
----
+## 📈 **Scaling Strategy**
 
-## 📈 **Post-Deployment Checklist**
+### **Horizontal Scaling**
+```yaml
+# Docker Compose for Production
+version: '3.8'
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.0
+    environment:
+      - cluster.name=bmv-finder
+      - node.name=node-1
+      - discovery.seed_hosts=node-1,node-2,node-3
+      - cluster.initial_master_nodes=node-1,node-2,node-3
+      - bootstrap.memory_lock=true
+      - "ES_JAVA_OPTS=-Xms2g -Xmx2g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+      - "9300:9300"
 
-### ✅ **Immediate Verification**
-- [ ] Website loads correctly at production URL
-- [ ] All API endpoints responding
-- [ ] Database connections working
-- [ ] SSL certificates valid
-- [ ] Mobile apps available in stores
-- [ ] Analytics tracking working
-- [ ] Error monitoring active
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
 
-### ✅ **Performance Verification**
-- [ ] Page load times under 3 seconds
-- [ ] API response times under 500ms
-- [ ] Database query performance optimal
-- [ ] Caching working correctly
-- [ ] CDN serving static assets
-- [ ] Mobile app performance acceptable
+volumes:
+  esdata:
+  redisdata:
+```
 
-### ✅ **Security Verification**
+### **Load Balancing**
+```nginx
+# Nginx Configuration
+upstream elasticsearch {
+    server es-node-1:9200;
+    server es-node-2:9200;
+    server es-node-3:9200;
+}
+
+server {
+    listen 80;
+    server_name your-domain.com;
+
+    location / {
+        proxy_pass http://your-vercel-app;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+
+    location /api/ {
+        proxy_pass http://your-api-server;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+```
+
+## 🚨 **Monitoring & Alerting**
+
+### **Health Checks**
+```typescript
+// Health Check Endpoints
+export async function GET() {
+  const checks = {
+    elasticsearch: await checkElasticsearch(),
+    database: await checkDatabase(),
+    api: await checkAPI(),
+    cache: await checkCache()
+  };
+
+  const healthy = Object.values(checks).every(check => check.status === 'healthy');
+
+  return Response.json({
+    status: healthy ? 'healthy' : 'unhealthy',
+    checks,
+    timestamp: new Date().toISOString()
+  });
+}
+```
+
+### **Alerting Rules**
+```yaml
+# Prometheus Alert Rules
+groups:
+  - name: bmv-finder
+    rules:
+      - alert: HighErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate detected"
+
+      - alert: ElasticsearchDown
+        expr: up{job="elasticsearch"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Elasticsearch is down"
+```
+
+## 📋 **Post-Deployment Checklist**
+
+### **✅ Functionality Verification**
+- [ ] Enhanced search working with EPC/HPI data
+- [ ] Market Analysis dashboard accessible
+- [ ] Advanced Deal Analysis displaying comparables
+- [ ] Energy efficiency insights showing
+- [ ] User authentication working
+- [ ] Payment processing functional
 - [ ] Rate limiting active
-- [ ] CORS policies enforced
-- [ ] Input validation working
-- [ ] Authentication secure
-- [ ] Data encryption active
-- [ ] Security headers present
+- [ ] Caching working
 
-### ✅ **Monitoring Verification**
-- [ ] Health checks passing
+### **✅ Performance Verification**
+- [ ] Search response time < 2 seconds
+- [ ] Market analysis loading < 3 seconds
+- [ ] Deal analysis calculation < 5 seconds
+- [ ] Page load times < 3 seconds
+- [ ] Mobile responsiveness verified
+- [ ] Cross-browser compatibility tested
+
+### **✅ Security Verification**
+- [ ] HTTPS enforced
+- [ ] API rate limiting active
+- [ ] User data encrypted
+- [ ] Authentication secure
+- [ ] CORS configured correctly
+- [ ] No sensitive data exposed
+
+### **✅ Monitoring Verification**
 - [ ] Error tracking active
 - [ ] Performance monitoring working
 - [ ] Analytics collecting data
-- [ ] Alerts configured
+- [ ] Health checks responding
+- [ ] Alerting configured
 - [ ] Logs being collected
-
----
-
-## 🔄 **Continuous Deployment Setup**
-
-### **1. GitHub Actions Workflow**
-```yaml
-# .github/workflows/deploy.yml
-name: Deploy to Production
-
-on:
-  push:
-    branches: [main]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Run tests
-        run: npm run test:ci
-        
-      - name: Build application
-        run: npm run build:prod
-        env:
-          NODE_ENV: production
-          
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v20
-        with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.ORG_ID }}
-          vercel-project-id: ${{ secrets.PROJECT_ID }}
-          vercel-args: '--prod'
-```
-
-### **2. Automated Testing**
-```yaml
-# .github/workflows/test.yml
-name: Test Suite
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v2
-        with:
-          node-version: '18'
-          
-      - name: Install dependencies
-        run: npm ci
-        
-      - name: Run linting
-        run: npm run lint
-        
-      - name: Run tests
-        run: npm run test:ci
-        
-      - name: Run E2E tests
-        run: npm run test:e2e
-```
-
----
-
-## 📞 **Support & Maintenance**
-
-### **1. Monitoring Dashboard**
-- **Application Health**: https://status.bmvfinder.com
-- **Performance Metrics**: https://analytics.bmvfinder.com
-- **Error Tracking**: https://sentry.io/bmvfinder
-- **User Analytics**: https://analytics.google.com
-
-### **2. Emergency Contacts**
-- **Technical Support**: tech@bmvfinder.com
-- **Infrastructure**: infra@bmvfinder.com
-- **Security**: security@bmvfinder.com
-- **24/7 On-call**: +44-xxx-xxx-xxxx
-
-### **3. Maintenance Schedule**
-- **Daily**: Health checks and monitoring review
-- **Weekly**: Performance analysis and optimization
-- **Monthly**: Security updates and dependency updates
-- **Quarterly**: Full security audit and penetration testing
-
----
 
 ## 🎉 **Launch Checklist**
 
-### **Final Launch Steps**
-1. **Announcement**: Social media and email campaign
-2. **Monitoring**: 24/7 monitoring for first 48 hours
-3. **Support**: Customer support team ready
-4. **Documentation**: User guides and help center
-5. **Feedback**: User feedback collection system
-6. **Analytics**: Conversion tracking and user behavior analysis
+### **✅ Pre-Launch**
+- [ ] All features tested in production
+- [ ] Performance benchmarks met
+- [ ] Security audit completed
+- [ ] Documentation updated
+- [ ] Support team trained
+- [ ] Marketing materials ready
 
-### **Success Metrics**
-- **Performance**: < 3s page load times
-- **Uptime**: > 99.9% availability
-- **User Engagement**: > 60% session duration
-- **Conversion**: > 5% sign-up rate
-- **Mobile**: > 40% mobile usage
+### **✅ Launch Day**
+- [ ] DNS propagated
+- [ ] SSL certificates active
+- [ ] Monitoring dashboards live
+- [ ] Support channels open
+- [ ] Marketing campaign launched
+- [ ] Social media announcements
+
+### **✅ Post-Launch**
+- [ ] Monitor user feedback
+- [ ] Track performance metrics
+- [ ] Address any issues quickly
+- [ ] Gather user analytics
+- [ ] Plan feature updates
+- [ ] Scale infrastructure as needed
+
+## 🔧 **Troubleshooting**
+
+### **Common Issues**
+
+#### **Elasticsearch Connection Issues**
+```bash
+# Check ES cluster health
+curl -X GET "https://your-es-cluster.com/_cluster/health" \
+  -H "Authorization: ApiKey your-api-key"
+
+# Check index status
+curl -X GET "https://your-es-cluster.com/properties-enhanced/_stats" \
+  -H "Authorization: ApiKey your-api-key"
+```
+
+#### **API Performance Issues**
+```bash
+# Check API response times
+curl -w "@curl-format.txt" -o /dev/null -s "https://your-domain.com/api/search"
+
+# Monitor rate limiting
+curl -I "https://your-domain.com/api/search"
+```
+
+#### **Data Update Issues**
+```bash
+# Check data pipeline status
+curl -X GET "https://your-domain.com/api/health" \
+  -H "Authorization: Bearer $ADMIN_TOKEN"
+
+# Manual data update
+curl -X POST "https://your-domain.com/api/update-hpi" \
+  -H "Authorization: Bearer $UPDATE_TOKEN"
+```
+
+## 📞 **Support & Maintenance**
+
+### **Support Channels**
+- **Technical Support**: support@your-domain.com
+- **Emergency Contact**: +44 123 456 7890
+- **Documentation**: https://docs.your-domain.com
+- **Status Page**: https://status.your-domain.com
+
+### **Maintenance Schedule**
+- **Weekly**: Data updates and health checks
+- **Monthly**: Security updates and performance review
+- **Quarterly**: Feature updates and infrastructure scaling
+- **Annually**: Full security audit and architecture review
 
 ---
 
-## 🏆 **Congratulations!**
+## 🎯 **Success Metrics**
 
-Your BMV Finder platform is now **production-ready** with:
-- ✅ **Scalable Infrastructure**: Cloud-based, auto-scaling
-- ✅ **Security Hardened**: Rate limiting, encryption, monitoring
-- ✅ **Performance Optimized**: Caching, CDN, optimization
-- ✅ **Mobile Ready**: Cross-platform mobile apps
-- ✅ **Monitoring Active**: Real-time health and performance tracking
-- ✅ **Automated Deployment**: CI/CD pipeline for continuous delivery
+### **Performance Targets**
+- **Search Response Time**: < 2 seconds
+- **Page Load Time**: < 3 seconds
+- **Uptime**: > 99.9%
+- **Error Rate**: < 0.1%
 
-**Ready to launch and scale to thousands of users!** 🚀 
+### **Business Targets**
+- **User Growth**: 20% month-over-month
+- **Conversion Rate**: > 5%
+- **User Retention**: > 70%
+- **Revenue Growth**: 25% month-over-month
+
+---
+
+**BMV Finder is now ready for production deployment with all enhanced features!** 🚀 

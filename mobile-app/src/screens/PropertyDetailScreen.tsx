@@ -30,12 +30,31 @@ interface Property {
   tenure: string;
   councilTax: string;
   energyRating: string;
+  // Enhanced energy efficiency data
+  energyEfficiency: {
+    currentRating: string;
+    potentialRating: string;
+    energyConsumption: number; // kWh/m²/year
+    heatingCost: number; // £/year
+    carbonEmissions: number; // kg CO2/year
+    insulation: {
+      walls: string;
+      roof: string;
+      windows: string;
+      floor: string;
+    };
+    heatingSystem: string;
+    hotWater: string;
+    lighting: string;
+    renewableEnergy: string[];
+  };
 }
 
 export default function PropertyDetailScreen({ navigation, route }: any) {
   const [property, setProperty] = useState<Property | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showEnergyDetails, setShowEnergyDetails] = useState(false);
 
   // Mock property data - replace with API call
   const mockProperty: Property = {
@@ -67,6 +86,23 @@ export default function PropertyDetailScreen({ navigation, route }: any) {
     tenure: 'Freehold',
     councilTax: 'Band C',
     energyRating: 'B',
+    energyEfficiency: {
+      currentRating: 'B',
+      potentialRating: 'A',
+      energyConsumption: 244,
+      heatingCost: 834,
+      carbonEmissions: 2.8,
+      insulation: {
+        walls: 'Cavity wall insulation',
+        roof: 'Loft insulation (200mm)',
+        windows: 'Double glazed',
+        floor: 'Suspended timber floor'
+      },
+      heatingSystem: 'Gas boiler (2018)',
+      hotWater: 'From main heating system',
+      lighting: 'Low energy lighting (80%)',
+      renewableEnergy: ['Solar panels (4kW)']
+    }
   };
 
   useEffect(() => {
@@ -109,6 +145,10 @@ export default function PropertyDetailScreen({ navigation, route }: any) {
     navigation.navigate('HpiAnalysis', { postcode: property?.postcode });
   };
 
+  const handleEnergyAnalysis = () => {
+    setShowEnergyDetails(!showEnergyDetails);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -126,6 +166,39 @@ export default function PropertyDetailScreen({ navigation, route }: any) {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const getEnergyRatingColor = (rating: string) => {
+    switch (rating) {
+      case 'A': return '#00A651';
+      case 'B': return '#85BB2F';
+      case 'C': return '#FFCC00';
+      case 'D': return '#FF9900';
+      case 'E': return '#FF6600';
+      case 'F': return '#FF3300';
+      case 'G': return '#CC0000';
+      default: return '#999999';
+    }
+  };
+
+  const getEnergyRatingDescription = (rating: string) => {
+    switch (rating) {
+      case 'A': return 'Very energy efficient';
+      case 'B': return 'Energy efficient';
+      case 'C': return 'Average efficiency';
+      case 'D': return 'Below average';
+      case 'E': return 'Poor efficiency';
+      case 'F': return 'Very poor efficiency';
+      case 'G': return 'Extremely poor efficiency';
+      default: return 'Unknown efficiency';
+    }
+  };
+
+  const calculatePotentialSavings = () => {
+    if (!property?.energyEfficiency) return 0;
+    const currentCost = property.energyEfficiency.heatingCost;
+    const potentialCost = currentCost * 0.6; // Assume 40% savings with improvements
+    return currentCost - potentialCost;
   };
 
   if (loading) {
@@ -208,6 +281,154 @@ export default function PropertyDetailScreen({ navigation, route }: any) {
             <TouchableOpacity style={styles.analyzeButton} onPress={handleHpiAnalysis}>
               <Text style={styles.analyzeButtonText}>View Detailed Analysis</Text>
             </TouchableOpacity>
+          </View>
+
+          {/* Energy Efficiency Section */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionHeaderLeft}>
+                <Ionicons name="leaf" size={20} color="#5DA271" />
+                <Text style={styles.sectionTitle}>Energy Efficiency</Text>
+              </View>
+              <TouchableOpacity onPress={handleEnergyAnalysis}>
+                <Ionicons 
+                  name={showEnergyDetails ? "chevron-up" : "chevron-down"} 
+                  size={20} 
+                  color="#666" 
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Energy Rating Display */}
+            <View style={styles.energyRatingContainer}>
+              <View style={styles.energyRatingItem}>
+                <Text style={styles.energyRatingLabel}>Current</Text>
+                <View style={[styles.energyRatingBadge, { backgroundColor: getEnergyRatingColor(property.energyEfficiency.currentRating) }]}>
+                  <Text style={styles.energyRatingText}>{property.energyEfficiency.currentRating}</Text>
+                </View>
+                <Text style={styles.energyRatingDescription}>
+                  {getEnergyRatingDescription(property.energyEfficiency.currentRating)}
+                </Text>
+              </View>
+              <View style={styles.energyRatingItem}>
+                <Text style={styles.energyRatingLabel}>Potential</Text>
+                <View style={[styles.energyRatingBadge, { backgroundColor: getEnergyRatingColor(property.energyEfficiency.potentialRating) }]}>
+                  <Text style={styles.energyRatingText}>{property.energyEfficiency.potentialRating}</Text>
+                </View>
+                <Text style={styles.energyRatingDescription}>
+                  {getEnergyRatingDescription(property.energyEfficiency.potentialRating)}
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick Energy Stats */}
+            <View style={styles.energyStats}>
+              <View style={styles.energyStatItem}>
+                <Ionicons name="flash" size={16} color="#FF9900" />
+                <Text style={styles.energyStatValue}>{property.energyEfficiency.energyConsumption}</Text>
+                <Text style={styles.energyStatLabel}>kWh/m²/year</Text>
+              </View>
+              <View style={styles.energyStatItem}>
+                <Ionicons name="pound" size={16} color="#E74C3C" />
+                <Text style={styles.energyStatValue}>{formatCurrency(property.energyEfficiency.heatingCost)}</Text>
+                <Text style={styles.energyStatLabel}>Heating cost/year</Text>
+              </View>
+              <View style={styles.energyStatItem}>
+                <Ionicons name="cloud" size={16} color="#3498DB" />
+                <Text style={styles.energyStatValue}>{property.energyEfficiency.carbonEmissions}</Text>
+                <Text style={styles.energyStatLabel}>tonnes CO2/year</Text>
+              </View>
+            </View>
+
+            {/* Detailed Energy Information */}
+            {showEnergyDetails && (
+              <View style={styles.energyDetails}>
+                {/* Insulation Details */}
+                <View style={styles.energyDetailSection}>
+                  <Text style={styles.energyDetailTitle}>Insulation</Text>
+                  <View style={styles.energyDetailGrid}>
+                    <View style={styles.energyDetailItem}>
+                      <Text style={styles.energyDetailLabel}>Walls</Text>
+                      <Text style={styles.energyDetailValue}>{property.energyEfficiency.insulation.walls}</Text>
+                    </View>
+                    <View style={styles.energyDetailItem}>
+                      <Text style={styles.energyDetailLabel}>Roof</Text>
+                      <Text style={styles.energyDetailValue}>{property.energyEfficiency.insulation.roof}</Text>
+                    </View>
+                    <View style={styles.energyDetailItem}>
+                      <Text style={styles.energyDetailLabel}>Windows</Text>
+                      <Text style={styles.energyDetailValue}>{property.energyEfficiency.insulation.windows}</Text>
+                    </View>
+                    <View style={styles.energyDetailItem}>
+                      <Text style={styles.energyDetailLabel}>Floor</Text>
+                      <Text style={styles.energyDetailValue}>{property.energyEfficiency.insulation.floor}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Systems */}
+                <View style={styles.energyDetailSection}>
+                  <Text style={styles.energyDetailTitle}>Systems</Text>
+                  <View style={styles.energyDetailGrid}>
+                    <View style={styles.energyDetailItem}>
+                      <Text style={styles.energyDetailLabel}>Heating</Text>
+                      <Text style={styles.energyDetailValue}>{property.energyEfficiency.heatingSystem}</Text>
+                    </View>
+                    <View style={styles.energyDetailItem}>
+                      <Text style={styles.energyDetailLabel}>Hot Water</Text>
+                      <Text style={styles.energyDetailValue}>{property.energyEfficiency.hotWater}</Text>
+                    </View>
+                    <View style={styles.energyDetailItem}>
+                      <Text style={styles.energyDetailLabel}>Lighting</Text>
+                      <Text style={styles.energyDetailValue}>{property.energyEfficiency.lighting}</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Renewable Energy */}
+                {property.energyEfficiency.renewableEnergy.length > 0 && (
+                  <View style={styles.energyDetailSection}>
+                    <Text style={styles.energyDetailTitle}>Renewable Energy</Text>
+                    {property.energyEfficiency.renewableEnergy.map((item, index) => (
+                      <View key={index} style={styles.renewableEnergyItem}>
+                        <Ionicons name="sunny" size={16} color="#FFD700" />
+                        <Text style={styles.renewableEnergyText}>{item}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Potential Savings */}
+                <View style={styles.savingsSection}>
+                  <Text style={styles.savingsTitle}>Potential Annual Savings</Text>
+                  <Text style={styles.savingsAmount}>{formatCurrency(calculatePotentialSavings())}</Text>
+                  <Text style={styles.savingsDescription}>
+                    With energy efficiency improvements, you could save up to 40% on your energy bills
+                  </Text>
+                </View>
+
+                {/* Recommendations */}
+                <View style={styles.recommendationsSection}>
+                  <Text style={styles.recommendationsTitle}>Improvement Recommendations</Text>
+                  <View style={styles.recommendationItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#5DA271" />
+                    <Text style={styles.recommendationText}>Upgrade to triple glazing</Text>
+                  </View>
+                  <View style={styles.recommendationItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#5DA271" />
+                    <Text style={styles.recommendationText}>Install smart heating controls</Text>
+                  </View>
+                  <View style={styles.recommendationItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#5DA271" />
+                    <Text style={styles.recommendationText}>Add cavity wall insulation</Text>
+                  </View>
+                  <View style={styles.recommendationItem}>
+                    <Ionicons name="checkmark-circle" size={16} color="#5DA271" />
+                    <Text style={styles.recommendationText}>Consider solar panel installation</Text>
+                  </View>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Property Details */}
@@ -437,11 +658,165 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  sectionHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 15,
+    marginLeft: 8,
+  },
+  energyRatingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  energyRatingItem: {
+    alignItems: 'center',
+  },
+  energyRatingLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 8,
+  },
+  energyRatingBadge: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  energyRatingText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  energyRatingDescription: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    maxWidth: 80,
+  },
+  energyStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  energyStatItem: {
+    alignItems: 'center',
+  },
+  energyStatValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginTop: 4,
+  },
+  energyStatLabel: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  energyDetails: {
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
+    paddingTop: 20,
+  },
+  energyDetailSection: {
+    marginBottom: 20,
+  },
+  energyDetailTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  energyDetailGrid: {
+    gap: 10,
+  },
+  energyDetailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  energyDetailLabel: {
+    fontSize: 14,
+    color: '#666',
+    flex: 1,
+  },
+  energyDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    flex: 2,
+    textAlign: 'right',
+  },
+  renewableEnergyItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  renewableEnergyText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 8,
+  },
+  savingsSection: {
+    backgroundColor: '#E8F5E8',
+    padding: 15,
+    borderRadius: 8,
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  savingsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2E7D32',
+    marginBottom: 8,
+  },
+  savingsAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2E7D32',
+    marginBottom: 4,
+  },
+  savingsDescription: {
+    fontSize: 12,
+    color: '#2E7D32',
+    textAlign: 'center',
+  },
+  recommendationsSection: {
+    backgroundColor: '#F8F9FA',
+    padding: 15,
+    borderRadius: 8,
+  },
+  recommendationsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 10,
+  },
+  recommendationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  recommendationText: {
+    fontSize: 14,
+    color: '#333',
+    marginLeft: 8,
   },
   detailsGrid: {
     flexDirection: 'row',

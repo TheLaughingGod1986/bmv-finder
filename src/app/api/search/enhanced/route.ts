@@ -144,7 +144,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      total: response.hits.total.value,
+      total: typeof response.hits.total === 'object' ? response.hits.total.value : response.hits.total,
       results: results,
       query: searchBody.query
     });
@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      total: response.hits.total.value,
+      total: typeof response.hits.total === 'object' ? response.hits.total.value : response.hits.total,
       results: results,
       query: searchBody.query
     });

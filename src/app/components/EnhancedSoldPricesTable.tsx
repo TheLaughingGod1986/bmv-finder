@@ -15,11 +15,16 @@ import {
   Layers,
   Eye,
   History,
-  ExternalLink
+  ExternalLink,
+  Clock,
+  TrendingDown,
+  Target
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { SoldPrice } from '../../../types/sold-price';
 import BMVScoreBadge from './BMVScoreBadge';
+import { getEnhancedPriceIndicator, getPriceIndicatorLegend } from '@/utils/priceIndicator';
+import { adjustForInflation, getRecentAdjustedPrices } from '@/utils/inflationAdjustment';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
@@ -101,28 +106,29 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
     }).format(price);
   };
 
-  // Calculate median price for price indicators
-  const validPrices = soldPrices.map(p => Number(p.price)).filter(p => !isNaN(p) && p > 0);
-  const calculateMedian = (prices: number[]) => {
-    if (prices.length === 0) return null;
-    const sorted = [...prices].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0 
-      ? (sorted[mid - 1] + sorted[mid]) / 2 
-      : sorted[mid];
+  // Enhanced price indicator using the new utility
+  const getPriceIndicator = (price: number | null) => {
+    if (!price) return { 
+      label: 'N/A', 
+      color: 'gray', 
+      bgColor: 'bg-gray-100', 
+      textColor: 'text-gray-600', 
+      icon: '',
+      description: 'Insufficient data for price analysis'
+    };
+    
+    // Find the sale year for this price
+    const saleData = soldPrices.find(sale => sale.price === price);
+    const saleYear = saleData ? new Date(saleData.dateOfTransfer).getFullYear() : new Date().getFullYear();
+    
+    return getEnhancedPriceIndicator(price, soldPrices, saleYear);
   };
-  const medianPrice = calculateMedian(validPrices);
-  const getPriceIndicator = (price: number | null, median: number | null) => {
-    if (!price || !median) return { label: 'N/A', color: 'gray', bgColor: 'bg-gray-100', textColor: 'text-gray-600', icon: '' };
-    const diff = (price - median) / median;
-    if (diff <= -0.05) {
-      return { label: 'Good Deal', color: 'green', bgColor: 'bg-[#5DA271]', textColor: 'text-white', icon: '↓' };
-    } else if (diff >= 0.05) {
-      return { label: 'Expensive', color: 'red', bgColor: 'bg-red-100', textColor: 'text-red-800', icon: '↑' };
-    } else {
-      return { label: 'Fair Price', color: 'yellow', bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', icon: '→' };
-    }
-  };
+
+  // Get price indicator legend
+  const priceIndicatorLegend = getPriceIndicatorLegend();
+
+  // Check if we have enough data to show indicators
+  const hasEnoughData = soldPrices.length > 0 && soldPrices.some(sale => sale.price > 0);
 
   const SortableHeader = ({ 
     column, 
@@ -201,19 +207,29 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
       })}
       
       {/* Price Indicator Legend */}
-      {soldPrices.length > 0 && medianPrice !== null && (
+      {soldPrices.length > 0 && hasEnoughData && (
         <div className="mb-2 p-2 bg-gray-50 rounded-lg">
-          <div className="text-xs font-medium text-gray-700 mb-1">Price Indicators:</div>
+          <div className="text-xs font-medium text-gray-700 mb-1">Price Indicators (Based on Last 5 Years + Inflation):</div>
           <div className="flex flex-wrap gap-2 text-xs">
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: '#5DA271', color: '#fff' }}>
-              <span>↓</span> Good Deal (5%+ below median)
+              <span>↓</span> Excellent Deal (10%+ below inflation-adjusted median)
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+              <span>↓</span> Good Deal (5-10% below inflation-adjusted median)
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-              <span>→</span> Fair Price (within 5% of median)
+              <span>→</span> Fair Price (within 5% of inflation-adjusted median)
+            </span>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
+              <span>↑</span> Expensive (5-10% above inflation-adjusted median)
             </span>
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800">
-              <span>↑</span> Expensive (5%+ above median)
+              <span>↑</span> Overpriced (10%+ above inflation-adjusted median)
             </span>
+          </div>
+          <div className="text-xs text-gray-600 mt-2 flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            Based on sales from the last 5 years, adjusted for inflation to current values
           </div>
         </div>
       )}
@@ -322,7 +338,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                     </div>
                     {/* Price Indicator Badge */}
                     {(() => {
-                      const indicator = getPriceIndicator(Number(property.price), medianPrice);
+                      const indicator = getPriceIndicator(Number(property.price));
                       return (
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-0.5 ${indicator.bgColor} ${indicator.textColor}`}
                           style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}}>
@@ -441,7 +457,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                     </p>
                     {/* Price Indicator Badge (Mobile) */}
                     {(() => {
-                      const indicator = getPriceIndicator(Number(property.price), medianPrice);
+                      const indicator = getPriceIndicator(Number(property.price));
                       return (
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-0.5 ${indicator.bgColor} ${indicator.textColor}`}
                           style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}}>

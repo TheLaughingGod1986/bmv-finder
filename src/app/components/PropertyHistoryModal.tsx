@@ -5,8 +5,9 @@ import { SoldPrice } from '../../../types/sold-price';
 import { formatPrice } from '../../lib/utils';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
 import BMVScoreExplanation from './BMVScoreExplanation';
-import { X, Home, TrendingUp, MapPin, Calendar, PoundSterling, RefreshCw } from 'lucide-react';
+import { X, Home, TrendingUp, MapPin, Calendar, PoundSterling, RefreshCw, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { adjustForInflation, getRecentAdjustedPrices, isWithinLast5Years } from '@/utils/inflationAdjustment';
 
 interface PropertyHistoryModalProps {
   property: SoldPrice;
@@ -203,29 +204,68 @@ export default function PropertyHistoryModal({
       : sorted[mid];
   };
 
-  const medianPrice = calculateMedian(validPrices);
+  // Get recent sales (last 5 years) with inflation adjustment
+  const recentAdjustedPrices = getRecentAdjustedPrices(history);
+  
+  // Use inflation-adjusted recent prices for median calculation
+  const medianPrice = calculateMedian(recentAdjustedPrices.length > 0 ? recentAdjustedPrices : validPrices);
 
-  // Function to determine price indicator
+  // Enhanced price indicator with inflation adjustment
   const getPriceIndicator = (price: number | null, median: number | null) => {
-    if (!price || !median) return { label: 'N/A', color: 'gray', bgColor: 'bg-gray-100', textColor: 'text-gray-600' };
+    if (!price || !median) return { 
+      label: 'N/A', 
+      color: 'gray', 
+      bgColor: 'bg-gray-100', 
+      textColor: 'text-gray-600',
+      description: 'Insufficient data for price analysis'
+    };
     
-    const diff = (price - median) / median;
+    // Adjust the current price for inflation if it's not from the current year
     
-    if (diff <= -0.05) {
+    // Find the sale year for this price
+    const saleData = history.find(sale => sale.price === price);
+    const saleYear = saleData ? new Date(saleData.dateOfTransfer).getFullYear() : new Date().getFullYear();
+    
+    // Adjust price for inflation if it's not from current year
+    const adjustedPrice = saleYear < new Date().getFullYear() ? adjustForInflation(price, saleYear) : price;
+    
+    const diff = (adjustedPrice - median) / median;
+    
+    if (diff <= -0.10) {
       return { 
-        label: 'Good Deal', 
+        label: 'Excellent Deal', 
         color: 'green', 
         bgColor: 'bg-[#5DA271]', 
         textColor: 'text-white',
-        icon: '↓'
+        icon: '↓',
+        description: '10%+ below inflation-adjusted median'
+      };
+    } else if (diff <= -0.05) {
+      return { 
+        label: 'Good Deal', 
+        color: 'green', 
+        bgColor: 'bg-green-100', 
+        textColor: 'text-green-800',
+        icon: '↓',
+        description: '5-10% below inflation-adjusted median'
+      };
+    } else if (diff >= 0.10) {
+      return { 
+        label: 'Overpriced', 
+        color: 'red', 
+        bgColor: 'bg-red-100', 
+        textColor: 'text-red-800',
+        icon: '↑',
+        description: '10%+ above inflation-adjusted median'
       };
     } else if (diff >= 0.05) {
       return { 
         label: 'Expensive', 
-        color: 'red', 
-        bgColor: 'bg-red-100', 
-        textColor: 'text-red-800',
-        icon: '↑'
+        color: 'orange', 
+        bgColor: 'bg-orange-100', 
+        textColor: 'text-orange-800',
+        icon: '↑',
+        description: '5-10% above inflation-adjusted median'
       };
     } else {
       return { 
@@ -233,7 +273,8 @@ export default function PropertyHistoryModal({
         color: 'yellow', 
         bgColor: 'bg-yellow-100', 
         textColor: 'text-yellow-800',
-        icon: '→'
+        icon: '→',
+        description: 'Within 5% of inflation-adjusted median'
       };
     }
   };

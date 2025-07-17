@@ -538,6 +538,15 @@ export default function HomeNew() {
             </Link>
             
             <Link
+              href="/market-analysis"
+              className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
+            >
+              <BarChart3 className="w-8 h-8 text-[#3A7CA5]" />
+              <span className="font-semibold">Market Analysis</span>
+              <span className="text-sm text-[#3B755D]">Regional trends & insights</span>
+            </Link>
+            
+            <Link
               href="/deal-calculator"
               className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
