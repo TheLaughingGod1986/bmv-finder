@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, MapPin } from 'lucide-react';
+import SmartSearchInput from './SmartSearchInput';
 
 interface MarketData {
   region: string;
@@ -102,25 +103,20 @@ export default function MarketSearchBar({ onSearchChange, placeholder = "Search 
 
   return (
     <div className="relative">
-      <div className="relative">
-        <input
-          key="market-search-input"
-          type="text"
-          value={searchTerm}
-          onChange={handleInputChange}
-
-          placeholder={placeholder}
-          className="w-full px-4 py-3 pl-10 pr-12 text-gray-900 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-          autoComplete="off"
-          spellCheck="false"
-        />
-        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-        {isSearching && (
-          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
-          </div>
-        )}
-      </div>
+      <SmartSearchInput
+        value={searchTerm}
+        onChange={setSearchTerm}
+        onSearch={(query) => {
+          setSearchTerm(query);
+          handleSearch(query);
+        }}
+        placeholder={placeholder}
+        showHistory={true}
+        showSuggestions={true}
+        debounceMs={1000}
+        minSearchLength={2}
+        className=""
+      />
       {searchMessage && (
         <div className="mt-2 text-sm text-gray-600">
           {searchMessage}

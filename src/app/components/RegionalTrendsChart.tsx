@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, BarChart3, Calendar, MapPin, Info, CheckSquare, Square, Search } from 'lucide-react';
+import SmartSearchInput from './SmartSearchInput';
 
 interface MarketData {
   region: string;
@@ -283,55 +284,112 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
   // NEW: Add postcode to comparison
   const handleAddPostcode = () => {
     const normalized = searchTerm.trim().toUpperCase();
-    if (normalized && !comparedPostcodes.includes(normalized)) {
-      // If we have pre-fetched data from the search, use it
-      if (postcodeOption && postcodeOption.data) {
-        handleAddPostcodeFromDropdown(normalized, postcodeOption.data);
+    if (normalized) {
+      // Normalize the postcode consistently
+      const normalizedPc = normalizePostcode(normalized);
+      
+      // Check if postcode already exists in any format (with or without space)
+      const normalizedNoSpace = normalizedPc.replace(/\s+/g, '');
+      const alreadyExists = comparedPostcodes.some(pc => {
+        const pcNoSpace = pc.replace(/\s+/g, '');
+        return pcNoSpace === normalizedNoSpace;
+      });
+      
+      console.log('Adding postcode:', {
+        input: normalized,
+        normalized: normalizedPc,
+        normalizedNoSpace,
+        existingPostcodes: comparedPostcodes,
+        alreadyExists
+      });
+      
+      if (!alreadyExists) {
+        // If we have pre-fetched data from the search, use it
+        if (postcodeOption && postcodeOption.data) {
+          handleAddPostcodeFromDropdown(normalizedPc, postcodeOption.data);
+        } else {
+          // Fallback to the old method
+          setComparedPostcodes(prev => [...prev, normalizedPc]);
+          setSearchTerm('');
+          setComparisonMode(true);
+        }
       } else {
-        // Fallback to the old method
-        setComparedPostcodes(prev => [...prev, normalized]);
-        setSearchTerm('');
-        setComparisonMode(true);
+        console.log('Postcode already exists, not adding:', normalizedPc);
       }
     }
   };
 
   // NEW: Add postcode from dropdown (with pre-fetched data)
   const handleAddPostcodeFromDropdown = (postcode: string, preFetchedData?: any) => {
-    if (postcode && !comparedPostcodes.includes(postcode)) {
-      setComparedPostcodes(prev => [...prev, postcode]);
-      setSearchTerm('');
-      setComparisonMode(true);
+    if (postcode) {
+      // Normalize the postcode consistently
+      const normalizedPc = normalizePostcode(postcode);
       
-      // If we have pre-fetched data, store it to avoid re-fetching
-      if (preFetchedData) {
-        setComparedPostcodeData(prev => [...prev, {
-          postcode,
-          region: preFetchedData.region || 'Unknown Region',
-          currentIndex: preFetchedData.currentIndex || 100,
-          yoyGrowth: preFetchedData.yoyGrowth || 0,
-          timeframeGrowth: preFetchedData.timeframeGrowth || 0,
-          momGrowth: preFetchedData.momGrowth || 0,
-          volatility: preFetchedData.volatility || 0,
-          trend: preFetchedData.trend || 'stable',
-          riskLevel: preFetchedData.riskLevel || 'medium',
-          investmentScore: preFetchedData.investmentScore || 50,
-          lastUpdated: preFetchedData.lastUpdated || new Date().toISOString().split('T')[0],
-          dataPoints: preFetchedData.dataPoints || 0
-        }]);
+      // Check if postcode already exists in any format (with or without space)
+      const normalizedNoSpace = normalizedPc.replace(/\s+/g, '');
+      const alreadyExists = comparedPostcodes.some(pc => {
+        const pcNoSpace = pc.replace(/\s+/g, '');
+        return pcNoSpace === normalizedNoSpace;
+      });
+      
+      console.log('Adding postcode from dropdown:', {
+        input: postcode,
+        normalized: normalizedPc,
+        normalizedNoSpace,
+        existingPostcodes: comparedPostcodes,
+        alreadyExists
+      });
+      
+      if (!alreadyExists) {
+        setComparedPostcodes(prev => [...prev, normalizedPc]);
+        setSearchTerm('');
+        setComparisonMode(true);
+        
+        // If we have pre-fetched data, store it to avoid re-fetching
+        if (preFetchedData) {
+          setComparedPostcodeData(prev => [...prev, {
+            postcode: normalizedPc,
+            region: preFetchedData.region || 'Unknown Region',
+            currentIndex: preFetchedData.currentIndex || 100,
+            yoyGrowth: preFetchedData.yoyGrowth || 0,
+            timeframeGrowth: preFetchedData.timeframeGrowth || 0,
+            momGrowth: preFetchedData.momGrowth || 0,
+            volatility: preFetchedData.volatility || 0,
+            trend: preFetchedData.trend || 'stable',
+            riskLevel: preFetchedData.riskLevel || 'medium',
+            investmentScore: preFetchedData.investmentScore || 50,
+            lastUpdated: preFetchedData.lastUpdated || new Date().toISOString().split('T')[0],
+            dataPoints: preFetchedData.dataPoints || 0
+          }]);
+        }
+      } else {
+        console.log('Postcode already exists (dropdown), not adding:', normalizedPc);
       }
     }
   };
 
   // NEW: Remove postcode from comparison
   const handleRemovePostcode = (postcode: string) => {
-    setComparedPostcodes(prev => prev.filter(pc => pc !== postcode));
+    const normalizedNoSpace = postcode.replace(/\s+/g, '');
+    setComparedPostcodes(prev => prev.filter(pc => {
+      const pcNoSpace = pc.replace(/\s+/g, '');
+      return pcNoSpace !== normalizedNoSpace;
+    }));
   };
 
   // NEW: Validate UK postcode format
   const isValidPostcode = (postcode: string): boolean => {
     const ukPostcodeRegex = /^[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}$/i;
     return ukPostcodeRegex.test(postcode.trim());
+  };
+
+  // NEW: Normalize postcode consistently (add space if needed)
+  const normalizePostcode = (postcode: string): string => {
+    let normalized = postcode.toUpperCase().trim();
+    if (normalized.length > 5 && !normalized.includes(' ')) {
+      normalized = normalized.slice(0, normalized.length - 3) + ' ' + normalized.slice(-3);
+    }
+    return normalized;
   };
 
   // NEW: Extract postcode prefix for region mapping
@@ -412,7 +470,10 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
       }
 
       // Only fetch for new postcodes that haven't been fetched yet
-      const newPostcodes = comparedPostcodes.filter(pc => !fetchedPostcodesRef.current.has(pc));
+      const newPostcodes = comparedPostcodes.filter(pc => {
+        const pcNoSpace = pc.replace(/\s+/g, '');
+        return !fetchedPostcodesRef.current.has(pcNoSpace);
+      });
       
       if (newPostcodes.length === 0) {
         return; // No new postcodes to fetch
@@ -422,11 +483,8 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
         const postcodeData = await Promise.all(
           newPostcodes.map(async (pc) => {
             try {
-              // Normalize postcode: uppercase and insert space if needed
-              let normalizedPc = pc.toUpperCase();
-              if (normalizedPc.length > 5 && !normalizedPc.includes(' ')) {
-                normalizedPc = normalizedPc.slice(0, normalizedPc.length - 3) + ' ' + normalizedPc.slice(-3);
-              }
+              // Normalize postcode consistently
+              const normalizedPc = normalizePostcode(pc);
               
               // Try to fetch actual HPI data for the postcode
               const response = await fetch(`/api/hpi/postcode?postcode=${encodeURIComponent(normalizedPc)}`);
@@ -445,6 +503,31 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                 const latestData = hpiData[0]; // Most recent data
                 console.log(`Processing HPI data for ${normalizedPc}:`, { hpiDataLength: hpiData.length, latestData });
                 
+                // Check what fields are available in the data
+                console.log(`Available fields in latestData:`, Object.keys(latestData));
+                
+                // The HPI data might have different field names - let's check for common ones
+                const hpiValue = latestData.hpi_value || latestData.value || latestData.index || latestData.hpi || latestData.hpiIndex;
+                console.log(`HPI value found:`, hpiValue);
+                
+                if (!hpiValue) {
+                  console.log(`No HPI value found in data for ${normalizedPc}, creating placeholder`);
+                  return {
+                    region: result.region || normalizedPc,
+                    postcode: normalizedPc,
+                    currentIndex: 0,
+                    yoyGrowth: null,
+                    timeframeGrowth: null,
+                    momGrowth: null,
+                    volatility: 0,
+                    trend: 'stable',
+                    riskLevel: 'low',
+                    investmentScore: 50,
+                    lastUpdated: latestData.date || 'Unknown',
+                    dataPoints: hpiData.length
+                  };
+                }
+                
                 // Find historical data points
                 const oneYearAgo = hpiData.find((item: any) => {
                   const itemDate = new Date(item.date);
@@ -462,9 +545,15 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                   return diffInMonths >= 1;
                 });
 
+                // Get the HPI values for comparison data
+                const oneYearAgoValue = oneYearAgo ? (oneYearAgo.hpi_value || oneYearAgo.value || oneYearAgo.index || oneYearAgo.hpi || oneYearAgo.hpiIndex) : null;
+                const oneMonthAgoValue = oneMonthAgo ? (oneMonthAgo.hpi_value || oneMonthAgo.value || oneMonthAgo.index || oneMonthAgo.hpi || oneMonthAgo.hpiIndex) : null;
+                
+                console.log(`Comparison values:`, { hpiValue, oneYearAgoValue, oneMonthAgoValue });
+
                 // Calculate growth rates
-                const yoyGrowth = oneYearAgo ? ((latestData.hpi_value - oneYearAgo.hpi_value) / oneYearAgo.hpi_value) * 100 : 0;
-                const momGrowth = oneMonthAgo ? ((latestData.hpi_value - oneMonthAgo.hpi_value) / oneMonthAgo.hpi_value) * 100 : 0;
+                const yoyGrowth = oneYearAgoValue ? ((hpiValue - oneYearAgoValue) / oneYearAgoValue) * 100 : 0;
+                const momGrowth = oneMonthAgoValue ? ((hpiValue - oneMonthAgoValue) / oneMonthAgoValue) * 100 : 0;
                 
                 // Calculate timeframe growth based on current timeframe
                 let timeframeGrowth = 0;
@@ -478,7 +567,8 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                                        (latestDate.getMonth() - itemDate.getMonth());
                     return diffInMonths >= 24;
                   });
-                  timeframeGrowth = twoYearsAgo ? ((latestData.hpi_value - twoYearsAgo.hpi_value) / twoYearsAgo.hpi_value) * 100 : 0;
+                  const twoYearsAgoValue = twoYearsAgo ? (twoYearsAgo.hpi_value || twoYearsAgo.value || twoYearsAgo.index || twoYearsAgo.hpi || twoYearsAgo.hpiIndex) : null;
+                  timeframeGrowth = twoYearsAgoValue ? ((hpiValue - twoYearsAgoValue) / twoYearsAgoValue) * 100 : 0;
                 } else if (timeframe === '5y') {
                   const fiveYearsAgo = hpiData.find((item: any) => {
                     const itemDate = new Date(item.date);
@@ -487,7 +577,8 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                                        (latestDate.getMonth() - itemDate.getMonth());
                     return diffInMonths >= 60;
                   });
-                  timeframeGrowth = fiveYearsAgo ? ((latestData.hpi_value - fiveYearsAgo.hpi_value) / fiveYearsAgo.hpi_value) * 100 : 0;
+                  const fiveYearsAgoValue = fiveYearsAgo ? (fiveYearsAgo.hpi_value || fiveYearsAgo.value || fiveYearsAgo.index || fiveYearsAgo.hpi || fiveYearsAgo.hpiIndex) : null;
+                  timeframeGrowth = fiveYearsAgoValue ? ((hpiValue - fiveYearsAgoValue) / fiveYearsAgoValue) * 100 : 0;
                 }
 
                 // Determine trend and risk level
@@ -500,7 +591,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                 const processedData = {
                   region: result.region || normalizedPc,
                   postcode: normalizedPc,
-                  currentIndex: latestData.hpi_value,
+                  currentIndex: hpiValue,
                   yoyGrowth: yoyGrowth,
                   timeframeGrowth: timeframeGrowth,
                   momGrowth: momGrowth,
@@ -570,8 +661,11 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
             return [...prevData, ...newData];
           });
           
-          // Mark these postcodes as fetched
-          newPostcodes.forEach(pc => fetchedPostcodesRef.current.add(pc));
+          // Mark these postcodes as fetched (using normalized version without spaces)
+          newPostcodes.forEach(pc => {
+            const pcNoSpace = pc.replace(/\s+/g, '');
+            fetchedPostcodesRef.current.add(pcNoSpace);
+          });
         }
       } catch (error) {
         console.error('Error fetching postcode data:', error);
@@ -615,9 +709,9 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
     });
   }, [timeframe]); // Only depend on timeframe
 
-  // Clean up fetched postcodes when they're removed
+  // Clean up fetched postcodes when they're removed and remove invalid data
   useEffect(() => {
-    const currentPostcodes = new Set(comparedPostcodes);
+    const currentPostcodes = new Set(comparedPostcodes.map(pc => pc.replace(/\s+/g, '')));
     
     // Remove postcodes from ref that are no longer in comparedPostcodes
     const fetchedPostcodes = Array.from(fetchedPostcodesRef.current);
@@ -627,9 +721,33 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
       }
     });
     
-    // Remove postcodes from data that are no longer in comparedPostcodes
+    // Remove postcodes from data that are no longer in comparedPostcodes OR have no valid data
     setComparedPostcodeData(prevData => {
-      const filtered = prevData.filter(item => currentPostcodes.has(item.postcode));
+      const filtered = prevData.filter(item => {
+        const itemNoSpace = item.postcode.replace(/\s+/g, '');
+        const isInCurrentList = currentPostcodes.has(itemNoSpace);
+        
+        // Check if item has valid data
+        const hasValidData = item.currentIndex && item.currentIndex > 0 && 
+          (item.timeframeGrowth !== null && item.timeframeGrowth !== undefined) &&
+          (item.yoyGrowth !== null && item.yoyGrowth !== undefined) &&
+          (item.momGrowth !== null && item.momGrowth !== undefined);
+        
+        // Remove if not in current list OR has no valid data
+        if (!isInCurrentList || !hasValidData) {
+          if (!hasValidData) {
+            console.log('Auto-removing postcode with no data:', item.postcode);
+            // Also remove from comparedPostcodes state
+            setComparedPostcodes(prev => prev.filter(pc => {
+              const pcNoSpace = pc.replace(/\s+/g, '');
+              return pcNoSpace !== itemNoSpace;
+            }));
+          }
+          return false;
+        }
+        return true;
+      });
+      
       // Only update if the data actually changed
       if (filtered.length !== prevData.length) {
         return filtered;
@@ -759,26 +877,28 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
 
         {/* Search Input */}
         <div className="mb-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Search regions or postcodes..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            />
-            {/* NEW: Add postcode button */}
-            {searchTerm.trim() && isValidPostcode(searchTerm) && !comparedPostcodes.includes(searchTerm.trim().toUpperCase()) && (
+          <SmartSearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search regions or postcodes..."
+            showHistory={true}
+            showSuggestions={true}
+            debounceMs={300}
+            minSearchLength={2}
+            className=""
+          />
+          {/* NEW: Add postcode button */}
+          {searchTerm.trim() && isValidPostcode(searchTerm) && !comparedPostcodes.includes(searchTerm.trim().toUpperCase()) && (
+            <div className="mt-2">
               <button
                 type="button"
                 onClick={handleAddPostcode}
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
+                className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 Add Postcode
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 max-h-48 overflow-y-auto border border-gray-200 rounded-md p-2">
@@ -920,8 +1040,21 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {/* NEW: Show compared postcodes first */}
-            {comparedPostcodeData.map((item: any, index: number) => (
+            {/* NEW: Show compared postcodes first - filter out entries with no data */}
+            {comparedPostcodeData
+              .filter((item: any) => {
+                // Remove entries with no data or invalid HPI values
+                const hasValidData = item.currentIndex && item.currentIndex > 0 && 
+                  (item.timeframeGrowth !== null && item.timeframeGrowth !== undefined) &&
+                  (item.yoyGrowth !== null && item.yoyGrowth !== undefined) &&
+                  (item.momGrowth !== null && item.momGrowth !== undefined);
+                
+                if (!hasValidData) {
+                  console.log('Filtering out postcode with no data:', item.postcode);
+                }
+                return hasValidData;
+              })
+              .map((item: any, index: number) => (
               <motion.tr
                 key={item.postcode}
                 initial={{ opacity: 0, y: 20 }}
@@ -1025,7 +1158,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                   <div className="flex items-center">
                     <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                       <span className="text-xs font-medium text-blue-600">
-                        {index + 1}
+                        {index + comparedPostcodeData.length + 1}
                       </span>
                     </div>
                     <div className="ml-3">
@@ -1129,4 +1262,4 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
       </div>
     </div>
   );
-} 
+}

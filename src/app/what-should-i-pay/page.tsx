@@ -10,6 +10,7 @@ import UpgradePrompt from '../components/UpgradePrompt';
 import { apiClient } from '@/lib/apiClient';
 import { formatPostcode } from '@/utils/formatPostcode';
 import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
+import SmartSearchInput from '../components/SmartSearchInput';
 
 export default function WhatShouldIPayPage() {
   const [postcode, setPostcode] = useState('');
@@ -86,43 +87,16 @@ export default function WhatShouldIPayPage() {
       <form onSubmit={handleSubmit} className="space-y-4 bg-white rounded-2xl shadow-lg p-6 mb-6">
         <div>
           <label className="block font-medium mb-1">Postcode</label>
-          <input
-            type="text"
+          <SmartSearchInput
             value={postcode}
-            onChange={e => {
-              const input = e.target.value;
-              // Format as user types if it looks like a postcode
-              if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
-                const formatted = formatPostcode(input);
-                setPostcode(formatted);
-              } else {
-                setPostcode(input.toUpperCase());
-              }
-            }}
-            onBlur={e => {
-              const formatted = formatPostcode(e.target.value);
-              if (formatted !== e.target.value) {
-                setPostcode(formatted);
-              }
-            }}
-            className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400"
-            required
+            onChange={setPostcode}
+            placeholder="e.g., SW1A 1AA"
+            showHistory={true}
+            showSuggestions={true}
+            debounceMs={300}
+            minSearchLength={2}
+            className=""
           />
-          {/* History dropdown */}
-          {history.length > 0 && (
-            <div className="mt-1 text-xs text-gray-500">
-              Recent: {history.slice(0, 3).map((h, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setPostcode(h)}
-                  className="mr-2 text-blue-600 hover:text-blue-800 underline"
-                >
-                  {h}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
         <div>
           <label className="block font-medium mb-1">Property Type</label>

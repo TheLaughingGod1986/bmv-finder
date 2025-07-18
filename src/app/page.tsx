@@ -23,6 +23,7 @@ import {
 
 // Enhanced Components
 import EnhancedSearch from './components/EnhancedSearch';
+import SmartSearchInput from './components/SmartSearchInput';
 import EnhancedFilters from './components/EnhancedFilters';
 import EnhancedResultsSummary from './components/EnhancedResultsSummary';
 import EnhancedSoldPricesTable from './components/EnhancedSoldPricesTable';
@@ -370,11 +371,16 @@ export default function Home() {
             className="max-w-6xl mx-auto"
           >
             <Section className="mb-12">
-              <EnhancedSearch
+              <SmartSearchInput
                 value={searchTerm}
                 onChange={setSearchTerm}
                 onSearch={handleSearch}
                 isLoading={isLoading}
+                placeholder="Search by postcode, street name, or town"
+                showHistory={true}
+                showSuggestions={true}
+                debounceMs={300}
+                minSearchLength={2}
               />
               <div className="mt-6 text-center">
                 <a href="/advanced-deal-analysis" className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold shadow hover:bg-primary-700 transition">

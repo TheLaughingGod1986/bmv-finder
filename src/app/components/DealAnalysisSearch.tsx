@@ -12,6 +12,7 @@ import MLValuationCard from './MLValuationCard';
 // import RealisticValuationCard from './RealisticValuationCard';
 import { formatPostcode } from '@/utils/formatPostcode';
 import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
+import SmartSearchInput from './SmartSearchInput';
 
 interface SearchResult {
   address: string;
@@ -316,37 +317,23 @@ export default function DealAnalysisSearch() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700">Postcode</label>
-              <Input
-                placeholder="e.g., SW1A 1AA"
+              <SmartSearchInput
                 value={postcode}
-                onChange={(e) => {
-                  // Simple input handling - no aggressive formatting
-                  setPostcode(e.target.value);
-                }}
-                onBlur={(e) => {
-                  // Only format when user finishes typing
-                  const formatted = formatPostcode(e.target.value);
-                  if (formatted !== e.target.value) {
-                    setPostcode(formatted);
+                onChange={setPostcode}
+                onSearch={(query) => {
+                  setPostcode(query);
+                  // Auto-trigger search if both fields are filled
+                  if (houseNumber.trim()) {
+                    handleSearch();
                   }
                 }}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                placeholder="e.g., SW1A 1AA"
+                showHistory={true}
+                showSuggestions={true}
+                debounceMs={300}
+                minSearchLength={2}
+                className=""
               />
-              {/* History dropdown */}
-              {history.length > 0 && (
-                <div className="mt-1 text-xs text-gray-500">
-                  Recent: {history.slice(0, 3).map((h, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setPostcode(h)}
-                      className="mr-2 text-blue-600 hover:text-blue-800 underline"
-                    >
-                      {h}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
             <div className="flex items-end">
               <Button 
