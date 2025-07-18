@@ -10,7 +10,7 @@ export default function AdminPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="text-gray-600 mt-2">
-            Monitor your platform's performance, data quality, and business metrics
+            Monitor your platform&apos;s performance, data quality, and business metrics
           </p>
         </div>
 

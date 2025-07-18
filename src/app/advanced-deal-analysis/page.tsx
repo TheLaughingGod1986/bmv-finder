@@ -126,6 +126,7 @@ export default function AdvancedDealAnalysisPage() {
           postcode={formatPostcode(postcode.trim())} 
           houseNumber={houseNumber} 
           loading={isAnalyzing}
+          onAnalysisComplete={() => setIsAnalyzing(false)}
         />
       )}
 

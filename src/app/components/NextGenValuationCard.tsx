@@ -297,7 +297,7 @@ export default function NextGenValuationCard({ data, loading = false }: NextGenV
               Valuation Factors
             </CardTitle>
             <p className="text-sm text-gray-600">
-              Key factors influencing the property's value
+              Key factors influencing the property&apos;s value
             </p>
           </CardHeader>
           <CardContent className="space-y-4">

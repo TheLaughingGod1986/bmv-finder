@@ -16,7 +16,8 @@ export const Input: React.FC<InputProps> = ({
   ...props 
 }) => {
   // Use a more deterministic approach to avoid hydration mismatches
-  const inputId = id || `input-${React.useId()}`;
+  const generatedId = React.useId();
+  const inputId = id || `input-${generatedId}`;
 
   return (
     <div className="w-full">

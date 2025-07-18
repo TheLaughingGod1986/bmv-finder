@@ -217,9 +217,10 @@ interface Props {
   postcode: string;
   houseNumber: string;
   loading?: boolean;
+  onAnalysisComplete?: () => void;
 }
 
-export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, loading = false }: Props) {
+export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, loading = false, onAnalysisComplete }: Props) {
   const [valuationData, setValuationData] = useState<ComprehensiveValuationData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningAuthorityData | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'rental' | 'location' | 'market'>('overview');
@@ -238,19 +239,28 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
       const valuationResponse = await fetch(`/api/comprehensive-valuation?postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
       if (valuationResponse.ok) {
         const valuationResult = await valuationResponse.json();
+        console.log('Valuation API response:', valuationResult);
         setValuationData(valuationResult.data);
+        console.log('Setting valuationData:', valuationResult.data);
+      } else {
+        console.error('Valuation API error:', valuationResponse.status, valuationResponse.statusText);
       }
 
       // Fetch planning authority data
       const planningResponse = await fetch(`/api/planning-authority?postcode=${encodeURIComponent(postcode)}`);
       if (planningResponse.ok) {
         const planningResult = await planningResponse.json();
+        console.log('Planning API response:', planningResult);
         setPlanningData(planningResult.data);
+        console.log('Setting planningData:', planningResult.data);
+      } else {
+        console.error('Planning API error:', planningResponse.status, planningResponse.statusText);
       }
     } catch (error) {
       console.error('Error fetching comprehensive data:', error);
     } finally {
       setIsLoading(false);
+      if (onAnalysisComplete) onAnalysisComplete();
     }
   };
 

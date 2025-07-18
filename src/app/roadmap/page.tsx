@@ -381,7 +381,7 @@ export default function RoadmapPage() {
 
         {/* What's Next Section */}
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">What's Next (5% Remaining)</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">What&apos;s Next (5% Remaining)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border-l-4 border-blue-500 pl-4">
               <h4 className="font-semibold text-gray-900">1. Property Project Management Tool</h4>

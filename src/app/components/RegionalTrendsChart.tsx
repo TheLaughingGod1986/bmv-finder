@@ -948,7 +948,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
           ))}
           {comparisonMode && filteredRegions.length === 0 && !postcodeOption && (
             <div className="col-span-full text-center py-4 text-sm text-gray-500">
-              No regions found matching "{searchTerm}"
+              No regions found matching &quot;{searchTerm}&quot;
             </div>
           )}
         </div>

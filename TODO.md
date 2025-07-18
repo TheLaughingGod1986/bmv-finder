@@ -455,4 +455,8 @@
 - **Professional Valuation Dashboard** with three valuation methods and advanced technical analysis
 - **✅ Sales Comparison Query Fixed** - Now finding 10+ comparable sales with 95% confidence
 - **✅ Real Data Integration Working** - All three valuation methods using actual property data
-- **✅ Loading Issues Resolved** - Advanced deal analysis page now loads instantly with fast API responses 
+- **✅ Loading Issues Resolved** - Advanced deal analysis page now loads instantly with fast API responses
+- **🔧 Prediction Model Issues Identified** - System overvaluing properties due to wrong comparable sales and location data
+- **💰 Real Rental Data Integrated** - Using actual £850 PCM rental income for 21 FOURSTONES property valuation
+- **📊 Pattinson Statement Analysis** - Real rental data shows £9,098.40 net annual income after £1,101.60 management fees
+- **🎯 Conservative Valuation Models** - Updated to reflect market reality with £99,000 ceiling for 21 FOURSTONES property 
