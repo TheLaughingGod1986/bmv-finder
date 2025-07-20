@@ -193,9 +193,9 @@ export async function GET(request: NextRequest) {
 
     // Calculate yield distribution
     const yieldDistribution = properties.reduce((acc, p) => {
-      const yield = p.yield || 0;
-      if (yield > 8) acc.highYield++;
-      else if (yield > 5) acc.mediumYield++;
+      const yieldRate = p.yield || 0;
+      if (yieldRate > 8) acc.highYield++;
+      else if (yieldRate > 5) acc.mediumYield++;
       else acc.lowYield++;
       return acc;
     }, { highYield: 0, mediumYield: 0, lowYield: 0 });

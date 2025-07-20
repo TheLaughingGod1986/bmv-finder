@@ -32,6 +32,7 @@ import {
   Trees
 } from 'lucide-react';
 import AddToPortfolioButton, { extractPropertyDataFromValuation } from './AddToPortfolioButton';
+import MissingDataCard from './MissingDataCard';
 
 interface ComprehensiveValuationData {
   property: {
@@ -130,6 +131,19 @@ interface ComprehensiveValuationData {
       neutral: string[];
     };
   };
+  missingData?: {
+    fields: Array<{
+      name: string;
+      displayName: string;
+      description: string;
+      impact: 'high' | 'medium' | 'low';
+      estimatedImprovement: number;
+      currentValue?: any;
+      suggestedValue?: string;
+    }>;
+    totalPotentialImprovement: number;
+    message: string;
+  };
 }
 
 interface PlanningAuthorityData {
@@ -224,7 +238,7 @@ interface Props {
 export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, loading = false, onAnalysisComplete }: Props) {
   const [valuationData, setValuationData] = useState<ComprehensiveValuationData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningAuthorityData | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'rental' | 'location' | 'market'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'rental' | 'location' | 'market' | 'improve'>('overview');
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -408,7 +422,8 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
           { id: 'valuation', label: 'Valuation', icon: Calculator },
           { id: 'rental', label: 'Rental & Yield', icon: DollarSign },
           { id: 'location', label: 'Location', icon: MapPin },
-          { id: 'market', label: 'Market', icon: TrendingUp }
+          { id: 'market', label: 'Market', icon: TrendingUp },
+          { id: 'improve', label: 'Improve', icon: Target }
         ].map((tab) => {
           const Icon = tab.icon;
           return (
