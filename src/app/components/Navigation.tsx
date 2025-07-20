@@ -33,8 +33,7 @@ interface UpdateStats {
 const minimalistNavItems = [
   { name: 'Property Search', href: '/', icon: Search, description: 'Find sold prices' },
   { name: 'Market Analysis', href: '/market-analysis', icon: BarChart3, description: 'Regional trends' },
-  { name: 'Comprehensive Valuation', href: '/comprehensive-valuation', icon: DollarSign, description: 'Three methods' },
-  { name: 'Deal Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'Investment analysis' },
+  { name: 'Comprehensive Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'Valuation & investment' },
   { name: 'HPI Trends', href: '/hpi-search', icon: TrendingUp, description: 'Price trends' },
   { name: 'Valuation Tool', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },
   { name: 'ROI Calculator', href: '/deal-calculator', icon: Calculator, description: 'Calculate returns' },

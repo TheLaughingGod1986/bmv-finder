@@ -23,7 +23,7 @@ import {
 
 // Enhanced Components
 import EnhancedSearch from './components/EnhancedSearch';
-import SmartSearchInput from './components/SmartSearchInput';
+import AddressSearchInput from './components/AddressSearchInput';
 import EnhancedFilters from './components/EnhancedFilters';
 import EnhancedResultsSummary from './components/EnhancedResultsSummary';
 import EnhancedSoldPricesTable from './components/EnhancedSoldPricesTable';
@@ -371,12 +371,12 @@ export default function Home() {
             className="max-w-6xl mx-auto"
           >
             <Section className="mb-12">
-              <SmartSearchInput
+              <AddressSearchInput
                 value={searchTerm}
                 onChange={setSearchTerm}
                 onSearch={handleSearch}
                 isLoading={isLoading}
-                placeholder="Search by postcode, street name, or town"
+                placeholder="Start typing a postcode or address..."
                 showHistory={true}
                 showSuggestions={true}
                 debounceMs={300}

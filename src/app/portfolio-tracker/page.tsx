@@ -5,6 +5,7 @@ import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Tar
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import UserProfile from '../components/UserProfile';
+import PortfolioAnalytics from '../components/PortfolioAnalytics';
 import { supabase } from '../../lib/supabaseClient';
 
 interface PortfolioProperty {
@@ -302,6 +303,11 @@ export default function PortfolioTrackerPage() {
 
           {user && (
             <div className="mt-6">
+              {/* Portfolio Analytics */}
+              <div className="mb-8">
+                <PortfolioAnalytics />
+              </div>
+
               {/* Portfolio Overview Cards */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                 <motion.div

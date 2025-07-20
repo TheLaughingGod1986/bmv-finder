@@ -28,6 +28,7 @@ import {
   Calculator,
   Info
 } from 'lucide-react';
+import AddToPortfolioButton, { extractPropertyDataFromValuation } from './AddToPortfolioButton';
 import { predictFutureValues } from '@/lib/bmvScoreEngine';
 
 interface DealAnalysisProps {
@@ -481,43 +482,30 @@ export default function EnhancedDealAnalysisCard({ data, loading = false }: Deal
 
                 {/* Add to Portfolio Button */}
                 <div className="flex justify-center pt-4">
-                  <Button 
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 flex items-center gap-2"
-                    onClick={async () => {
-                      try {
-                        const response = await fetch('/api/portfolio/add', {
-                          method: 'POST',
-                          headers: {
-                            'Content-Type': 'application/json',
-                          },
-                          body: JSON.stringify({
-                            address: data.property_info?.address || `${data.sold_prices[0]?.property_type || 'Property'}`,
-                            postcode: data.property_info?.postcode || '',
-                            houseNumber: data.sold_prices[0]?.address?.split(' ')[0] || '',
-                            lastSoldPrice: data.deal_metrics.last_sold_price,
-                            hpiAdjustedValue: data.deal_metrics.hpi_adjusted_value,
-                            currentEstimate: data.deal_metrics.current_value_estimate,
-                            dealScore: data.deal_metrics.deal_score,
-                            dealRating: data.deal_metrics.deal_rating
-                          })
-                        });
-
-                        if (response.ok) {
-                          // Show success message (you can integrate with your toast system)
-                          alert('Property added to portfolio successfully!');
-                        } else {
-                          const error = await response.json();
-                          alert(error.error || 'Failed to add to portfolio');
-                        }
-                      } catch (error) {
-                        console.error('Error adding to portfolio:', error);
-                        alert('Failed to add to portfolio');
-                      }
+                  <AddToPortfolioButton
+                    propertyData={{
+                      address: data.property_info?.address || `${data.sold_prices[0]?.property_type || 'Property'}`,
+                      postcode: data.property_info?.postcode || '',
+                      houseNumber: data.sold_prices[0]?.address?.split(' ')[0] || '',
+                      propertyType: data.property_info?.property_type || data.sold_prices[0]?.property_type || 'Unknown',
+                      bedrooms: data.property_info?.bedrooms || undefined,
+                      floorArea: data.property_info?.floor_area_m2 || undefined,
+                      epcRating: data.property_info?.epc_rating || undefined,
+                      constructionYear: data.property_info?.construction_year || undefined,
+                      purchasePrice: data.deal_metrics.last_sold_price || data.deal_metrics.current_value_estimate || 0,
+                      currentValue: data.deal_metrics.current_value_estimate || data.deal_metrics.last_sold_price || 0,
+                      purchaseDate: data.sold_prices[0]?.date || new Date().toISOString().split('T')[0],
+                      dealScore: data.deal_metrics.deal_score,
+                      dealRating: data.deal_metrics.deal_rating,
+                      bmvScore: data.deal_metrics.deal_score, // Using deal score as BMV score for now
+                      rentalIncome: undefined, // Will be calculated from income approach
+                      yield: undefined, // Will be calculated from income approach
+                      mortgageBalance: 0,
+                      notes: `Added from deal analysis. Deal Score: ${data.deal_metrics.deal_score}, Rating: ${data.deal_metrics.deal_rating}`
                     }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add to Portfolio
-                  </Button>
+                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
+                    size="lg"
+                  />
                 </div>
               </div>
 

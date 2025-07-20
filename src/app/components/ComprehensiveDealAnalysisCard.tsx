@@ -31,6 +31,7 @@ import {
   Store,
   Trees
 } from 'lucide-react';
+import AddToPortfolioButton, { extractPropertyDataFromValuation } from './AddToPortfolioButton';
 
 interface ComprehensiveValuationData {
   property: {
@@ -305,6 +306,14 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
     return 'text-red-600';
   };
 
+  const getDealRating = (confidence: number): string => {
+    if (confidence >= 0.8) return 'Excellent';
+    if (confidence >= 0.7) return 'Good';
+    if (confidence >= 0.6) return 'Fair';
+    if (confidence >= 0.5) return 'Poor';
+    return 'Very Poor';
+  };
+
   if (loading || isLoading) {
     return (
       <Card className="border-2 border-primary-100">
@@ -362,6 +371,34 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
             </div>
           </div>
         </CardHeader>
+        <CardContent>
+          <div className="flex justify-center pt-4">
+            <AddToPortfolioButton
+              propertyData={{
+                address: valuationData.property.address,
+                postcode: valuationData.property.postcode,
+                houseNumber: houseNumber,
+                propertyType: valuationData.property.propertyType,
+                bedrooms: valuationData.property.bedrooms,
+                floorArea: valuationData.property.floorArea,
+                epcRating: valuationData.property.epcRating,
+                constructionYear: undefined,
+                purchasePrice: valuationData.property.lastSoldPrice || valuationData.summary.finalValue * 0.85,
+                currentValue: valuationData.summary.finalValue,
+                purchaseDate: valuationData.property.lastSoldDate || new Date().toISOString().split('T')[0],
+                dealScore: Math.round(valuationData.summary.confidence * 100),
+                dealRating: getDealRating(valuationData.summary.confidence),
+                bmvScore: Math.round(valuationData.summary.confidence * 100),
+                rentalIncome: valuationData.methods.incomeApproach?.breakdown?.grossRent * 12,
+                yield: valuationData.methods.incomeApproach?.breakdown?.capRate,
+                mortgageBalance: 0,
+                notes: `Added from comprehensive valuation. Confidence: ${Math.round(valuationData.summary.confidence * 100)}%`
+              }}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
+              size="lg"
+            />
+          </div>
+        </CardContent>
       </Card>
 
       {/* Navigation Tabs */}

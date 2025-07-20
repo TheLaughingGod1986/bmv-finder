@@ -12,7 +12,7 @@ import MLValuationCard from './MLValuationCard';
 // import RealisticValuationCard from './RealisticValuationCard';
 import { formatPostcode } from '@/utils/formatPostcode';
 import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
-import SmartSearchInput from './SmartSearchInput';
+import AddressSearchInput from './AddressSearchInput';
 
 interface SearchResult {
   address: string;
@@ -304,22 +304,18 @@ export default function DealAnalysisSearch() {
           </p>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">House Number/Name</label>
-              <Input
-                placeholder="e.g., 10 or The Cottage"
-                value={houseNumber}
-                onChange={(e) => setHouseNumber(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                className="border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-gray-700">Postcode</label>
-              <SmartSearchInput
+              <label className="block text-sm font-medium mb-2 text-gray-700">Search for a Property</label>
+              <AddressSearchInput
                 value={postcode}
                 onChange={setPostcode}
+                onAddressSelect={(address) => {
+                  setPostcode(address.postcode);
+                  setHouseNumber(address.number);
+                  // Auto-trigger search when address is selected
+                  setTimeout(() => handleSearch(), 100);
+                }}
                 onSearch={(query) => {
                   setPostcode(query);
                   // Auto-trigger search if both fields are filled
@@ -327,7 +323,7 @@ export default function DealAnalysisSearch() {
                     handleSearch();
                   }
                 }}
-                placeholder="e.g., SW1A 1AA"
+                placeholder="Start typing a postcode or address..."
                 showHistory={true}
                 showSuggestions={true}
                 debounceMs={300}
@@ -335,24 +331,36 @@ export default function DealAnalysisSearch() {
                 className=""
               />
             </div>
-            <div className="flex items-end">
-              <Button 
-                onClick={handleSearch} 
-                disabled={loading}
-                className="w-full bg-primary-600 hover:bg-primary-700 text-white px-8 py-2"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Search className="h-4 w-4 mr-2" />
-                    Analyze Deal
-                  </>
-                )}
-              </Button>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-2 text-gray-700">House Number/Name</label>
+                <Input
+                  placeholder="e.g., 10 or The Cottage"
+                  value={houseNumber}
+                  onChange={(e) => setHouseNumber(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                  className="border-gray-300 focus:border-primary-500 focus:ring-primary-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button 
+                  onClick={handleSearch} 
+                  disabled={loading}
+                  className="w-full bg-primary-600 hover:bg-primary-700 text-white px-8 py-2"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Analyzing...
+                    </>
+                  ) : (
+                    <>
+                      <Search className="h-4 w-4 mr-2" />
+                      Analyze Deal
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

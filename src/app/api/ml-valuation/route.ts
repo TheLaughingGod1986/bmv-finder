@@ -94,7 +94,8 @@ export async function GET(request: NextRequest) {
  */
 async function getPropertyEnrichmentData(postcode: string, number: string) {
   try {
-    const response = await fetch(`${process.env.PROPERTY_ENRICHMENT_SERVICE_URL}/enrich`, {
+    const serviceUrl = process.env.PROPERTY_ENRICHMENT_SERVICE_URL || 'http://localhost:3002';
+    const response = await fetch(`${serviceUrl}/enrich`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -132,7 +133,7 @@ async function getSoldPrices(postcode: string, number: string) {
           }
         },
         size: 10,
-        sort: [{ date: { order: 'desc' } }]
+        sort: [{ dateOfTransfer: { order: 'desc' } }]
       }
     });
 
@@ -150,7 +151,7 @@ async function getHPIData(postcode: string) {
   try {
     const region = getRegionFromPostcode(postcode);
     const response = await esClient.search({
-      index: 'hpi_data',
+      index: 'house_price_index',
       body: {
         query: {
           bool: {
@@ -204,7 +205,7 @@ async function getComparableSales(postcode: string, number: string, propertyData
       body: {
         query,
         size: 20,
-        sort: [{ date: { order: 'desc' } }]
+        sort: [{ dateOfTransfer: { order: 'desc' } }]
       }
     });
 

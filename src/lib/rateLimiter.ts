@@ -112,38 +112,85 @@ setInterval(() => {
 // Rate limiting middleware for Next.js API routes
 export function withRateLimit(handler: Function) {
   return async (req: any, res: any) => {
-    // Handle different request object structures (Express vs Next.js App Router)
-    const identifier = req.headers?.['x-forwarded-for'] || 
-                      req.connection?.remoteAddress || 
-                      req.socket?.remoteAddress ||
+    try {
+      // Handle different request object structures (Express vs Next.js App Router)
+      const identifier = req.headers?.['x-forwarded-for'] || 
+                        req.connection?.remoteAddress || 
+                        req.socket?.remoteAddress ||
+                        'unknown';
+      const userTier = req.headers?.['x-user-tier'] || 'default';
+      
+      const { allowed, remaining, resetTime } = rateLimiter.isAllowed(identifier, userTier);
+      
+      // Add rate limit headers - only if res object exists and has setHeader method
+      if (res && typeof res.setHeader === 'function') {
+        const headers = rateLimiter.getHeaders(identifier, userTier);
+        Object.entries(headers).forEach(([key, value]) => {
+          try {
+            res.setHeader(key, value);
+          } catch (error) {
+            console.warn(`Could not set rate limit header ${key}:`, error);
+          }
+        });
+      }
+
+      if (!allowed) {
+        const config = rateLimiter['configs'].get(userTier) || rateLimiter['configs'].get('default')!;
+        return res.status(429).json({
+          error: 'Rate limit exceeded',
+          message: config.message,
+          retryAfter: Math.ceil((resetTime - Date.now()) / 1000)
+        });
+      }
+
+      return handler(req, res);
+    } catch (error) {
+      console.error('Rate limiter error:', error);
+      // If rate limiting fails, allow the request to proceed
+      return handler(req, res);
+    }
+  };
+}
+
+// Next.js App Router specific rate limiter
+export function checkRateLimit(request: Request): { allowed: boolean; headers: Record<string, string>; error?: any } {
+  try {
+    const identifier = request.headers.get('x-forwarded-for') || 
+                      request.headers.get('x-real-ip') ||
                       'unknown';
-    const userTier = req.headers?.['x-user-tier'] || 'default';
+    const userTier = request.headers.get('x-user-tier') || 'default';
     
     const { allowed, remaining, resetTime } = rateLimiter.isAllowed(identifier, userTier);
-    
-    // Add rate limit headers
     const headers = rateLimiter.getHeaders(identifier, userTier);
-    Object.entries(headers).forEach(([key, value]) => {
-      if (res.setHeader) {
-        res.setHeader(key, value);
-      } else if (res.headers && res.headers.set) {
-        res.headers.set(key, value);
-      } else if (res.headers && typeof res.headers === 'object') {
-        res.headers[key] = value;
-      }
-    });
-
+    
     if (!allowed) {
       const config = rateLimiter['configs'].get(userTier) || rateLimiter['configs'].get('default')!;
-      return res.status(429).json({
-        error: 'Rate limit exceeded',
-        message: config.message,
-        retryAfter: Math.ceil((resetTime - Date.now()) / 1000)
-      });
+      return {
+        allowed: false,
+        headers,
+        error: {
+          status: 429,
+          message: 'Rate limit exceeded',
+          retryAfter: Math.ceil((resetTime - Date.now()) / 1000)
+        }
+      };
     }
+    
+    return { allowed: true, headers };
+  } catch (error) {
+    console.error('Rate limiter error:', error);
+    // If rate limiting fails, allow the request to proceed
+    return { allowed: true, headers: {} };
+  }
+}
 
-    return handler(req, res);
-  };
+// Helper function to apply rate limit headers to NextResponse
+export function applyRateLimitHeaders(response: Response, headers: Record<string, string>): Response {
+  const newResponse = new Response(response.body, response);
+  Object.entries(headers).forEach(([key, value]) => {
+    newResponse.headers.set(key, value);
+  });
+  return newResponse;
 }
 
 export default RateLimiter; 

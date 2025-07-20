@@ -121,3 +121,23 @@ ConfigurationError: Cloud ID must be a string.
 }
 
 Node.js v22.16.0
+[dotenv@17.2.0] injecting env (0) from .env (tip: 🔐 prevent building .env in docker: https://dotenvx.com/prebuild)
+/Users/benjaminoats/my-vibe-project/bmv-finder/node_modules/@elastic/elasticsearch/lib/client.js:92
+                throw new transport_1.errors.ConfigurationError('Cloud ID must be a string.');
+                ^
+
+ConfigurationError: Cloud ID must be a string.
+    at new Client (/Users/benjaminoats/my-vibe-project/bmv-finder/node_modules/@elastic/elasticsearch/lib/client.js:92:23)
+    at Object.<anonymous> (/Users/benjaminoats/my-vibe-project/bmv-finder/scripts/update-elasticsearch.js:13:18)
+    at Module._compile (node:internal/modules/cjs/loader:1730:14)
+    at Object..js (node:internal/modules/cjs/loader:1895:10)
+    at Module.load (node:internal/modules/cjs/loader:1465:32)
+    at Function._load (node:internal/modules/cjs/loader:1282:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:235:24)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+    at node:internal/main/run_main_module:36:49 {
+  options: { redaction: { type: 'replace', additionalKeys: [] } }
+}
+
+Node.js v22.16.0
