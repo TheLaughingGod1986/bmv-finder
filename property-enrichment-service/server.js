@@ -111,10 +111,32 @@ app.get('/api/property-info', async (req, res) => {
     const propertyData = await propertyService.enrichPropertyData(postcode, number);
 
     if (!propertyData) {
+      logger.warn({
+        event: 'enrichment_failure',
+        number,
+        postcode,
+        reason: 'No property data returned',
+        timestamp: new Date().toISOString(),
+      });
       return res.status(404).json({
         error: 'Property not found',
         message: 'No property data found for the provided address'
       });
+    } else {
+      // Log missing fields
+      const missingFields = [];
+      if (!propertyData.floor_area_m2) missingFields.push('floor_area_m2');
+      if (!propertyData.epc_rating) missingFields.push('epc_rating');
+      if (!propertyData.bedrooms) missingFields.push('bedrooms');
+      if (missingFields.length > 0) {
+        logger.info({
+          event: 'missing_enrichment_data',
+          number,
+          postcode,
+          missingFields,
+          timestamp: new Date().toISOString(),
+        });
+      }
     }
 
     logger.info('Property enrichment successful', {
@@ -122,6 +144,22 @@ app.get('/api/property-info', async (req, res) => {
       number,
       found: true
     });
+
+    // After enrichment, ensure response fields are consistent
+    if (propertyData) {
+      if (propertyData.size && !propertyData.floor_area_m2) {
+        propertyData.floor_area_m2 = propertyData.size;
+        delete propertyData.size;
+      }
+      // Optionally, ensure top-level response fields
+      res.json({
+        ...propertyData,
+        floor_area_m2: propertyData.floor_area_m2,
+        epc_rating: propertyData.epc_rating,
+        bedrooms: propertyData.bedrooms,
+      });
+      return;
+    }
 
     res.json(propertyData);
 

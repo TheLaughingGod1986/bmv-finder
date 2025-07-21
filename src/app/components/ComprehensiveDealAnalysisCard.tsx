@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import AddToPortfolioButton, { extractPropertyDataFromValuation } from './AddToPortfolioButton';
 import MissingDataCard from './MissingDataCard';
+import { useToast } from '@/hooks/useToast';
 
 interface ComprehensiveValuationData {
   property: {
@@ -41,6 +42,7 @@ interface ComprehensiveValuationData {
     propertyType: string;
     bedrooms?: number;
     floorArea?: number;
+    floor_area_m2?: number;
     epcRating?: string;
     lastSoldPrice?: number;
     lastSoldDate?: string;
@@ -240,6 +242,9 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
   const [planningData, setPlanningData] = useState<PlanningAuthorityData | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'valuation' | 'rental' | 'location' | 'market' | 'improve'>('overview');
   const [isLoading, setIsLoading] = useState(false);
+  const [showMissingDataForm, setShowMissingDataForm] = useState(false);
+  const [missingData, setMissingData] = useState({ floor_area_m2: '', epc_rating: '', bedrooms: '' });
+  const { success, error } = useToast();
 
   useEffect(() => {
     if (postcode && houseNumber) {
@@ -328,6 +333,29 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
     return 'Very Poor';
   };
 
+  const handleMissingDataSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/property-analysis/submit-missing-data', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postcode: valuationData?.property?.postcode,
+          number: valuationData?.property?.address?.split(' ')[0],
+          ...missingData,
+        }),
+      });
+      if (res.ok) {
+        success('Thank you! Your data was submitted and will improve future valuations.');
+        setShowMissingDataForm(false);
+      } else {
+        error('Failed to submit data.');
+      }
+    } catch {
+      error('Failed to submit data.');
+    }
+  };
+
   if (loading || isLoading) {
     return (
       <Card className="border-2 border-primary-100">
@@ -356,6 +384,9 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
 
   const rentalYield = calculateRentalYield();
 
+  // Floor Area display logic
+  const floorArea = valuationData?.property?.floor_area_m2 ?? valuationData?.property?.floorArea;
+
   return (
     <div className="space-y-6">
       {/* Property Header */}
@@ -369,7 +400,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
               </CardTitle>
               <p className="text-sm text-gray-600 mt-1">
                 {valuationData.property.postcode} • {valuationData.property.propertyType} • {valuationData.property.bedrooms} bed
-                {valuationData.property.floorArea && ` • ${valuationData.property.floorArea}m²`}
+                {floorArea ? ` • ${floorArea}m²` : ' • Floor Area Missing'}
               </p>
             </div>
             <div className="text-right">
@@ -503,7 +534,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
                 </div>
                 <div className="text-center p-3 bg-orange-50 rounded-lg">
                   <div className="text-2xl font-bold text-orange-700">
-                    {valuationData.property.floorArea ? `${valuationData.property.floorArea}m²` : 'N/A'}
+                    {floorArea ? `${floorArea}m²` : 'N/A'}
                   </div>
                   <div className="text-sm text-gray-600">Floor Area</div>
                 </div>

@@ -239,7 +239,7 @@ class PropertyEnrichmentService {
   formatPropertyData(epcRecord, number, postcode) {
     const address = `${number} ${epcRecord.street || ''}, ${postcode}`.trim();
     
-    return {
+    const enrichedData = {
       address: address,
       bedrooms: this.extractBedrooms(epcRecord),
       epc_rating: this.extractEPCRating(epcRecord),
@@ -252,6 +252,24 @@ class PropertyEnrichmentService {
       epc_date: epcRecord.inspection_date,
       certificate_id: epcRecord.certificate_id
     };
+
+    // After fetching or constructing the enriched property data, ensure consistent field mapping
+    if (enrichedData) {
+      // Map 'size' to 'floor_area_m2' if present
+      if (enrichedData.size && !enrichedData.floor_area_m2) {
+        enrichedData.floor_area_m2 = enrichedData.size;
+        delete enrichedData.size;
+      }
+      // Ensure epc_rating and bedrooms are present if available
+      if (enrichedData.epc_rating) {
+        enrichedData.epc_rating = enrichedData.epc_rating;
+      }
+      if (enrichedData.bedrooms) {
+        enrichedData.bedrooms = enrichedData.bedrooms;
+      }
+    }
+
+    return enrichedData;
   }
 
   /**

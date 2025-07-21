@@ -803,7 +803,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
           <div className="p-2 bg-blue-50 rounded-lg">
             <BarChart3 className="w-6 h-6 text-blue-600" />
           </div>
-          <div>
+        <div>
             <h3 className="text-lg font-semibold text-gray-900">Regional Trends</h3>
             <p className="text-sm text-gray-500 flex items-center space-x-2">
               <Calendar className="w-4 h-4" />
@@ -890,7 +890,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
           {/* NEW: Add postcode button */}
           {searchTerm.trim() && isValidPostcode(searchTerm) && !comparedPostcodes.includes(searchTerm.trim().toUpperCase()) && (
             <div className="mt-2">
-              <button
+            <button
                 type="button"
                 onClick={handleAddPostcode}
                 className="px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -1148,7 +1148,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
             ))}
             {filteredData.map((item, index) => (
               <motion.tr
-                key={item.region}
+            key={item.region}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: (index + comparedPostcodeData.length) * 0.05 }}
@@ -1169,15 +1169,15 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                         Index: {item.currentIndex}
                       </div>
                     </div>
-                  </div>
+              </div>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap">
                   <div className="flex items-center space-x-1">
                     {getGrowthIcon(item.timeframeGrowth)}
                     <span className={`text-sm font-medium ${getGrowthColor(item.timeframeGrowth)}`}>
                       {item.timeframeGrowth > 0 ? '+' : ''}{item.timeframeGrowth.toFixed(2)}%
-                    </span>
-                  </div>
+              </span>
+            </div>
                 </td>
                 <td className="px-4 py-4 whitespace-nowrap">
                   <span className={`text-sm ${getGrowthColor(item.yoyGrowth)}`}>
@@ -1208,10 +1208,10 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                       ></div>
                     </div>
                     <span className="text-sm text-gray-900">{item.investmentScore}/100</span>
-                  </div>
+            </div>
                 </td>
               </motion.tr>
-            ))}
+        ))}
           </tbody>
         </table>
       </div>
@@ -1255,11 +1255,11 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
               </div>
               <div className="mt-2 text-blue-700">
                 Scores consider both growth potential and market stability. Higher scores indicate better risk-adjusted returns.
-              </div>
-            </div>
+        </div>
+      </div>
           </div>
         </div>
       </div>
     </div>
   );
-}
+} 

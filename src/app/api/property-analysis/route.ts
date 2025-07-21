@@ -134,6 +134,9 @@ export async function GET(request: NextRequest) {
     const propertyData = await getPropertyEnrichmentData(postcode, number);
     console.log('✅ Property enrichment data:', propertyData ? 'Found' : 'Not found');
 
+    // After fetching enrichment data
+    const floorArea = propertyData?.floor_area_m2 ?? null;
+
     // 2. Get sold prices for the property
     const soldPrices = await getSoldPrices(postcode, number);
     console.log('✅ Sold prices found:', soldPrices.length);
@@ -166,7 +169,20 @@ export async function GET(request: NextRequest) {
       deal_rating: dealAnalysis.deal_metrics.deal_rating
     });
 
-    return NextResponse.json(response);
+    return NextResponse.json({
+      property: {
+        ...response,
+        property: {
+          ...response.property_info,
+          floor_area_m2: floorArea,
+        },
+      },
+      missingData: !floorArea ? {
+        field: 'floor_area_m2',
+        message: 'Floor area is missing for this property. You can help improve accuracy by providing this information.',
+        allowUserContribution: true,
+      } : undefined,
+    });
 
   } catch (error) {
     console.error('❌ Property analysis error:', error);
