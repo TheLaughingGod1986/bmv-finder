@@ -158,6 +158,46 @@ export default function AdvancedDealAnalysisPage() {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Portfolio Notification Banner */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mb-6"
+      >
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0">
+            <Home className="w-5 h-5 text-green-600 mt-0.5" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-green-800 mb-1">
+              🎉 New Portfolio Tracking Feature
+            </h3>
+            <p className="text-sm text-green-700 mb-3">
+              Add properties to your portfolio to track their value, growth, and performance over time. 
+              Get monthly updates, portfolio analytics, and personalized investment insights.
+            </p>
+            <div className="flex flex-wrap gap-2 text-xs text-green-600">
+              <span className="flex items-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                Monthly value updates
+              </span>
+              <span className="flex items-center gap-1">
+                <BarChart3 className="w-3 h-3" />
+                Portfolio analytics
+              </span>
+              <span className="flex items-center gap-1">
+                <DollarSign className="w-3 h-3" />
+                Total asset tracking
+              </span>
+              <span className="flex items-center gap-1">
+                <Target className="w-3 h-3" />
+                Investment insights
+              </span>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4 text-primary-700">Comprehensive Property Analysis</h1>
         <p className="text-lg text-gray-600 max-w-4xl mx-auto">
@@ -248,7 +288,6 @@ export default function AdvancedDealAnalysisPage() {
           <ComprehensiveDealAnalysisCard 
             postcode={postcode}
             houseNumber={houseNumber}
-            isAnalyzing={isAnalyzing}
           />
 
           {/* Comprehensive Valuation Results */}
@@ -275,24 +314,24 @@ export default function AdvancedDealAnalysisPage() {
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">{valuationData.property.address}</span>
+                        <span className="text-sm text-gray-600">{valuationData?.property?.address || 'Address not available'}</span>
                       </div>
-                      {valuationData.property.bedrooms && (
+                      {valuationData?.property?.bedrooms && (
                         <div className="flex items-center gap-2">
                           <Bed className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{valuationData.property.bedrooms} bedrooms</span>
+                          <span className="text-sm text-gray-600">{valuationData?.property?.bedrooms} bedrooms</span>
                         </div>
                       )}
-                      {valuationData.property.floorArea && (
+                      {valuationData?.property?.floorArea && (
                         <div className="flex items-center gap-2">
                           <Ruler className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{valuationData.property.floorArea}m²</span>
+                          <span className="text-sm text-gray-600">{valuationData?.property?.floorArea}m²</span>
                         </div>
                       )}
-                      {valuationData.property.epcRating && (
+                      {valuationData?.property?.epcRating && (
                         <div className="flex items-center gap-2">
                           <Zap className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">EPC: {valuationData.property.epcRating}</span>
+                          <span className="text-sm text-gray-600">EPC: {valuationData?.property?.epcRating}</span>
                         </div>
                       )}
                     </div>
@@ -305,20 +344,20 @@ export default function AdvancedDealAnalysisPage() {
                         Estimated Market Value
                       </h3>
                       <div className="text-4xl font-bold text-primary-800 mb-2">
-                        {formatCurrency(valuationData.summary.finalValue)}
+                        {formatCurrency(valuationData?.summary?.finalValue || 0)}
                       </div>
                       <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                        <span className={`flex items-center gap-1 ${getConfidenceColor(valuationData.summary.confidence)}`}>
+                        <span className={`flex items-center gap-1 ${getConfidenceColor(valuationData?.summary?.confidence || 0)}`}>
                           <Shield className="h-4 w-4" />
-                          {getConfidenceLabel(valuationData.summary.confidence)} Confidence
+                          {getConfidenceLabel(valuationData?.summary?.confidence || 0)} Confidence
                         </span>
                         <span className="flex items-center gap-1">
                           <Percent className="h-4 w-4" />
-                          {formatPercentage(valuationData.summary.confidence)}
+                          {formatPercentage(valuationData?.summary?.confidence || 0)}
                         </span>
                       </div>
                       <div className="text-sm text-gray-500 mt-2">
-                        Range: {formatCurrency(valuationData.summary.valueRange.min)} - {formatCurrency(valuationData.summary.valueRange.max)}
+                        Range: {formatCurrency(valuationData?.summary?.valueRange?.min || 0)} - {formatCurrency(valuationData?.summary?.valueRange?.max || 0)}
                       </div>
                     </div>
                   </div>
@@ -337,24 +376,24 @@ export default function AdvancedDealAnalysisPage() {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-gray-800">
-                              {formatCurrency(valuationData.methods.salesComparison.value)}
+                              {formatCurrency(valuationData?.methods?.salesComparison?.value || 0)}
                             </div>
-                            <div className={`text-sm ${getConfidenceColor(valuationData.methods.salesComparison.confidence)}`}>
-                              {formatPercentage(valuationData.methods.salesComparison.confidence)} confidence
+                            <div className={`text-sm ${getConfidenceColor(valuationData?.methods?.salesComparison?.confidence || 0)}`}>
+                              {formatPercentage(valuationData?.methods?.salesComparison?.confidence || 0)} confidence
                             </div>
                           </div>
                         </div>
                         <p className="text-sm text-gray-600 mb-3">
-                          {valuationData.methods.salesComparison.description}
+                          {valuationData?.methods?.salesComparison?.description || 'Sales comparison analysis not available'}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {valuationData.methods.salesComparison.factors.positive.map((factor, index) => (
+                          {valuationData?.methods?.salesComparison?.factors?.positive?.map((factor, index) => (
                             <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                               <CheckCircle className="h-3 w-3" />
                               {factor}
                             </span>
                           ))}
-                          {valuationData.methods.salesComparison.factors.negative.map((factor, index) => (
+                          {valuationData?.methods?.salesComparison?.factors?.negative?.map((factor, index) => (
                             <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
                               <AlertTriangle className="h-3 w-3" />
                               {factor}
@@ -374,24 +413,24 @@ export default function AdvancedDealAnalysisPage() {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-gray-800">
-                              {formatCurrency(valuationData.methods.incomeApproach.value)}
+                              {formatCurrency(valuationData?.methods?.incomeApproach?.value || 0)}
                             </div>
-                            <div className={`text-sm ${getConfidenceColor(valuationData.methods.incomeApproach.confidence)}`}>
-                              {formatPercentage(valuationData.methods.incomeApproach.confidence)} confidence
+                            <div className={`text-sm ${getConfidenceColor(valuationData?.methods?.incomeApproach?.confidence || 0)}`}>
+                              {formatPercentage(valuationData?.methods?.incomeApproach?.confidence || 0)} confidence
                             </div>
                           </div>
                         </div>
                         <p className="text-sm text-gray-600 mb-3">
-                          {valuationData.methods.incomeApproach.description}
+                          {valuationData?.methods?.incomeApproach?.description || 'Income approach analysis not available'}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {valuationData.methods.incomeApproach.factors.positive.map((factor, index) => (
+                          {valuationData?.methods?.incomeApproach?.factors?.positive?.map((factor, index) => (
                             <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                               <CheckCircle className="h-3 w-3" />
                               {factor}
                             </span>
                           ))}
-                          {valuationData.methods.incomeApproach.factors.negative.map((factor, index) => (
+                          {valuationData?.methods?.incomeApproach?.factors?.negative?.map((factor, index) => (
                             <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
                               <AlertTriangle className="h-3 w-3" />
                               {factor}
@@ -411,24 +450,24 @@ export default function AdvancedDealAnalysisPage() {
                           </div>
                           <div className="text-right">
                             <div className="text-lg font-bold text-gray-800">
-                              {formatCurrency(valuationData.methods.costApproach.value)}
+                              {formatCurrency(valuationData?.methods?.costApproach?.value || 0)}
                             </div>
-                            <div className={`text-sm ${getConfidenceColor(valuationData.methods.costApproach.confidence)}`}>
-                              {formatPercentage(valuationData.methods.costApproach.confidence)} confidence
+                            <div className={`text-sm ${getConfidenceColor(valuationData?.methods?.costApproach?.confidence || 0)}`}>
+                              {formatPercentage(valuationData?.methods?.costApproach?.confidence || 0)} confidence
                             </div>
                           </div>
                         </div>
                         <p className="text-sm text-gray-600 mb-3">
-                          {valuationData.methods.costApproach.description}
+                          {valuationData?.methods?.costApproach?.description || 'Cost approach analysis not available'}
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {valuationData.methods.costApproach.factors.positive.map((factor, index) => (
+                          {valuationData?.methods?.costApproach?.factors?.positive?.map((factor, index) => (
                             <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
                               <CheckCircle className="h-3 w-3" />
                               {factor}
                             </span>
                           ))}
-                          {valuationData.methods.costApproach.factors.negative.map((factor, index) => (
+                          {valuationData?.methods?.costApproach?.factors?.negative?.map((factor, index) => (
                             <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
                               <AlertTriangle className="h-3 w-3" />
                               {factor}
@@ -440,7 +479,7 @@ export default function AdvancedDealAnalysisPage() {
                   </div>
 
                   {/* Rental Yield Analysis */}
-                  {valuationData.rentalYield && (
+                  {valuationData?.rentalYield && (
                     <div className="mt-6">
                       <h3 className="font-semibold text-lg text-gray-800 mb-4">Rental Yield Analysis</h3>
                       <Card className="border border-gray-200">
@@ -448,25 +487,25 @@ export default function AdvancedDealAnalysisPage() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="text-center">
                               <div className="text-2xl font-bold text-green-600">
-                                {formatPercentage(valuationData.rentalYield.grossYield)}
+                                {formatPercentage(valuationData?.rentalYield?.grossYield || 0)}
                               </div>
                               <div className="text-sm text-gray-600">Gross Yield</div>
                             </div>
                             <div className="text-center">
                               <div className="text-2xl font-bold text-blue-600">
-                                {formatPercentage(valuationData.rentalYield.netYield)}
+                                {formatPercentage(valuationData?.rentalYield?.netYield || 0)}
                               </div>
                               <div className="text-sm text-gray-600">Net Yield</div>
                             </div>
                             <div className="text-center">
                               <div className="text-lg font-bold text-gray-800">
-                                {formatCurrency(valuationData.rentalYield.monthlyRent)}
+                                {formatCurrency(valuationData?.rentalYield?.monthlyRent || 0)}
                               </div>
                               <div className="text-sm text-gray-600">Monthly Rent</div>
                             </div>
                             <div className="text-center">
                               <div className="text-lg font-bold text-gray-800">
-                                {formatCurrency(valuationData.rentalYield.annualRent)}
+                                {formatCurrency(valuationData?.rentalYield?.annualRent || 0)}
                               </div>
                               <div className="text-sm text-gray-600">Annual Rent</div>
                             </div>

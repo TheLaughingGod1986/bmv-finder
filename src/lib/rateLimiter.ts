@@ -109,7 +109,7 @@ setInterval(() => {
   rateLimiter.cleanup();
 }, 60000);
 
-// Rate limiting middleware for Next.js API routes
+// Rate limiting middleware for Next.js API routes (Legacy - use checkRateLimit for App Router)
 export function withRateLimit(handler: Function) {
   return async (req: any, res: any) => {
     try {

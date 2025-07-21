@@ -401,7 +401,7 @@ export async function GET(request: NextRequest) {
               ]
             }
           },
-          sort: [{ date: { order: 'asc' } }]
+          sort: [{ date: 'asc' }]
         };
 
         const historicalResponse = await esClient.search({

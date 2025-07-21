@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit } from '@/lib/rateLimiter';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import { esClient } from '@/lib/esClient';
 
 // Get business metrics
-export const GET = withRateLimit(async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
+  // Check rate limit
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: rateLimitResult.error?.message || 'Rate limit exceeded' },
+      { status: rateLimitResult.error?.status || 429 }
+    );
+  }
   try {
     const { searchParams } = new URL(req.url);
     const timeRange = searchParams.get('timeRange') || '30d';
@@ -64,22 +72,32 @@ export const GET = withRateLimit(async (req: NextRequest) => {
       };
     }
 
-    return NextResponse.json(response);
+    const responseObj = NextResponse.json(response);
+    return applyRateLimitHeaders(responseObj, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error fetching business metrics:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+}
 
 // Track business event
-export const POST = withRateLimit(async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
+  // Check rate limit
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: rateLimitResult.error?.message || 'Rate limit exceeded' },
+      { status: rateLimitResult.error?.status || 429 }
+    );
+  }
   try {
     const body = await req.json();
     const { event, data, userId, timestamp } = body;
@@ -100,22 +118,24 @@ export const POST = withRateLimit(async (req: NextRequest) => {
       userAgent: req.headers.get('user-agent') || 'unknown'
     });
 
-    return NextResponse.json({
+    const responseObj = NextResponse.json({
       message: 'Event logged successfully',
       eventId: Date.now().toString()
     });
+    return applyRateLimitHeaders(responseObj, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error logging business event:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+}
 
 // Helper functions
 async function getUserMetrics(startDate: Date, endDate: Date) {

@@ -62,7 +62,7 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
   const [isPostcode, setIsPostcode] = useState(false);
   const [isValidPostcode, setIsValidPostcode] = useState(true);
   const { history, saveToHistory } = usePostcodeHistory(showHistory);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   // Fetch suggestions with debouncing
   useEffect(() => {

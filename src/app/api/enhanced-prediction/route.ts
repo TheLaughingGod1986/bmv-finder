@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit } from '@/lib/rateLimiter';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import { EnhancedPredictionModel } from '@/lib/enhancedPredictionModel';
 
-export const GET = withRateLimit(async (request: NextRequest) => {
+export async function GET(request: NextRequest) {
+  // Check rate limit
+  const rateLimitResult = checkRateLimit(request);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: rateLimitResult.error?.message || 'Rate limit exceeded' },
+      { status: rateLimitResult.error?.status || 429 }
+    );
+  }
   try {
     const { searchParams } = new URL(request.url);
     const postcode = searchParams.get('postcode');
@@ -55,7 +63,7 @@ export const GET = withRateLimit(async (request: NextRequest) => {
     // Calculate inflation-adjusted metrics
     const inflationMetrics = calculateInflationMetrics(features, prediction);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       postcode,
       number,
@@ -73,17 +81,20 @@ export const GET = withRateLimit(async (request: NextRequest) => {
       timestamp: new Date().toISOString()
     });
 
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
+
   } catch (error) {
     console.error('❌ Enhanced prediction error:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { 
         error: 'Failed to generate enhanced prediction',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+}
 
 /**
  * Calculate inflation-specific metrics

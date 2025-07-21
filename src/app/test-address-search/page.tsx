@@ -115,11 +115,11 @@ export default function TestAddressSearchPage() {
             <div className="space-y-3">
               <div>
                 <h4 className="font-semibold">1. Postcode Search</h4>
-                <p className="text-sm text-gray-600">Try typing "NE5" to see postcode suggestions and addresses in that area.</p>
+                <p className="text-sm text-gray-600">Try typing &quot;NE5&quot; to see postcode suggestions and addresses in that area.</p>
               </div>
               <div>
                 <h4 className="font-semibold">2. Address Search</h4>
-                <p className="text-sm text-gray-600">Try typing "SW1A" to see addresses in Westminster area.</p>
+                <p className="text-sm text-gray-600">Try typing &quot;SW1A&quot; to see addresses in Westminster area.</p>
               </div>
               <div>
                 <h4 className="font-semibold">3. Street Search</h4>
@@ -127,7 +127,7 @@ export default function TestAddressSearchPage() {
               </div>
               <div>
                 <h4 className="font-semibold">4. Auto-formatting</h4>
-                <p className="text-sm text-gray-600">Type "NE52PR" and watch it auto-format to "NE5 2PR".</p>
+                <p className="text-sm text-gray-600">Type &quot;NE52PR&quot; and watch it auto-format to &quot;NE5 2PR&quot;.</p>
               </div>
             </div>
           </CardContent>

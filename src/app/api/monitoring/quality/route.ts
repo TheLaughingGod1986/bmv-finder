@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit } from '@/lib/rateLimiter';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import DataQualityMonitor from '@/lib/dataQualityMonitor';
 import { esClient } from '@/lib/esClient';
 
 const monitor = new DataQualityMonitor(esClient);
 
 // Get data quality metrics
-export const GET = withRateLimit(async (req: NextRequest) => {
+export async function GET(req: NextRequest) {
+  // Check rate limit
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return NextResponse.json(
+      { error: rateLimitResult.error?.message || 'Rate limit exceeded' },
+      { status: rateLimitResult.error?.status || 429 }
+    );
+  }
   try {
     const { searchParams } = new URL(req.url);
     const index = searchParams.get('index') || 'property_sales';
@@ -64,10 +72,10 @@ export const GET = withRateLimit(async (req: NextRequest) => {
       { status: 500 }
     );
   }
-});
+}
 
 // Start monitoring (admin only)
-export const POST = withRateLimit(async (req: NextRequest) => {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { action, intervalMinutes = 60 } = body;
@@ -102,4 +110,4 @@ export const POST = withRateLimit(async (req: NextRequest) => {
       { status: 500 }
     );
   }
-}); 
+} 

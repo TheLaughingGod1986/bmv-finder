@@ -386,7 +386,15 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex justify-center pt-4">
+          <div className="text-center pt-4">
+            <div className="mb-4">
+              <h4 className="text-lg font-semibold text-gray-800 mb-2">Track This Property</h4>
+              <p className="text-sm text-gray-600 mb-4">
+                Add this property to your portfolio to track its value, growth, and performance over time. 
+                Get monthly updates, portfolio analytics, and investment insights.
+              </p>
+            </div>
+            
             <AddToPortfolioButton
               propertyData={{
                 address: valuationData.property.address,
@@ -408,9 +416,28 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
                 mortgageBalance: 0,
                 notes: `Added from comprehensive valuation. Confidence: ${Math.round(valuationData.summary.confidence * 100)}%`
               }}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3"
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
               size="lg"
-            />
+              showIcon={true}
+            >
+              <Home className="w-5 h-5 mr-2" />
+              Add to Portfolio
+            </AddToPortfolioButton>
+            
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-gray-500">
+              <div className="flex items-center justify-center gap-1">
+                <TrendingUp className="w-3 h-3" />
+                <span>Monthly Value Updates</span>
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                <BarChart3 className="w-3 h-3" />
+                <span>Portfolio Analytics</span>
+              </div>
+              <div className="flex items-center justify-center gap-1">
+                <Target className="w-3 h-3" />
+                <span>Investment Insights</span>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -557,6 +584,65 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
               </CardContent>
             </Card>
           )}
+
+          {/* Portfolio Information */}
+          <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-800">
+                <Home className="h-5 w-5" />
+                Portfolio Tracking
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-green-700 mb-4">
+                Add this property to your portfolio to track its performance and get comprehensive investment insights.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-green-800 text-sm">Monthly Updates</h4>
+                  <ul className="text-xs text-green-700 space-y-1">
+                    <li className="flex items-center gap-2">
+                      <TrendingUp className="w-3 h-3" />
+                      Automatic value recalculations
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <BarChart3 className="w-3 h-3" />
+                      Portfolio performance analytics
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Target className="w-3 h-3" />
+                      Investment recommendations
+                    </li>
+                  </ul>
+                </div>
+                
+                <div className="space-y-2">
+                  <h4 className="font-semibold text-green-800 text-sm">Portfolio Features</h4>
+                  <ul className="text-xs text-green-700 space-y-1">
+                    <li className="flex items-center gap-2">
+                      <DollarSign className="w-3 h-3" />
+                      Total asset value tracking
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Calendar className="w-3 h-3" />
+                      Monthly income calculations
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Shield className="w-3 h-3" />
+                      Risk assessment & diversification
+                    </li>
+                  </ul>
+                </div>
+              </div>
+              
+              <div className="mt-4 p-3 bg-green-100 rounded-lg">
+                <p className="text-xs text-green-800 font-medium">
+                  💡 <strong>Pro Tip:</strong> Edit purchase price, add mortgage details, and track rental income to get personalized portfolio insights.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Market Sentiment */}
           {planningData?.market_metrics && (
@@ -998,6 +1084,20 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
               </CardContent>
             </Card>
           )}
+        </div>
+      )}
+
+      {/* Improve Tab */}
+      {activeTab === 'improve' && valuationData?.missingData && (
+        <div className="space-y-6">
+          <MissingDataCard 
+            missingData={valuationData.missingData}
+            onDataUpdate={(fieldName, value) => {
+              console.log(`User provided ${fieldName}: ${value}`);
+              // Here you could implement logic to update the valuation with new data
+              // For now, we'll just log the update
+            }}
+          />
         </div>
       )}
     </div>

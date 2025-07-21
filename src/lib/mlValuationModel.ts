@@ -141,7 +141,17 @@ export class MLValuationModel {
       const valueRange = this.calculateValueRange(adjustedValue, confidence);
       
       // 6. Generate market insights
-      const marketInsights = await this.generateMarketInsights(features);
+      const rawMarketInsights = await this.generateMarketInsights(features);
+      // Ensure correct literal types for trend and volatility
+      const marketInsights = {
+        ...rawMarketInsights,
+        trend: (['rising', 'falling', 'stable'].includes(rawMarketInsights.trend)
+          ? rawMarketInsights.trend
+          : 'stable') as 'rising' | 'falling' | 'stable',
+        volatility: (['low', 'medium', 'high'].includes(rawMarketInsights.volatility)
+          ? rawMarketInsights.volatility
+          : 'medium') as 'low' | 'medium' | 'high',
+      };
       
       // 7. Calculate feature importance
       const featureImportance = this.calculateFeatureImportance(features);

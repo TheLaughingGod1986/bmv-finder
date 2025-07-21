@@ -44,16 +44,12 @@ export default function AddToPortfolioButton({
 }: AddToPortfolioButtonProps) {
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
-  const { showToast } = useToast();
+  const { success, error, warning } = useToast();
   const user = useUser();
 
   const handleAddToPortfolio = async () => {
     if (!user) {
-      showToast({
-        type: 'error',
-        title: 'Authentication Required',
-        message: 'Please sign in to add properties to your portfolio.'
-      });
+      error('Please sign in to add properties to your portfolio.');
       return;
     }
 
@@ -76,32 +72,20 @@ export default function AddToPortfolioButton({
 
       if (response.ok) {
         setAdded(true);
-        showToast({
-          type: 'success',
-          title: 'Added to Portfolio',
-          message: `${propertyData.address} has been added to your portfolio successfully!`
-        });
+        success(`${propertyData.address} has been added to your portfolio successfully!`);
 
         // Reset added state after 3 seconds
         setTimeout(() => setAdded(false), 3000);
       } else {
         if (response.status === 409) {
-          showToast({
-            type: 'warning',
-            title: 'Already in Portfolio',
-            message: 'This property is already in your portfolio.'
-          });
+          warning('This property is already in your portfolio.');
         } else {
           throw new Error(data.error || 'Failed to add to portfolio');
         }
       }
-    } catch (error) {
-      console.error('Error adding to portfolio:', error);
-      showToast({
-        type: 'error',
-        title: 'Error',
-        message: error instanceof Error ? error.message : 'Failed to add property to portfolio'
-      });
+    } catch (err) {
+      console.error('Error adding to portfolio:', err);
+      error(err instanceof Error ? err.message : 'Failed to add property to portfolio');
     } finally {
       setLoading(false);
     }
