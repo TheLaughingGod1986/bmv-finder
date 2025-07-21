@@ -2,9 +2,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from './SimpleCard';
-import Button from './Button';
-import AddToPortfolioButton from './AddToPortfolioButton';
-import { Home, MapPin, Bed, Calendar, AlertTriangle, CheckCircle, Info, Plus } from 'lucide-react';
+import { Home, MapPin, Bed, Calendar, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 interface Comparable {
   address: string;
@@ -70,27 +68,6 @@ function formatDate(dateString: string) {
 }
 
 export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, comparables, usedBedroomFilter, subject, loading = false }: Props) {
-  // Create property data for portfolio
-  const propertyData = subject ? {
-    address: subject.fullAddress || subject.address || `${subject.propertyNumber} ${subject.postcode}`,
-    postcode: subject.postcode || '',
-    houseNumber: subject.propertyNumber || '',
-    propertyType: subject.propertyType || 'Unknown',
-    bedrooms: subject.bedrooms,
-    floorArea: undefined,
-    epcRating: undefined,
-    constructionYear: undefined,
-    purchasePrice: estimatedValue ? estimatedValue * 0.85 : 0, // Estimate purchase price as 85% of current value
-    currentValue: estimatedValue || 0,
-    purchaseDate: new Date().toISOString().split('T')[0], // Use today's date as placeholder
-    dealScore: confidence === 'high' ? 80 : confidence === 'medium' ? 60 : 40,
-    dealRating: confidence === 'high' ? 'Good' : confidence === 'medium' ? 'Fair' : 'Poor',
-    bmvScore: confidence === 'high' ? 75 : confidence === 'medium' ? 55 : 35,
-    rentalIncome: undefined,
-    yield: undefined,
-    mortgageBalance: 0,
-    notes: `Added from property analysis. Confidence: ${confidence}, Comparables: ${comparables.length}`
-  } : null;
 
   if (loading) {
     return (
@@ -136,21 +113,10 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
             <div className="mt-2 text-3xl font-bold text-primary-700">
               {formatCurrency(estimatedValue)}
             </div>
-            <div className="text-sm text-gray-600 mt-1">
-              {subject?.postcode} • {subject?.propertyType} • {subject?.bedrooms ? `${subject.bedrooms} bed` : ''}
-            </div>
+                      <div className="text-sm text-gray-600 mt-1">
+            {subject?.postcode} • {subject?.propertyType} • {subject?.bedrooms ? `${subject.bedrooms} bed` : ''}
           </div>
-          {propertyData && (
-            <AddToPortfolioButton
-              propertyData={propertyData}
-              className="flex items-center gap-2 bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
-              variant="outline"
-              size="sm"
-            >
-              <Plus className="h-4 w-4" />
-              Add to Portfolio
-            </AddToPortfolioButton>
-          )}
+        </div>
         </div>
       </CardHeader>
       <CardContent>

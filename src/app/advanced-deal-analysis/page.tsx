@@ -29,9 +29,10 @@ export default function AdvancedDealAnalysisPage() {
   const { showToast } = useToast();
   const { history, saveToHistory } = usePostcodeHistory();
 
-  const handleSearch = async () => {
-    const formattedPostcode = formatPostcode(postcode.trim());
-    if (!formattedPostcode || !houseNumber.trim()) {
+  const performSearch = async (postcodeValue: string, houseNumberValue: string) => {
+    const formattedPostcode = formatPostcode(postcodeValue.trim());
+    
+    if (!formattedPostcode || !houseNumberValue.trim()) {
       showToast({
         type: 'error',
         title: 'Missing Information',
@@ -45,7 +46,7 @@ export default function AdvancedDealAnalysisPage() {
     saveToHistory(formattedPostcode);
 
     try {
-      const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber.trim())}`);
+      const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumberValue.trim())}`);
       const data = await response.json();
       
       if (data.success) {
@@ -69,6 +70,9 @@ export default function AdvancedDealAnalysisPage() {
     }
   };
 
+  const handleSearch = async () => {
+    await performSearch(postcode, houseNumber);
+  };
 
 
   return (
@@ -143,14 +147,20 @@ export default function AdvancedDealAnalysisPage() {
                 onAddressSelect={(address) => {
                   setPostcode(address.postcode);
                   setHouseNumber(address.number);
-                  // Auto-trigger search when address is selected
-                  setTimeout(() => handleSearch(), 100);
+                  // Auto-trigger search when address is selected with the new values
+                  setTimeout(() => {
+                    // Use the address values directly instead of relying on state
+                    const formattedPostcode = formatPostcode(address.postcode.trim());
+                    if (formattedPostcode && address.number.trim()) {
+                      performSearch(formattedPostcode, address.number.trim());
+                    }
+                  }, 100);
                 }}
                 onSearch={(query) => {
                   setPostcode(query);
                   // Auto-trigger search if both fields are filled
                   if (houseNumber.trim()) {
-                    handleSearch();
+                    performSearch(query, houseNumber);
                   }
                 }}
                 placeholder="Start typing a postcode or address..."

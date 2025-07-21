@@ -47,7 +47,12 @@ export default function AddToPortfolioButton({
   const user = useUser();
 
   const handleAddToPortfolio = async () => {
+    console.log('🔍 AddToPortfolioButton: handleAddToPortfolio called');
+    console.log('🔍 AddToPortfolioButton: user:', user);
+    console.log('🔍 AddToPortfolioButton: propertyData:', propertyData);
+    
     if (!user) {
+      console.log('🔍 AddToPortfolioButton: No user, showing error toast');
       showToast({
         type: 'error',
         title: 'Authentication Required',
@@ -56,10 +61,16 @@ export default function AddToPortfolioButton({
       return;
     }
 
-    if (loading) return;
+    if (loading) {
+      console.log('🔍 AddToPortfolioButton: Already loading, returning');
+      return;
+    }
 
+    console.log('🔍 AddToPortfolioButton: Setting loading to true');
     setLoading(true);
+    
     try {
+      console.log('🔍 AddToPortfolioButton: Making API call');
       const response = await fetch('/api/portfolio/add', {
         method: 'POST',
         headers: {
@@ -72,8 +83,10 @@ export default function AddToPortfolioButton({
       });
 
       const data = await response.json();
+      console.log('🔍 AddToPortfolioButton: API response:', { status: response.status, data });
 
       if (response.ok) {
+        console.log('🔍 AddToPortfolioButton: Success! Setting added to true');
         setAdded(true);
         showToast({
           type: 'success',
@@ -82,9 +95,13 @@ export default function AddToPortfolioButton({
         });
 
         // Reset added state after 3 seconds
-        setTimeout(() => setAdded(false), 3000);
+        setTimeout(() => {
+          console.log('🔍 AddToPortfolioButton: Resetting added state');
+          setAdded(false);
+        }, 3000);
       } else {
         if (response.status === 409) {
+          console.log('🔍 AddToPortfolioButton: Property already exists');
           showToast({
             type: 'warning',
             title: 'Already in Portfolio',
@@ -95,19 +112,23 @@ export default function AddToPortfolioButton({
         }
       }
     } catch (err) {
-      console.error('Error adding to portfolio:', err);
+      console.error('🔍 AddToPortfolioButton: Error adding to portfolio:', err);
       showToast({
         type: 'error',
         title: 'Error',
         message: err instanceof Error ? err.message : 'Failed to add property to portfolio'
       });
     } finally {
+      console.log('🔍 AddToPortfolioButton: Setting loading to false');
       setLoading(false);
     }
   };
 
   const getButtonContent = () => {
+    console.log('🔍 AddToPortfolioButton: getButtonContent called', { added, loading });
+    
     if (added) {
+      console.log('🔍 AddToPortfolioButton: Rendering added state');
       return (
         <>
           <Check className="h-4 w-4" />
@@ -117,6 +138,7 @@ export default function AddToPortfolioButton({
     }
 
     if (loading) {
+      console.log('🔍 AddToPortfolioButton: Rendering loading state');
       return (
         <>
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
@@ -125,6 +147,7 @@ export default function AddToPortfolioButton({
       );
     }
 
+    console.log('🔍 AddToPortfolioButton: Rendering default state');
     return (
       <>
         {showIcon && <Plus className="h-4 w-4" />}
@@ -134,6 +157,8 @@ export default function AddToPortfolioButton({
   };
 
   const getButtonClasses = () => {
+    console.log('🔍 AddToPortfolioButton: getButtonClasses called', { added, loading, variant, size, className });
+    
     const baseClasses = 'inline-flex items-center gap-2 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variantClasses = {
@@ -152,13 +177,18 @@ export default function AddToPortfolioButton({
     let stateClasses = '';
     if (added) {
       stateClasses = 'bg-green-600 text-white border-green-600 cursor-default hover:bg-green-600';
+      console.log('🔍 AddToPortfolioButton: Using added state classes:', stateClasses);
     } else if (loading) {
       stateClasses = 'opacity-75 cursor-not-allowed';
+      console.log('🔍 AddToPortfolioButton: Using loading state classes:', stateClasses);
     } else {
       stateClasses = variantClasses[variant];
+      console.log('🔍 AddToPortfolioButton: Using default variant classes:', stateClasses);
     }
 
-    return `${baseClasses} ${stateClasses} ${sizeClasses[size]} ${className}`;
+    const finalClasses = `${baseClasses} ${stateClasses} ${sizeClasses[size]} ${className}`;
+    console.log('🔍 AddToPortfolioButton: Final classes:', finalClasses);
+    return finalClasses;
   };
 
   return (
