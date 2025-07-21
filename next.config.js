@@ -10,13 +10,23 @@ const nextConfig = {
   async headers() {
     const isDev = process.env.NODE_ENV !== 'production';
 
-    // TODO: For production, tighten the CSP and remove 'unsafe-inline' from script-src and style-src for security.
+    // Comprehensive Content Security Policy for all external libraries and services
+    // 
+    // External services included:
+    // - Stripe: Payment processing (js.stripe.com, api.stripe.com, hooks.stripe.com)
+    // - Google Analytics: Analytics tracking (googletagmanager.com, google-analytics.com)
+    // - Vercel: Performance monitoring (vercel-scripts.com, vercel-insights.com)
+    // - Google Fonts: Typography (fonts.googleapis.com, fonts.gstatic.com)
+    // - Google Maps: Location services (maps.googleapis.com, maps.gstatic.com)
+    // - External APIs: Postcodes.io, Land Registry, EPC, ONS, Elasticsearch
+    // - Image services: Unsplash, placeholder images
+    // - Development: unsafe-eval and unsafe-inline for development mode only
     const securityHeaders = [
       {
         key: 'Content-Security-Policy',
         value: isDev
-          ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline'; worker-src 'self' blob:; connect-src *;"
-          : "default-src 'self'; script-src 'self' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com; style-src 'self'; worker-src 'self'; connect-src *;"
+          ? "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com https://www.google.com https://maps.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob: https://images.unsplash.com https://via.placeholder.com https://maps.googleapis.com https://maps.gstatic.com; worker-src 'self' blob:; connect-src 'self' https: wss: https://api.stripe.com https://api.postcodes.io https://landregistry.data.gov.uk https://epc.opendatacommunities.org https://www.ons.gov.uk https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io https://vitals.vercel-insights.com https://va.vercel-scripts.com https://www.google-analytics.com https://www.googletagmanager.com https://maps.googleapis.com https://maps.gstatic.com; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self';"
+          : "default-src 'self'; script-src 'self' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com https://www.google.com https://maps.googleapis.com; style-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com; img-src 'self' data: https: blob: https://images.unsplash.com https://via.placeholder.com https://maps.googleapis.com https://maps.gstatic.com; worker-src 'self' blob:; connect-src 'self' https: wss: https://api.stripe.com https://api.postcodes.io https://landregistry.data.gov.uk https://epc.opendatacommunities.org https://www.ons.gov.uk https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io https://vitals.vercel-insights.com https://va.vercel-scripts.com https://www.google-analytics.com https://www.googletagmanager.com https://maps.googleapis.com https://maps.gstatic.com; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; object-src 'none'; base-uri 'self'; form-action 'self';"
       }
     ];
 
