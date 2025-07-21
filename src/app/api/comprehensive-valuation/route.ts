@@ -1,5 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
+
+// Realistic market rates for NE5 area (Newcastle)
+const NE5_MARKET_RATES = {
+  // Rental rates per bedroom (realistic for NE5)
+  rentalPerBedroom: 400, // £400 PCM per bedroom (much more realistic for NE5)
+  // Construction costs per sqm (realistic for NE5)
+  constructionCostPerSqm: 1200, // £1,200 per sqm
+  // Land value per sqm (realistic for NE5)
+  landValuePerSqm: 200, // £200 per sqm
+  // Cap rate for NE5 area
+  capRate: 0.065, // 6.5% cap rate
+  // Market value per bedroom (realistic for NE5)
+  valuePerBedroom: 45000, // £45k per bedroom
+  // Market value per sqm (realistic for NE5)
+  valuePerSqm: 1800, // £1,800 per sqm
+};
 
 interface PropertyData {
   address: string;
@@ -14,22 +31,12 @@ interface PropertyData {
 }
 
 interface ValuationMethod {
-  name: string;
   value: number;
   confidence: number;
-  breakdown: {
-    [key: string]: number;
-  };
-  factors: {
-    positive: string[];
-    negative: string[];
-    neutral: string[];
-  };
-  formula: string;
+  source: string;
+  dataQuality: string;
+  method: string;
   description: string;
-  valuationType: string; // NEW
-  whyThisMethod: string; // NEW
-  whyThisResult: string; // NEW
 }
 
 interface ComprehensiveValuationData {
@@ -85,19 +92,12 @@ export async function GET(request: NextRequest) {
     // Get property data
     let propertyData = await getPropertyData(formattedPostcode, number);
     if (!propertyData) {
-      // Create a mock property for demonstration purposes
-      console.log('Creating mock property for demonstration');
-      propertyData = {
-        address: `${number} Example Street, ${postcode}`,
-        postcode: postcode,
-        propertyType: 'T', // Terraced
-        bedrooms: 3,
-        floorArea: 85,
-        epcRating: 'C',
-        constructionYear: 'England and Wales: 1967-1990',
-        lastSoldPrice: 180000,
-        lastSoldDate: '2022-06-15'
-      };
+      // No real property data found: return a message instead of mock data
+      return NextResponse.json({
+        success: false,
+        error: 'No data found for this property. You can manually add it to your portfolio to track and enrich its details.',
+        needsManualAdd: true
+      }, { status: 404 });
     }
 
     // Generate valuations using all three methods
@@ -110,6 +110,15 @@ export async function GET(request: NextRequest) {
 
     // Analyze missing data
     const missingData = analyzeMissingData(propertyData);
+
+    // Determine if this is a fallback/mock property
+    const isFallback = propertyData.address?.includes('Example Street') && propertyData.postcode === postcode;
+    const userContributionPrompt = isFallback
+      ? {
+          message: 'We could not find real data for this property. Help improve our database by contributing missing details (e.g., floor area, EPC rating, bedrooms, last sold price).',
+          isFallback: true
+        }
+      : undefined;
 
     const valuationData: ComprehensiveValuationData = {
       property: propertyData,
@@ -124,7 +133,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: valuationData
+      data: valuationData,
+      userContributionPrompt
     });
 
   } catch (error) {
@@ -138,13 +148,38 @@ export async function GET(request: NextRequest) {
 
 async function getPropertyData(postcode: string, number: string): Promise<PropertyData | null> {
   try {
-    console.log(`Searching for property: ${number} ${postcode}`);
-    
-    // Clean and normalize inputs
     const cleanPostcode = postcode.trim().toUpperCase();
     const cleanNumber = number.trim();
+    console.log(`[DEBUG] Searching for property: number='${cleanNumber}', postcode='${cleanPostcode}'`);
     
-    // Try multiple search strategies with strict postcode matching
+    // First, try to get enriched property data from the property enrichment service
+    try {
+      const enrichmentServiceUrl = process.env.PROPERTY_ENRICHMENT_SERVICE_URL || 'http://localhost:3002';
+      const enrichmentResponse = await fetch(`${enrichmentServiceUrl}/api/property-info?postcode=${encodeURIComponent(cleanPostcode)}&number=${encodeURIComponent(cleanNumber)}`);
+      
+      if (enrichmentResponse.ok) {
+        const enrichedData = await enrichmentResponse.json();
+        console.log('[DEBUG] Found enriched property data:', enrichedData);
+        
+        if (enrichedData && enrichedData.address) {
+          return {
+            address: enrichedData.address,
+            postcode: cleanPostcode,
+            propertyType: enrichedData.property_type || 'Unknown',
+            bedrooms: enrichedData.bedrooms,
+            floorArea: enrichedData.floor_area_m2,
+            epcRating: enrichedData.epc_rating || enrichedData.current_energy_rating,
+            constructionYear: enrichedData.construction_year,
+            lastSoldPrice: undefined, // Will be filled from Elasticsearch
+            lastSoldDate: undefined   // Will be filled from Elasticsearch
+          };
+        }
+      }
+    } catch (enrichmentError) {
+      console.log('[DEBUG] Property enrichment service failed, falling back to Elasticsearch:', enrichmentError);
+    }
+    
+    // Fallback to Elasticsearch search strategies
     const searchQueries = [
       // Strategy 1: Exact postcode and number match in properties-enhanced (highest priority)
       {
@@ -194,47 +229,18 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
           },
           size: 1
         }
-      },
-      // Strategy 4: Exact postcode with fuzzy number match in base properties
-      {
-        index: 'properties',
-        body: {
-          query: {
-            bool: {
-              must: [
-                { term: { postcode: cleanPostcode } }
-              ],
-              should: [
-                { term: { paon: cleanNumber } },
-                { fuzzy: { paon: { value: cleanNumber, fuzziness: 1 } } }
-              ],
-              minimum_should_match: 1
-            }
-          },
-          size: 1
-        }
       }
     ];
 
     for (const searchQuery of searchQueries) {
-      console.log(`Trying search strategy: ${searchQuery.index}`);
+      console.log(`[DEBUG] Trying search strategy: ${searchQuery.index}`);
       try {
         const response = await esClient.search(searchQuery);
-        
         if (response.hits.hits.length > 0) {
           const property = response.hits.hits[0]._source as any;
-          console.log(`Found property:`, property);
+          console.log(`[DEBUG] Found property in ${searchQuery.index}:`, property);
           
-          // CRITICAL: Validate that we found the correct property
-          const foundPostcode = property.postcode?.toUpperCase().replace(/\s+/g, '');
-          const expectedPostcode = cleanPostcode.replace(/\s+/g, '');
-          
-          if (foundPostcode !== expectedPostcode) {
-            console.log(`Postcode mismatch: expected ${expectedPostcode}, found ${foundPostcode}. Skipping this result.`);
-            continue;
-          }
-          
-          // Map property type codes to readable names
+          // Map property types
           const propertyTypeMap: { [key: string]: string } = {
             'D': 'Detached',
             'S': 'Semi-detached',
@@ -253,26 +259,6 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
           const town = property.town_city || property.locality || '';
           const address = [houseNumber, street, town].filter(Boolean).join(', ');
           
-          // Special handling for 21 FOURSTONES, NEWCASTLE UPON TYNE - use actual recent sale data
-          const isTargetProperty = property.postcode === 'NE5 2PR' && 
-            (houseNumber === '21' || houseNumber === '21') &&
-            (street?.toUpperCase().includes('FOURSTONES') || address?.toUpperCase().includes('FOURSTONES'));
-          
-          if (isTargetProperty) {
-            console.log('Found target property - using actual recent sale data from 2024');
-            return {
-              address: "21 FOURSTONES, NEWCASTLE UPON TYNE",
-              postcode: "NE5 2PR",
-              propertyType: "Semi-detached", // Corrected to match Zoopla
-              bedrooms: 3, // Estimated based on typical semi-detached house
-              floorArea: 85, // Estimated based on typical semi-detached house
-              epcRating: "D", // Estimated
-              constructionYear: "Pre-1919", // Estimated based on area
-              lastSoldPrice: 87650, // Your actual recent purchase
-              lastSoldDate: "2024-02-28" // Your actual purchase date
-            };
-          }
-          
           return {
             address: address || `${houseNumber} ${street}, ${town}`,
             postcode: property.postcode,
@@ -284,17 +270,18 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
             lastSoldPrice: property.price,
             lastSoldDate: property.date || property.dateOfTransfer
           };
+        } else {
+          console.log(`[DEBUG] No hits for strategy: ${searchQuery.index}`);
         }
       } catch (searchError) {
-        console.log(`Search strategy failed: ${searchQuery.index}`, searchError);
+        console.log(`[DEBUG] Search strategy failed: ${searchQuery.index}`, searchError);
         continue;
       }
     }
-
-    console.log('No property found with any search strategy');
+    console.log('[DEBUG] No property found with any search strategy');
     return null;
-  } catch (error) {
-    console.error('Error fetching property data:', error);
+  } catch (err) {
+    console.error('[DEBUG] getPropertyData error:', err);
     return null;
   }
 }
@@ -324,68 +311,6 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
     };
     
     const propertyTypeCode = propertyTypeToCode[property.propertyType] || property.propertyType;
-    
-    // For NE5 area properties, use realistic comparable sales based on actual market data
-    if (property.postcode.startsWith('NE5')) {
-      console.log('Using realistic comparable sales for NE5 area properties');
-      
-      // Realistic comparable sales for Newcastle NE5 area based on actual market data
-      // These are conservative, realistic prices for the area
-      const realisticComparables = [
-        { price: 125000, year: 2024, similarity: 0.95, description: 'Recent sale in NE5 area' },
-        { price: 118000, year: 2024, similarity: 0.9, description: 'Similar property type' },
-        { price: 132000, year: 2023, similarity: 0.85, description: 'Market comparable' },
-        { price: 115000, year: 2023, similarity: 0.8, description: 'Conservative estimate' },
-        { price: 140000, year: 2022, similarity: 0.75, description: 'Upper range comparable' }
-      ];
-      
-      let totalWeight = 0;
-      let weightedSum = 0;
-      
-      realisticComparables.forEach((comp, index) => {
-        const recencyWeight = Math.exp(-index * 0.1);
-        const weight = recencyWeight * comp.similarity;
-        
-        totalWeight += weight;
-        weightedSum += comp.price * weight;
-      });
-      
-      const comparableValue = weightedSum / totalWeight;
-      console.log(`Realistic comparable value for NE5 area: £${comparableValue.toLocaleString()}`);
-      
-      // Apply conservative location premium
-      const locationPremium = 1.02; // 2% premium for NE5 area
-      const adjustedValue = comparableValue * locationPremium;
-      
-      console.log(`Final adjusted value for NE5 area: £${adjustedValue.toLocaleString()}`);
-      
-      return {
-        name: 'Sales Comparison',
-        value: Math.round(adjustedValue),
-        confidence: 0.85,
-        breakdown: {
-          comparableSales: comparableValue,
-          locationPremium: locationPremium,
-          adjustments: adjustedValue - comparableValue,
-          finalValue: adjustedValue
-        },
-        factors: {
-          positive: [
-            'Realistic comparable sales for NE5 area',
-            'Recent market data available',
-            'Conservative valuation approach',
-            'Based on actual Newcastle market conditions'
-          ],
-          negative: [],
-          neutral: ['Standard market approach', 'Location premium applied']
-        },
-        formula: 'Property Value = (Adjusted Sale Price of Comparables / Number of Comparables) × Location Premium',
-        description: 'Most common method for residential properties, comparing to similar recently sold properties with location premium adjustments.',
-        valuationType: 'Market-based Valuation',
-        whyThisMethod: 'Uses recent comparable sales in the same postcode sector and property type. Most accurate when sufficient, recent, and similar comparables exist. Sensitive to market liquidity and data quality.',
-        whyThisResult: 'High confidence: Using realistic comparable sales specifically for the NE5 Newcastle area, based on actual market data and conservative valuation principles.'
-      };
-    }
     
     const queryBody = {
       bool: {
@@ -494,23 +419,12 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
         whyThisResult = 'Low confidence: No comparable sales found in the last 3 years for this property type. Fallback to last sold price.';
         confidence = 0.1;
         return {
-          name: 'Sales Comparison',
           value: property.lastSoldPrice || 0,
           confidence,
-          breakdown: {
-            baseValue: property.lastSoldPrice || 0,
-            adjustments: 0
-          },
-          factors: {
-            positive: [],
-            negative: ['No comparable sales found'],
-            neutral: ['Using last sold price as fallback']
-          },
-          formula: 'Property Value = Adjusted Sale Price of Comparables / Number of Comparables',
-          description: 'Most common method for residential properties, comparing to similar recently sold properties.',
-          valuationType: 'Market-based Valuation',
-          whyThisMethod: 'Uses recent comparable sales in the same postcode sector and property type. Most accurate when sufficient, recent, and similar comparables exist. Sensitive to market liquidity and data quality.',
-          whyThisResult
+          source: 'Sales Comparison',
+          dataQuality: 'Fallback to last sold price',
+          method: 'Sales Comparison',
+          description: 'Most common method for residential properties, comparing to similar recently sold properties.'
         };
       } else {
         // Use broader comparables
@@ -558,142 +472,29 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
     }
 
     return {
-      name: 'Sales Comparison',
       value: Math.round(adjustedValue),
       confidence,
-      breakdown: {
-        comparableSales: comparableValue,
-        locationPremium: locationPremium,
-        adjustments: adjustedValue - comparableValue,
-        finalValue: adjustedValue
-      },
-      factors: {
-        positive: [
-          `${comparables.length} comparable sales found`,
-          'Recent market data available',
-          'Similar property characteristics',
-          ...(planningData ? [
-            `High transport score (${planningData.local_authority?.transport_score}/10)`,
-            `Good school rating (${planningData.local_authority?.school_score}/10)`,
-            ...(planningData.local_authority?.conservation_area ? ['Conservation area location'] : [])
-          ] : [])
-        ],
-        negative: comparables.length < 3 ? ['Limited comparable sales'] : [],
-        neutral: ['Standard market approach', 'Location premium applied']
-      },
-      formula: 'Property Value = (Adjusted Sale Price of Comparables / Number of Comparables) × Location Premium',
-      description: 'Most common method for residential properties, comparing to similar recently sold properties with location premium adjustments.',
-      valuationType: 'Market-based Valuation',
-      whyThisMethod: 'Uses recent comparable sales in the same postcode sector and property type. Most accurate when sufficient, recent, and similar comparables exist. Sensitive to market liquidity and data quality.',
-      whyThisResult: whyThisResult + locationInfo
+      source: 'Sales Comparison',
+      dataQuality: 'Market-based Valuation with location premium',
+      method: 'Sales Comparison',
+      description: 'Most common method for residential properties, comparing to similar recently sold properties with location premium adjustments.'
     };
 
   } catch (error) {
     console.error('Sales comparison error:', error);
     return {
-      name: 'Sales Comparison',
       value: property.lastSoldPrice || 0,
       confidence: 0.2,
-      breakdown: {
-        baseValue: property.lastSoldPrice || 0,
-        adjustments: 0
-      },
-      factors: {
-        positive: [],
-        negative: ['Error calculating comparable sales'],
-        neutral: ['Using fallback value']
-      },
-      formula: 'Property Value = Adjusted Sale Price of Comparables / Number of Comparables',
-      description: 'Most common method for residential properties, comparing to similar recently sold properties.',
-      valuationType: 'Market-based Valuation',
-      whyThisMethod: 'Uses recent comparable sales in the same postcode sector and property type. Most accurate when sufficient, recent, and similar comparables exist. Sensitive to market liquidity and data quality.',
-      whyThisResult: 'Error: Unable to calculate comparable sales due to query or data issue.'
+      source: 'Sales Comparison',
+      dataQuality: 'Error calculating comparable sales',
+      method: 'Sales Comparison',
+      description: 'Most common method for residential properties, comparing to similar recently sold properties.'
     };
   }
 }
 
 async function calculateIncomeApproach(property: PropertyData): Promise<ValuationMethod> {
   try {
-    // Special handling for NE5 area properties - use realistic rental data
-    if (property.postcode.startsWith('NE5')) {
-      console.log('Using realistic income approach for NE5 area properties');
-      
-      // Realistic rental estimates for Newcastle NE5 area
-      const monthlyRent = 750; // Conservative estimate for NE5 area
-      const annualRent = monthlyRent * 12; // £9,000 annually
-      const operatingExpenses = annualRent * 0.25; // 25% for management, maintenance, etc.
-      const netOperatingIncome = annualRent - operatingExpenses; // £6,750
-      const capRate = 0.075; // 7.5% - realistic cap rate for Newcastle residential
-      const propertyValue = netOperatingIncome / capRate; // £90,000
-      
-      return {
-        name: 'Income Approach',
-        value: Math.round(propertyValue),
-        confidence: 0.8,
-        breakdown: {
-          grossRent: annualRent,
-          operatingExpenses: operatingExpenses,
-          netOperatingIncome: netOperatingIncome,
-          capRate: capRate * 100,
-          propertyValue: propertyValue
-        },
-        factors: {
-          positive: [
-            'Realistic rental estimate for NE5 area (£750 PCM)',
-            'Conservative cap rate (7.5%)',
-            'Based on Newcastle market conditions',
-            'Stable income potential'
-          ],
-          negative: [],
-          neutral: ['Standard investment approach', 'Income-based valuation method']
-        },
-        formula: 'Property Value = Net Operating Income (NOI) / Capitalisation Rate (Cap Rate)',
-        description: 'Used primarily for rental or investment properties, based on income generation potential.',
-        valuationType: 'Income-based Valuation',
-        whyThisMethod: 'Estimates value based on net operating income and market capitalization rate. Best for rental/investment properties with reliable income data. Sensitive to rent and expense assumptions.',
-        whyThisResult: 'High confidence: Using realistic rental estimates (£750 PCM) and conservative cap rate (7.5%) specifically for the NE5 Newcastle area, based on actual market conditions.'
-      };
-    }
-    
-    // Special handling for 21 FOURSTONES - use conservative income approach
-    if (property.postcode === 'NE5 2PR' && property.address?.includes('FOURSTONES')) {
-      console.log('Using conservative income approach for 21 FOURSTONES: £850 PCM');
-      const annualRent = 850 * 12; // £10,200 annually
-      const managementFee = 91.80 * 12; // £1,101.60 annually (from statement)
-      const netOperatingIncome = annualRent - managementFee; // £9,098.40 (matches statement)
-      const capRate = 0.09; // 9% - conservative cap rate for Newcastle residential
-      const propertyValue = netOperatingIncome / capRate; // £101,093
-      
-      return {
-        name: 'Income Approach',
-        value: Math.round(propertyValue),
-        confidence: 0.98,
-        breakdown: {
-          grossRent: annualRent,
-          operatingExpenses: managementFee,
-          netOperatingIncome: netOperatingIncome,
-          capRate: capRate * 100,
-          propertyValue: propertyValue
-        },
-        factors: {
-          positive: [
-            'Real rental income data used (£850 PCM)',
-            'Current market rent',
-            'Stable income stream',
-            'Investment-grade property',
-            'Based on actual tenant payments'
-          ],
-          negative: [],
-          neutral: ['Standard investment approach', 'Income-based valuation method']
-        },
-        formula: 'Property Value = Net Operating Income (NOI) / Capitalisation Rate (Cap Rate)',
-        description: 'Used primarily for rental or investment properties, based on income generation potential.',
-        valuationType: 'Income-based Valuation',
-        whyThisMethod: 'Estimates value based on net operating income and market capitalization rate. Best for rental/investment properties with reliable income data. Sensitive to rent and expense assumptions.',
-        whyThisResult: 'Very high confidence: Using conservative 9% cap rate with real rental data (£850 PCM). Conservative approach reflects market reality - no buyer will pay more than £101,000 for this income stream.'
-      };
-    }
-    
     // Get rental income from ONS API or fallback to estimation
     const rentalData = await estimateMonthlyRent(property);
     const annualRent = rentalData.monthlyRent * 12;
@@ -706,123 +507,29 @@ async function calculateIncomeApproach(property: PropertyData): Promise<Valuatio
     const capRate = estimateCapRate(property);
     const propertyValue = netOperatingIncome / capRate;
     
-    const confidence = rentalData.confidence; // Use confidence from rental data source
-    let whyThisResult = rentalData.confidence >= 0.8 
-      ? `High confidence: Using official ONS Private Rental Market Statistics data for ${rentalData.source}. Real market rental data provides accurate income-based valuation.`
-      : `Medium confidence: Using estimated rental values as ONS data unavailable. Real rental data would improve accuracy significantly.`;
-    
     return {
-      name: 'Income Approach',
       value: Math.round(propertyValue),
-      confidence,
-      breakdown: {
-        grossRent: annualRent,
-        operatingExpenses: operatingExpenses,
-        netOperatingIncome: netOperatingIncome,
-        capRate: capRate * 100, // Convert to percentage
-        propertyValue: propertyValue
-      },
-      factors: {
-        positive: [
-          rentalData.confidence >= 0.8 ? 'Official ONS rental data used' : 'Good rental yield potential',
-          'Stable income stream',
-          'Investment-grade property',
-          rentalData.confidence >= 0.8 ? 'Government-verified market data' : 'Regional rental adjustments applied'
-        ],
-        negative: [
-          rentalData.confidence < 0.8 ? 'Estimated rental values used' : 'Limited to available ONS data',
-          'Market cap rates may vary',
-          'Operating expenses estimated'
-        ],
-        neutral: ['Standard investment approach', 'Income-based valuation method']
-      },
-      formula: 'Property Value = Net Operating Income (NOI) / Capitalisation Rate (Cap Rate)',
-      description: 'Used primarily for rental or investment properties, based on income generation potential.',
-      valuationType: 'Income-based Valuation',
-      whyThisMethod: 'Estimates value based on net operating income and market capitalization rate. Best for rental/investment properties with reliable income data. Sensitive to rent and expense assumptions.',
-      whyThisResult
+      confidence: rentalData.confidence,
+      source: rentalData.source,
+      dataQuality: rentalData.dataQuality,
+      method: 'Income Approach',
+      description: `Based on annual rent of £${annualRent.toLocaleString()} with ${(capRate * 100).toFixed(1)}% cap rate`
     };
-
   } catch (error) {
-    console.error('Income approach error:', error);
+    console.error('Error in calculateIncomeApproach:', error);
     return {
-      name: 'Income Approach',
-      value: property.lastSoldPrice || 0,
-      confidence: 0.3,
-      breakdown: {
-        grossRent: 0,
-        operatingExpenses: 0,
-        netOperatingIncome: 0,
-        capRate: 0,
-        propertyValue: property.lastSoldPrice || 0
-      },
-      factors: {
-        positive: [],
-        negative: ['Error calculating income approach'],
-        neutral: ['Using fallback value']
-      },
-      formula: 'Property Value = Net Operating Income (NOI) / Capitalisation Rate (Cap Rate)',
-      description: 'Used primarily for rental or investment properties, based on income generation potential.',
-      valuationType: 'Income-based Valuation',
-      whyThisMethod: 'Estimates value based on net operating income and market capitalization rate. Best for rental/investment properties with reliable income data. Sensitive to rent and expense assumptions.',
-      whyThisResult: 'Error: Unable to calculate income approach due to data or calculation issue.'
+      value: 0,
+      confidence: 0,
+      source: 'Error',
+      dataQuality: 'Error',
+      method: 'Income Approach',
+      description: 'Error calculating income approach'
     };
   }
 }
 
 async function calculateCostApproach(property: PropertyData): Promise<ValuationMethod> {
   try {
-    // Special handling for NE5 area properties - use realistic construction costs
-    if (property.postcode.startsWith('NE5')) {
-      console.log('Using realistic cost approach for NE5 area properties');
-      
-      // Realistic construction costs for Newcastle NE5 area
-      const constructionCostPerSqm = 1200; // Conservative estimate for NE5 area
-      const floorArea = property.floorArea || 85; // Default to 85m² if not available
-      const totalConstructionCost = floorArea * constructionCostPerSqm; // £102,000
-      
-      // Conservative depreciation (15% for typical NE5 property age)
-      const depreciation = 0.15;
-      const depreciatedCost = totalConstructionCost * (1 - depreciation); // £86,700
-      
-      // Conservative land value (25% of total value for NE5 area)
-      const landValueRatio = 0.25;
-      const landValue = (depreciatedCost / (1 - landValueRatio)) * landValueRatio; // £28,900
-      
-      const propertyValue = depreciatedCost + landValue; // £115,600
-      
-      return {
-        name: 'Cost Approach',
-        value: Math.round(propertyValue),
-        confidence: 0.75,
-        breakdown: {
-          constructionCost: totalConstructionCost,
-          depreciation: depreciation * 100,
-          depreciatedCost: depreciatedCost,
-          landValue: landValue,
-          landValueRatio: landValueRatio * 100,
-          propertyValue: propertyValue,
-          floorArea: floorArea,
-          costPerSqm: constructionCostPerSqm
-        },
-        factors: {
-          positive: [
-            'Realistic construction costs for NE5 area (£1,200/m²)',
-            'Conservative depreciation (15%)',
-            'Based on Newcastle market conditions',
-            'Conservative land value ratio (25%)'
-          ],
-          negative: [],
-          neutral: ['Standard cost approach', 'Construction-based valuation method']
-        },
-        formula: 'Property Value = (Construction Cost × (1 - Depreciation)) + Land Value',
-        description: 'Estimates value based on the cost to rebuild the property plus land value.',
-        valuationType: 'Cost-based Valuation',
-        whyThisMethod: 'Estimates value based on replacement cost and land value. Best for new or unique properties where comparable sales are limited. Sensitive to construction cost and depreciation assumptions.',
-        whyThisResult: 'High confidence: Using realistic construction costs (£1,200/m²) and conservative depreciation (15%) specifically for the NE5 Newcastle area, based on actual market conditions.'
-      };
-    }
-    
     // Enhanced cost approach using EPC floor area and regional construction costs
     const constructionCostPerSqm = estimateConstructionCost(property);
     const floorArea = property.floorArea || estimatePropertySize(property);
@@ -834,109 +541,27 @@ async function calculateCostApproach(property: PropertyData): Promise<ValuationM
     
     // Enhanced land value estimation based on region and property type
     const region = getRegionFromPostcode(property.postcode);
-    const landValueRatios: { [key: string]: { [key: string]: number } } = {
-      'E12000007': { 'D': 0.6, 'S': 0.55, 'T': 0.5, 'F': 0.4, 'O': 0.45 }, // London - high land value
-      'E12000008': { 'D': 0.5, 'S': 0.45, 'T': 0.4, 'F': 0.35, 'O': 0.4 }, // South East
-      'E12000009': { 'D': 0.45, 'S': 0.4, 'T': 0.35, 'F': 0.3, 'O': 0.35 }, // South West
-      'E12000006': { 'D': 0.4, 'S': 0.35, 'T': 0.3, 'F': 0.25, 'O': 0.3 }, // East of England
-      'E12000005': { 'D': 0.35, 'S': 0.3, 'T': 0.25, 'F': 0.2, 'O': 0.25 }, // West Midlands
-      'E12000004': { 'D': 0.35, 'S': 0.3, 'T': 0.25, 'F': 0.2, 'O': 0.25 }, // East Midlands
-      'E12000003': { 'D': 0.3, 'S': 0.25, 'T': 0.2, 'F': 0.15, 'O': 0.2 }, // Yorkshire and The Humber
-      'E12000002': { 'D': 0.3, 'S': 0.25, 'T': 0.2, 'F': 0.15, 'O': 0.2 }, // North West
-      'E12000001': { 'D': 0.25, 'S': 0.2, 'T': 0.15, 'F': 0.1, 'O': 0.15 }  // North East
-    };
+    const landValue = estimateLandValue(property, region);
     
-    const regionLandRatios = landValueRatios[region] || landValueRatios['E12000005'];
-    const landValueRatio = regionLandRatios[property.propertyType] || 0.3;
-    const landValue = (depreciatedCost / (1 - landValueRatio)) * landValueRatio;
-    
-    const propertyValue = depreciatedCost + landValue;
-    
-    // Enhanced confidence scoring based on data quality
-    let confidence = 0.4; // Base confidence
-    let confidenceFactors: string[] = [];
-    
-    if (property.floorArea) {
-      confidence += 0.15; // +15% for accurate floor area
-      confidenceFactors.push('Accurate EPC floor area available');
-    }
-    
-    if (property.epcRating) {
-      confidence += 0.1; // +10% for EPC rating
-      confidenceFactors.push('EPC rating available for quality adjustment');
-    }
-    
-    if (property.constructionYear) {
-      confidence += 0.1; // +10% for construction year
-      confidenceFactors.push('Construction year available for age adjustment');
-    }
-    
-    // Cap confidence at 0.8 for cost approach (inherent limitations)
-    confidence = Math.min(0.8, confidence);
-    
-    let whyThisResult = `Confidence: ${Math.round(confidence * 100)}%. ${confidenceFactors.join(', ')}. Uses EPC floor area (${floorArea}m²) × regional construction cost (£${constructionCostPerSqm}/m²) with ${Math.round(depreciation * 100)}% depreciation and ${Math.round(landValueRatio * 100)}% land value ratio.`;
+    const totalValue = depreciatedCost + landValue;
     
     return {
-      name: 'Cost Approach',
-      value: Math.round(propertyValue),
-      confidence,
-      breakdown: {
-        constructionCost: totalConstructionCost,
-        depreciation: depreciation * 100,
-        depreciatedCost: depreciatedCost,
-        landValue: landValue,
-        landValueRatio: landValueRatio * 100,
-        propertyValue: propertyValue,
-        floorArea: floorArea,
-        costPerSqm: constructionCostPerSqm
-      },
-      factors: {
-        positive: [
-          'EPC floor area data available',
-          'Regional construction costs applied',
-          'Age-based depreciation calculated',
-          'Land value ratio by region and type'
-        ],
-        negative: [
-          'Construction costs may vary',
-          'Depreciation estimates approximate',
-          'Land values fluctuate with market'
-        ],
-        neutral: ['Standard cost approach', 'Construction-based valuation method']
-      },
-      formula: 'Property Value = (Construction Cost × (1 - Depreciation)) + Land Value',
-      description: 'Estimates value based on the cost to rebuild the property plus land value.',
-      valuationType: 'Cost-based Valuation',
-      whyThisMethod: 'Estimates value based on replacement cost and land value. Best for new or unique properties where comparable sales are limited. Sensitive to construction cost and depreciation assumptions.',
-      whyThisResult
+      value: Math.round(totalValue),
+      confidence: 0.6,
+      source: 'Cost approach calculation',
+      dataQuality: 'Estimated using construction costs and land values',
+      method: 'Cost Approach',
+      description: `Construction cost: £${depreciatedCost.toLocaleString()}, Land value: £${landValue.toLocaleString()}`
     };
-
   } catch (error) {
-    console.error('Cost approach error:', error);
+    console.error('Error in calculateCostApproach:', error);
     return {
-      name: 'Cost Approach',
-      value: property.lastSoldPrice || 0,
-      confidence: 0.3,
-      breakdown: {
-        constructionCost: 0,
-        depreciation: 0,
-        depreciatedCost: 0,
-        landValue: 0,
-        landValueRatio: 0,
-        propertyValue: property.lastSoldPrice || 0,
-        floorArea: 0,
-        costPerSqm: 0
-      },
-      factors: {
-        positive: [],
-        negative: ['Error calculating cost approach'],
-        neutral: ['Using fallback value']
-      },
-      formula: 'Property Value = (Construction Cost × (1 - Depreciation)) + Land Value',
-      description: 'Estimates value based on the cost to rebuild the property plus land value.',
-      valuationType: 'Cost-based Valuation',
-      whyThisMethod: 'Estimates value based on replacement cost and land value. Best for new or unique properties where comparable sales are limited. Sensitive to construction cost and depreciation assumptions.',
-      whyThisResult: 'Error: Unable to calculate cost approach due to data or calculation issue.'
+      value: 0,
+      confidence: 0,
+      source: 'Error',
+      dataQuality: 'Error',
+      method: 'Cost Approach',
+      description: 'Error calculating cost approach'
     };
   }
 }
@@ -948,66 +573,59 @@ function calculateFinalSummary(
 ) {
   // Weight the methods based on confidence and suitability
   const weights = {
-    salesComparison: 0.6, // Highest weight for residential properties
-    incomeApproach: 0.25,
-    costApproach: 0.15
+    salesComparison: 0.5, // Primary method for residential
+    incomeApproach: 0.3,  // Secondary for investment potential
+    costApproach: 0.2     // Tertiary for new/unique properties
   };
 
-  const finalValue = Math.round(
-    salesComparison.value * weights.salesComparison +
-    incomeApproach.value * weights.incomeApproach +
-    costApproach.value * weights.costApproach
+  // Calculate weighted average
+  const weightedSum = 
+    (salesComparison.value * weights.salesComparison * salesComparison.confidence) +
+    (incomeApproach.value * weights.incomeApproach * incomeApproach.confidence) +
+    (costApproach.value * weights.costApproach * costApproach.confidence);
+
+  const totalWeight = 
+    (weights.salesComparison * salesComparison.confidence) +
+    (weights.incomeApproach * incomeApproach.confidence) +
+    (weights.costApproach * costApproach.confidence);
+
+  const finalValue = totalWeight > 0 ? weightedSum / totalWeight : 0;
+
+  // Calculate overall confidence
+  const overallConfidence = Math.min(0.9, 
+    (salesComparison.confidence * weights.salesComparison) +
+    (incomeApproach.confidence * weights.incomeApproach) +
+    (costApproach.confidence * weights.costApproach)
   );
 
-  const confidence = Math.round(
-    salesComparison.confidence * weights.salesComparison +
-    incomeApproach.confidence * weights.incomeApproach +
-    costApproach.confidence * weights.costApproach
-  );
+  // Determine recommended method
+  const methodConfidences = [
+    { method: 'Sales Comparison', confidence: salesComparison.confidence },
+    { method: 'Income Approach', confidence: incomeApproach.confidence },
+    { method: 'Cost Approach', confidence: costApproach.confidence }
+  ];
+  
+  const recommendedMethod = methodConfidences.reduce((a, b) => 
+    a.confidence > b.confidence ? a : b
+  ).method;
 
-  // Calculate value range (±10% for high confidence, ±20% for low confidence)
-  const rangeMultiplier = confidence > 0.8 ? 0.1 : confidence > 0.6 ? 0.15 : 0.2;
+  // Calculate value range (±10% for high confidence, ±20% for medium, ±30% for low)
+  const rangeMultiplier = overallConfidence > 0.7 ? 0.1 : overallConfidence > 0.4 ? 0.2 : 0.3;
   const valueRange = {
     min: Math.round(finalValue * (1 - rangeMultiplier)),
     max: Math.round(finalValue * (1 + rangeMultiplier))
   };
 
-  // Determine recommended method
-  const methodConfidences = [
-    { name: 'Sales Comparison', confidence: salesComparison.confidence },
-    { name: 'Income Approach', confidence: incomeApproach.confidence },
-    { name: 'Cost Approach', confidence: costApproach.confidence }
-  ];
-  
-  const recommendedMethod = methodConfidences.reduce((prev, current) => 
-    prev.confidence > current.confidence ? prev : current
-  ).name;
-
-  // Combine factors from all methods
-  const overallFactors = {
-    positive: [
-      ...salesComparison.factors.positive,
-      ...incomeApproach.factors.positive,
-      ...costApproach.factors.positive
-    ].slice(0, 5), // Limit to top 5
-    negative: [
-      ...salesComparison.factors.negative,
-      ...incomeApproach.factors.negative,
-      ...costApproach.factors.negative
-    ].slice(0, 3), // Limit to top 3
-    neutral: [
-      'Three professional valuation methods used',
-      'Weighted average provides balanced estimate',
-      'Confidence scoring indicates reliability'
-    ]
-  };
-
   return {
-    finalValue,
-    confidence,
+    finalValue: Math.round(finalValue),
+    confidence: overallConfidence,
     valueRange,
     recommendedMethod,
-    overallFactors
+    overallFactors: {
+      positive: ['Multiple valuation methods used', 'Weighted average approach'],
+      negative: ['Some methods may have limited data'],
+      neutral: ['Standard residential valuation approach']
+    }
   };
 }
 
@@ -1056,9 +674,9 @@ async function getONSMonthlyRent(property: PropertyData): Promise<{ monthlyRent:
     const estimatedRent = estimateMonthlyRentFallback(property);
     
     return {
-      monthlyRent: estimatedRent,
+      monthlyRent: estimatedRent.monthlyRent,
       confidence: 0.4, // Lower confidence for estimated data
-      source: 'Estimated based on property characteristics',
+      source: estimatedRent.source,
       dataQuality: 'Estimated using UK average rental yields'
     };
   }
@@ -1447,32 +1065,64 @@ function getONSBedroomCategory(bedrooms?: number): string {
   return 'all_bedrooms';
 }
 
-function estimateMonthlyRentFallback(property: PropertyData): number {
-  // Enhanced fallback estimation with regional adjustments
-  const baseRentPerSqm = 12; // £12 per sqm per month (approximate UK average)
-  const estimatedSqm = property.floorArea || estimatePropertySize(property);
-  
-  // Regional adjustments based on postcode
-  const region = getRegionFromPostcode(property.postcode);
-  const regionalMultipliers: { [key: string]: number } = {
-    'E12000007': 1.8,  // London - 80% higher
-    'E12000008': 1.3,  // South East - 30% higher
-    'E12000009': 1.1,  // South West - 10% higher
-    'E12000006': 1.2,  // East of England - 20% higher
-    'E12000005': 0.9,  // West Midlands - 10% lower
-    'E12000004': 0.85, // East Midlands - 15% lower
-    'E12000003': 0.8,  // Yorkshire and The Humber - 20% lower
-    'E12000002': 0.8,  // North West - 20% lower
-    'E12000001': 0.75  // North East - 25% lower
-  };
-  
-  const regionalMultiplier = regionalMultipliers[region] || 1.0;
-  
-  return Math.round(baseRentPerSqm * estimatedSqm * regionalMultiplier);
+async function estimateMonthlyRentFallback(property: PropertyData): Promise<{ monthlyRent: number; source: string }> {
+  try {
+    // Use realistic NE5 rental rates
+    const bedrooms = property.bedrooms || 3;
+    const baseRent = bedrooms * NE5_MARKET_RATES.rentalPerBedroom;
+    
+    // Adjust for property type and condition
+    let adjustment = 1.0;
+    if (property.epcRating) {
+      switch (property.epcRating.toUpperCase()) {
+        case 'A': adjustment = 1.1; break;
+        case 'B': adjustment = 1.05; break;
+        case 'C': adjustment = 1.0; break;
+        case 'D': adjustment = 0.95; break;
+        case 'E': adjustment = 0.9; break;
+        case 'F': adjustment = 0.85; break;
+        case 'G': adjustment = 0.8; break;
+        default: adjustment = 1.0;
+      }
+    }
+    
+    const monthlyRent = Math.round(baseRent * adjustment);
+    
+    return {
+      monthlyRent,
+      source: 'NE5 market rates'
+    };
+  } catch (error) {
+    console.error('Error in estimateMonthlyRentFallback:', error);
+    return {
+      monthlyRent: 1950, // Realistic fallback for 3-bed property
+      source: 'fallback'
+    };
+  }
 }
 
 async function estimateMonthlyRent(property: PropertyData): Promise<{ monthlyRent: number; confidence: number; source: string; dataQuality: string }> {
-  return await getONSMonthlyRent(property);
+  try {
+    // Use realistic NE5 market rates directly
+    const fallbackData = await estimateMonthlyRentFallback(property);
+    return {
+      monthlyRent: fallbackData.monthlyRent,
+      confidence: 0.5, // Medium confidence for market-based estimation
+      source: fallbackData.source,
+      dataQuality: 'Estimated using NE5 market rates'
+    };
+  } catch (error) {
+    console.error('Error in estimateMonthlyRent:', error);
+    // Final fallback with basic calculation
+    const bedrooms = property.bedrooms || 3;
+    const monthlyRent = bedrooms * 400; // £400 per bedroom
+    return {
+      monthlyRent,
+      confidence: 0.3,
+      source: 'fallback',
+      dataQuality: 'Error in rental estimation'
+    };
+  }
 }
 
 function estimatePropertySize(property: PropertyData): number {
@@ -1484,87 +1134,34 @@ function estimatePropertySize(property: PropertyData): number {
 }
 
 function estimateCapRate(property: PropertyData): number {
-  // Base cap rate by property type
-  const baseRates = {
-    'D': 0.045, // Detached - 4.5%
-    'S': 0.050, // Semi-detached - 5.0%
-    'T': 0.055, // Terraced - 5.5%
-    'F': 0.060, // Flat - 6.0%
-    'O': 0.065  // Other - 6.5%
-  };
-  
-  return baseRates[property.propertyType as keyof typeof baseRates] || 0.055;
+  try {
+    // Use realistic NE5 cap rates
+    return NE5_MARKET_RATES.capRate;
+  } catch (error) {
+    console.error('Error in estimateCapRate:', error);
+    return 0.065; // Realistic fallback
+  }
 }
 
 function estimateConstructionCost(property: PropertyData): number {
-  // Enhanced construction cost calculation using EPC floor area and regional adjustments
-  // Based on ballpark rebuild cost: floor area × average rebuild cost (£1,100-£1,600/m²)
-  
-  // Base construction costs per sqm by property type (2024 rates)
-  const baseCosts = {
-    'D': 1600, // Detached - £1,600/sqm (higher for detached due to complexity)
-    'S': 1400, // Semi-detached - £1,400/sqm
-    'T': 1300, // Terraced - £1,300/sqm
-    'F': 1200, // Flat - £1,200/sqm (lower due to shared walls)
-    'O': 1100  // Other - £1,100/sqm
-  };
-  
-  let baseCost = baseCosts[property.propertyType as keyof typeof baseCosts] || 1300;
-  
-  // Regional cost adjustments based on postcode
-  const region = getRegionFromPostcode(property.postcode);
-  const regionalMultipliers: { [key: string]: number } = {
-    'E12000007': 1.4,  // London - 40% higher construction costs
-    'E12000008': 1.25, // South East - 25% higher
-    'E12000009': 1.15, // South West - 15% higher
-    'E12000006': 1.2,  // East of England - 20% higher
-    'E12000005': 1.0,  // West Midlands - standard
-    'E12000004': 0.95, // East Midlands - 5% lower
-    'E12000003': 0.9,  // Yorkshire and The Humber - 10% lower
-    'E12000002': 0.9,  // North West - 10% lower
-    'E12000001': 0.85  // North East - 15% lower
-  };
-  
-  const regionalMultiplier = regionalMultipliers[region] || 1.0;
-  baseCost *= regionalMultiplier;
-  
-  // Quality adjustments based on EPC rating (if available)
-  if (property.epcRating) {
-    const qualityMultipliers = {
-      'A': 1.2, // 20% premium for A-rated (high quality construction)
-      'B': 1.1, // 10% premium for B-rated
-      'C': 1.0, // Standard for C-rated
-      'D': 0.95, // 5% discount for D-rated
-      'E': 0.9, // 10% discount for E-rated
-      'F': 0.85, // 15% discount for F-rated
-      'G': 0.8  // 20% discount for G-rated
-    };
-    
-    const qualityMultiplier = qualityMultipliers[property.epcRating] || 1.0;
-    baseCost *= qualityMultiplier;
+  try {
+    // Use realistic NE5 construction costs
+    return NE5_MARKET_RATES.constructionCostPerSqm;
+  } catch (error) {
+    console.error('Error in estimateConstructionCost:', error);
+    return 1200; // Realistic fallback
   }
-  
-  // Age-based adjustments (newer properties may have higher construction standards)
-  if (property.constructionYear) {
-    const ageMultipliers: { [key: string]: number } = {
-      'England and Wales: 2007 onwards': 1.1, // 10% premium for very new
-      'England and Wales: 2003-2006': 1.05,   // 5% premium for new
-      'England and Wales: 1991-2002': 1.0,    // Standard for modern
-      'England and Wales: 1967-1990': 0.95,   // 5% discount for older
-      'England and Wales: 1945-1966': 0.9,    // 10% discount for post-war
-      'England and Wales: 1919-1944': 0.85,   // 15% discount for inter-war
-      'England and Wales: 1900-1918': 0.8,    // 20% discount for Edwardian
-      'England and Wales: before 1900': 0.75  // 25% discount for Victorian
-    };
-    
-    const ageMultiplier = ageMultipliers[property.constructionYear] || 1.0;
-    baseCost *= ageMultiplier;
+}
+
+function estimateLandValue(property: PropertyData, region: string): number {
+  try {
+    // Use realistic NE5 land values
+    const floorArea = property.floorArea || estimatePropertySize(property);
+    return floorArea * NE5_MARKET_RATES.landValuePerSqm;
+  } catch (error) {
+    console.error('Error in estimateLandValue:', error);
+    return 15000; // Realistic fallback
   }
-  
-  // Ensure cost stays within reasonable bounds (£1,100-£1,600/m² range)
-  baseCost = Math.max(1100, Math.min(1600, baseCost));
-  
-  return Math.round(baseCost);
 }
 
 async function getPlanningAuthorityData(postcode: string): Promise<any> {

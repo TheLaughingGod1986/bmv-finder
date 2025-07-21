@@ -1,3 +1,6 @@
+require('dotenv').config();
+console.log('[EPC DEBUG] EPC_API_USERNAME:', process.env.EPC_API_USERNAME);
+console.log('[EPC DEBUG] EPC_API_PASSWORD:', process.env.EPC_API_PASSWORD ? process.env.EPC_API_PASSWORD.slice(0, 4) + '...' : undefined);
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -6,7 +9,7 @@ const dotenv = require('dotenv');
 const winston = require('winston');
 
 // Load environment variables
-dotenv.config();
+
 
 // Import services
 const PropertyEnrichmentService = require('./services/PropertyEnrichmentService');

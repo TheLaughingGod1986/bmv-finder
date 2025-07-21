@@ -6,6 +6,8 @@ class PropertyEnrichmentService {
     this.logger = logger;
     this.epcApiBaseUrl = process.env.EPC_API_BASE_URL || 'https://epc.opendatacommunities.org';
     this.epcApiToken = process.env.EPC_API_TOKEN;
+    this.epcApiUsername = process.env.EPC_API_USERNAME;
+    this.epcApiPassword = process.env.EPC_API_PASSWORD;
     
     // Initialize Elasticsearch service for caching
     this.elasticsearchService = new ElasticsearchService(logger);
@@ -101,52 +103,32 @@ class PropertyEnrichmentService {
    */
   async fetchEPCData(postcode, number) {
     try {
-      if (!this.epcApiToken) {
-        throw new Error('EPC API token not configured');
+      // Prefer Basic Auth if username/password are set
+      let authHeaders = {};
+      if (this.epcApiUsername && this.epcApiPassword) {
+        const basicAuth = Buffer.from(`${this.epcApiUsername}:${this.epcApiPassword}`).toString('base64');
+        authHeaders['Authorization'] = `Basic ${basicAuth}`;
+        // Debug log the actual header (do not log the full key in production)
+        console.log('[EPC DEBUG] Using Basic Auth header:', authHeaders['Authorization']);
+      } else if (this.epcApiToken) {
+        authHeaders['Authorization'] = `Bearer ${this.epcApiToken}`;
+        console.log('[EPC DEBUG] Using Bearer token header:', authHeaders['Authorization']);
       }
-
-      // Build the search query
-      const searchQuery = this.buildEPCSearchQuery(postcode, number);
-      
-      this.logger.info('Fetching EPC data', { 
-        postcode, 
-        number, 
-        searchQuery,
-        url: `${this.epcApiBaseUrl}/api/v1/domestic/search`
-      });
-
-      const response = await axios.get(`${this.epcApiBaseUrl}/api/v1/domestic/search`, {
-        params: searchQuery,
-        headers: {
-          'Authorization': `Bearer ${this.epcApiToken}`,
-          'Accept': 'application/json'
-        },
-        timeout: 10000 // 10 second timeout
-      });
-
-      if (response.status !== 200) {
-        throw new Error(`EPC API returned status ${response.status}`);
+      const url = `${this.epcApiBaseUrl}/api/v1/domestic/search`;
+      const params = { postcode, address: number, size: 50 };
+      const response = await axios.get(url, { params, headers: authHeaders });
+      // Debug log the EPC API response
+      console.log('[EPC DEBUG] EPC API response:', response.data);
+      // The EPC API returns { rows: [...] } or an array
+      if (response.data && Array.isArray(response.data.rows)) {
+        return response.data.rows;
+      } else if (Array.isArray(response.data)) {
+        return response.data;
+      } else {
+        return [];
       }
-
-      const data = response.data;
-      
-      this.logger.info('EPC data fetched successfully', {
-        postcode,
-        number,
-        resultCount: data.rows ? data.rows.length : 0
-      });
-
-      return data.rows || [];
-
-    } catch (error) {
-      this.logger.error('Error fetching EPC data', {
-        error: error.message,
-        postcode,
-        number,
-        stack: error.stack
-      });
-      
-      // Return empty array instead of throwing to allow graceful degradation
+    } catch (err) {
+      console.error('Error fetching EPC data', { error: err.message, stack: err.stack });
       return [];
     }
   }

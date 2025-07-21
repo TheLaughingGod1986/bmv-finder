@@ -245,6 +245,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
   const [showMissingDataForm, setShowMissingDataForm] = useState(false);
   const [missingData, setMissingData] = useState({ floor_area_m2: '', epc_rating: '', bedrooms: '' });
   const { success, error } = useToast();
+  const [errorState, setError] = useState<any>(null);
 
   useEffect(() => {
     if (postcode && houseNumber) {
@@ -259,11 +260,17 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
       const valuationResponse = await fetch(`/api/comprehensive-valuation?postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
       if (valuationResponse.ok) {
         const valuationResult = await valuationResponse.json();
-        console.log('Valuation API response:', valuationResult);
         setValuationData(valuationResult.data);
-        console.log('Setting valuationData:', valuationResult.data);
       } else {
-        console.error('Valuation API error:', valuationResponse.status, valuationResponse.statusText);
+        let errorObj = null;
+        try {
+          errorObj = await valuationResponse.json();
+        } catch (e) {
+          errorObj = { error: valuationResponse.statusText };
+        }
+        console.error('[DEBUG] Valuation API error:', errorObj);
+        setValuationData(null);
+        setError(errorObj);
       }
 
       // Fetch planning authority data
@@ -274,10 +281,20 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
         setPlanningData(planningResult.data);
         console.log('Setting planningData:', planningResult.data);
       } else {
-        console.error('Planning API error:', planningResponse.status, planningResponse.statusText);
+        let errorObj = null;
+        try {
+          errorObj = await planningResponse.json();
+        } catch (e) {
+          errorObj = { error: planningResponse.statusText };
+        }
+        console.error('Planning API error:', errorObj);
+        setPlanningData(null);
+        setError(errorObj);
       }
     } catch (error) {
-      console.error('Error fetching comprehensive data:', error);
+      console.error('[DEBUG] Error fetching comprehensive data:', error);
+      setValuationData(null);
+      setError({ error: error instanceof Error ? error.message : String(error) });
     } finally {
       setIsLoading(false);
       if (onAnalysisComplete) onAnalysisComplete();
@@ -364,6 +381,23 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mr-3"></div>
             <span className="text-lg text-gray-600">Loading comprehensive analysis...</span>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Fix: Check for needsManualAdd on the error prop, not the error toast function
+  const needsManualAdd = !!errorState && typeof errorState === 'object' && errorState?.needsManualAdd;
+  if (valuationData === null && needsManualAdd) {
+    return (
+      <Card className="bg-yellow-50 border-yellow-200 text-yellow-900 p-8 text-center">
+        <CardHeader>
+          <CardTitle>No Data Found for This Property</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="mb-4">We couldn't find any data for this property. You can manually add it to your portfolio to track and enrich its details.</p>
+          {/* Minimal manual add form */}
+          <ManualAddToPortfolioForm postcode={postcode} houseNumber={houseNumber} />
         </CardContent>
       </Card>
     );
@@ -1132,5 +1166,99 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
         </div>
       )}
     </div>
+  );
+} 
+
+function ManualAddToPortfolioForm({ postcode, houseNumber }: { postcode: string; houseNumber: string }) {
+  const [address, setAddress] = useState("");
+  const [propertyType, setPropertyType] = useState("");
+  const [bedrooms, setBedrooms] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
+  const [purchaseDate, setPurchaseDate] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { success, error } = useToast();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const propertyData = {
+        address: address || `${houseNumber} ${postcode}`,
+        postcode,
+        houseNumber,
+        propertyType,
+        bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
+        purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
+        purchaseDate,
+        currentValue: purchasePrice ? parseFloat(purchasePrice) : undefined,
+        dealScore: 0,
+        dealRating: 'Manual',
+        bmvScore: 0,
+        notes: 'Manually added property',
+      };
+      const res = await fetch('/api/portfolio/add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(propertyData),
+      });
+      if (res.ok) {
+        success('Property added to your portfolio!');
+      } else {
+        const data = await res.json();
+        error(data.error || 'Failed to add property');
+      }
+    } catch (err) {
+      error('Failed to add property');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 max-w-md mx-auto">
+      <input
+        className="w-full border rounded p-2"
+        placeholder="Address (optional)"
+        value={address}
+        onChange={e => setAddress(e.target.value)}
+      />
+      <input
+        className="w-full border rounded p-2"
+        placeholder="Property Type (e.g. Terraced)"
+        value={propertyType}
+        onChange={e => setPropertyType(e.target.value)}
+        required
+      />
+      <input
+        className="w-full border rounded p-2"
+        placeholder="Bedrooms (optional)"
+        type="number"
+        value={bedrooms}
+        onChange={e => setBedrooms(e.target.value)}
+      />
+      <input
+        className="w-full border rounded p-2"
+        placeholder="Purchase Price (£)"
+        type="number"
+        value={purchasePrice}
+        onChange={e => setPurchasePrice(e.target.value)}
+        required
+      />
+      <input
+        className="w-full border rounded p-2"
+        placeholder="Purchase Date (YYYY-MM-DD)"
+        type="date"
+        value={purchaseDate}
+        onChange={e => setPurchaseDate(e.target.value)}
+        required
+      />
+      <button
+        type="submit"
+        className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700 disabled:opacity-50"
+        disabled={loading}
+      >
+        {loading ? 'Adding...' : 'Add to Portfolio'}
+      </button>
+    </form>
   );
 } 

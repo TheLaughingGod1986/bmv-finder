@@ -1,9 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button } from '@/app/components/ui';
 import { Home, Plus, Check, AlertCircle } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from './ToastProvider';
 import { useUser } from '@supabase/auth-helpers-react';
 
 interface AddToPortfolioButtonProps {
@@ -44,12 +43,16 @@ export default function AddToPortfolioButton({
 }: AddToPortfolioButtonProps) {
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
-  const { success, error, warning } = useToast();
+  const { showToast } = useToast();
   const user = useUser();
 
   const handleAddToPortfolio = async () => {
     if (!user) {
-      error('Please sign in to add properties to your portfolio.');
+      showToast({
+        type: 'error',
+        title: 'Authentication Required',
+        message: 'Please sign in to add properties to your portfolio.'
+      });
       return;
     }
 
@@ -72,20 +75,32 @@ export default function AddToPortfolioButton({
 
       if (response.ok) {
         setAdded(true);
-        success(`${propertyData.address} has been added to your portfolio successfully!`);
+        showToast({
+          type: 'success',
+          title: 'Property Added',
+          message: `${propertyData.address} has been added to your portfolio successfully!`
+        });
 
         // Reset added state after 3 seconds
         setTimeout(() => setAdded(false), 3000);
       } else {
         if (response.status === 409) {
-          warning('This property is already in your portfolio.');
+          showToast({
+            type: 'warning',
+            title: 'Already in Portfolio',
+            message: 'This property is already in your portfolio.'
+          });
         } else {
           throw new Error(data.error || 'Failed to add to portfolio');
         }
       }
     } catch (err) {
       console.error('Error adding to portfolio:', err);
-      error(err instanceof Error ? err.message : 'Failed to add property to portfolio');
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: err instanceof Error ? err.message : 'Failed to add property to portfolio'
+      });
     } finally {
       setLoading(false);
     }
@@ -119,7 +134,7 @@ export default function AddToPortfolioButton({
   };
 
   const getButtonClasses = () => {
-    const baseClasses = 'inline-flex items-center gap-2 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2';
+    const baseClasses = 'inline-flex items-center gap-2 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
     
     const variantClasses = {
       default: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500',
@@ -133,23 +148,28 @@ export default function AddToPortfolioButton({
       lg: 'px-6 py-3 text-lg'
     };
 
-    const stateClasses = added 
-      ? 'bg-green-600 text-white cursor-default' 
-      : loading 
-        ? 'opacity-75 cursor-not-allowed' 
-        : '';
+    // Override styling based on state
+    let stateClasses = '';
+    if (added) {
+      stateClasses = 'bg-green-600 text-white border-green-600 cursor-default hover:bg-green-600';
+    } else if (loading) {
+      stateClasses = 'opacity-75 cursor-not-allowed';
+    } else {
+      stateClasses = variantClasses[variant];
+    }
 
-    return `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${stateClasses} ${className}`;
+    return `${baseClasses} ${stateClasses} ${sizeClasses[size]} ${className}`;
   };
 
   return (
-    <Button
+    <button
       onClick={handleAddToPortfolio}
       disabled={loading || added}
       className={getButtonClasses()}
+      type="button"
     >
       {getButtonContent()}
-    </Button>
+    </button>
   );
 }
 

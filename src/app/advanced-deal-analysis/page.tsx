@@ -4,92 +4,20 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/SimpleCard';
 import { Input } from '../components/SimpleInput';
 import Button from '../components/Button';
-import { Search, Target, Loader2, Calculator, DollarSign, MapPin, TrendingUp, BarChart3, Award, Home, Building, Percent, Shield, ArrowUpRight, ArrowDownRight, Minus, PoundSterling, Ruler, Bed, Zap, Calendar, Info, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Search, Target, Loader2, Home, TrendingUp, BarChart3, Info, DollarSign } from 'lucide-react';
 import { useToast } from '../components/ToastProvider';
-import ComprehensiveDealAnalysisCard from '../components/ComprehensiveDealAnalysisCard';
+import EnhancedDealAnalysisCard from '../components/EnhancedDealAnalysisCard';
 import { formatPostcode } from '@/utils/formatPostcode';
 import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 import AddressSearchInput from '../components/AddressSearchInput';
 import { motion } from 'framer-motion';
 
-interface ValuationMethod {
-  name: string;
-  value: number;
-  confidence: number;
-  breakdown: {
-    [key: string]: number;
-  };
-  factors: {
-    positive: string[];
-    negative: string[];
-    neutral: string[];
-  };
-  formula: string;
-  description: string;
-  valuationType: string;
-  whyThisMethod: string;
-  whyThisResult: string;
-  icon: React.ComponentType<any>;
-  color: string;
-}
-
-interface ComprehensiveValuationData {
-  property: {
-    address: string;
-    postcode: string;
-    propertyType: string;
-    bedrooms?: number;
-    floorArea?: number;
-    epcRating?: string;
-    constructionYear?: string;
-    lastSoldPrice?: number;
-    lastSoldDate?: string;
-  };
-  methods: {
-    salesComparison: ValuationMethod;
-    incomeApproach: ValuationMethod;
-    costApproach: ValuationMethod;
-  };
-  summary: {
-    finalValue: number;
-    confidence: number;
-    valueRange: { min: number; max: number };
-    recommendedMethod: string;
-    overallFactors: {
-      positive: string[];
-      negative: string[];
-      neutral: string[];
-    };
-  };
-  confidence?: {
-    overall: number;
-    dataQuality: number;
-    marketConditions: number;
-    comparableQuality: number;
-    methodology: number;
-    factors: {
-      positive: string[];
-      negative: string[];
-    };
-  };
-  rentalYield?: {
-    grossYield: number;
-    netYield: number;
-    monthlyRent: number;
-    annualRent: number;
-    managementFees: number;
-    maintenanceReserve: number;
-    voidPeriods: number;
-    confidence: number;
-    marketComparison: {
-      averageYield: number;
-      marketPosition: string;
-    };
-    factors: {
-      positive: string[];
-      negative: string[];
-    };
-  };
+interface DealAnalysisData {
+  estimatedValue: number | null;
+  confidence: 'low' | 'medium' | 'high';
+  comparables: any[];
+  usedBedroomFilter: boolean;
+  subject: any | null;
 }
 
 export default function AdvancedDealAnalysisPage() {
@@ -97,8 +25,7 @@ export default function AdvancedDealAnalysisPage() {
   const [houseNumber, setHouseNumber] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  const [valuationData, setValuationData] = useState<ComprehensiveValuationData | null>(null);
-  const [showValuationDetails, setShowValuationDetails] = useState(false);
+  const [dealAnalysis, setDealAnalysis] = useState<DealAnalysisData | null>(null);
   const { showToast } = useToast();
   const { history, saveToHistory } = usePostcodeHistory();
 
@@ -118,43 +45,31 @@ export default function AdvancedDealAnalysisPage() {
     saveToHistory(formattedPostcode);
 
     try {
-      // Get comprehensive valuation data
-      const valuationResponse = await fetch(`/api/comprehensive-valuation?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber.trim())}`);
-      if (valuationResponse.ok) {
-        const valuationResult = await valuationResponse.json();
-        setValuationData(valuationResult);
+      const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber.trim())}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setDealAnalysis(data);
+      } else {
+        showToast({
+          type: 'error',
+          title: 'Analysis Failed',
+          message: data.error || 'Failed to analyze property.',
+        });
       }
     } catch (error) {
-      console.error('Error fetching valuation data:', error);
+      console.error('Error in search:', error);
+      showToast({
+        type: 'error',
+        title: 'Network Error',
+        message: 'Failed to connect to the analysis service.',
+      });
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  };
 
-  const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
-  };
-
-  const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 80) return 'text-green-600';
-    if (confidence >= 60) return 'text-yellow-600';
-    return 'text-red-600';
-  };
-
-  const getConfidenceLabel = (confidence: number) => {
-    if (confidence >= 80) return 'High';
-    if (confidence >= 60) return 'Medium';
-    return 'Low';
-  };
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -285,239 +200,14 @@ export default function AdvancedDealAnalysisPage() {
       {hasSearched && (
         <div className="space-y-8">
           {/* Deal Analysis Card */}
-          <ComprehensiveDealAnalysisCard 
-            postcode={postcode}
-            houseNumber={houseNumber}
+          <EnhancedDealAnalysisCard 
+            estimatedValue={dealAnalysis?.estimatedValue || null}
+            confidence={dealAnalysis?.confidence || 'low'}
+            comparables={dealAnalysis?.comparables || []}
+            usedBedroomFilter={dealAnalysis?.usedBedroomFilter || false}
+            subject={dealAnalysis?.subject || null}
+            loading={isAnalyzing}
           />
-
-          {/* Comprehensive Valuation Results */}
-          {valuationData && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Card className="border-2 border-primary-100">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-primary-700">
-                    <Calculator className="h-6 w-6" />
-                    Comprehensive Valuation Analysis
-                  </CardTitle>
-                  <p className="text-sm text-gray-600">
-                    Detailed breakdown of three professional valuation methods with confidence scores and market insights.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  {/* Property Summary */}
-                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
-                    <h3 className="font-semibold text-lg mb-3 text-gray-800">Property Summary</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        <span className="text-sm text-gray-600">{valuationData?.property?.address || 'Address not available'}</span>
-                      </div>
-                      {valuationData?.property?.bedrooms && (
-                        <div className="flex items-center gap-2">
-                          <Bed className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{valuationData?.property?.bedrooms} bedrooms</span>
-                        </div>
-                      )}
-                      {valuationData?.property?.floorArea && (
-                        <div className="flex items-center gap-2">
-                          <Ruler className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">{valuationData?.property?.floorArea}m²</span>
-                        </div>
-                      )}
-                      {valuationData?.property?.epcRating && (
-                        <div className="flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm text-gray-600">EPC: {valuationData?.property?.epcRating}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Final Value Summary */}
-                  <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg p-6 mb-6">
-                    <div className="text-center">
-                      <h3 className="text-2xl font-bold text-primary-700 mb-2">
-                        Estimated Market Value
-                      </h3>
-                      <div className="text-4xl font-bold text-primary-800 mb-2">
-                        {formatCurrency(valuationData?.summary?.finalValue || 0)}
-                      </div>
-                      <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                        <span className={`flex items-center gap-1 ${getConfidenceColor(valuationData?.summary?.confidence || 0)}`}>
-                          <Shield className="h-4 w-4" />
-                          {getConfidenceLabel(valuationData?.summary?.confidence || 0)} Confidence
-                        </span>
-                        <span className="flex items-center gap-1">
-                          <Percent className="h-4 w-4" />
-                          {formatPercentage(valuationData?.summary?.confidence || 0)}
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-500 mt-2">
-                        Range: {formatCurrency(valuationData?.summary?.valueRange?.min || 0)} - {formatCurrency(valuationData?.summary?.valueRange?.max || 0)}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Valuation Methods */}
-                  <div className="space-y-4">
-                    <h3 className="font-semibold text-lg text-gray-800 mb-4">Valuation Methods</h3>
-                    
-                    {/* Sales Comparison */}
-                    <Card className="border border-gray-200">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Home className="h-5 w-5 text-blue-600" />
-                            <h4 className="font-semibold text-gray-800">Sales Comparison</h4>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-gray-800">
-                              {formatCurrency(valuationData?.methods?.salesComparison?.value || 0)}
-                            </div>
-                            <div className={`text-sm ${getConfidenceColor(valuationData?.methods?.salesComparison?.confidence || 0)}`}>
-                              {formatPercentage(valuationData?.methods?.salesComparison?.confidence || 0)} confidence
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-3">
-                          {valuationData?.methods?.salesComparison?.description || 'Sales comparison analysis not available'}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {valuationData?.methods?.salesComparison?.factors?.positive?.map((factor, index) => (
-                            <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                              <CheckCircle className="h-3 w-3" />
-                              {factor}
-                            </span>
-                          ))}
-                          {valuationData?.methods?.salesComparison?.factors?.negative?.map((factor, index) => (
-                            <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                              <AlertTriangle className="h-3 w-3" />
-                              {factor}
-                            </span>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Income Approach */}
-                    <Card className="border border-gray-200">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <DollarSign className="h-5 w-5 text-green-600" />
-                            <h4 className="font-semibold text-gray-800">Income Approach</h4>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-gray-800">
-                              {formatCurrency(valuationData?.methods?.incomeApproach?.value || 0)}
-                            </div>
-                            <div className={`text-sm ${getConfidenceColor(valuationData?.methods?.incomeApproach?.confidence || 0)}`}>
-                              {formatPercentage(valuationData?.methods?.incomeApproach?.confidence || 0)} confidence
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-3">
-                          {valuationData?.methods?.incomeApproach?.description || 'Income approach analysis not available'}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {valuationData?.methods?.incomeApproach?.factors?.positive?.map((factor, index) => (
-                            <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                              <CheckCircle className="h-3 w-3" />
-                              {factor}
-                            </span>
-                          ))}
-                          {valuationData?.methods?.incomeApproach?.factors?.negative?.map((factor, index) => (
-                            <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                              <AlertTriangle className="h-3 w-3" />
-                              {factor}
-                            </span>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-
-                    {/* Cost Approach */}
-                    <Card className="border border-gray-200">
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Building className="h-5 w-5 text-purple-600" />
-                            <h4 className="font-semibold text-gray-800">Cost Approach</h4>
-                          </div>
-                          <div className="text-right">
-                            <div className="text-lg font-bold text-gray-800">
-                              {formatCurrency(valuationData?.methods?.costApproach?.value || 0)}
-                            </div>
-                            <div className={`text-sm ${getConfidenceColor(valuationData?.methods?.costApproach?.confidence || 0)}`}>
-                              {formatPercentage(valuationData?.methods?.costApproach?.confidence || 0)} confidence
-                            </div>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-600 mb-3">
-                          {valuationData?.methods?.costApproach?.description || 'Cost approach analysis not available'}
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {valuationData?.methods?.costApproach?.factors?.positive?.map((factor, index) => (
-                            <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
-                              <CheckCircle className="h-3 w-3" />
-                              {factor}
-                            </span>
-                          ))}
-                          {valuationData?.methods?.costApproach?.factors?.negative?.map((factor, index) => (
-                            <span key={index} className="inline-flex items-center gap-1 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
-                              <AlertTriangle className="h-3 w-3" />
-                              {factor}
-                            </span>
-                          ))}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  {/* Rental Yield Analysis */}
-                  {valuationData?.rentalYield && (
-                    <div className="mt-6">
-                      <h3 className="font-semibold text-lg text-gray-800 mb-4">Rental Yield Analysis</h3>
-                      <Card className="border border-gray-200">
-                        <CardContent className="p-4">
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="text-center">
-                              <div className="text-2xl font-bold text-green-600">
-                                {formatPercentage(valuationData?.rentalYield?.grossYield || 0)}
-                              </div>
-                              <div className="text-sm text-gray-600">Gross Yield</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-2xl font-bold text-blue-600">
-                                {formatPercentage(valuationData?.rentalYield?.netYield || 0)}
-                              </div>
-                              <div className="text-sm text-gray-600">Net Yield</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-gray-800">
-                                {formatCurrency(valuationData?.rentalYield?.monthlyRent || 0)}
-                              </div>
-                              <div className="text-sm text-gray-600">Monthly Rent</div>
-                            </div>
-                            <div className="text-center">
-                              <div className="text-lg font-bold text-gray-800">
-                                {formatCurrency(valuationData?.rentalYield?.annualRent || 0)}
-                              </div>
-                              <div className="text-sm text-gray-600">Annual Rent</div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
         </div>
       )}
 

@@ -86,6 +86,8 @@ Edit `.env` file:
 # EPC Register API Configuration
 EPC_API_BASE_URL=https://epc.opendatacommunities.org
 EPC_API_TOKEN=your_epc_api_token_here
+EPC_API_USERNAME=your_epc_api_username_here
+EPC_API_PASSWORD=your_epc_api_password_here
 
 # Server Configuration
 PORT=3000
@@ -134,7 +136,10 @@ The service includes rate limiting to prevent abuse:
 The service primarily uses the EPC Register API to fetch property data:
 
 - **Base URL**: https://epc.opendatacommunities.org/
-- **Authentication**: Bearer token required
+- **Authentication:**
+- The service will use **Basic Auth** (username/password) if both `EPC_API_USERNAME` and `EPC_API_PASSWORD` are set.
+- If not, it will fallback to using the Bearer token (`EPC_API_TOKEN`).
+- You can obtain your credentials from https://epc.opendatacommunities.org/account/api-keys
 - **Data Fields**:
   - `number_of_bedrooms`: Number of bedrooms
   - `current-energy-efficiency`: Current EPC rating (A-G)

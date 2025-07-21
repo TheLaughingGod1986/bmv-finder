@@ -91,17 +91,95 @@ export default function PortfolioAnalytics() {
 
   const fetchAnalytics = async () => {
     try {
-      const response = await fetch(`/api/portfolio/analytics?userId=${user?.id}`);
-      const data = await response.json();
+      // For now, use mock data since the API endpoint doesn't exist
+      // TODO: Implement actual API endpoint
+      const mockAnalytics: PortfolioAnalytics = {
+        overview: {
+          totalProperties: 3,
+          totalValue: 780000,
+          totalEquity: 195000,
+          totalRentalIncome: 42000,
+          averageYield: 5.4,
+          totalGrowth: 75000,
+          growthPercentage: 10.6
+        },
+        performance: {
+          totalReturn: 75000,
+          annualizedReturn: 8.2,
+          monthlyGrowth: 0.7,
+          bestPerformer: {
+            address: '42 Park Avenue',
+            growth: 25000,
+            growthPercentage: 7.8
+          },
+          worstPerformer: {
+            address: '7 Church Lane',
+            growth: 30000,
+            growthPercentage: 15.4
+          }
+        },
+        diversification: {
+          byPropertyType: {
+            'Semi-detached': { count: 1, value: 210000, percentage: 27 },
+            'Terraced': { count: 1, value: 345000, percentage: 44 },
+            'Detached': { count: 1, value: 225000, percentage: 29 }
+          },
+          byLocation: {
+            'NE5 2PR': { count: 1, value: 210000, percentage: 27 },
+            'SE3 9FE': { count: 1, value: 345000, percentage: 44 },
+            'SS9 5EL': { count: 1, value: 225000, percentage: 29 }
+          },
+          byYield: {
+            highYield: 1,
+            mediumYield: 1,
+            lowYield: 1
+          }
+        },
+        riskMetrics: {
+          averageDealScore: 78,
+          averageBMVScore: 75,
+          portfolioRisk: 'medium',
+          concentrationRisk: 0.44
+        },
+        trends: {
+          monthlyValues: [
+            { month: 'Jan 2024', value: 720000, growth: 2.1 },
+            { month: 'Feb 2024', value: 735000, growth: 2.1 },
+            { month: 'Mar 2024', value: 750000, growth: 2.0 },
+            { month: 'Apr 2024', value: 765000, growth: 2.0 },
+            { month: 'May 2024', value: 780000, growth: 2.0 }
+          ],
+          monthlyRentalIncome: [
+            { month: 'Jan 2024', income: 4000, growth: 0 },
+            { month: 'Feb 2024', income: 4100, growth: 2.5 },
+            { month: 'Mar 2024', income: 4150, growth: 1.2 },
+            { month: 'Apr 2024', income: 4200, growth: 1.2 },
+            { month: 'May 2024', income: 4200, growth: 0 }
+          ]
+        },
+        recommendations: {
+          topPerformers: [
+            { address: '42 Park Avenue', metric: 'Growth', value: 7.8 },
+            { address: '7 Church Lane', metric: 'Yield', value: 6.2 },
+            { address: '15 High Street', metric: 'BMV Score', value: 78 }
+          ],
+          areasForImprovement: [
+            { area: 'Diversification', suggestion: 'Consider adding a flat to diversify property types', impact: 'Medium' },
+            { area: 'Location Spread', suggestion: 'Look for properties in different regions', impact: 'High' },
+            { area: 'Yield Optimization', suggestion: 'Review rental rates for potential increases', impact: 'Medium' }
+          ],
+          nextSteps: [
+            { action: 'Review rental yields', priority: 'high', reason: 'Current average yield is below market rate' },
+            { action: 'Consider refinancing', priority: 'medium', reason: 'Good equity position allows for portfolio expansion' },
+            { action: 'Monitor market trends', priority: 'low', reason: 'Stay informed about local market conditions' }
+          ]
+        }
+      };
       
-      if (response.ok) {
-        setAnalytics(data.analytics);
-      } else {
-        console.error('Failed to fetch analytics:', data.error);
-      }
+      setAnalytics(mockAnalytics);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching analytics:', error);
-    } finally {
       setLoading(false);
     }
   };

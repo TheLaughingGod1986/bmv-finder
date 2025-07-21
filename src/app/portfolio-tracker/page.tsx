@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin } from 'lucide-react';
+import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import UserProfile from '../components/UserProfile';
@@ -50,7 +50,6 @@ export default function PortfolioTrackerPage() {
 
   // All hooks at the top
   const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
   const [portfolioProperties, setPortfolioProperties] = useState<PortfolioProperty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'sold' | 'watching'>('all');
@@ -124,6 +123,13 @@ export default function PortfolioTrackerPage() {
 
   const handleViewDetails = useCallback((id: string) => {
     console.log('View property details:', id);
+  }, []);
+
+  const handleRemoveProperty = useCallback((id: string, address: string) => {
+    if (window.confirm(`Are you sure you want to remove "${address}" from your portfolio? This action cannot be undone.`)) {
+      setPortfolioProperties(prev => prev.filter(property => property.id !== id));
+      console.log('Removed property from portfolio:', id);
+    }
   }, []);
 
   // Simulate loading
@@ -266,8 +272,34 @@ export default function PortfolioTrackerPage() {
     return null;
   }
 
-  // Only return JSX after all hooks
-  if (loading) return <div>Loading...</div>;
+  // Show loading skeleton while data is being loaded
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#FAF9F6] font-sans">
+        <main className="container mx-auto px-4 py-8 max-w-6xl">
+          {/* Standardized Header */}
+          <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                <BarChart3 className="w-7 h-7 text-blue-600" />
+              </div>
+              <h1 className="text-4xl font-extrabold text-gray-900 mb-0" id="page-title">Portfolio Tracker</h1>
+            </div>
+            <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4" id="page-description">
+              Track your property investments, monitor growth, and manage your BMV portfolio in one place.
+            </p>
+          </div>
+
+          <UserProfile />
+
+          <div className="mt-6">
+            {/* Loading skeleton for portfolio content */}
+            <LoadingSkeleton />
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -421,9 +453,7 @@ export default function PortfolioTrackerPage() {
               {/* Properties List */}
               <div className="space-y-4" role="region" aria-labelledby="properties-heading" id="properties-list">
                 <h2 className="sr-only" id="properties-heading">Portfolio Properties List</h2>
-                {isLoading ? (
-                  <LoadingSkeleton />
-                ) : filteredProperties.length === 0 ? (
+                {filteredProperties.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -516,6 +546,14 @@ export default function PortfolioTrackerPage() {
                             >
                               <Target className="w-4 h-4" />
                               View Details
+                            </button>
+                            <button
+                              onClick={() => handleRemoveProperty(property.id, property.address)}
+                              className="rounded-full font-semibold shadow bg-red-100 text-red-700 px-5 py-2.5 hover:bg-red-200 focus:ring-2 focus:ring-red-400 transition inline-flex items-center gap-2 text-sm"
+                              aria-label={`Remove ${property.address} from portfolio`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Remove
                             </button>
                           </div>
                         </div>

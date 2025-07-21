@@ -25,48 +25,11 @@ interface SearchResult {
 }
 
 interface DealAnalysisData {
-  property_info: {
-    address: string;
-    bedrooms: number | null;
-    epc_rating: string | null;
-    floor_area_m2: number | null;
-    property_type: string | null;
-    construction_year?: string;
-    current_energy_rating?: string;
-    potential_energy_rating?: string;
-    epc_date?: string;
-    certificate_id?: string;
-  } | null;
-  sold_prices: Array<{
-    price: number;
-    date: string;
-    property_type: string;
-    new_build: boolean;
-    estate_type: string;
-    transaction_type: string;
-  }>;
-  hpi_data: Array<{
-    date: string;
-    hpi_value: number;
-    hpi_change: number;
-    region: string;
-  }>;
-  deal_metrics: {
-    last_sold_price: number | null;
-    hpi_adjusted_value: number | null;
-    price_per_sqm: number | null;
-    price_per_bedroom: number | null;
-    deal_score: number;
-    deal_rating: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Overpriced';
-    analysis: string[];
-    current_value_estimate: number | null;
-  };
-  market_insights: {
-    average_price_per_sqm: number | null;
-    average_price_per_bedroom: number | null;
-    price_trend: 'rising' | 'falling' | 'stable';
-    market_volatility: 'low' | 'medium' | 'high';
-  };
+  estimatedValue: number | null;
+  confidence: 'low' | 'medium' | 'high';
+  comparables: any[];
+  usedBedroomFilter: boolean;
+  subject: any | null;
 }
 
 export default function DealAnalysisSearch() {
@@ -145,48 +108,28 @@ export default function DealAnalysisSearch() {
       }
 
       const data = await response.json();
-      // Ensure deal_metrics is always fully typed with current_value_estimate present and not optional
-      if (data && data.deal_metrics) {
-        const {
-          last_sold_price,
-          hpi_adjusted_value,
-          price_per_sqm,
-          price_per_bedroom,
-          deal_score,
-          deal_rating,
-          analysis,
-        } = data.deal_metrics;
-        data.deal_metrics = {
-          last_sold_price,
-          hpi_adjusted_value,
-          price_per_sqm,
-          price_per_bedroom,
-          deal_score,
-          deal_rating,
-          analysis,
-          current_value_estimate: typeof data.deal_metrics.current_value_estimate === 'number' ? data.deal_metrics.current_value_estimate : 0,
-        } as {
-          last_sold_price: number | null;
-          hpi_adjusted_value: number | null;
-          price_per_sqm: number | null;
-          price_per_bedroom: number | null;
-          deal_score: number;
-          deal_rating: 'Excellent' | 'Good' | 'Fair' | 'Poor' | 'Overpriced';
-          analysis: string[];
-          current_value_estimate: number;
-        };
-      }
+      // Expecting: { estimatedValue, confidence, comparables, usedBedroomFilter, subject }
       setDealAnalysis(data);
-      
-      // Show toast with deal rating
-      const dealRating = data.deal_metrics.deal_rating;
-      const dealScore = data.deal_metrics.deal_score;
-      
-      showToast({
-        type: dealRating === 'Excellent' || dealRating === 'Good' ? 'success' : 'warning',
-        title: 'Analysis Complete',
-        message: `Deal rating: ${dealRating} (${dealScore}/100)`,
-      });
+      // Optionally show a toast for confidence
+      if (data.confidence === 'low') {
+        showToast({
+          type: 'warning',
+          title: 'Low Confidence',
+          message: 'Not enough comparables found. Please interpret this estimate with caution.'
+        });
+      } else if (data.confidence === 'medium') {
+        showToast({
+          type: 'info',
+          title: 'Medium Confidence',
+          message: 'Estimate is based on a limited set of comparables.'
+        });
+      } else {
+        showToast({
+          type: 'success',
+          title: 'Analysis Complete',
+          message: 'High confidence estimate based on recent sales.'
+        });
+      }
     } catch (error) {
       showToast({
         type: 'error',
@@ -413,7 +356,16 @@ export default function DealAnalysisSearch() {
           {showNextGenValuation && nextGenValuation ? (
             <NextGenValuationCard data={nextGenValuation} loading={valuationLoading} />
           ) : (
-            <EnhancedDealAnalysisCard data={dealAnalysis} loading={analysisLoading} />
+            dealAnalysis && (
+              <EnhancedDealAnalysisCard
+                estimatedValue={dealAnalysis.estimatedValue}
+                confidence={dealAnalysis.confidence}
+                comparables={dealAnalysis.comparables}
+                usedBedroomFilter={dealAnalysis.usedBedroomFilter}
+                subject={dealAnalysis.subject}
+                loading={analysisLoading}
+              />
+            )
           )}
 
           {showMLValuation && (
