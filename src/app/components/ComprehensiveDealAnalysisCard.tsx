@@ -395,7 +395,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
           <CardTitle>No Data Found for This Property</CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="mb-4">We couldn't find any data for this property. You can manually add it to your portfolio to track and enrich its details.</p>
+          <p className="mb-4">We couldn&apos;t find any data for this property. You can manually add it to your portfolio to track and enrich its details.</p>
           {/* Minimal manual add form */}
           <ManualAddToPortfolioForm postcode={postcode} houseNumber={houseNumber} />
         </CardContent>

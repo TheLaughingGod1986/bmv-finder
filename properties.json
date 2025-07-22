@@ -1,1 +1,19 @@
-{"_index":"properties","_id":"Q-l8vpcB56DzJLeQCeHS","_score":1,"_source":{"id":"test1","price":350000,"postcode":"SW1A 1AA","dateOfTransfer":"2024-01-01","propertyType":"D","street":"Downing Street","town_city":"London","county":"Greater London","paon":"10","saon":"","duration":"F","locality":"Westminster"}}
+{
+  "_index": "properties",
+  "_id": "Q-l8vpcB56DzJLeQCeHS",
+  "_score": 1,
+  "_source": {
+    "id": "test1",
+    "price": 350000,
+    "postcode": "SW1A 1AA",
+    "dateOfTransfer": "2024-01-01",
+    "propertyType": "D",
+    "street": "Downing Street",
+    "town_city": "London",
+    "county": "Greater London",
+    "paon": "10",
+    "saon": "",
+    "duration": "F",
+    "locality": "Westminster"
+  }
+}

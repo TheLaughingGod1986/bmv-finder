@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_KEY!
-);
-
 interface PortfolioProperty {
   id: string;
   user_id: string;
@@ -59,6 +54,19 @@ interface AddToPortfolioRequest {
 
 export async function POST(request: NextRequest) {
   try {
+    // Create Supabase client inside the function to avoid build-time issues
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Supabase configuration is missing' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const body = await request.json();
     const {
       address,
@@ -186,6 +194,19 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Create Supabase client inside the function to avoid build-time issues
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+    
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json(
+        { error: 'Supabase configuration is missing' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { data: properties, error } = await supabase
       .from('portfolio_properties')

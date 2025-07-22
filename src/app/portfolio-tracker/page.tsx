@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2 } from 'lucide-react';
+import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import UserProfile from '../components/UserProfile';
@@ -53,6 +53,8 @@ export default function PortfolioTrackerPage() {
   const [portfolioProperties, setPortfolioProperties] = useState<PortfolioProperty[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'sold' | 'watching'>('all');
+  const [dataError, setDataError] = useState<string | null>(null);
+  const [isDataLoading, setIsDataLoading] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -95,6 +97,49 @@ export default function PortfolioTrackerPage() {
     getUser();
   }, [supabase]);
 
+  // Load portfolio data from Supabase
+  const loadPortfolioData = useCallback(async () => {
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
+    setIsDataLoading(true);
+    setDataError(null);
+
+    try {
+      console.log('Loading portfolio data for user:', user.id);
+      
+      // Fetch portfolio properties from Supabase
+      const { data: properties, error } = await supabase
+        .from('portfolio_properties')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading portfolio data:', error);
+        setDataError('Failed to load portfolio data. Please try again.');
+        setPortfolioProperties([]);
+      } else {
+        console.log('Loaded portfolio properties:', properties);
+        setPortfolioProperties(properties || []);
+        setDataError(null);
+      }
+    } catch (error) {
+      console.error('Error in loadPortfolioData:', error);
+      setDataError('An unexpected error occurred while loading your portfolio.');
+      setPortfolioProperties([]);
+    } finally {
+      setIsDataLoading(false);
+      setIsLoading(false);
+    }
+  }, [user, supabase]);
+
+  useEffect(() => {
+    loadPortfolioData();
+  }, [loadPortfolioData]);
+
   // Memoized calculations
   const filteredProperties = useMemo(() => {
     if (filterStatus === 'all') return portfolioProperties;
@@ -121,10 +166,6 @@ export default function PortfolioTrackerPage() {
     setFilterStatus(status);
   }, []);
 
-  const handleViewDetails = useCallback((id: string) => {
-    console.log('View property details:', id);
-  }, []);
-
   const handleRemoveProperty = useCallback((id: string, address: string) => {
     if (window.confirm(`Are you sure you want to remove "${address}" from your portfolio? This action cannot be undone.`)) {
       setPortfolioProperties(prev => prev.filter(property => property.id !== id));
@@ -132,50 +173,18 @@ export default function PortfolioTrackerPage() {
     }
   }, []);
 
-  // Simulate loading
-  React.useEffect(() => {
-    const timer = setTimeout(() => {
-      setPortfolioProperties([
-        {
-          id: '1',
-          address: '15 High Street',
-          postcode: 'NE5 2PR',
-          purchasePrice: 185000,
-          currentValue: 210000,
-          purchaseDate: '2022-03-15',
-          propertyType: 'Semi-detached',
-          bmvScore: 78,
-          notes: 'Great investment property with strong rental yield',
-          status: 'active'
-        },
-        {
-          id: '2',
-          address: '42 Park Avenue',
-          postcode: 'SE3 9FE',
-          purchasePrice: 320000,
-          currentValue: 345000,
-          purchaseDate: '2021-08-22',
-          propertyType: 'Terraced',
-          bmvScore: 82,
-          notes: 'Excellent location near transport links',
-          status: 'active'
-        },
-        {
-          id: '3',
-          address: '7 Church Lane',
-          postcode: 'SS9 5EL',
-          purchasePrice: 195000,
-          currentValue: 225000,
-          purchaseDate: '2023-01-10',
-          propertyType: 'Detached',
-          bmvScore: 75,
-          status: 'watching'
-        }
-      ]);
-      setIsLoading(false);
-    }, 1500);
-
-    return () => clearTimeout(timer);
+  const handleSoldProperty = useCallback((id: string, address: string) => {
+    const salePrice = prompt(`Enter the sale price for "${address}":`);
+    if (salePrice && !isNaN(Number(salePrice))) {
+      setPortfolioProperties(prev => prev.map(property => 
+        property.id === id 
+          ? { ...property, status: 'sold', currentValue: Number(salePrice) }
+          : property
+      ));
+      console.log('Marked property as sold:', id, 'Sale price:', salePrice);
+    } else if (salePrice !== null) {
+      alert('Please enter a valid sale price.');
+    }
   }, []);
 
   // Loading skeleton component
@@ -333,6 +342,49 @@ export default function PortfolioTrackerPage() {
 
           <UserProfile />
 
+          {/* Data Loading Indicator */}
+          {user && isDataLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6"
+            >
+              <div className="flex items-center gap-3">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                <span className="text-blue-800 font-medium">Loading your portfolio data...</span>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Error State */}
+          {user && dataError && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">!</span>
+                </div>
+                <div className="flex-1">
+                  <span className="text-red-800 font-medium">{dataError}</span>
+                  <button
+                    onClick={() => {
+                      setDataError(null);
+                      setIsDataLoading(true);
+                      // Reload data
+                      loadPortfolioData();
+                    }}
+                    className="ml-3 text-red-600 hover:text-red-800 underline text-sm"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
           {user && (
             <div className="mt-6">
               {/* Portfolio Analytics */}
@@ -453,7 +505,38 @@ export default function PortfolioTrackerPage() {
               {/* Properties List */}
               <div className="space-y-4" role="region" aria-labelledby="properties-heading" id="properties-list">
                 <h2 className="sr-only" id="properties-heading">Portfolio Properties List</h2>
-                {filteredProperties.length === 0 ? (
+                {isDataLoading ? (
+                  <LoadingSkeleton />
+                ) : dataError ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="text-center py-16"
+                  >
+                    <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-red-50 to-rose-100 rounded-full flex items-center justify-center shadow-lg">
+                      <BarChart3 className="w-16 h-16 text-red-500" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">Error Loading Portfolio</h3>
+                    <p className="text-gray-600 mb-8 max-w-lg mx-auto text-lg leading-relaxed">
+                      {dataError}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                      <button
+                        onClick={() => {
+                          // Retry loading portfolio
+                          setIsDataLoading(true);
+                          setDataError(null);
+                          loadPortfolioData();
+                        }}
+                        className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-lg"
+                      >
+                        <BarChart3 className="w-5 h-5" />
+                        Retry Loading
+                      </button>
+                    </div>
+                  </motion.div>
+                ) : filteredProperties.length === 0 ? (
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -463,31 +546,32 @@ export default function PortfolioTrackerPage() {
                     <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-green-50 to-emerald-100 rounded-full flex items-center justify-center shadow-lg">
                       <Home className="w-16 h-16 text-green-500" />
                     </div>
-                    <h3 className="text-2xl font-bold text-gray-900 mb-4">No Properties in Portfolio</h3>
+                    <h3 className="text-2xl font-bold text-gray-900 mb-4">
+                      {filterStatus === 'all' ? 'No Properties in Portfolio' : `No ${filterStatus} Properties`}
+                    </h3>
                     <p className="text-gray-600 mb-8 max-w-lg mx-auto text-lg leading-relaxed">
-                      Start tracking your property investments and monitor their growth, returns, and market performance over time.
+                      {filterStatus === 'all' 
+                        ? 'Start tracking your property investments and monitor their growth, returns, and market performance over time.'
+                        : `You don't have any ${filterStatus} properties in your portfolio. Try adding some properties or check other status filters.`
+                      }
                     </p>
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                       <button
-                        onClick={() => {
-                          // Add new property functionality
-                          console.log('Add new property');
-                        }}
+                        onClick={handleAddProperty}
                         className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-lg"
                       >
                         <Plus className="w-5 h-5" />
-                        Add Your First Property
+                        {filterStatus === 'all' ? 'Add Your First Property' : 'Add New Property'}
                       </button>
-                      <button
-                        onClick={() => {
-                          // Demo functionality
-                          console.log('View demo portfolio');
-                        }}
-                        className="inline-flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-700 rounded-full font-semibold hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition"
-                      >
-                        <BarChart3 className="w-5 h-5" />
-                        View Demo Portfolio
-                      </button>
+                      {filterStatus !== 'all' && (
+                        <button
+                          onClick={() => handleFilterChange('all')}
+                          className="inline-flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-700 rounded-full font-semibold hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition"
+                        >
+                          <BarChart3 className="w-5 h-5" />
+                          View All Properties
+                        </button>
+                      )}
                     </div>
                   </motion.div>
                 ) : (
@@ -538,22 +622,20 @@ export default function PortfolioTrackerPage() {
                           </div>
                           <div className="flex flex-col gap-2 ml-6">
                             <button
-                              onClick={() => {
-                                console.log('View property details:', property.id);
-                              }}
-                              className="rounded-full font-semibold shadow bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2 text-sm"
-                              aria-label={`View details for ${property.address}`}
-                            >
-                              <Target className="w-4 h-4" />
-                              View Details
-                            </button>
-                            <button
                               onClick={() => handleRemoveProperty(property.id, property.address)}
                               className="rounded-full font-semibold shadow bg-red-100 text-red-700 px-5 py-2.5 hover:bg-red-200 focus:ring-2 focus:ring-red-400 transition inline-flex items-center gap-2 text-sm"
                               aria-label={`Remove ${property.address} from portfolio`}
                             >
                               <Trash2 className="w-4 h-4" />
                               Remove
+                            </button>
+                            <button
+                              onClick={() => handleSoldProperty(property.id, property.address)}
+                              className="rounded-full font-semibold shadow bg-green-100 text-green-700 px-5 py-2.5 hover:bg-green-200 focus:ring-2 focus:ring-green-400 transition inline-flex items-center gap-2 text-sm"
+                              aria-label={`Mark ${property.address} as sold`}
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Sold
                             </button>
                           </div>
                         </div>
@@ -574,10 +656,7 @@ export default function PortfolioTrackerPage() {
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
                   <div className="flex flex-wrap gap-3">
                     <button
-                      onClick={() => {
-                        // Export portfolio functionality
-                        console.log('Export portfolio');
-                      }}
+                      onClick={handleExport}
                       className="rounded-full font-semibold shadow bg-green-100 text-green-700 px-5 py-2.5 hover:bg-green-200 transition inline-flex items-center gap-2"
                     >
                       <BarChart3 className="w-5 h-5" />
@@ -597,6 +676,36 @@ export default function PortfolioTrackerPage() {
                 </motion.div>
               )}
             </div>
+          )}
+
+          {/* Not authenticated state */}
+          {!user && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+              className="text-center py-16"
+            >
+              <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-full flex items-center justify-center shadow-lg">
+                <BarChart3 className="w-16 h-16 text-blue-500" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-4">Sign In to View Your Portfolio</h3>
+              <p className="text-gray-600 mb-8 max-w-lg mx-auto text-lg leading-relaxed">
+                To track your property investments and monitor portfolio performance, please sign in to your account.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <button
+                  onClick={() => {
+                    // Trigger sign in
+                    console.log('Sign in clicked');
+                  }}
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-lg"
+                >
+                  <BarChart3 className="w-5 h-5" />
+                  Sign In to Portfolio
+                </button>
+              </div>
+            </motion.div>
           )}
         </main>
       </div>
