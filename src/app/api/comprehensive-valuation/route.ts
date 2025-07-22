@@ -671,7 +671,7 @@ async function getONSMonthlyRent(property: PropertyData): Promise<{ monthlyRent:
     console.warn('Enhanced rental data calculation failed, falling back to basic estimation:', error);
     
     // Fallback to basic estimated rental calculation
-    const estimatedRent = estimateMonthlyRentFallback(property);
+    const estimatedRent = await estimateMonthlyRentFallback(property);
     
     return {
       monthlyRent: estimatedRent.monthlyRent,
