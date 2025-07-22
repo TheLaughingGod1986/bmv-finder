@@ -1,3 +1,5 @@
+import { NextResponse } from 'next/server';
+
 interface RateLimitConfig {
   windowMs: number;
   maxRequests: number;
@@ -185,12 +187,11 @@ export function checkRateLimit(request: Request): { allowed: boolean; headers: R
 }
 
 // Helper function to apply rate limit headers to NextResponse
-export function applyRateLimitHeaders(response: Response, headers: Record<string, string>): Response {
-  const newResponse = new Response(response.body, response);
+export function applyRateLimitHeaders(response: NextResponse, headers: Record<string, string>): NextResponse {
   Object.entries(headers).forEach(([key, value]) => {
-    newResponse.headers.set(key, value);
+    response.headers.set(key, value);
   });
-  return newResponse;
+  return response;
 }
 
 export default RateLimiter; 

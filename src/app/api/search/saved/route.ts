@@ -1,34 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit } from '@/lib/rateLimiter';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import AdvancedSearch from '@/lib/advancedSearch';
 import { esClient } from '@/lib/esClient';
 
 const advancedSearch = new AdvancedSearch(esClient);
 
 // Get all saved searches
-export const GET = withRateLimit(async (req: NextRequest) => {
+export const GET = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const savedSearches = advancedSearch.getSavedSearches();
     
-    return NextResponse.json({
+    const response = NextResponse.json({
       searches: savedSearches,
       count: savedSearches.length
     });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error getting saved searches:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+};
 
 // Save a new search
-export const POST = withRateLimit(async (req: NextRequest) => {
+export const POST = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const body = await req.json();
     const { name, query, filters } = body;
@@ -42,25 +58,34 @@ export const POST = withRateLimit(async (req: NextRequest) => {
 
     const savedSearch = await advancedSearch.saveSearch(name, query, filters);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: 'Search saved successfully',
       savedSearch
     });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error saving search:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+};
 
 // Execute a saved search
-export const PUT = withRateLimit(async (req: NextRequest) => {
+export const PUT = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const body = await req.json();
     const { searchId } = body;
@@ -81,22 +106,24 @@ export const PUT = withRateLimit(async (req: NextRequest) => {
       );
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       message: 'Saved search executed successfully',
       ...result
     });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error executing saved search:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+};
 
 // Delete a saved search
 export const DELETE = withRateLimit(async (req: NextRequest) => {

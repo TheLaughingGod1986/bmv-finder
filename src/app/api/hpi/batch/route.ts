@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit } from '@/lib/rateLimiter';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import ElasticsearchOptimizer from '@/lib/elasticsearchOptimizer';
 import { esClient } from '@/lib/esClient';
 
 const optimizer = new ElasticsearchOptimizer(esClient);
 
-export const POST = withRateLimit(async (req: NextRequest) => {
+export const POST = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const body = await req.json();
     const { postcodes, includeApi = false } = body;
@@ -35,20 +42,14 @@ export const POST = withRateLimit(async (req: NextRequest) => {
       averageResponseTime: 0, // Could be calculated if timing is added
     };
 
-    return NextResponse.json({
-      summary,
-      results,
-      message: `Processed ${summary.successful}/${summary.total} postcodes successfully`
-    });
+    const response = NextResponse.json({ summary, results, message: `Processed ${summary.successful}/${summary.total} postcodes successfully` });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
-    console.error('Error in batch HPI search:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+    const errorResponse = NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-}); 
+}; 

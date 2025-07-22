@@ -803,7 +803,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
           <div className="p-2 bg-blue-50 rounded-lg">
             <BarChart3 className="w-6 h-6 text-blue-600" />
           </div>
-        <div>
+          <div>
             <h3 className="text-lg font-semibold text-gray-900">Regional Trends</h3>
             <p className="text-sm text-gray-500 flex items-center space-x-2">
               <Calendar className="w-4 h-4" />
@@ -1255,8 +1255,8 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
               </div>
               <div className="mt-2 text-blue-700">
                 Scores consider both growth potential and market stability. Higher scores indicate better risk-adjusted returns.
-        </div>
-      </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

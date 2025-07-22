@@ -1,12 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit } from '@/lib/rateLimiter';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import AdvancedSearch from '@/lib/advancedSearch';
 import { esClient } from '@/lib/esClient';
 
 const advancedSearch = new AdvancedSearch(esClient);
 
 // Radius search endpoint
-export const POST = withRateLimit(async (req: NextRequest) => {
+export const POST = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const body = await req.json();
     const { centerPostcode, radius, filters } = body;
@@ -27,27 +34,33 @@ export const POST = withRateLimit(async (req: NextRequest) => {
 
     const result = await advancedSearch.radiusSearch(centerPostcode, radius, filters);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       type: 'radius_search',
       centerPostcode,
       radius,
       ...result
     });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error in radius search:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+    const errorResponse = NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+};
 
 // Area comparison endpoint
-export const PUT = withRateLimit(async (req: NextRequest) => {
+export const PUT = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const body = await req.json();
     const { areas, dateRange } = body;
@@ -68,19 +81,18 @@ export const PUT = withRateLimit(async (req: NextRequest) => {
 
     const result = await advancedSearch.areaComparison(areas, dateRange);
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       type: 'area_comparison',
       ...result
     });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error in area comparison:', error);
-    return NextResponse.json(
-      {
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error'
-      },
+    const errorResponse = NextResponse.json(
+      { error: 'Internal server error', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-}); 
+}; 

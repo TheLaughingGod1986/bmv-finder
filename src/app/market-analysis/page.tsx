@@ -72,7 +72,20 @@ export default function MarketAnalysisPage() {
         : `/api/market-analysis/enhanced?timeframe=${timeframe}`;
       
       const response = await fetch(url);
-      const data = await response.json();
+      let data: any = null;
+      try {
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+        data = await response.json();
+      } catch (jsonErr) {
+        console.error('Failed to parse market analysis API response as JSON:', jsonErr);
+        setMarketData([]);
+        setFilteredData([]);
+        setSummary(null);
+        setLoading(false);
+        return;
+      }
       
       console.log('Market Analysis API Response:', data); // Debug logging
       
@@ -80,9 +93,17 @@ export default function MarketAnalysisPage() {
         setMarketData(data.data);
         setFilteredData(data.data);
         setSummary(calculateSummary(data.data));
+      } else {
+        // Defensive: handle error response from API
+        setMarketData([]);
+        setFilteredData([]);
+        setSummary(null);
       }
     } catch (error) {
       console.error('Error loading market data:', error);
+      setMarketData([]);
+      setFilteredData([]);
+      setSummary(null);
     } finally {
       setLoading(false);
     }

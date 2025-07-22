@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { withRateLimit } from '@/lib/rateLimiter';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import PredictiveModel from '@/lib/predictiveModel';
 import { esClient } from '@/lib/esClient';
 
 const predictiveModel = new PredictiveModel();
 
-export const POST = withRateLimit(async (req: NextRequest) => {
+export const POST = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const body = await req.json();
     const { postcode, propertyType, currentValue, includeMarketInsights = false } = body;
@@ -54,28 +61,37 @@ export const POST = withRateLimit(async (req: NextRequest) => {
       );
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       postcode,
       prediction,
       marketInsights,
       dataPoints: features.historicalData.length,
       lastUpdated: new Date().toISOString(),
     });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error in property prediction:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-});
+};
 
 // Batch predictions endpoint
-export const PUT = withRateLimit(async (req: NextRequest) => {
+export const PUT = async (req: NextRequest) => {
+  const rateLimitResult = checkRateLimit(req);
+  if (!rateLimitResult.allowed) {
+    return applyRateLimitHeaders(
+      NextResponse.json({ error: rateLimitResult.error?.message || 'Rate limit exceeded' }, { status: rateLimitResult.error?.status || 429 }),
+      rateLimitResult.headers
+    );
+  }
   try {
     const body = await req.json();
     const { properties } = body;
@@ -141,20 +157,22 @@ export const PUT = withRateLimit(async (req: NextRequest) => {
       failed: results.filter(r => !r.success).length,
     };
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       summary,
       results,
       message: `Processed ${summary.successful}/${summary.total} predictions successfully`
     });
+    return applyRateLimitHeaders(response, rateLimitResult.headers);
 
   } catch (error) {
     console.error('Error in batch predictions:', error);
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       {
         error: 'Internal server error',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
       { status: 500 }
     );
+    return applyRateLimitHeaders(errorResponse, rateLimitResult.headers);
   }
-}); 
+}; 

@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle, Badge } from './SimpleCard';
 import { Home, MapPin, Bed, Calendar, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 
 interface Comparable {
-  address: string;
+      address: string;
   postcode: string;
-  price: number;
-  date: string;
+      price: number;
+      date: string;
   propertyType: string;
   bedrooms?: number;
 }
@@ -97,7 +97,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
             <CardTitle className="flex items-center gap-2 text-primary-700">
               <Home className="h-6 w-6" />
               {subject?.fullAddress || subject?.address || 'Property'}
-            </CardTitle>
+        </CardTitle>
             {subject?.propertyNumber && (
               <div className="text-sm text-gray-600 mt-1">
                 Property Number: {subject.propertyNumber}
@@ -115,9 +115,9 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
             </div>
                       <div className="text-sm text-gray-600 mt-1">
             {subject?.postcode} • {subject?.propertyType} • {subject?.bedrooms ? `${subject.bedrooms} bed` : ''}
-          </div>
-        </div>
-        </div>
+                          </div>
+                        </div>
+                      </div>
       </CardHeader>
       <CardContent>
         {/* Warning if low confidence or few comparables */}
@@ -138,7 +138,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
         {comparables.length === 0 ? (
           <div className="text-gray-500 text-sm">No comparable sales found in this area.</div>
         ) : (
-          <div className="space-y-3">
+              <div className="space-y-3">
             {comparables.map((comp, idx) => (
               <div key={idx} className="border border-gray-100 rounded-lg p-3 flex flex-col md:flex-row md:items-center md:justify-between bg-gray-50 hover:bg-gray-100 transition">
                 <div className="flex-1">
