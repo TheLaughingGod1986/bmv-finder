@@ -126,7 +126,7 @@ export const PUT = async (req: NextRequest) => {
 };
 
 // Delete a saved search
-export const DELETE = withRateLimit(async (req: NextRequest) => {
+export const DELETE = async (req: NextRequest) => {
   try {
     const body = await req.json();
     const { searchId } = body;
@@ -161,4 +161,4 @@ export const DELETE = withRateLimit(async (req: NextRequest) => {
       { status: 500 }
     );
   }
-}); 
+}; 
