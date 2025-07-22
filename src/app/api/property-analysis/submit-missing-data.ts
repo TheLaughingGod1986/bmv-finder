@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     console.log('User submitted missing data:', { postcode, number, floor_area_m2, epc_rating, bedrooms });
     // Upsert to properties-enhanced index
     const docId = `${postcode.replace(/\s+/g, '').toUpperCase()}_${number}`;
-    const body = {};
+    const body: { floor_area_m2?: number; epc_rating?: string; bedrooms?: number } = {};
     if (floor_area_m2 !== undefined) body.floor_area_m2 = floor_area_m2;
     if (epc_rating !== undefined) body.epc_rating = epc_rating;
     if (bedrooms !== undefined) body.bedrooms = bedrooms;
