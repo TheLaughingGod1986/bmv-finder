@@ -8,25 +8,26 @@ const nextConfig = {
   
   // Security headers
   async headers() {
-    const isDev = process.env.NODE_ENV !== 'production';
-
     // Relaxed Content Security Policy for compatibility with all required services
-    const securityHeaders = [
+    return [
       {
-        key: 'Content-Security-Policy',
-        value: `
-          default-src 'self';
-          script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com https://maps.googleapis.com https://maps.gstatic.com;
-          style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
-          connect-src *;
-          img-src * blob: data:;
-          font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;
-          frame-src https://js.stripe.com;
-        `.replace(/\s{2,}/g, ' ').trim()
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self';",
+              "script-src 'self' 'unsafe-inline' https://js.stripe.com https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com https://vitals.vercel-insights.com https://maps.googleapis.com https://maps.gstatic.com;",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;",
+              "connect-src *;",
+              "img-src * blob: data:;",
+              "font-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com;",
+              "frame-src https://js.stripe.com;"
+            ].join(' ')
+          }
+        ]
       }
     ];
-
-    return securityHeaders;
   },
 
   // Image optimization
