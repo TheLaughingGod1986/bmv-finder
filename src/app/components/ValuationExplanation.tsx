@@ -5,9 +5,9 @@ type Props = {
   avgValue: number;
   suggestedOffer: number;
   offerMargin: number;
-  comps: unknown[];
-  searchCriteria: unknown;
-  confidence: unknown;
+  comps: Array<{ similarityScore?: number }>;
+  searchCriteria: { postcode?: string; propertyType?: string; bedrooms?: number; plotSize?: number; epcRating?: string; condition?: string };
+  confidence: { score?: number; rating?: string; reason?: string };
   latestYoY: number | null;
 };
 

@@ -60,8 +60,8 @@ function getInflationFactor(hpiData: HpiRecord[], region: string, saleDate: Date
   const saleMonth = format(saleDate, 'yyyy-MM');
   const latestMonth = hpiData[hpiData.length - 1].date;
   
-  const saleIndex = hpiData.find(h => h.date === saleMonth)?.hpiIndex;
-  const latestIndex = hpiData.find(h => h.date === latestMonth)?.hpiIndex;
+  const saleIndex = hpiData.find(h => h.date === saleMonth)?.index;
+  const latestIndex = hpiData.find(h => h.date === latestMonth)?.index;
   
   if (!saleIndex || !latestIndex) return 1.0;
   
@@ -300,7 +300,7 @@ async function calculateMarketGrowth(region: string, comps: any[]): Promise<{ gr
     
     let latestYoY = null;
     if (oneYearAgoHpi) {
-      latestYoY = ((latestHpi.hpiIndex - oneYearAgoHpi.hpiIndex) / oneYearAgoHpi.hpiIndex) * 100;
+      latestYoY = ((latestHpi.index - oneYearAgoHpi.index) / oneYearAgoHpi.index) * 100;
       // Cap extreme values to reasonable ranges
       latestYoY = Math.max(-50, Math.min(50, latestYoY));
     }
@@ -314,7 +314,7 @@ async function calculateMarketGrowth(region: string, comps: any[]): Promise<{ gr
     
     let longTermGrowth = null;
     if (fiveYearsAgoHpi) {
-      const totalGrowth = ((latestHpi.hpiIndex - fiveYearsAgoHpi.hpiIndex) / fiveYearsAgoHpi.hpiIndex) * 100;
+      const totalGrowth = ((latestHpi.index - fiveYearsAgoHpi.index) / fiveYearsAgoHpi.index) * 100;
       longTermGrowth = totalGrowth / 5; // Average annual growth over 5 years
       // Cap extreme values to reasonable ranges
       longTermGrowth = Math.max(-20, Math.min(20, longTermGrowth));
@@ -589,7 +589,9 @@ export async function POST(request: NextRequest) {
         size: 0
       }
     });
-    const recentSalesCount = recentSalesResponse.hits.total.value;
+    const recentSalesCount = typeof recentSalesResponse.hits.total === 'number' 
+      ? recentSalesResponse.hits.total 
+      : recentSalesResponse.hits.total.value;
     console.log(`🔍 Found ${recentSalesCount} recent sales in ${searchRadius > 0 ? `${normalizedPostcode.split(' ')[0]}*` : normalizedPostcode} since ${twentyFourMonthsAgo}`);
 
     // Calculate additional market insights

@@ -53,7 +53,7 @@ export default function StripeCheckoutButton({
       showToast({
         type: 'error',
         title: 'Checkout Error',
-        message: error.message || 'Failed to start checkout. Please try again.'
+        message: (error as Error).message || 'Failed to start checkout. Please try again.'
       });
     } finally {
       setLoading(false);

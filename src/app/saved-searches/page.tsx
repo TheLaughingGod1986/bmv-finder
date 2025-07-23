@@ -1,6 +1,7 @@
 'use client';
-
-import { useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useUser } from '@supabase/auth-helpers-react';
+import { useToast } from '@/hooks/useToast';
 import { Search, Clock, MapPin, Trash2, Plus, Bookmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -45,7 +46,7 @@ export default function SavedSearchesPage() {
   }, []);
 
   // Simulate loading
-  React.useEffect(() => {
+  useEffect(() => {
     const timer = setTimeout(() => {
       setSavedSearches([
         {

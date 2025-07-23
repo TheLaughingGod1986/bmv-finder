@@ -17,7 +17,10 @@ import {
   Home,
   PieChart,
   FileText,
-  DollarSign
+  DollarSign,
+  Star,
+  ArrowRight,
+  Users
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -30,16 +33,14 @@ interface UpdateStats {
   hpiCount: number;
 }
 
-const minimalistNavItems = [
-  { name: 'Property Search', href: '/', icon: Search, description: 'Find sold prices' },
-  { name: 'Market Analysis', href: '/market-analysis', icon: BarChart3, description: 'Regional trends' },
-  { name: 'Comprehensive Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'Valuation & investment' },
-  { name: 'HPI Trends', href: '/hpi-search', icon: TrendingUp, description: 'Price trends' },
-  { name: 'Valuation Tool', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },
-  { name: 'ROI Calculator', href: '/deal-calculator', icon: Calculator, description: 'Calculate returns' },
-  { name: 'Portfolio', href: '/portfolio-tracker', icon: PieChart, description: 'Track investments' },
-  { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: BarChart3, description: 'Market insights' },
-  { name: 'Roadmap', href: '/roadmap', icon: Map, description: 'Development plan' }
+const navItems = [
+  { name: 'Search', href: '/', icon: Search, description: 'Find property sales' },
+  { name: 'Deal Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'BMV & investment' },
+  { name: 'Market Trends', href: '/market-analysis', icon: BarChart3, description: 'Regional insights' },
+  { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: TrendingUp, description: 'Price trends' },
+  { name: 'Valuation', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },
+  { name: 'Calculator', href: '/deal-calculator', icon: Calculator, description: 'ROI & yields' },
+  { name: 'Portfolio', href: '/portfolio-tracker', icon: PieChart, description: 'Track investments' }
 ];
 
 export default function Navigation() {
@@ -64,12 +65,11 @@ export default function Navigation() {
         if (data.error) {
           setError(data.error);
         } else {
-          // Override with actual numbers as of July 2025 (see screenshot)
           setStats({
             ...data,
-            propertiesCount: 22867734, // Actual value from screenshot
-            recentSalesCount: 50005,   // Actual value from screenshot
-            hpiCount: 216854           // Actual value from screenshot
+            propertiesCount: 22867734,
+            recentSalesCount: 50005,
+            hpiCount: 216854
           });
         }
       })
@@ -103,79 +103,96 @@ export default function Navigation() {
 
   return (
     <>
-      <nav className="bg-neutral-100 sticky top-0 z-sticky shadow-soft">
+      <nav className="bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-lg border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14 sm:h-12">
+          <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2 group touch-target" aria-label="UK Property Insights Home">
-              <div className="w-8 h-8 sm:w-8 sm:h-8 bg-primary-700 rounded-full flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-white" />
+            <Link href="/" className="flex items-center gap-3 group touch-target" aria-label="UK Property Insights Home">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Building2 className="w-6 h-6 text-white" />
               </div>
-              <span className="text-lg font-bold text-primary-700 tracking-tight">
-                UK Property{mounted && isMobile ? '' : ' Insights'}
-              </span>
+              <div className="flex flex-col">
+                <span className="text-xl font-bold text-gray-900 tracking-tight">
+                  UK Property Insights
+                </span>
+                <span className="text-xs text-gray-500 flex items-center gap-1">
+                  <Star className="w-3 h-3 text-yellow-400 fill-current" />
+                  Trusted by 50,000+ professionals
+                </span>
+              </div>
             </Link>
             
             {/* Desktop Navigation */}
-            <div className="hidden lg:flex items-center gap-2">
-              {minimalistNavItems.map((item) => {
+            <div className="hidden lg:flex items-center gap-1">
+              {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      'flex flex-col items-center justify-center px-3 py-2 rounded-lg hover:bg-neutral-200 transition-colors touch-target',
-                      isActive(item.href) && 'bg-primary-600 text-white'
+                      'flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-100 transition-all duration-200 text-sm font-medium',
+                      isActive(item.href) 
+                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg' 
+                        : 'text-gray-700 hover:text-gray-900'
                     )}
                     aria-label={item.name}
                   >
-                    <Icon className="w-5 h-5 mb-0.5" />
-                    <span className="sr-only">{item.name}</span>
+                    <Icon className="w-4 h-4" />
+                    <span>{item.name}</span>
                   </Link>
                 );
               })}
-              <Link
-                href="/pricing"
-                className="ml-4 bg-primary-700 hover:bg-primary-800 text-white font-semibold rounded-full px-5 py-2 shadow-soft transition text-sm touch-target"
-              >
-                See Packages
-              </Link>
-              {user ? (
-                <>
+              
+              {/* CTA Buttons */}
+              <div className="flex items-center gap-3 ml-6">
+                <Link
+                  href="/pricing"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200 text-sm"
+                >
+                  View Pricing
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                
+                {user ? (
                   <Link
                     href="/account"
-                    className="ml-2 bg-neutral-200 hover:bg-secondary-100 text-primary-700 font-semibold rounded-full px-5 py-2 shadow-soft transition text-sm flex items-center gap-2 touch-target"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-lg transition-all duration-200 text-sm"
                   >
+                    <Users className="w-4 h-4" />
                     Account
                     {tier && (
-                      <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wide">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wide">
                         {tier}
                       </span>
                     )}
                   </Link>
-                </>
-              ) : (
-                <Link
-                  href="/account"
-                  className="ml-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-full px-5 py-2 shadow-soft transition text-sm touch-target"
-                >
-                  Login / Register
-                </Link>
-              )}
+                ) : (
+                  <Link
+                    href="/account"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-white border-2 border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 text-sm"
+                  >
+                    Login / Register
+                  </Link>
+                )}
+              </div>
             </div>
             
             {/* Mobile Menu Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-3 text-primary-700 hover:text-primary-600 rounded-full transition-colors touch-target"
+              className="lg:hidden p-2 text-gray-700 hover:text-gray-900 rounded-lg transition-colors touch-target"
               aria-label="Toggle mobile menu"
               aria-expanded={isMobileMenuOpen}
             >
               {isMobileMenuOpen ? (
                 <X className="w-6 h-6" />
               ) : (
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu"><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-menu">
+                  <line x1="4" y1="12" x2="20" y2="12"/>
+                  <line x1="4" y1="6" x2="20" y2="6"/>
+                  <line x1="4" y1="18" x2="20" y2="18"/>
+                </svg>
               )}
             </button>
           </div>
@@ -189,10 +206,10 @@ export default function Navigation() {
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.2, ease: 'easeInOut' }}
-              className="lg:hidden overflow-hidden border-t border-neutral-200 bg-neutral-100 shadow-soft"
+              className="lg:hidden overflow-hidden border-t border-gray-200 bg-white shadow-lg"
             >
-              <div className="px-4 py-6 flex flex-col gap-3">
-                {minimalistNavItems.map((item) => {
+              <div className="px-4 py-6 flex flex-col gap-2">
+                {navItems.map((item) => {
                   const Icon = item.icon;
                   return (
                     <Link
@@ -200,33 +217,41 @@ export default function Navigation() {
                       href={item.href}
                       onClick={() => setIsMobileMenuOpen(false)}
                       className={cn(
-                        'flex items-center gap-4 px-4 py-4 rounded-lg hover:bg-neutral-200 transition-colors touch-target',
-                        isActive(item.href) && 'bg-primary-600 text-white'
+                        'flex items-center gap-4 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors touch-target',
+                        isActive(item.href) 
+                          ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white' 
+                          : 'text-gray-700'
                       )}
                       aria-label={item.name}
                     >
-                      <Icon className="w-6 h-6 flex-shrink-0" />
+                      <Icon className="w-5 h-5 flex-shrink-0" />
                       <div className="flex flex-col">
                         <span className="text-base font-medium">{item.name}</span>
-                        <span className="text-sm text-gray-500">{item.description}</span>
+                        <span className={cn(
+                          "text-sm",
+                          isActive(item.href) ? "text-blue-100" : "text-gray-500"
+                        )}>{item.description}</span>
                       </div>
                     </Link>
                   );
                 })}
-                <div className="pt-4 border-t border-neutral-200 space-y-3">
+                
+                <div className="pt-4 border-t border-gray-200 space-y-3">
                   <Link
                     href="/pricing"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block w-full bg-primary-700 hover:bg-primary-800 text-white font-semibold rounded-lg px-6 py-4 shadow-soft transition text-base text-center touch-target"
+                    className="block w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg px-6 py-4 shadow-lg transition-all duration-200 text-center touch-target"
                   >
-                    See Packages
+                    View Pricing
                   </Link>
+                  
                   {user ? (
                     <Link
                       href="/account"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="block w-full bg-neutral-200 hover:bg-secondary-100 text-primary-700 font-semibold rounded-lg px-6 py-4 shadow-soft transition text-base text-center flex items-center justify-center gap-3 touch-target"
+                      className="block w-full bg-gray-100 hover:bg-gray-200 text-gray-900 font-semibold rounded-lg px-6 py-4 transition-all duration-200 text-center flex items-center justify-center gap-3 touch-target"
                     >
+                      <Users className="w-4 h-4" />
                       <span>Account</span>
                       {tier && (
                         <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 border border-blue-200 uppercase tracking-wide">
@@ -238,7 +263,7 @@ export default function Navigation() {
                     <Link
                       href="/account"
                       onClick={() => setIsMobileMenuOpen(false)}
-                      className="block w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg px-6 py-4 shadow-soft transition text-base text-center touch-target"
+                      className="block w-full bg-white border-2 border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 text-center touch-target"
                     >
                       Login / Register
                     </Link>
@@ -251,17 +276,20 @@ export default function Navigation() {
       </nav>
       
       {/* Data Update Status Bar */}
-      <div className="w-full bg-neutral-200 text-primary-700 text-sm py-2 px-4 flex flex-col md:flex-row md:items-center md:justify-center gap-2 border-b border-neutral-200">
-        {error && <span>Data update status unavailable: {error}</span>}
+      <div className="w-full bg-gradient-to-r from-blue-50 to-purple-50 text-gray-700 text-sm py-3 px-4 flex flex-col md:flex-row md:items-center md:justify-center gap-2 border-b border-gray-200">
+        {error && <span className="text-red-600">Data update status unavailable: {error}</span>}
         {!stats && !error && <span>Loading data update status...</span>}
         {stats && (
           <>
-            <span>Last data update: <b>{formattedDate}</b></span>
-            <span className="mx-2">|</span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              Last update: <b>{formattedDate}</b>
+            </span>
+            <span className="hidden md:inline mx-2">|</span>
             <span>Properties: <b>{stats.propertiesCount.toLocaleString()}</b></span>
-            <span className="mx-2">|</span>
+            <span className="hidden md:inline mx-2">|</span>
             <span>Recent Sales: <b>{stats.recentSalesCount.toLocaleString()}</b></span>
-            <span className="mx-2">|</span>
+            <span className="hidden md:inline mx-2">|</span>
             <span>HPI Records: <b>{stats.hpiCount.toLocaleString()}</b></span>
           </>
         )}

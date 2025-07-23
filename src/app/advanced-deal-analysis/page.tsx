@@ -12,12 +12,30 @@ import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 import AddressSearchInput from '../components/AddressSearchInput';
 import { motion } from 'framer-motion';
 
+interface Comparable {
+  address: string;
+  postcode: string;
+  price: number;
+  date: string;
+  propertyType: string;
+  bedrooms?: number;
+}
+
+interface SubjectProperty {
+  address?: string;
+  fullAddress?: string;
+  postcode?: string;
+  propertyNumber?: string;
+  propertyType?: string;
+  bedrooms?: number;
+}
+
 interface DealAnalysisData {
   estimatedValue: number | null;
   confidence: 'low' | 'medium' | 'high';
-  comparables: unknown[];
+  comparables: Comparable[];
   usedBedroomFilter: boolean;
-  subject: unknown | null;
+  subject: SubjectProperty | null;
 }
 
 export default function AdvancedDealAnalysisPage() {

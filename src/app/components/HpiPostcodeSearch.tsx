@@ -96,9 +96,9 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
       const response = await apiClient.getHpiData(trimmed);
       if (!response.error && response.data && typeof response.data === 'object' && 'results' in response.data && Array.isArray((response.data as any).results) && (response.data as any).results.length > 0) {
         setData((response.data as { results: unknown[] }).results.map((r: unknown) => ({
-          ...r,
-          index: r.hpiIndex !== undefined ? r.hpiIndex : r.index // Map hpiIndex to index for frontend compatibility
-        })));
+          ...(r as Record<string, unknown>),
+          index: (r as any).hpiIndex !== undefined ? (r as any).hpiIndex : (r as any).index // Map hpiIndex to index for frontend compatibility
+        })) as HpiRecord[]);
         setSource((response.data as any).source);
         if ((response.data as any).region) setRegion((response.data as any).region);
       } else {

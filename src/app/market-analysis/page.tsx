@@ -90,9 +90,9 @@ export default function MarketAnalysisPage() {
               // Market Analysis API Response received
       
       if (data.success && data.data) {
-        setMarketData(data.data);
-        setFilteredData(data.data);
-        setSummary(calculateSummary(data.data));
+        setMarketData(data.data as MarketData[]);
+        setFilteredData(data.data as MarketData[]);
+        setSummary(calculateSummary(data.data as MarketData[]));
       } else {
         // Defensive: handle error response from API
         setMarketData([]);
@@ -131,7 +131,7 @@ export default function MarketAnalysisPage() {
     }
   };
 
-  const calculateVolatility = (region: { salesCount: number; priceRange: { min: number; max: number } }) => {
+  const calculateVolatility = (region: { salesCount: number; priceRange: { min: number; max: number }; yoyGrowth?: number }) => {
     // Simplified volatility calculation based on YoY growth
     const growth = region.yoyGrowth || 0;
     // Use a simplified volatility calculation since we don't have monthly data
@@ -153,7 +153,8 @@ export default function MarketAnalysisPage() {
 
   const calculateInvestmentScore = (region: { yoyGrowth: number; salesCount: number; avgPrice: number }) => {
     const yoyGrowth = region.yoyGrowth || 0;
-    const volatility = calculateVolatility(region);
+    // Simplified volatility calculation for investment score
+    const volatility = Math.abs(yoyGrowth) * 0.1;
     
     // Score based on growth and stability
     let score = 50; // Base score

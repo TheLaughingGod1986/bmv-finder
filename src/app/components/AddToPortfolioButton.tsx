@@ -174,7 +174,7 @@ export default function AddToPortfolioButton({
 }
 
 // Helper function to extract property data from comprehensive valuation
-export function extractPropertyDataFromValuation(valuationData: { property: { address: string; postcode: string; propertyType: string; bedrooms?: number; floorArea?: number; epcRating?: string }; summary: { finalValue: number }; methods: { salesComparison: { value: number } } }) {
+export function extractPropertyDataFromValuation(valuationData: { property: { address: string; postcode: string; propertyType: string; bedrooms?: number; floorArea?: number; epcRating?: string; lastSoldPrice?: number; lastSoldDate?: string; houseNumber?: string; street?: string; constructionYear?: string }; summary: { finalValue: number; confidence?: number }; methods: { salesComparison: { value: number }; incomeApproach?: { breakdown?: { annualRentalIncome?: number; yield?: number } } } }) {
   if (!valuationData || !valuationData.property) {
     return null;
   }

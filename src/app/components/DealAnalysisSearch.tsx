@@ -24,12 +24,30 @@ interface SearchResult {
   transaction_type: string;
 }
 
+interface Comparable {
+  address: string;
+  postcode: string;
+  price: number;
+  date: string;
+  propertyType: string;
+  bedrooms?: number;
+}
+
+interface SubjectProperty {
+  address?: string;
+  fullAddress?: string;
+  postcode?: string;
+  propertyNumber?: string;
+  propertyType?: string;
+  bedrooms?: number;
+}
+
 interface DealAnalysisData {
   estimatedValue: number | null;
   confidence: 'low' | 'medium' | 'high';
-  comparables: unknown[];
+  comparables: Comparable[];
   usedBedroomFilter: boolean;
-  subject: unknown | null;
+  subject: SubjectProperty | null;
 }
 
 export default function DealAnalysisSearch() {

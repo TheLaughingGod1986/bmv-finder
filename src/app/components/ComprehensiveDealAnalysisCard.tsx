@@ -140,7 +140,7 @@ interface ComprehensiveValuationData {
       description: string;
       impact: 'high' | 'medium' | 'low';
       estimatedImprovement: number;
-      currentValue?: unknown;
+      currentValue?: string | number;
       suggestedValue?: string;
     }>;
     totalPotentialImprovement: number;

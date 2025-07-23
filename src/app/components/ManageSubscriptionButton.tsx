@@ -57,7 +57,7 @@ export default function ManageSubscriptionButton({
       showToast({
         type: 'error',
         title: 'Error',
-        message: err.message || 'Failed to open Stripe Customer Portal'
+        message: (err as Error).message || 'Failed to open Stripe Customer Portal'
       });
     } finally {
       setLoading(false);

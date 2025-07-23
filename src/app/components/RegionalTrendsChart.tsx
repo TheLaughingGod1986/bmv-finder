@@ -19,6 +19,10 @@ interface MarketData {
   dataPoints: number;
 }
 
+interface ComparedPostcodeData extends MarketData {
+  postcode: string;
+}
+
 interface RegionalTrendsChartProps {
   data: MarketData[];
   timeframe: '1y' | '2y' | '5y';
@@ -296,6 +300,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
       });
       
               // Adding postcode
+      console.log({
         input: normalized,
         normalized: normalizedPc,
         normalizedNoSpace,
@@ -333,12 +338,13 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
       });
       
               // Adding postcode from dropdown
-        input: postcode,
-        normalized: normalizedPc,
-        normalizedNoSpace,
-        existingPostcodes: comparedPostcodes,
-        alreadyExists
-      });
+              console.log({
+                input: postcode,
+                normalized: normalizedPc,
+                normalizedNoSpace,
+                existingPostcodes: comparedPostcodes,
+                alreadyExists
+              });
       
       if (!alreadyExists) {
         setComparedPostcodes(prev => [...prev, normalizedPc]);
@@ -347,19 +353,20 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
         
         // If we have pre-fetched data, store it to avoid re-fetching
         if (preFetchedData) {
+          const data = preFetchedData as any;
           setComparedPostcodeData(prev => [...prev, {
             postcode: normalizedPc,
-            region: preFetchedData.region || 'Unknown Region',
-            currentIndex: preFetchedData.currentIndex || 100,
-            yoyGrowth: preFetchedData.yoyGrowth || 0,
-            timeframeGrowth: preFetchedData.timeframeGrowth || 0,
-            momGrowth: preFetchedData.momGrowth || 0,
-            volatility: preFetchedData.volatility || 0,
-            trend: preFetchedData.trend || 'stable',
-            riskLevel: preFetchedData.riskLevel || 'medium',
-            investmentScore: preFetchedData.investmentScore || 50,
-            lastUpdated: preFetchedData.lastUpdated || new Date().toISOString().split('T')[0],
-            dataPoints: preFetchedData.dataPoints || 0
+            region: data.region || 'Unknown Region',
+            currentIndex: data.currentIndex || 100,
+            yoyGrowth: data.yoyGrowth || 0,
+            timeframeGrowth: data.timeframeGrowth || 0,
+            momGrowth: data.momGrowth || 0,
+            volatility: data.volatility || 0,
+            trend: data.trend || 'stable',
+            riskLevel: data.riskLevel || 'medium',
+            investmentScore: data.investmentScore || 50,
+            lastUpdated: data.lastUpdated || new Date().toISOString().split('T')[0],
+            dataPoints: data.dataPoints || 0
           }]);
         }
       } else {
@@ -530,7 +537,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                 
                 // Find historical data points
                 const oneYearAgo = hpiData.find((item: unknown) => {
-                  const itemDate = new Date(item.date);
+                  const itemDate = new Date((item as any).date);
                   const latestDate = new Date(latestData.date);
                   const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                      (latestDate.getMonth() - itemDate.getMonth());
@@ -538,7 +545,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                 });
                 
                 const oneMonthAgo = hpiData.find((item: unknown) => {
-                  const itemDate = new Date(item.date);
+                  const itemDate = new Date((item as any).date);
                   const latestDate = new Date(latestData.date);
                   const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                      (latestDate.getMonth() - itemDate.getMonth());
@@ -561,7 +568,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                   timeframeGrowth = yoyGrowth;
                 } else if (timeframe === '2y') {
                   const twoYearsAgo = hpiData.find((item: unknown) => {
-                    const itemDate = new Date(item.date);
+                    const itemDate = new Date((item as any).date);
                     const latestDate = new Date(latestData.date);
                     const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                        (latestDate.getMonth() - itemDate.getMonth());
@@ -571,7 +578,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                   timeframeGrowth = twoYearsAgoValue ? ((hpiValue - twoYearsAgoValue) / twoYearsAgoValue) * 100 : 0;
                 } else if (timeframe === '5y') {
                   const fiveYearsAgo = hpiData.find((item: unknown) => {
-                    const itemDate = new Date(item.date);
+                    const itemDate = new Date((item as any).date);
                     const latestDate = new Date(latestData.date);
                     const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                        (latestDate.getMonth() - itemDate.getMonth());
@@ -1042,7 +1049,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
           <tbody className="bg-white divide-y divide-gray-200">
             {/* NEW: Show compared postcodes first - filter out entries with no data */}
             {comparedPostcodeData
-              .filter((item: unknown) => {
+              .filter((item: ComparedPostcodeData) => {
                 // Remove entries with no data or invalid HPI values
                 const hasValidData = item.currentIndex && item.currentIndex > 0 && 
                   (item.timeframeGrowth !== null && item.timeframeGrowth !== undefined) &&
@@ -1054,7 +1061,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                 }
                 return hasValidData;
               })
-              .map((item: unknown, index: number) => (
+              .map((item: ComparedPostcodeData, index: number) => (
               <motion.tr
                 key={item.postcode}
                 initial={{ opacity: 0, y: 20 }}
