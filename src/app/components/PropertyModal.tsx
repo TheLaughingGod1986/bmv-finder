@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { X, MapPin, Calendar, PoundSterling, Home, TrendingUp, TrendingDown, Info, Building2, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -47,15 +47,15 @@ export default function PropertyModal({ isOpen, onClose, property }: PropertyMod
         pageSize: 5
       });
 
-      if (!response.error && response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray((response.data as any).data)) {
+      if (!response.error && response.data && typeof response.data === 'object' && 'data' in response.data && Array.isArray((response.data as { data: PropertyData[] }).data)) {
         // Filter out the current property and get similar ones
-        const similar = (response.data as any).data
+        const similar = (response.data as { data: PropertyData[] }).data
           .filter((p: PropertyData) => p.id !== property.id)
           .slice(0, 4);
         setSimilarProperties(similar);
       }
     } catch (error) {
-      console.error('Error fetching similar properties:', error);
+      // Error fetching similar properties
     } finally {
       setIsLoading(false);
     }
@@ -211,7 +211,7 @@ export default function PropertyModal({ isOpen, onClose, property }: PropertyMod
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
                         onClick={() => {
                           // You could implement navigation to this property
-                          console.log('Navigate to property:', prop.id);
+                          // Navigate to property
                         }}
                       >
                         <div className="flex-1">

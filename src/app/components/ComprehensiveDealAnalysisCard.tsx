@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from './SimpleCard';
 import { 
   Home, 
@@ -140,7 +140,7 @@ interface ComprehensiveValuationData {
       description: string;
       impact: 'high' | 'medium' | 'low';
       estimatedImprovement: number;
-      currentValue?: any;
+      currentValue?: unknown;
       suggestedValue?: string;
     }>;
     totalPotentialImprovement: number;
@@ -247,12 +247,6 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
   const { success, error } = useToast();
   const [errorState, setError] = useState<any>(null);
 
-  useEffect(() => {
-    if (postcode && houseNumber) {
-      fetchComprehensiveData();
-    }
-  }, [postcode, houseNumber]);
-
   const fetchComprehensiveData = async () => {
     setIsLoading(true);
     try {
@@ -268,7 +262,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
         } catch (e) {
           errorObj = { error: valuationResponse.statusText };
         }
-        console.error('[DEBUG] Valuation API error:', errorObj);
+        // Valuation API error
         setValuationData(null);
         setError(errorObj);
       }
@@ -277,9 +271,9 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
       const planningResponse = await fetch(`/api/planning-authority?postcode=${encodeURIComponent(postcode)}`);
       if (planningResponse.ok) {
         const planningResult = await planningResponse.json();
-        console.log('Planning API response:', planningResult);
+        // Planning API response received
         setPlanningData(planningResult.data);
-        console.log('Setting planningData:', planningResult.data);
+                  // Setting planning data
       } else {
         let errorObj = null;
         try {
@@ -287,12 +281,12 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
         } catch (e) {
           errorObj = { error: planningResponse.statusText };
         }
-        console.error('Planning API error:', errorObj);
+        // Planning API error
         setPlanningData(null);
         setError(errorObj);
       }
     } catch (error) {
-      console.error('[DEBUG] Error fetching comprehensive data:', error);
+              // Error fetching comprehensive data
       setValuationData(null);
       setError({ error: error instanceof Error ? error.message : String(error) });
     } finally {
@@ -300,6 +294,12 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
       if (onAnalysisComplete) onAnalysisComplete();
     }
   };
+
+  useEffect(() => {
+    if (postcode && houseNumber) {
+      fetchComprehensiveData();
+    }
+  }, [postcode, houseNumber, fetchComprehensiveData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -1158,7 +1158,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
           <MissingDataCard 
             missingData={valuationData.missingData}
             onDataUpdate={(fieldName, value) => {
-              console.log(`User provided ${fieldName}: ${value}`);
+              // User provided data update
               // Here you could implement logic to update the valuation with new data
               // For now, we'll just log the update
             }}

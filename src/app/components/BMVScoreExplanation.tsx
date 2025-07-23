@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { ChevronDown, ChevronUp, Info, TrendingUp, Calculator, Target } from 'lucide-react';
 
 const BMVScoreExplanation: React.FC = () => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 
 interface PersonalizedGreetingProps {
   userName?: string;
@@ -23,11 +23,11 @@ export default function PersonalizedGreeting({
     : 'Welcome to BMV Finder';
 
   return (
-    <div className={`mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-[#D2B48C] ${className}`}>
-      <h1 className="text-3xl md:text-4xl font-bold text-[#2C6E91] mb-2 leading-tight">
+    <div className={`mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-neutral-200 ${className}`}>
+      <h1 className="text-3xl md:text-4xl font-bold text-primary-blue-dark mb-2 leading-tight">
         {title || defaultTitle}
       </h1>
-      <p className="text-lg md:text-xl text-[#3B755D] font-medium leading-relaxed">
+      <p className="text-lg md:text-xl text-primary-green-dark font-medium leading-relaxed">
         {subtitle || defaultSubtitle}
       </p>
     </div>

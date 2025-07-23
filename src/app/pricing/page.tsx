@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { supabase } from '../../lib/supabaseClient';
 import { useUserTier } from '@/hooks/useUserTier';
 import Head from 'next/head';
@@ -7,6 +7,8 @@ import TrustBadges from "../components/TrustBadges";
 import PartnerLogos from "../components/PartnerLogos";
 import Testimonials from "../components/Testimonials";
 import PricingCard from "../components/PricingCard";
+import { Button } from "../components/ui";
+import { useToast } from "../components/ToastProvider";
 
 // Custom hook for user management
 function useClientUser() {
@@ -74,6 +76,8 @@ if (!PRO_YEARLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID ||
 }
 
 const UpgradeButton = ({ userId, priceId, children }: { userId: string; priceId: string; children: React.ReactNode }) => {
+  const { showToast } = useToast();
+  
   if (!userId || !priceId) return null;
   const handleUpgrade = async () => {
     const res = await fetch("/api/create-checkout-session", {
@@ -85,14 +89,14 @@ const UpgradeButton = ({ userId, priceId, children }: { userId: string; priceId:
     if (data.url) {
       window.location.href = data.url;
     } else {
-      alert(data.error || "Failed to start checkout.");
+      showToast({ type: 'error', title: data.error || "Failed to start checkout." });
     }
   };
 
   return (
-    <button className="btn btn-primary" onClick={handleUpgrade}>
+    <Button variant="primary" size="md" onClick={handleUpgrade}>
       {children}
-    </button>
+    </Button>
   );
 };
 
@@ -226,7 +230,7 @@ export default function PricingPage() {
   }
 
   if (userLoading) {
-    return <div className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
+    return <div className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded-xl shadow-soft border border-neutral-200">
       <div className="text-center">Loading...</div>
     </div>;
   }
@@ -236,21 +240,21 @@ export default function PricingPage() {
       <Head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingJsonLd) }} />
       </Head>
-      <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow relative">
+      <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded-xl shadow-soft border border-neutral-200 relative">
         {/* Trust Badges and Partner Logos */}
         <TrustBadges />
         <PartnerLogos />
         {/* Sticky Mobile CTA Banner */}
         {showStickyCTA && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-[#3A7CA5] shadow-lg z-50 md:hidden">
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-primary-700 shadow-soft z-50 md:hidden">
             <div className="flex items-center justify-between p-4">
               <div className="flex-1">
-                <p className="text-sm font-bold text-[#2C6E91] leading-tight">Ready to upgrade?</p>
-                <p className="text-xs text-[#3B755D] mt-1 leading-tight">Get unlimited access to property insights</p>
+                <p className="text-sm font-bold text-primary-700 leading-tight">Ready to upgrade?</p>
+                <p className="text-xs text-primary-600 mt-1 leading-tight">Get unlimited access to property insights</p>
               </div>
               <button
                 onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
-                className="ml-4 px-6 py-3 bg-[#3A7CA5] text-white rounded-lg font-bold text-sm hover:bg-[#2C6E91] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 min-h-[44px] min-w-[120px]"
+                className="ml-4 px-6 py-3 bg-primary-700 text-white rounded-lg font-bold text-sm hover:bg-primary-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 min-h-[44px] min-w-[120px]"
                 aria-label="View pricing plans"
               >
                 View Plans
@@ -261,12 +265,12 @@ export default function PricingPage() {
 
         {/* Personalized Greeting */}
         {user && (
-          <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-[#D2B48C]">
-            <h1 className="text-3xl md:text-4xl font-bold text-[#2C6E91] mb-2 leading-tight">
+          <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-neutral-200 shadow-soft">
+            <h1 className="text-3xl md:text-4xl font-bold text-primary-700 mb-2 leading-tight">
               Welcome back{userName ? `, ${userName}` : ''}!
             </h1>
-            <p className="text-lg md:text-xl text-[#3B755D] font-medium leading-relaxed">
-              You&apos;re currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
+            <p className="text-lg md:text-xl text-primary-600 font-medium leading-relaxed">
+              You&apos;re currently on the <span className="font-bold text-primary-700">{planName}</span> plan
             </p>
           </div>
         )}
@@ -274,27 +278,27 @@ export default function PricingPage() {
         <section className="mb-10 text-center">
           <h1 className="text-4xl font-extrabold mb-4">Find the Right Plan for Your Property Journey</h1>
           <p className="text-lg text-gray-600 mb-6">Compare features, see what&apos;s included, and choose the perfect plan for you. Upgrade anytime.</p>
-          <a href="#plans" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow transition-colors text-lg">See Plans</a>
+          <a href="#plans" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-soft transition-colors text-lg">See Plans</a>
         </section>
 
         {/* Billing Interval Toggle */}
         <section id="plans" className="mb-16">
-          <h2 className="text-3xl font-bold mb-8 text-center text-[#2C6E91] leading-tight">Choose Your Plan</h2>
+          <h2 className="text-3xl font-bold mb-8 text-center text-primary-700 leading-tight">Choose Your Plan</h2>
           <div className="flex justify-center mb-8">
-            <div className="inline-flex rounded-full bg-[#F5F5DC] border-2 border-[#D2B48C] shadow-sm overflow-hidden">
+            <div className="inline-flex rounded-full bg-neutral-100 border-2 border-neutral-200 shadow-soft overflow-hidden">
               <button
-                className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'month' ? 'bg-[#3A7CA5] text-white' : 'text-[#2C6E91] hover:bg-[#E5E5E5]'}`}
+                className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'month' ? 'bg-primary-700 text-white' : 'text-primary-700 hover:bg-neutral-200'}`}
                 onClick={() => setBillingInterval('month')}
                 aria-pressed={billingInterval === 'month'}
               >
                 Monthly
               </button>
               <button
-                className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'year' ? 'bg-[#3A7CA5] text-white' : 'text-[#2C6E91] hover:bg-[#E5E5E5]'}`}
+                className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'year' ? 'bg-primary-700 text-white' : 'text-primary-700 hover:bg-neutral-200'}`}
                 onClick={() => setBillingInterval('year')}
                 aria-pressed={billingInterval === 'year'}
               >
-                Yearly <span className="ml-2 text-xs font-bold text-[#D4AF37]">(Save 2 months)</span>
+                Yearly <span className="ml-2 text-xs font-bold text-yellow-500">(Save 2 months)</span>
               </button>
             </div>
           </div>
@@ -318,9 +322,9 @@ export default function PricingPage() {
           </div>
           {/* Feature Comparison Table */}
           <div className="overflow-x-auto mt-10">
-            <table className="min-w-full border rounded-xl overflow-hidden bg-white shadow">
+            <table className="min-w-full border rounded-xl overflow-hidden bg-white shadow-soft">
               <thead>
-                <tr className="bg-[#F5F5DC] text-[#2C6E91]">
+                <tr className="bg-neutral-100 text-primary-700">
                   <th className="py-3 px-4 text-left font-semibold text-lg">Feature</th>
                   <th className="py-3 px-4 font-semibold text-lg">Starter</th>
                   <th className="py-3 px-4 font-semibold text-lg">Pro</th>
@@ -363,19 +367,19 @@ export default function PricingPage() {
                   <td className="py-3 px-4">PDF Reports</td>
                   <td className="text-center text-gray-400">—</td>
                   <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-[#D4AF37] font-bold">✔️</span></td>
+                  <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
                 </tr>
                 <tr className="border-t">
                   <td className="py-3 px-4">Bulk Analysis</td>
                   <td className="text-center text-gray-400">—</td>
                   <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-[#D4AF37] font-bold">✔️</span></td>
+                  <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
                 </tr>
                 <tr className="border-t">
                   <td className="py-3 px-4">CRM Export</td>
                   <td className="text-center text-gray-400">—</td>
                   <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-[#D4AF37] font-bold">✔️</span></td>
+                  <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
                 </tr>
                 <tr className="border-t">
                   <td className="py-3 px-4">Priority Support</td>
@@ -392,52 +396,52 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8 text-center text-[#2C6E91] leading-tight">Frequently Asked Questions</h2>
+          <h2 className="text-3xl font-bold mb-8 text-center text-primary-700 leading-tight">Frequently Asked Questions</h2>
           <div className="max-w-4xl mx-auto space-y-6">
-            <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
+              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
                 <span>How does billing work?</span>
-                <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </summary>
-              <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
                 <p>We offer both monthly and yearly billing. Yearly plans come with a discount. You can upgrade, downgrade, or cancel at any time. Changes take effect immediately, and we&apos;ll prorate any adjustments to your next billing cycle.</p>
               </div>
             </details>
 
-            <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
+              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
                 <span>Can I upgrade or downgrade my plan?</span>
-                <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </summary>
-              <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
                 <p>Yes! You can upgrade or downgrade at any time. Upgrades take effect immediately with prorated billing. Downgrades take effect at your next billing cycle. You&apos;ll always keep access to your current plan until the change takes effect.</p>
               </div>
             </details>
 
-            <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
+              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
                 <span>What happens if I cancel?</span>
-                <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </summary>
-              <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
                 <p>You can cancel anytime from your account settings. You&apos;ll keep access to your plan until the end of your current billing period. No hidden fees or penalties - we want you to be happy with our service.</p>
               </div>
             </details>
 
-            <details className="bg-white border-2 border-[#E5E5E5] rounded-xl shadow-sm hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-[#2C6E91] hover:bg-[#F5F5DC] transition-colors flex items-center justify-between">
+            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
+              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
                 <span>Is my data secure?</span>
-                <svg className="w-5 h-5 text-[#3A7CA5] transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
               </summary>
-              <div className="px-6 pb-6 text-[#3B755D] leading-relaxed">
+              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
                 <p>Absolutely. We use bank-level security and encryption. All payments are processed securely through Stripe. Your data is protected and we never share your information with third parties.</p>
               </div>
             </details>
@@ -445,11 +449,11 @@ export default function PricingPage() {
 
           {/* Support Links */}
           <div className="text-center mt-12">
-            <h3 className="text-xl font-bold text-[#2C6E91] mb-4">Still have questions? We&apos;re here to help!</h3>
+            <h3 className="text-xl font-bold text-primary-700 mb-4">Still have questions? We&apos;re here to help!</h3>
             <div className="flex flex-col sm:flex-row justify-center gap-4">
               <a 
                 href="/contact" 
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-[#3A7CA5] text-white rounded-lg font-bold text-base hover:bg-[#2C6E91] transition-colors focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 min-h-[48px]"
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-primary-700 text-white rounded-lg font-bold text-base hover:bg-primary-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 min-h-[48px]"
                 aria-label="Contact our support team"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -459,7 +463,7 @@ export default function PricingPage() {
               </a>
               <a 
                 href="/help" 
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-[#3A7CA5] text-[#3A7CA5] rounded-lg font-bold text-base hover:bg-[#3A7CA5] hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 min-h-[48px]"
+                className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-primary-700 text-primary-blue rounded-lg font-bold text-base hover:bg-primary-700 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 min-h-[48px]"
                 aria-label="Visit our help center"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
@@ -476,7 +480,7 @@ export default function PricingPage() {
           <h2 className="text-2xl font-bold mb-6 text-center">See It in Action</h2>
           <div className="flex flex-wrap justify-center gap-6">
             {/* Dashboard SVG */}
-            <div className="rounded-lg shadow w-72 h-44 flex items-center justify-center bg-gray-100">
+            <div className="rounded-lg shadow-soft w-72 h-44 flex items-center justify-center bg-gray-100">
               <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Dashboard illustration">
                 <rect x="8" y="20" width="80" height="56" rx="8" fill="#3A7CA5"/>
                 <rect x="16" y="28" width="24" height="32" rx="4" fill="#E5E5E5"/>
@@ -485,7 +489,7 @@ export default function PricingPage() {
               </svg>
             </div>
             {/* PDF Report SVG */}
-            <div className="rounded-lg shadow w-72 h-44 flex items-center justify-center bg-gray-100">
+            <div className="rounded-lg shadow-soft w-72 h-44 flex items-center justify-center bg-gray-100">
               <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="PDF report illustration">
                 <rect x="20" y="16" width="56" height="64" rx="6" fill="#5DA271"/>
                 <rect x="28" y="28" width="40" height="8" rx="2" fill="#F5F5DC"/>
@@ -495,7 +499,7 @@ export default function PricingPage() {
               </svg>
             </div>
             {/* Analytics SVG */}
-            <div className="rounded-lg shadow w-72 h-44 flex items-center justify-center bg-gray-100">
+            <div className="rounded-lg shadow-soft w-72 h-44 flex items-center justify-center bg-gray-100">
               <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Analytics illustration">
                 <rect x="16" y="64" width="12" height="16" rx="3" fill="#3A7CA5"/>
                 <rect x="36" y="48" width="12" height="32" rx="3" fill="#5DA271"/>
@@ -530,20 +534,20 @@ export default function PricingPage() {
 
         {/* Trust Badges Section */}
         <section className="mb-12 flex flex-wrap justify-center gap-4 items-center">
-          <span className="flex items-center gap-2 bg-[#E5E5E5] text-[#2C6E91] px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-[#D2B48C]">
-            <svg className="w-5 h-5 text-[#5DA271]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+          <span className="flex items-center gap-2 bg-neutral-200 text-primary-700 px-4 py-3 rounded-full font-bold text-sm shadow-soft border border-neutral-200">
+            <svg className="w-5 h-5 text-primary-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
             Trusted by 1,000+ investors
           </span>
-          <span className="flex items-center gap-2 bg-[#E5E5E5] text-[#2C6E91] px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-[#D2B48C]">
-            <svg className="w-5 h-5 text-[#5DA271]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+          <span className="flex items-center gap-2 bg-neutral-200 text-primary-700 px-4 py-3 rounded-full font-bold text-sm shadow-soft border border-neutral-200">
+            <svg className="w-5 h-5 text-primary-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
             Secure Payments by Stripe
           </span>
-          <span className="flex items-center gap-2 bg-[#E5E5E5] text-[#2C6E91] px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-[#D2B48C]">
-            <svg className="w-5 h-5 text-[#5DA271]" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+          <span className="flex items-center gap-2 bg-neutral-200 text-primary-700 px-4 py-3 rounded-full font-bold text-sm shadow-soft border border-neutral-200">
+            <svg className="w-5 h-5 text-primary-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             Data from UK Land Registry
@@ -552,55 +556,55 @@ export default function PricingPage() {
 
         {/* Partner/Press Logos */}
         <section className="mb-12 text-center">
-          <h2 className="text-lg font-semibold text-[#3B755D] mb-6">As featured in</h2>
+          <h2 className="text-lg font-semibold text-primary-600 mb-6">As featured in</h2>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-            <div className="h-8 w-24 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">Rightmove</div>
-            <div className="h-8 w-20 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">Zoopla</div>
-            <div className="h-8 w-16 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">BBC</div>
-            <div className="h-8 w-20 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm">Property Week</div>
+            <div className="h-8 w-24 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">Rightmove</div>
+            <div className="h-8 w-20 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">Zoopla</div>
+            <div className="h-8 w-16 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">BBC</div>
+            <div className="h-8 w-20 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">Property Week</div>
           </div>
         </section>
 
         {/* Testimonials */}
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-8 text-center text-[#2C6E91]">What our users say</h2>
+          <h2 className="text-2xl font-bold mb-8 text-center text-primary-700">What our users say</h2>
           <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
+            <div className="bg-neutral-100 p-6 rounded-xl border border-neutral-200 shadow-soft">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-[#3A7CA5] rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">S</div>
+                <div className="w-12 h-12 bg-primary-700 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">S</div>
                 <div>
-                  <p className="font-bold text-[#2C6E91]">Sarah M.</p>
-                  <p className="text-sm text-[#3B755D]">Property Investor</p>
+                  <p className="font-bold text-primary-700">Sarah M.</p>
+                  <p className="text-sm text-primary-600">Property Investor</p>
                 </div>
               </div>
-              <p className="text-[#3B755D] leading-relaxed">&ldquo;Found my dream investment property using their BMV scoring. Saved me hours of research!&rdquo;</p>
+              <p className="text-primary-600 leading-relaxed">&ldquo;Found my dream investment property using their BMV scoring. Saved me hours of research!&rdquo;</p>
             </div>
-            <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
+            <div className="bg-neutral-100 p-6 rounded-xl border border-neutral-200 shadow-soft">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-[#5DA271] rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">M</div>
+                <div className="w-12 h-12 bg-primary-green rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">M</div>
                 <div>
-                  <p className="font-bold text-[#2C6E91]">Mike R.</p>
-                  <p className="text-sm text-[#3B755D]">First-time Buyer</p>
+                  <p className="font-bold text-primary-700">Mike R.</p>
+                  <p className="text-sm text-primary-600">First-time Buyer</p>
                 </div>
               </div>
-              <p className="text-[#3B755D] leading-relaxed">&ldquo;The property history feature helped me understand the market value perfectly.&rdquo;</p>
+              <p className="text-primary-600 leading-relaxed">&ldquo;The property history feature helped me understand the market value perfectly.&rdquo;</p>
             </div>
-            <div className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
+            <div className="bg-neutral-100 p-6 rounded-xl border border-neutral-200 shadow-soft">
               <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-[#D4AF37] rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">L</div>
+                <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">L</div>
                 <div>
-                  <p className="font-bold text-[#2C6E91]">Lisa K.</p>
-                  <p className="text-sm text-[#3B755D]">Estate Agent</p>
+                  <p className="font-bold text-primary-700">Lisa K.</p>
+                  <p className="text-sm text-primary-600">Estate Agent</p>
                 </div>
               </div>
-              <p className="text-[#3B755D] leading-relaxed">&ldquo;Professional tool that gives my clients the insights they need to make informed decisions.&rdquo;</p>
+              <p className="text-primary-600 leading-relaxed">&ldquo;Professional tool that gives my clients the insights they need to make informed decisions.&rdquo;</p>
             </div>
           </div>
         </section>
 
         {/* Sticky CTA */}
         <div className="fixed bottom-6 left-0 right-0 flex justify-center z-40 pointer-events-none">
-          <a href="#plans" className="pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow transition-colors text-lg">Compare Plans</a>
+          <a href="#plans" className="pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-soft transition-colors text-lg">Compare Plans</a>
         </div>
       </main>
     </>

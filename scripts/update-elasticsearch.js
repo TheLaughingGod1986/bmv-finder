@@ -11,7 +11,7 @@ const BACKUP_DIR = 'backups';
 const INDEX_NAME = 'properties';
 
 const esClient = new Client({
-  cloud: { id: process.env.ES_CLOUD_ID },
+  node: process.env.ELASTICSEARCH_URL || "http://localhost:9201",
   auth: { apiKey: process.env.ES_API_KEY }
 });
 

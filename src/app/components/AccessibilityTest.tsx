@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { CheckCircle, AlertCircle, Info } from 'lucide-react';
 
 interface AccessibilityTestProps {
@@ -40,12 +40,12 @@ export default function AccessibilityTest({ className = '' }: AccessibilityTestP
 
   return (
     <div className={`bg-white rounded-lg shadow-lg p-6 ${className}`}>
-      <h2 className="text-2xl font-bold text-[#2C6E91] mb-4">Accessibility Test Panel</h2>
+      <h2 className="text-2xl font-bold text-primary-blue-dark mb-4">Accessibility Test Panel</h2>
       
       {/* Tab Navigation */}
       <div className="mb-6">
         <div 
-          className="flex border-b border-[#E5E5E5]"
+          className="flex border-b border-neutral-200"
           role="tablist"
           aria-label="Accessibility test tabs"
         >
@@ -54,10 +54,10 @@ export default function AccessibilityTest({ className = '' }: AccessibilityTestP
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               onKeyDown={handleKeyDown}
-              className={`px-4 py-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-[#3A7CA5] focus:ring-offset-2 ${
+              className={`px-4 py-2 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-blue focus:ring-offset-2 ${
                 activeTab === tab.id
-                  ? 'text-[#3A7CA5] border-b-2 border-[#3A7CA5]'
-                  : 'text-[#3B755D] hover:text-[#3A7CA5]'
+                  ? 'text-primary-blue border-b-2 border-primary-blue'
+                  : 'text-primary-green-dark hover:text-primary-blue'
               }`}
               role="tab"
               aria-selected={activeTab === tab.id}
@@ -77,73 +77,73 @@ export default function AccessibilityTest({ className = '' }: AccessibilityTestP
             aria-labelledby={`tab-${tab.id}`}
             className={`mt-4 ${activeTab === tab.id ? 'block' : 'hidden'}`}
           >
-            <p className="text-[#3B755D]">{tab.content}</p>
+            <p className="text-primary-green-dark">{tab.content}</p>
           </div>
         ))}
       </div>
 
       {/* Accessibility Checklist */}
       <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-[#2C6E91]">Accessibility Checklist</h3>
+        <h3 className="text-lg font-semibold text-primary-blue-dark">Accessibility Checklist</h3>
         
         <div className="space-y-2">
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">Proper heading hierarchy (h1, h2, h3)</span>
+            <span className="text-primary-green-dark">Proper heading hierarchy (h1, h2, h3)</span>
           </div>
           
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">ARIA labels and roles implemented</span>
+            <span className="text-primary-green-dark">ARIA labels and roles implemented</span>
           </div>
           
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">Keyboard navigation support</span>
+            <span className="text-primary-green-dark">Keyboard navigation support</span>
           </div>
           
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">Focus indicators visible</span>
+            <span className="text-primary-green-dark">Focus indicators visible</span>
           </div>
           
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">Color contrast meets WCAG AA standards</span>
+            <span className="text-primary-green-dark">Color contrast meets WCAG AA standards</span>
           </div>
           
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">Touch targets are 44px minimum</span>
+            <span className="text-primary-green-dark">Touch targets are 44px minimum</span>
           </div>
           
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">Reduced motion support</span>
+            <span className="text-primary-green-dark">Reduced motion support</span>
           </div>
           
           <div className="flex items-center gap-2">
             <CheckCircle className="w-5 h-5 text-green-600" />
-            <span className="text-[#3B755D]">High contrast mode support</span>
+            <span className="text-primary-green-dark">High contrast mode support</span>
           </div>
         </div>
       </div>
 
       {/* Responsive Design Test */}
-      <div className="mt-6 p-4 bg-[#F5F5DC] rounded-lg">
-        <h3 className="text-lg font-semibold text-[#2C6E91] mb-2">Responsive Design Test</h3>
+      <div className="mt-6 p-4 bg-neutral-100 rounded-lg">
+        <h3 className="text-lg font-semibold text-primary-blue-dark mb-2">Responsive Design Test</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="bg-white p-3 rounded border text-center">
-            <div className="text-sm font-medium text-[#3B755D]">Mobile</div>
-            <div className="text-xs text-[#3B755D]">320px - 768px</div>
+            <div className="text-sm font-medium text-primary-green-dark">Mobile</div>
+            <div className="text-xs text-primary-green-dark">320px - 768px</div>
           </div>
           <div className="bg-white p-3 rounded border text-center">
-            <div className="text-sm font-medium text-[#3B755D]">Tablet</div>
-            <div className="text-xs text-[#3B755D]">768px - 1024px</div>
+            <div className="text-sm font-medium text-primary-green-dark">Tablet</div>
+            <div className="text-xs text-primary-green-dark">768px - 1024px</div>
           </div>
           <div className="bg-white p-3 rounded border text-center">
-            <div className="text-sm font-medium text-[#3B755D]">Desktop</div>
-            <div className="text-xs text-[#3B755D]">1024px+</div>
+            <div className="text-sm font-medium text-primary-green-dark">Desktop</div>
+            <div className="text-xs text-primary-green-dark">1024px+</div>
           </div>
         </div>
       </div>

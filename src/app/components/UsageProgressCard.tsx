@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { ChartBarIcon } from '@heroicons/react/24/outline';
 
 interface UsageData {
@@ -25,29 +25,29 @@ export default function UsageProgressCard({
   const usagePercentage = Math.round((usageData.lookupsUsed / usageData.lookupsLimit) * 100);
   
   return (
-    <section className={`bg-[#F5F5DC] rounded-xl p-6 border border-[#D2B48C] ${className}`}>
+    <section className={`bg-neutral-100 rounded-xl p-6 border border-neutral-200 ${className}`}>
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
+        <h2 className="text-xl font-bold text-primary-700 flex items-center gap-2">
           <ChartBarIcon className="w-6 h-6" />
           Your Usage This Month
         </h2>
-        <span className="text-sm font-semibold text-[#3B755D]">
+        <span className="text-sm font-semibold text-primary-600">
           {usageData.lookupsUsed}/{usageData.lookupsLimit} lookups
         </span>
       </div>
       
       {/* Progress Bar */}
       <div className="mb-4">
-        <div className="w-full bg-[#E5E5E5] rounded-full h-3">
+        <div className="w-full bg-neutral-200 rounded-full h-3">
           <div 
             className={`h-3 rounded-full transition-all duration-500 ${
               usagePercentage >= 80 ? 'bg-red-500' : 
-              usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-[#5DA271]'
+              usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-secondary-600'
             }`}
             style={{ width: `${usagePercentage}%` }}
           />
         </div>
-        <div className="flex justify-between text-sm text-[#3B755D] mt-2">
+        <div className="flex justify-between text-sm text-primary-600 mt-2">
           <span>{usagePercentage}% used</span>
           {usagePercentage >= 80 && (
             <span className="text-red-600 font-semibold">Almost at limit!</span>
@@ -60,14 +60,14 @@ export default function UsageProgressCard({
         <div className="grid grid-cols-2 gap-4 text-sm mb-4">
           {usageData.searchesThisMonth !== undefined && (
             <div className="bg-white bg-opacity-50 rounded-lg p-3">
-              <div className="font-semibold text-[#2C6E91]">{usageData.searchesThisMonth}</div>
-              <div className="text-[#3B755D]">Searches this month</div>
+              <div className="font-semibold text-primary-700">{usageData.searchesThisMonth}</div>
+              <div className="text-primary-600">Searches this month</div>
             </div>
           )}
           {usageData.propertiesSaved !== undefined && (
             <div className="bg-white bg-opacity-50 rounded-lg p-3">
-              <div className="font-semibold text-[#2C6E91]">{usageData.propertiesSaved}</div>
-              <div className="text-[#3B755D]">Properties saved</div>
+              <div className="font-semibold text-primary-700">{usageData.propertiesSaved}</div>
+              <div className="text-primary-600">Properties saved</div>
             </div>
           )}
         </div>
@@ -83,7 +83,7 @@ export default function UsageProgressCard({
             </div>
             <a
               href="/account/upgrade"
-              className="px-4 py-2 bg-white text-[#2C6E91] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+              className="px-4 py-2 bg-white text-primary-700 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               Upgrade Now
             </a>

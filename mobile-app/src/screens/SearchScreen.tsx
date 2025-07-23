@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -38,7 +38,7 @@ interface FilterOptions {
   sortBy: string;
 }
 
-export default function SearchScreen({ navigation, route }: any) {
+export default function SearchScreen({ navigation, route }: { navigation: unknown; route: unknown }) {
   const [searchQuery, setSearchQuery] = useState(route.params?.query || '');
   const [properties, setProperties] = useState<Property[]>([]);
   const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);

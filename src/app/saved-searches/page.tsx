@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Search, Clock, MapPin, Trash2, Plus, Bookmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
@@ -41,7 +41,7 @@ export default function SavedSearchesPage() {
   }, []);
 
   const handleExport = useCallback(() => {
-    console.log('Export saved searches');
+    // Export saved searches
   }, []);
 
   // Simulate loading
@@ -82,7 +82,7 @@ export default function SavedSearchesPage() {
   const LoadingSkeleton = () => (
     <div className="space-y-6">
       {[1, 2, 3].map((index) => (
-        <div key={index} className="bg-white/90 rounded-2xl p-6 shadow-lg border border-slate-200 animate-pulse">
+        <div key={index} className="bg-white/90 rounded-2xl p-6 shadow-soft border border-neutral-200 animate-pulse">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-4 mb-4">
@@ -94,7 +94,7 @@ export default function SavedSearchesPage() {
               </div>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-slate-100 rounded-lg p-3">
+                  <div key={i} className="bg-slate-100 rounded-lg p-3 border border-neutral-200 shadow-soft">
                     <div className="h-3 bg-slate-200 rounded mb-2 w-1/2"></div>
                     <div className="h-5 bg-slate-200 rounded w-3/4"></div>
                   </div>
@@ -145,7 +145,7 @@ export default function SavedSearchesPage() {
         <meta name="twitter:description" content="Access your saved property searches and track market insights." />
         <link rel="canonical" href="https://bmvfinder.com/saved-searches" />
       </Head>
-      <div className="min-h-screen bg-[#FAF9F6] font-sans">
+      <div className="min-h-screen bg-neutral-light font-sans">
         <main className="container mx-auto px-4 py-12 max-w-4xl">
           {/* Standardized Header */}
           <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
@@ -167,7 +167,7 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
+              className="bg-white rounded-2xl shadow-soft border border-neutral-200"
             >
               <div className="flex items-center gap-3 mb-2">
                 <Search className="w-7 h-7 text-blue-500" />
@@ -180,7 +180,7 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
+              className="bg-white rounded-2xl shadow-soft border border-neutral-200"
             >
               <div className="flex items-center gap-3 mb-2">
                 <MapPin className="w-7 h-7 text-green-500" />
@@ -193,7 +193,7 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-lg p-6"
+              className="bg-white rounded-2xl shadow-soft border border-neutral-200"
             >
               <div className="flex items-center gap-3 mb-2">
                 <Clock className="w-7 h-7 text-orange-500" />
@@ -215,7 +215,7 @@ export default function SavedSearchesPage() {
                 transition={{ delay: 0.3 }}
                 className="text-center py-16"
               >
-                <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-full flex items-center justify-center shadow-lg">
+                <div className="w-32 h-32 mx-auto mb-8 bg-gradient-to-br from-blue-50 to-indigo-100 rounded-full flex items-center justify-center shadow-soft">
                   <Search className="w-16 h-16 text-blue-500" />
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-4">No Saved Searches Yet</h3>
@@ -225,7 +225,7 @@ export default function SavedSearchesPage() {
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <button
                     onClick={handleNewSearch}
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-lg"
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-soft"
                   >
                     <Plus className="w-5 h-5" />
                     Start Your First Search
@@ -233,9 +233,9 @@ export default function SavedSearchesPage() {
                   <button
                     onClick={() => {
                       // Demo functionality
-                      console.log('View demo searches');
+                      // View demo searches
                     }}
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-700 rounded-full font-semibold hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition"
+                    className="inline-flex items-center gap-3 px-8 py-4 bg-slate-100 text-slate-700 rounded-full font-semibold hover:bg-slate-200 active:bg-slate-300 focus:ring-2 focus:ring-slate-300 focus:outline-none transition shadow-soft"
                   >
                     <Bookmark className="w-5 h-5" />
                     View Examples
@@ -249,7 +249,7 @@ export default function SavedSearchesPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.1 + index * 0.05 }}
-                  className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all duration-200 group"
+                  className="bg-white rounded-2xl shadow-soft hover:shadow-xl transition-all duration-200 group border border-neutral-200"
                   role="article"
                   aria-labelledby={`search-${search.id}-title`}
                 >
@@ -268,18 +268,18 @@ export default function SavedSearchesPage() {
                         </div>
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-3 gap-6 text-sm">
-                        <div className="bg-slate-50 rounded-lg p-3">
+                        <div className="bg-slate-50 rounded-lg p-3 border border-neutral-200 shadow-soft">
                           <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Saved</p>
                           <p className="font-semibold text-gray-900">{new Date(search.savedAt).toLocaleDateString()}</p>
                         </div>
                         {search.lastUsed && (
-                          <div className="bg-slate-50 rounded-lg p-3">
+                          <div className="bg-slate-50 rounded-lg p-3 border border-neutral-200 shadow-soft">
                             <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Last Used</p>
                             <p className="font-semibold text-gray-900">{new Date(search.lastUsed).toLocaleDateString()}</p>
                           </div>
                         )}
                         {search.resultCount && (
-                          <div className="bg-slate-50 rounded-lg p-3">
+                          <div className="bg-slate-50 rounded-lg p-3 border border-neutral-200 shadow-soft">
                             <p className="text-gray-500 text-xs font-medium uppercase tracking-wide mb-1">Results</p>
                             <p className="font-semibold text-gray-900">{search.resultCount}</p>
                           </div>
@@ -289,14 +289,14 @@ export default function SavedSearchesPage() {
                     <div className="flex flex-col gap-2 ml-6">
                       <button
                         onClick={() => handleRunSearch(search.query)}
-                        className="rounded-full font-semibold shadow bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2 text-sm"
+                        className="rounded-full font-semibold shadow-soft bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2 text-sm"
                         aria-label={`Run search for ${search.query}`}
                       >
                         <Search className="w-4 h-4" />
                         Run Search
                       </button>
                       <button
-                        className="rounded-full font-semibold shadow bg-red-100 text-red-700 px-5 py-2.5 hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-300 transition"
+                        className="rounded-full font-semibold shadow-soft bg-red-100 text-red-700 px-5 py-2.5 hover:bg-red-500 hover:text-white focus:ring-2 focus:ring-red-300 transition"
                         aria-label={`Delete saved search for ${search.query}`}
                         onClick={() => handleDelete(search.id)}
                       >
@@ -315,14 +315,14 @@ export default function SavedSearchesPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="mt-12 bg-white rounded-2xl shadow-lg p-6"
+              className="mt-12 bg-white rounded-2xl shadow-soft border border-neutral-200"
             >
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-12" role="toolbar" aria-label="Search actions">
                 <div className="flex gap-2">
                   <button 
                     onClick={handleNewSearch}
-                    className="rounded-full font-semibold shadow bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
+                    className="rounded-full font-semibold shadow-soft bg-primary-500 text-white px-5 py-2.5 hover:bg-primary-600 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
                     aria-label="Create a new property search"
                   >
                     <Plus className="w-5 h-5" />
@@ -330,7 +330,7 @@ export default function SavedSearchesPage() {
                   </button>
                   <button 
                     onClick={handleExport}
-                    className="rounded-full font-semibold shadow bg-slate-100 text-slate-700 px-5 py-2.5 hover:bg-slate-200 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
+                    className="rounded-full font-semibold shadow-soft bg-slate-100 text-slate-700 px-5 py-2.5 hover:bg-slate-200 focus:ring-2 focus:ring-primary-400 transition inline-flex items-center gap-2"
                     aria-label="Export saved searches"
                   >
                     <Bookmark className="w-5 h-5" />

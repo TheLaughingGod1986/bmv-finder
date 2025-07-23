@@ -23,11 +23,11 @@ export default function AuthCallback() {
         }
 
         if (data.session) {
-          console.log('Auth callback successful, user signed in:', data.session.user.email);
+          // Auth callback successful, user signed in
           // Redirect to account page or dashboard
           router.push('/account');
         } else {
-          console.log('No session found in callback');
+          // No session found in callback
           setError('Authentication failed. Please try again.');
           setLoading(false);
         }
@@ -43,9 +43,9 @@ export default function AuthCallback() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F5DC]">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-100">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3A7CA5] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
           <p className="text-gray-600">Completing sign in...</p>
         </div>
       </div>
@@ -54,7 +54,7 @@ export default function AuthCallback() {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F5F5DC]">
+      <div className="min-h-screen flex items-center justify-center bg-neutral-100">
         <div className="text-center max-w-md mx-auto p-6">
           <div className="text-red-500 mb-4">
             <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,7 +65,7 @@ export default function AuthCallback() {
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={() => router.push('/account')}
-            className="bg-[#3A7CA5] text-white px-4 py-2 rounded-md hover:bg-[#2C6E91] transition-colors"
+            className="bg-primary-700 text-white px-4 py-2 rounded-md hover:bg-primary-800 transition-colors"
           >
             Try Again
           </button>

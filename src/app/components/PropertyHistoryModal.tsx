@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, Fragment, useCallback } from 'react';
+import { useState, useEffect, Fragment, useCallback } from 'react';
 import { SoldPrice } from '../../../types/sold-price';
 import { formatPrice } from '../../lib/utils';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
@@ -74,12 +74,12 @@ export default function PropertyHistoryModal({
         if (data.usedBroaderArea && scope !== 'broader') {
           setSearchScope('broader');
         }
-        console.log(`[PropertyHistoryModal] Fetched ${data.data.length} recent sales for ${property.postcode} (scope: ${scope}, usedBroaderArea: ${data.usedBroaderArea})`);
+        // Fetched recent sales data
       } else {
         setRecentSalesError(data.error || 'Failed to fetch recent sales');
       }
     } catch (error) {
-      console.error('[PropertyHistoryModal] Error fetching recent sales:', error);
+              // Error fetching recent sales
       setRecentSalesError('Failed to fetch recent sales');
     } finally {
       setRecentSalesLoading(false);
@@ -235,7 +235,7 @@ export default function PropertyHistoryModal({
       return { 
         label: 'Excellent Deal', 
         color: 'green', 
-        bgColor: 'bg-[#5DA271]', 
+        bgColor: 'bg-primary-green', 
         textColor: 'text-white',
         icon: '↓',
         description: '10%+ below inflation-adjusted median'

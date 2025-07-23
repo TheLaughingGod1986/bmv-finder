@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { supabase } from '../../../lib/supabaseClient';
 import { getUserProfile } from '@/utils/getUserProfile';
@@ -10,6 +10,7 @@ import { parseSubscriptionMetadata } from '@/utils/subscriptionUtils';
 import { ShieldCheckIcon, InformationCircleIcon } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 import Link from 'next/link';
+import Button from '../../components/Button';
 
 // Client-side only Stripe initialization
 function getStripePromise() {
@@ -176,16 +177,16 @@ const UpgradePage = () => {
   let renewalInterval: string | null = null;
   if (profile?.billing_metadata) {
     const meta = profile.billing_metadata;
-    console.log('DEBUG meta:', meta);
+    // DEBUG meta logged
     // Use current_period_end if available, otherwise use canceled_at if cancel_at_period_end is true
     const periodEnd = meta.current_period_end || (meta.cancel_at_period_end && meta.canceled_at);
     if (periodEnd) {
       renewalDate = format(new Date(periodEnd * 1000), 'PPP');
-      console.log('Parsed renewalDate:', renewalDate, 'from', periodEnd);
+      // Parsed renewalDate logged
     }
     if (meta.plan?.interval) {
       renewalInterval = meta.plan.interval;
-      console.log('Parsed renewalInterval:', renewalInterval);
+      // Parsed renewalInterval logged
     }
   }
 
@@ -211,7 +212,7 @@ const UpgradePage = () => {
 
   useEffect(() => {
     if (profile) {
-      console.log('Loaded profile.billing_metadata:', profile.billing_metadata);
+      // Loaded profile.billing_metadata logged
     }
   }, [profile]);
 
@@ -220,7 +221,7 @@ const UpgradePage = () => {
     setLoading(true);
     setError(null);
     setButtonError((prev) => ({ ...prev, [planPriceId]: null }));
-    console.log({ userId, priceId: planPriceId, email: session?.user?.email });
+    // User data logged
     try {
       const res = await fetch('/api/create-checkout-session', {
         method: 'POST',
@@ -239,7 +240,7 @@ const UpgradePage = () => {
       }
       
       const data = await res.json();
-      console.log('Checkout session response:', data);
+      // Checkout session response logged
       
       if (!data.url) {
         showToast({
@@ -279,9 +280,9 @@ const UpgradePage = () => {
         });
         throw new Error('Stripe.js failed to load. Please refresh the page and try again.');
       }
-    } catch (err: any) {
-      setError(err.message);
-      setButtonError((prev) => ({ ...prev, [planPriceId]: err.message }));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+      setButtonError((prev) => ({ ...prev, [planPriceId]: err instanceof Error ? err.message : 'Unknown error occurred' }));
       // showToast already called above for errors
       console.error('Upgrade error:', err);
     } finally {
@@ -345,11 +346,11 @@ const UpgradePage = () => {
       } else {
         throw new Error(data.error || 'No portal URL received');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       showToast({
         type: 'error',
         title: 'Failed to open account management',
-        message: err.message || 'Please try again later.',
+        message: err instanceof Error ? err.message : 'Please try again later.',
       });
     } finally {
       setManagingSubscription(false);
@@ -382,12 +383,12 @@ const UpgradePage = () => {
   // Debug logging
   const plans = getPlans();
   plans.forEach((plan) => {
-    console.log('Plan:', plan.name);
+          // Plan logged
     Object.entries(plan.pricing).forEach(([interval, pricing]) => {
-      console.log(`  ${interval}:`, pricing.price, 'priceId:', pricing.priceId);
+              // Pricing details logged
     });
   });
-  console.log('userId:', userId);
+      // userId logged
 
   if (sessionLoading) {
     return <div style={{ maxWidth: 480, margin: '0 auto', padding: '2rem' }}><h1>Upgrade Your Account</h1><p>Loading...</p></div>;
@@ -401,7 +402,7 @@ const UpgradePage = () => {
     <div className="max-w-4xl mx-auto py-10 px-4">
       {/* Success Banner */}
       {showSuccessBanner && (
-        <div className="mb-8 bg-gradient-to-r from-[#5DA271] to-[#3B755D] text-white rounded-xl p-6 shadow-lg">
+        <div className="mb-8 bg-gradient-to-r from-[#5DA271] to-[#3B755D] text-white rounded-xl p-6 shadow-soft">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
@@ -416,7 +417,7 @@ const UpgradePage = () => {
                 Your upgrade is complete and your new features are now active. Here&apos;s what you can do next:
               </p>
               <div className="grid md:grid-cols-2 gap-4 mb-4">
-                <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                <div className="bg-white bg-opacity-10 rounded-lg p-3 border border-neutral-200 shadow-soft">
                   <h3 className="font-semibold mb-2">🚀 Explore New Features</h3>
                   <ul className="text-sm space-y-1">
                     {upgradedPlan === 'Pro' && (
@@ -435,7 +436,7 @@ const UpgradePage = () => {
                     )}
                   </ul>
                 </div>
-                <div className="bg-white bg-opacity-10 rounded-lg p-3">
+                <div className="bg-white bg-opacity-10 rounded-lg p-3 border border-neutral-200 shadow-soft">
                   <h3 className="font-semibold mb-2">📋 Next Steps</h3>
                   <ul className="text-sm space-y-1">
                     <li>• Start searching for properties</li>
@@ -447,7 +448,7 @@ const UpgradePage = () => {
               <div className="flex flex-wrap gap-3">
                 <Link
                   href="/"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#3B755D] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white text-primary-green-dark rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -456,7 +457,7 @@ const UpgradePage = () => {
                 </Link>
                 <Link
                   href="/account"
-                  className="inline-flex items-center gap-2 px-4 py-2 border border-white text-white rounded-lg font-semibold hover:bg-white hover:text-[#3B755D] transition-colors"
+                  className="inline-flex items-center gap-2 px-4 py-2 border border-white text-white rounded-lg font-semibold hover:bg-white hover:text-primary-green-dark transition-colors"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -505,7 +506,7 @@ const UpgradePage = () => {
       )}
       {/* Current Plan Card */}
       {subscriptionInfo && (
-        <section className={`rounded-2xl border-4 shadow p-6 flex flex-col items-center mb-8 relative ${subscriptionInfo.tier !== 'free' ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
+        <section className={`rounded-2xl border-4 shadow-soft p-6 flex flex-col items-center mb-8 relative ${subscriptionInfo.tier !== 'free' ? 'border-blue-600 bg-blue-50' : 'border-neutral-200 bg-gray-50'}`}>
           <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
           <div className="text-lg font-bold mb-1">Current Plan: {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)}</div>
           <div className="mb-2 text-gray-600 text-center">{subscriptionInfo.tier === 'free' ? 'Basic access, limited features' : subscriptionInfo.tier === 'pro' ? 'Unlimited lookups, alerts, export, full data access' : 'All Pro features + PDF reports, bulk analysis, CRM export'}</div>
@@ -676,17 +677,7 @@ const UpgradePage = () => {
               </div>
               {/* Button and message always at the bottom */}
               <div className="w-full flex flex-col items-center mt-auto">
-                <button
-                  className={`w-full py-3 rounded-lg font-semibold text-base transition mt-8 focus:outline-none focus:ring-2 focus:ring-blue-400 relative ${buttonDisabled ? 'bg-gray-200 text-gray-500 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
-                  disabled={buttonDisabled || loading || !currentPlanPricing?.priceId}
-                  onClick={buttonAction}
-                  aria-label={buttonLabel}
-                  tabIndex={0}
-                  onMouseEnter={() => setHoveredPlan(plan.tier)}
-                  onMouseLeave={() => setHoveredPlan(null)}
-                  onFocus={() => setHoveredPlan(plan.tier)}
-                  onBlur={() => setHoveredPlan(null)}
-                >
+                <Button variant="primary" size="md" className="w-full" onClick={buttonAction} disabled={buttonDisabled || loading || !currentPlanPricing?.priceId}>
                   {buttonLabel}
                   <span className="ml-2 align-middle inline-block">
                     <InformationCircleIcon className="w-5 h-5 text-blue-200 hover:text-white inline" title={
@@ -711,7 +702,7 @@ const UpgradePage = () => {
                       }
                     </span>
                   )}
-                </button>
+                </Button>
                 {buttonError[currentPlanPricing?.priceId || ''] && (
                   <div className="text-red-600 text-sm mt-2">{buttonError[currentPlanPricing?.priceId || '']}</div>
                 )}

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 
 interface ChartDataPoint {
   label: string;

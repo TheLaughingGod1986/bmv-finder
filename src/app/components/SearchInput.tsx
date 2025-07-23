@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
 
 interface SearchInputProps {
@@ -60,7 +60,7 @@ export default function SearchInput({
   return (
     <form onSubmit={handleSubmit} className={`flex flex-col sm:flex-row gap-3 ${className}`}>
       <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#3B755D] w-5 h-5" />
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary-green-dark w-5 h-5" />
         <input 
           type="text" 
           id={id}
@@ -73,13 +73,13 @@ export default function SearchInput({
           aria-invalid={error ? 'true' : 'false'}
           aria-busy={loading}
           className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-            error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-[#D2B48C] focus:border-[#3A7CA5] focus:ring-[#3A7CA5]'
-          } focus:ring-2 focus:ring-offset-0 outline-none transition-all duration-200 ease-in-out hover:border-[#3A7CA5] ${
+            error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-neutral-200 focus:border-primary-blue focus:ring-primary-blue'
+          } focus:ring-2 focus:ring-offset-0 outline-none transition-all duration-200 ease-in-out hover:border-primary-blue ${
             disabled || loading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
           }`}
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#3A7CA5] w-5 h-5 animate-spin" />
+          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-blue w-5 h-5 animate-spin" />
         )}
       </div>
       <button 
@@ -88,7 +88,7 @@ export default function SearchInput({
         className={`px-6 py-3 rounded-lg font-semibold shadow transition-all duration-200 ease-in-out hover:scale-105 active:scale-95 ${
           disabled || loading || !searchQuery.trim()
             ? 'bg-gray-400 text-white cursor-not-allowed'
-            : 'bg-[#5DA271] text-white hover:bg-[#3B755D] hover:shadow-lg'
+            : 'bg-primary-green text-white hover:bg-primary-green-dark hover:shadow-lg'
         }`}
       >
         {loading ? (

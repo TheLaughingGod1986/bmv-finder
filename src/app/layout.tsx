@@ -168,11 +168,11 @@ export default function RootLayout({
           })
         }} />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-[#F5F5DC] text-[#2C6E91] leading-relaxed`}>
+      <body className={`${inter.variable} font-sans antialiased bg-neutral-100 text-primary-700 leading-relaxed`}>
         {/* Skip to main content link for accessibility */}
         <a 
           href="#main-content" 
-          className="sr-only focus:not-sr-only absolute left-4 top-4 bg-[#3A7CA5] text-white px-4 py-2 rounded-lg z-50 font-semibold shadow-lg transition-all duration-200 hover:bg-[#2C6E91]"
+          className="sr-only focus:not-sr-only absolute left-4 top-4 bg-primary-700 text-white px-4 py-2 rounded-lg z-50 font-semibold shadow-lg transition-all duration-200 hover:bg-primary-800"
         >
           Skip to main content
         </a>
@@ -180,7 +180,7 @@ export default function RootLayout({
         <main 
           id="main-content" 
           tabIndex={-1} 
-          className="min-h-screen bg-[#FAF9F6] relative"
+          className="min-h-screen bg-neutral-light relative"
         >
           <ToastProvider>
             {children}

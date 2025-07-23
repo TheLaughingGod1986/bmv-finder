@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
 // Reusable input component
 interface InputFieldProps {
@@ -11,7 +11,7 @@ interface InputFieldProps {
   step?: number;
   maxLength?: number;
   max?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Type for saved deals

@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from '../../lib/supabaseClient';
 import AuthForm from "./AuthForm";
 import { useUserTier } from '@/hooks/useUserTier';

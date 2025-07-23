@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 
 interface SectionProps {
   children: React.ReactNode;
@@ -12,8 +12,8 @@ interface SectionProps {
 export default function Section({ children, id, className = '', background = 'white' }: SectionProps) {
   const backgroundClasses = {
     white: 'bg-white',
-    light: 'bg-[#E5E5E5]',
-    dark: 'bg-[#2C6E91] text-white'
+    light: 'bg-neutral-200',
+    dark: 'bg-primary-blue-dark text-white'
   };
 
   return (

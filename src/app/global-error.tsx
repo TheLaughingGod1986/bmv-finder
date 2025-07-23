@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import Button from './components/Button';
 
 export default function GlobalError({
   error,
@@ -27,12 +28,9 @@ export default function GlobalError({
                 An unexpected error occurred. Please try again.
               </p>
               <div className="mt-5">
-                <button
-                  onClick={reset}
-                  className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Try again
-                </button>
+                <Button variant="primary" size="md" onClick={() => window.location.reload()}>
+                  Reload Page
+                </Button>
               </div>
             </div>
           </div>

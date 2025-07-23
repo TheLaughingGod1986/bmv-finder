@@ -1,5 +1,5 @@
 'use client';
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BarChart3, HelpCircle, Info, MapPin, Calendar } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
@@ -29,7 +29,7 @@ export default function HpiDashboard() {
     fetch('/api/hpi/date-range')
       .then(res => res.json())
       .then(data => {
-        console.log('date-range:', data);
+        // date-range logged
         if (data.minDate && data.maxDate) {
           setDateLimits({ min: data.minDate.slice(0,7), max: data.maxDate.slice(0,7) });
           setDateRange({ start: data.minDate.slice(0,7), end: data.maxDate.slice(0,7) });
@@ -44,15 +44,19 @@ export default function HpiDashboard() {
     fetch(`/api/hpi?region=${encodeURIComponent(region)}`)
       .then(res => res.json())
       .then(data => {
-        console.log('hpiData:', data);
-        setHpiData(Array.isArray(data) ? data : []);
+        // hpiData logged
+        if (data.error) {
+          setError('Failed to load HPI data.');
+        } else {
+          setHpiData(Array.isArray(data) ? data : []);
+        }
       })
       .catch(e => setError('Failed to load HPI data.'));
     // Fetch time series for chart
     fetch(`/api/hpi?region=${encodeURIComponent(region)}&startDate=${dateRange.start}&endDate=${dateRange.end}&groupBy=month`)
       .then(res => res.json())
       .then(data => {
-        console.log('timeSeries:', data);
+        // timeSeries logged
         setTimeSeries(Array.isArray(data) ? data : []);
       })
       .catch(e => setError('Failed to load time series.'))
@@ -86,7 +90,7 @@ export default function HpiDashboard() {
   const latest = Array.isArray(hpiData) && hpiData.length > 0 ? hpiData[0] : null;
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6]">
+    <div className="min-h-screen bg-neutral-100">
       {/* Header */}
       <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
         <div className="flex items-center justify-center gap-3 mb-4">

@@ -1,8 +1,18 @@
 "use client";
 
-import React from "react";
+
+import Button from '../components/Button';
+import { useToast } from '../components/ToastProvider';
+
 
 export default function PaywallPage() {
+  const { showToast } = useToast();
+  
+  const handleUpgrade = () => {
+    // Placeholder for upgrade logic
+    showToast({ type: 'info', title: 'Upgrade functionality not yet implemented.' });
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 px-4">
       <div className="bg-white rounded-3xl shadow-2xl border border-blue-100 max-w-md w-full p-10 flex flex-col items-center">
@@ -13,11 +23,9 @@ export default function PaywallPage() {
         <p className="text-gray-600 text-center mb-8 text-lg">
           This feature is available to subscribers only. Get unlimited access to property data, advanced analytics, and more.
         </p>
-        <button
-          className="w-full py-3 px-6 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold text-lg shadow-lg hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400"
-        >
-          Subscribe Now
-        </button>
+        <Button variant="primary" size="lg" className="w-full" onClick={handleUpgrade}>
+          Upgrade Now
+        </Button>
         <p className="mt-6 text-xs text-gray-400 text-center">
           Already a member? <a href="/login" className="text-blue-600 underline hover:text-blue-800">Log in</a>
         </p>

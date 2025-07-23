@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useToast } from './ToastProvider';
 
 interface StripeCheckoutButtonProps {
@@ -48,8 +48,8 @@ export default function StripeCheckoutButton({
       } else {
         throw new Error(data.error || "Failed to start checkout.");
       }
-    } catch (error: any) {
-      console.error('Checkout error:', error);
+          } catch (error: unknown) {
+              // Checkout error
       showToast({
         type: 'error',
         title: 'Checkout Error',
@@ -63,10 +63,10 @@ export default function StripeCheckoutButton({
   const baseClasses = 'inline-flex items-center justify-center font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
   
   const variantClasses = {
-    primary: 'bg-[#3A7CA5] text-white hover:bg-[#2C6E91] focus:ring-[#3A7CA5]',
-    secondary: 'bg-[#5DA271] text-white hover:bg-[#3B755D] focus:ring-[#5DA271]',
-    success: 'bg-[#5DA271] text-white hover:bg-[#3B755D] focus:ring-[#5DA271]',
-    outline: 'border-2 border-[#3A7CA5] text-[#3A7CA5] hover:bg-[#3A7CA5] hover:text-white focus:ring-[#3A7CA5]'
+    primary: 'bg-primary-blue text-white hover:bg-primary-blue-dark focus:ring-primary-blue',
+    secondary: 'bg-primary-green text-white hover:bg-primary-green-dark focus:ring-primary-green',
+    success: 'bg-primary-green text-white hover:bg-primary-green-dark focus:ring-primary-green',
+    outline: 'border-2 border-primary-blue text-primary-blue hover:bg-primary-blue hover:text-white focus:ring-primary-blue'
   };
   
   const sizeClasses = {

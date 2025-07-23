@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -32,7 +32,7 @@ interface MarketInsight {
   averagePrice: number;
 }
 
-export default function HomeScreen({ navigation }: any) {
+export default function HomeScreen({ navigation }: { navigation: unknown }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [featuredProperties, setFeaturedProperties] = useState<Property[]>([]);
   const [marketInsights, setMarketInsights] = useState<MarketInsight[]>([]);

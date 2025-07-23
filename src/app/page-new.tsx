@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -54,9 +54,9 @@ export default function HomeNew() {
   const [paginationDirection, setPaginationDirection] = useState<'next' | 'previous'>('next');
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(20);
-  const [searchAfter, setSearchAfter] = useState<any>(null);
+  const [searchAfter, setSearchAfter] = useState<unknown>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [searchAfterHistory, setSearchAfterHistory] = useState<any[]>([]);
+  const [searchAfterHistory, setSearchAfterHistory] = useState<unknown[]>([]);
   
   // Data freshness state
   const [lastUpdatedData, setLastUpdatedData] = useState<{
@@ -313,7 +313,7 @@ export default function HomeNew() {
   };
 
   // Handle scroll for back to top button
-  React.useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
     };
@@ -330,16 +330,16 @@ export default function HomeNew() {
         setLastUpdatedData(data);
       }
     } catch (error) {
-      console.error('Failed to fetch last updated data:', error);
+      // Silently handle error
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchLastUpdated();
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#F5F5DC]">
+    <div className="min-h-screen bg-neutral-100">
       <Analytics />
       <SpeedInsights />
       
@@ -349,10 +349,10 @@ export default function HomeNew() {
       {/* Features Section */}
       <Section id="features" background="white">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
+          <h2 className="text-3xl font-extrabold text-primary-700 mb-4">
             Powerful Property Insights
           </h2>
-          <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
+          <p className="text-lg text-primary-600 max-w-2xl mx-auto">
             Everything you need to make informed property decisions, from market analysis to investment opportunities.
           </p>
         </div>
@@ -442,8 +442,8 @@ export default function HomeNew() {
             {/* Loading State */}
             {isLoading && (
               <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 animate-spin text-[#3A7CA5]" />
-                <span className="ml-2 text-[#2C6E91]">Searching properties...</span>
+                <Loader2 className="w-8 h-8 animate-spin text-primary-600" />
+                <span className="ml-2 text-primary-700">Searching properties...</span>
               </div>
             )}
 
@@ -500,10 +500,10 @@ export default function HomeNew() {
             {!isLoading && hasSearched && displayedSoldPrices.length === 0 && !error && (
               <div className="text-center py-12">
                 <div className="text-6xl mb-4">🏠</div>
-                <h3 className="text-xl font-semibold text-[#2C6E91] mb-2">
+                <h3 className="text-xl font-semibold text-primary-700 mb-2">
                   No properties found
                 </h3>
-                <p className="text-[#3B755D] mb-4">
+                <p className="text-primary-600 mb-4">
                   Try adjusting your search terms or filters to find more properties.
                 </p>
                 <Button onClick={() => setHasSearched(false)}>
@@ -519,10 +519,10 @@ export default function HomeNew() {
       {!hasSearched && (
         <Section background="light">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
+            <h2 className="text-3xl font-extrabold text-primary-700 mb-4">
               Explore Our Tools
             </h2>
-            <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
+            <p className="text-lg text-primary-600 max-w-2xl mx-auto">
               Discover additional tools to help with your property research and investment decisions.
             </p>
           </div>
@@ -532,45 +532,45 @@ export default function HomeNew() {
               href="/what-should-i-pay"
               className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
-              <Home className="w-8 h-8 text-[#3A7CA5]" />
+              <Home className="w-8 h-8 text-primary-600" />
               <span className="font-semibold">What Should I Pay?</span>
-              <span className="text-sm text-[#3B755D]">Get property valuations</span>
+              <span className="text-sm text-primary-600">Get property valuations</span>
             </Link>
             
             <Link
               href="/market-analysis"
               className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
-              <BarChart3 className="w-8 h-8 text-[#3A7CA5]" />
+              <BarChart3 className="w-8 h-8 text-primary-600" />
               <span className="font-semibold">Market Analysis</span>
-              <span className="text-sm text-[#3B755D]">Regional trends & insights</span>
+              <span className="text-sm text-primary-600">Regional trends & insights</span>
             </Link>
             
             <Link
               href="/deal-calculator"
               className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
-              <Calculator className="w-8 h-8 text-[#3A7CA5]" />
+              <Calculator className="w-8 h-8 text-primary-600" />
               <span className="font-semibold">Deal Calculator</span>
-              <span className="text-sm text-[#3B755D]">Calculate investment returns</span>
+              <span className="text-sm text-primary-600">Calculate investment returns</span>
             </Link>
             
             <Link
               href="/hpi-dashboard"
               className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
-              <BarChart className="w-8 h-8 text-[#3A7CA5]" />
+              <BarChart className="w-8 h-8 text-primary-600" />
               <span className="font-semibold">HPI Dashboard</span>
-              <span className="text-sm text-[#3B755D]">View market trends</span>
+              <span className="text-sm text-primary-600">View market trends</span>
             </Link>
             
             <Link
               href="/portfolio-tracker"
               className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift border border-gray-300 bg-white text-text-primary hover:bg-gray-50 focus:ring-primary-500 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2"
             >
-              <BookOpen className="w-8 h-8 text-[#3A7CA5]" />
+              <BookOpen className="w-8 h-8 text-primary-600" />
               <span className="font-semibold">Portfolio Tracker</span>
-              <span className="text-sm text-[#3B755D]">Track your investments</span>
+              <span className="text-sm text-primary-600">Track your investments</span>
             </Link>
           </div>
         </Section>
@@ -579,10 +579,10 @@ export default function HomeNew() {
       {/* Pricing Section */}
       <Section id="plans" background="light">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
+          <h2 className="text-3xl font-extrabold text-primary-700 mb-4">
             Simple, Transparent Plans
           </h2>
-          <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
+          <p className="text-lg text-primary-600 max-w-2xl mx-auto">
             Choose the plan that fits your needs. All plans include our core search and analytics features.
           </p>
         </div>
@@ -635,10 +635,10 @@ export default function HomeNew() {
       {/* Testimonials Section */}
       <Section id="testimonials" background="white">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-extrabold text-[#2C6E91] mb-4">
+          <h2 className="text-3xl font-extrabold text-primary-700 mb-4">
             What Our Users Say
           </h2>
-          <p className="text-lg text-[#3B755D] max-w-2xl mx-auto">
+          <p className="text-lg text-primary-600 max-w-2xl mx-auto">
             Join thousands of property professionals who trust our platform for their research needs.
           </p>
         </div>
@@ -679,7 +679,7 @@ export default function HomeNew() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
             onClick={scrollToTop}
-            className="fixed bottom-6 right-6 bg-[#3A7CA5] text-white p-3 rounded-full shadow-lg hover:bg-[#2C6E91] transition-colors z-50"
+            className="fixed bottom-6 right-6 bg-primary-700 text-white p-3 rounded-full shadow-lg hover:bg-primary-800 transition-colors z-50"
             aria-label="Back to top"
           >
             <ArrowUp className="w-5 h-5" />

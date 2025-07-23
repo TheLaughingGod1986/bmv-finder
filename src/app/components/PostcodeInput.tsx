@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, MapPin, Clock, X, Loader2, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -82,8 +82,8 @@ const PostcodeInput: React.FC<PostcodeInputProps> = ({
     async function fetchSuggestions() {
       try {
         const response = await apiClient.suggestPostcodes(value);
-        if (!ignore && !response.error && response.data && typeof response.data === 'object' && 'suggestions' in response.data && Array.isArray((response.data as any).suggestions)) {
-          setSuggestions((response.data as any).suggestions.map((s: string) => ({ text: s })));
+        if (!ignore && !response.error && response.data && typeof response.data === 'object' && 'suggestions' in response.data && Array.isArray((response.data as { suggestions: string[] }).suggestions)) {
+          setSuggestions((response.data as { suggestions: string[] }).suggestions.map((s: string) => ({ text: s })));
         }
       } catch (e) {
         if (!ignore) setSuggestions([]);

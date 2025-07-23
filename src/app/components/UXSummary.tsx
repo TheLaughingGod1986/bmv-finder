@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { CheckCircle, Star, Zap, Heart, Shield, Palette } from 'lucide-react';
 
@@ -77,10 +77,10 @@ export default function UXSummary({ className = '' }: UXSummaryProps) {
         transition={{ duration: 0.6 }}
         className="text-center mb-8"
       >
-        <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">
+        <h2 className="text-3xl font-bold text-primary-blue-dark mb-4">
           UX/UI Improvements Summary
         </h2>
-        <p className="text-lg text-[#3B755D] max-w-3xl mx-auto">
+        <p className="text-lg text-primary-green-dark max-w-3xl mx-auto">
           We&apos;ve transformed the application with a comprehensive set of improvements 
           that enhance usability, accessibility, and visual appeal.
         </p>
@@ -96,25 +96,25 @@ export default function UXSummary({ className = '' }: UXSummaryProps) {
           <motion.div
             key={index}
             variants={itemVariants}
-            className="p-6 border border-[#E5E5E5] rounded-lg hover:border-[#3A7CA5] transition-all duration-300 hover:shadow-md"
+            className="p-6 border border-neutral-200 rounded-lg hover:border-primary-blue transition-all duration-300 hover:shadow-md"
           >
             <div className="flex items-center gap-3 mb-4">
-              <div className="text-[#3A7CA5]">
+              <div className="text-primary-blue">
                 {improvement.icon}
               </div>
-              <h3 className="text-xl font-semibold text-[#2C6E91]">
+              <h3 className="text-xl font-semibold text-primary-blue-dark">
                 {improvement.title}
               </h3>
             </div>
             
-            <p className="text-[#3B755D] mb-4">
+            <p className="text-primary-green-dark mb-4">
               {improvement.description}
             </p>
             
             <ul className="space-y-2">
               {improvement.features.map((feature, featureIndex) => (
-                <li key={featureIndex} className="flex items-center gap-2 text-sm text-[#3B755D]">
-                  <CheckCircle className="w-4 h-4 text-[#5DA271] flex-shrink-0" />
+                <li key={featureIndex} className="flex items-center gap-2 text-sm text-primary-green-dark">
+                  <CheckCircle className="w-4 h-4 text-primary-green flex-shrink-0" />
                   {feature}
                 </li>
               ))}
@@ -127,24 +127,24 @@ export default function UXSummary({ className = '' }: UXSummaryProps) {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.8 }}
-        className="mt-8 p-6 bg-[#F5F5DC] rounded-lg"
+        className="mt-8 p-6 bg-neutral-100 rounded-lg"
       >
-        <h3 className="text-xl font-semibold text-[#2C6E91] mb-4 text-center">
+        <h3 className="text-xl font-semibold text-primary-blue-dark mb-4 text-center">
           Key Achievements
         </h3>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
           <div>
-            <div className="text-3xl font-bold text-[#3A7CA5] mb-2">15+</div>
-            <div className="text-sm text-[#3B755D]">Enhanced Components</div>
+            <div className="text-3xl font-bold text-primary-blue mb-2">15+</div>
+            <div className="text-sm text-primary-green-dark">Enhanced Components</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-[#5DA271] mb-2">100%</div>
-            <div className="text-sm text-[#3B755D]">Accessibility Compliant</div>
+            <div className="text-3xl font-bold text-primary-green mb-2">100%</div>
+            <div className="text-sm text-primary-green-dark">Accessibility Compliant</div>
           </div>
           <div>
-            <div className="text-3xl font-bold text-[#D4AF37] mb-2">3</div>
-            <div className="text-sm text-[#3B755D]">Responsive Breakpoints</div>
+            <div className="text-3xl font-bold text-yellow-500 mb-2">3</div>
+            <div className="text-sm text-primary-green-dark">Responsive Breakpoints</div>
           </div>
         </div>
       </motion.div>
@@ -155,7 +155,7 @@ export default function UXSummary({ className = '' }: UXSummaryProps) {
         transition={{ duration: 0.6, delay: 1 }}
         className="mt-6 text-center"
       >
-        <p className="text-sm text-[#3B755D]">
+        <p className="text-sm text-primary-green-dark">
           All improvements follow modern web standards and best practices for optimal user experience.
         </p>
       </motion.div>

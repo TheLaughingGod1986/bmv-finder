@@ -1,4 +1,4 @@
-import React from "react";
+
 
 const UpgradePrompt: React.FC = () => (
   <div className="p-4 border rounded bg-yellow-50 text-yellow-900 text-center">

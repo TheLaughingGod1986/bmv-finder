@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
 import UserProfile from '../components/UserProfile';
 import PortfolioAnalytics from '../components/PortfolioAnalytics';
 import { supabase } from '../../lib/supabaseClient';
+import { useToast } from '../components/ToastProvider';
 
 interface PortfolioProperty {
   id: string;
@@ -22,6 +23,8 @@ interface PortfolioProperty {
 }
 
 export default function PortfolioTrackerPage() {
+  const { showToast } = useToast();
+  
   // Restore session after OAuth redirect (handle hash tokens) with debug logging
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
@@ -34,17 +37,16 @@ export default function PortfolioTrackerPage() {
       const params = new URLSearchParams(hash);
       const access_token = params.get('access_token');
       const refresh_token = params.get('refresh_token');
-      console.log('Parsed tokens:', { access_token, refresh_token });
       if (access_token && refresh_token) {
         supabase.auth.setSession({ access_token, refresh_token })
           .then(({ data, error }) => {
-            console.log('setSession result:', { data, error });
+            // Session set
           });
         window.location.hash = '';
       }
     }
     supabase.auth.getSession().then(({ data }) => {
-      console.log('getSession after setSession:', data);
+      // Session retrieved
     });
   }, []);
 
@@ -65,23 +67,20 @@ export default function PortfolioTrackerPage() {
       const refresh_token = urlParams.get('refresh_token');
       
       if (access_token && refresh_token) {
-        console.log('Parsed tokens:', { access_token, refresh_token });
         if (access_token && refresh_token) {
           supabase.auth.setSession({ access_token, refresh_token })
             .then(({ data, error }) => {
-              console.log('setSession result:', { data, error });
               if (error) {
-                console.error('Error setting session:', error);
+                // Handle error silently
               }
             })
             .catch(err => {
-              console.error('setSession error:', err);
+              // Handle error silently
             });
         }
       }
       
       supabase.auth.getSession().then(({ data }) => {
-        console.log('getSession after setSession:', data);
         if (data.session) {
           setUser(data.session.user);
         }
@@ -108,7 +107,7 @@ export default function PortfolioTrackerPage() {
     setDataError(null);
 
     try {
-      console.log('Loading portfolio data for user:', user.id);
+      // Loading portfolio data for user
       
       // Fetch portfolio properties from Supabase
       const { data: properties, error } = await supabase
@@ -122,7 +121,7 @@ export default function PortfolioTrackerPage() {
         setDataError('Failed to load portfolio data. Please try again.');
         setPortfolioProperties([]);
       } else {
-        console.log('Loaded portfolio properties:', properties);
+        // Loaded portfolio properties
         setPortfolioProperties(properties || []);
         setDataError(null);
       }
@@ -155,11 +154,11 @@ export default function PortfolioTrackerPage() {
 
   // Memoized event handlers
   const handleAddProperty = useCallback(() => {
-    console.log('Add new property');
+    // Add new property
   }, []);
 
   const handleExport = useCallback(() => {
-    console.log('Export portfolio');
+    // Export portfolio
   }, []);
 
   const handleFilterChange = useCallback((status: 'all' | 'active' | 'sold' | 'watching') => {
@@ -169,7 +168,7 @@ export default function PortfolioTrackerPage() {
   const handleRemoveProperty = useCallback((id: string, address: string) => {
     if (window.confirm(`Are you sure you want to remove "${address}" from your portfolio? This action cannot be undone.`)) {
       setPortfolioProperties(prev => prev.filter(property => property.id !== id));
-      console.log('Removed property from portfolio:', id);
+              // Removed property from portfolio
     }
   }, []);
 
@@ -181,9 +180,9 @@ export default function PortfolioTrackerPage() {
           ? { ...property, status: 'sold', currentValue: Number(salePrice) }
           : property
       ));
-      console.log('Marked property as sold:', id, 'Sale price:', salePrice);
+      // Property marked as sold
     } else if (salePrice !== null) {
-      alert('Please enter a valid sale price.');
+      showToast({ type: 'error', title: 'Please enter a valid sale price.' });
     }
   }, []);
 
@@ -284,7 +283,7 @@ export default function PortfolioTrackerPage() {
   // Show loading skeleton while data is being loaded
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#FAF9F6] font-sans">
+      <div className="min-h-screen bg-neutral-100 font-sans">
         <main className="container mx-auto px-4 py-8 max-w-6xl">
           {/* Standardized Header */}
           <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
@@ -325,7 +324,7 @@ export default function PortfolioTrackerPage() {
         <meta name="twitter:description" content="Track your property investment portfolio and monitor growth." />
         <link rel="canonical" href="https://bmvfinder.com/portfolio-tracker" />
       </Head>
-      <div className="min-h-screen bg-[#FAF9F6] font-sans">
+      <div className="min-h-screen bg-neutral-100 font-sans">
         <main className="container mx-auto px-4 py-8 max-w-6xl">
           {/* Standardized Header */}
           <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
@@ -665,7 +664,7 @@ export default function PortfolioTrackerPage() {
                     <button
                       onClick={() => {
                         // Generate report functionality
-                        console.log('Generate report');
+                        // Generate report
                       }}
                       className="rounded-full font-semibold shadow bg-purple-100 text-purple-700 px-5 py-2.5 hover:bg-purple-200 transition inline-flex items-center gap-2"
                     >
@@ -697,7 +696,7 @@ export default function PortfolioTrackerPage() {
                 <button
                   onClick={() => {
                     // Trigger sign in
-                    console.log('Sign in clicked');
+                    // Sign in clicked
                   }}
                   className="inline-flex items-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-full font-semibold hover:bg-blue-700 active:bg-blue-800 focus:ring-2 focus:ring-blue-400 focus:outline-none transition shadow-lg"
                 >

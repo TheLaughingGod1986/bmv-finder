@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 const partners = [
   { name: 'PropertyWeek', svg: <span className="font-bold text-lg">PropertyWeek</span> },
@@ -10,10 +10,10 @@ const partners = [
 export default function PartnerLogos() {
   return (
     <section aria-label="Partner and Press Logos" className="my-8">
-      <div className="text-center text-[#3B755D] text-sm mb-3">As featured in</div>
+      <div className="text-center text-primary-600 text-sm mb-3">As featured in</div>
       <div className="flex flex-wrap justify-center gap-8 items-center">
         {partners.map((p, i) => (
-          <div key={i} className="bg-[#E5E5E5] rounded-lg px-6 py-3 flex items-center justify-center min-w-[120px] min-h-[48px] shadow-sm" aria-label={p.name} title={p.name}>
+          <div key={i} className="bg-neutral-200 rounded-lg px-6 py-3 flex items-center justify-center min-w-[120px] min-h-[48px] shadow-sm" aria-label={p.name} title={p.name}>
             {p.svg}
           </div>
         ))}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,7 +31,7 @@ interface MarketInsight {
   recommendation: string;
 }
 
-export default function PredictionsScreen({ navigation }: any) {
+export default function PredictionsScreen({ navigation }: { navigation: unknown }) {
   const [postcode, setPostcode] = useState('');
   const [predictions, setPredictions] = useState<Prediction[]>([]);
   const [marketInsights, setMarketInsights] = useState<MarketInsight[]>([]);

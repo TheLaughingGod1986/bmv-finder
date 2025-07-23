@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from 'next/link';
 import { supabase } from '../../lib/supabaseClient';
 import { useUserTier } from '@/hooks/useUserTier';
@@ -114,12 +114,12 @@ export default function PricingPageNew() {
 
   if (userLoading) {
     return (
-      <div className="min-h-screen bg-[#F5F5DC]">
+      <div className="min-h-screen bg-neutral-100">
         <Header />
         <Section background="white">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#3A7CA5] mx-auto mb-4"></div>
-            <p className="text-[#3B755D]">Loading...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-blue mx-auto mb-4"></div>
+            <p className="text-primary-green-dark">Loading...</p>
           </div>
         </Section>
       </div>
@@ -149,28 +149,28 @@ export default function PricingPageNew() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F5DC]">
+    <div className="min-h-screen bg-neutral-100">
       <Header />
       
       {/* Hero Section */}
       <Section background="white">
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-[#2C6E91] mb-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-primary-blue-dark mb-4">
             Find the Right Plan for Your Property Journey
           </h1>
-          <p className="text-lg md:text-xl text-[#3B755D] mb-8 max-w-3xl mx-auto">
+          <p className="text-lg md:text-xl text-primary-green-dark mb-8 max-w-3xl mx-auto">
             Compare features, see what&apos;s included, and choose the perfect plan for you. Upgrade anytime.
           </p>
           
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-4 mb-8">
-            <span className={`text-sm font-medium ${billingInterval === 'monthly' ? 'text-[#2C6E91]' : 'text-[#3B755D]'}`}>
+            <span className={`text-sm font-medium ${billingInterval === 'monthly' ? 'text-primary-blue-dark' : 'text-primary-green-dark'}`}>
               Monthly
             </span>
             <button
               onClick={() => setBillingInterval(billingInterval === 'monthly' ? 'yearly' : 'monthly')}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                billingInterval === 'yearly' ? 'bg-[#3A7CA5]' : 'bg-[#E5E5E5]'
+                billingInterval === 'yearly' ? 'bg-primary-blue' : 'bg-neutral-200'
               }`}
             >
               <span
@@ -179,9 +179,9 @@ export default function PricingPageNew() {
                 }`}
               />
             </button>
-            <span className={`text-sm font-medium ${billingInterval === 'yearly' ? 'text-[#2C6E91]' : 'text-[#3B755D]'}`}>
+            <span className={`text-sm font-medium ${billingInterval === 'yearly' ? 'text-primary-blue-dark' : 'text-primary-green-dark'}`}>
               Yearly
-              <span className="ml-1 text-xs bg-[#5DA271] text-white px-2 py-1 rounded-full">Save 17%</span>
+              <span className="ml-1 text-xs bg-primary-green text-white px-2 py-1 rounded-full">Save 17%</span>
             </span>
           </div>
         </div>
@@ -270,53 +270,53 @@ export default function PricingPageNew() {
       <Section background="white">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">Detailed Feature Comparison</h2>
-            <p className="text-lg text-[#3B755D]">See exactly what&apos;s included in each plan</p>
+            <h2 className="text-3xl font-bold text-primary-blue-dark mb-4">Detailed Feature Comparison</h2>
+            <p className="text-lg text-primary-green-dark">See exactly what&apos;s included in each plan</p>
           </div>
           
           <div className="overflow-x-auto">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="border-b-2 border-[#E5E5E5]">
-                  <th className="text-left py-4 px-6 font-semibold text-[#2C6E91]">Feature</th>
-                  <th className="text-center py-4 px-6 font-semibold text-[#2C6E91]">Starter</th>
-                  <th className="text-center py-4 px-6 font-semibold text-[#2C6E91]">Pro</th>
-                  <th className="text-center py-4 px-6 font-semibold text-[#2C6E91]">Elite</th>
+                <tr className="border-b-2 border-neutral-200">
+                  <th className="text-left py-4 px-6 font-semibold text-primary-blue-dark">Feature</th>
+                  <th className="text-center py-4 px-6 font-semibold text-primary-blue-dark">Starter</th>
+                  <th className="text-center py-4 px-6 font-semibold text-primary-blue-dark">Pro</th>
+                  <th className="text-center py-4 px-6 font-semibold text-primary-blue-dark">Elite</th>
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-[#E5E5E5]">
-                  <td className="py-4 px-6 font-medium text-[#3B755D]">Property Searches</td>
+                <tr className="border-b border-neutral-200">
+                  <td className="py-4 px-6 font-medium text-primary-green-dark">Property Searches</td>
                   <td className="text-center py-4 px-6">10/day</td>
                   <td className="text-center py-4 px-6">Unlimited</td>
                   <td className="text-center py-4 px-6">Unlimited</td>
                 </tr>
-                <tr className="border-b border-[#E5E5E5]">
-                  <td className="py-4 px-6 font-medium text-[#3B755D]">Data Export</td>
+                <tr className="border-b border-neutral-200">
+                  <td className="py-4 px-6 font-medium text-primary-green-dark">Data Export</td>
                   <td className="text-center py-4 px-6">❌</td>
                   <td className="text-center py-4 px-6">CSV</td>
                   <td className="text-center py-4 px-6">CSV + PDF</td>
                 </tr>
-                <tr className="border-b border-[#E5E5E5]">
-                  <td className="py-4 px-6 font-medium text-[#3B755D]">Email Alerts</td>
+                <tr className="border-b border-neutral-200">
+                  <td className="py-4 px-6 font-medium text-primary-green-dark">Email Alerts</td>
                   <td className="text-center py-4 px-6">❌</td>
                   <td className="text-center py-4 px-6">✅</td>
                   <td className="text-center py-4 px-6">✅</td>
                 </tr>
-                <tr className="border-b border-[#E5E5E5]">
-                  <td className="py-4 px-6 font-medium text-[#3B755D]">API Access</td>
+                <tr className="border-b border-neutral-200">
+                  <td className="py-4 px-6 font-medium text-primary-green-dark">API Access</td>
                   <td className="text-center py-4 px-6">❌</td>
                   <td className="text-center py-4 px-6">❌</td>
                   <td className="text-center py-4 px-6">✅</td>
                 </tr>
-                <tr className="border-b border-[#E5E5E5]">
-                  <td className="py-4 px-6 font-medium text-[#3B755D]">Priority Support</td>
+                <tr className="border-b border-neutral-200">
+                  <td className="py-4 px-6 font-medium text-primary-green-dark">Priority Support</td>
                   <td className="text-center py-4 px-6">❌</td>
                   <td className="text-center py-4 px-6">✅</td>
                   <td className="text-center py-4 px-6">✅</td>
                 </tr>
-                <tr className="border-b border-[#E5E5E5]">
-                  <td className="py-4 px-6 font-medium text-[#3B755D]">Bulk Analysis</td>
+                <tr className="border-b border-neutral-200">
+                  <td className="py-4 px-6 font-medium text-primary-green-dark">Bulk Analysis</td>
                   <td className="text-center py-4 px-6">❌</td>
                   <td className="text-center py-4 px-6">❌</td>
                   <td className="text-center py-4 px-6">✅</td>
@@ -331,8 +331,8 @@ export default function PricingPageNew() {
       <Section background="light">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">Why Choose UK Property Insights?</h2>
-            <p className="text-lg text-[#3B755D]">Join thousands of property professionals who trust our platform</p>
+            <h2 className="text-3xl font-bold text-primary-blue-dark mb-4">Why Choose UK Property Insights?</h2>
+            <p className="text-lg text-primary-green-dark">Join thousands of property professionals who trust our platform</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
@@ -359,29 +359,29 @@ export default function PricingPageNew() {
       <Section background="white">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">Frequently Asked Questions</h2>
-            <p className="text-lg text-[#3B755D]">Everything you need to know about our plans</p>
+            <h2 className="text-3xl font-bold text-primary-blue-dark mb-4">Frequently Asked Questions</h2>
+            <p className="text-lg text-primary-green-dark">Everything you need to know about our plans</p>
           </div>
           
           <div className="space-y-6">
-            <div className="bg-[#F5F5DC] rounded-lg p-6">
-              <h3 className="font-semibold text-[#2C6E91] mb-2">Can I change my plan anytime?</h3>
-              <p className="text-[#3B755D]">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
+            <div className="bg-neutral-100 rounded-lg p-6">
+              <h3 className="font-semibold text-primary-blue-dark mb-2">Can I change my plan anytime?</h3>
+              <p className="text-primary-green-dark">Yes, you can upgrade or downgrade your plan at any time. Changes take effect immediately.</p>
             </div>
             
-            <div className="bg-[#F5F5DC] rounded-lg p-6">
-              <h3 className="font-semibold text-[#2C6E91] mb-2">Is there a free trial?</h3>
-              <p className="text-[#3B755D]">Yes, all paid plans come with a 7-day free trial. No credit card required to start.</p>
+            <div className="bg-neutral-100 rounded-lg p-6">
+              <h3 className="font-semibold text-primary-blue-dark mb-2">Is there a free trial?</h3>
+              <p className="text-primary-green-dark">Yes, all paid plans come with a 7-day free trial. No credit card required to start.</p>
             </div>
             
-            <div className="bg-[#F5F5DC] rounded-lg p-6">
-              <h3 className="font-semibold text-[#2C6E91] mb-2">What payment methods do you accept?</h3>
-              <p className="text-[#3B755D]">We accept all major credit cards, debit cards, and PayPal. All payments are processed securely through Stripe.</p>
+            <div className="bg-neutral-100 rounded-lg p-6">
+              <h3 className="font-semibold text-primary-blue-dark mb-2">What payment methods do you accept?</h3>
+              <p className="text-primary-green-dark">We accept all major credit cards, debit cards, and PayPal. All payments are processed securely through Stripe.</p>
             </div>
             
-            <div className="bg-[#F5F5DC] rounded-lg p-6">
-              <h3 className="font-semibold text-[#2C6E91] mb-2">Can I cancel my subscription?</h3>
-              <p className="text-[#3B755D]">Yes, you can cancel your subscription at any time. You&apos;ll continue to have access until the end of your billing period.</p>
+            <div className="bg-neutral-100 rounded-lg p-6">
+              <h3 className="font-semibold text-primary-blue-dark mb-2">Can I cancel my subscription?</h3>
+              <p className="text-primary-green-dark">Yes, you can cancel your subscription at any time. You&apos;ll continue to have access until the end of your billing period.</p>
             </div>
           </div>
         </div>
@@ -390,8 +390,8 @@ export default function PricingPageNew() {
       {/* CTA Section */}
       <Section background="light">
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">Ready to Get Started?</h2>
-          <p className="text-lg text-[#3B755D] mb-8">Join thousands of property professionals using our platform</p>
+          <h2 className="text-3xl font-bold text-primary-blue-dark mb-4">Ready to Get Started?</h2>
+          <p className="text-lg text-primary-green-dark mb-8">Join thousands of property professionals using our platform</p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/account"

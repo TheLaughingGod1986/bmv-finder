@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './SimpleCard';
 import { Input } from './SimpleInput';
 import Button from './Button';
@@ -12,7 +12,7 @@ interface MissingDataField {
   description: string;
   impact: 'high' | 'medium' | 'low';
   estimatedImprovement: number;
-  currentValue?: any;
+  currentValue?: string | number;
   suggestedValue?: string;
 }
 
@@ -22,7 +22,7 @@ interface MissingDataProps {
     totalPotentialImprovement: number;
     message: string;
   };
-  onDataUpdate?: (fieldName: string, value: any) => void;
+  onDataUpdate?: (fieldName: string, value: string | number) => void;
 }
 
 export default function MissingDataCard({ missingData, onDataUpdate }: MissingDataProps) {
@@ -39,7 +39,7 @@ export default function MissingDataCard({ missingData, onDataUpdate }: MissingDa
     setExpandedFields(newExpanded);
   };
 
-  const handleInputChange = (fieldName: string, value: any) => {
+  const handleInputChange = (fieldName: string, value: string | number) => {
     setInputValues(prev => ({ ...prev, [fieldName]: value }));
   };
 

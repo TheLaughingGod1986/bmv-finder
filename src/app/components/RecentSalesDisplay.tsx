@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Minus, Info, MapPin, Calendar, PoundSterling, X, Home, Building } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -67,7 +67,7 @@ const RecentSalesDisplay: React.FC<RecentSalesDisplayProps> = ({ postcode, isVis
         
         setData(response.data as RecentSalesData);
       } catch (err) {
-        console.error('Error fetching recent sales:', err);
+        // Error fetching recent sales
         setError(err instanceof Error ? err.message : 'Failed to fetch recent sales data');
       } finally {
         setLoading(false);

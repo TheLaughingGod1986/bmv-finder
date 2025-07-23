@@ -2,9 +2,7 @@ const { Client } = require('@elastic/elasticsearch');
 require('dotenv').config();
 
 const client = new Client({
-  cloud: {
-    id: process.env.ES_CLOUD_ID,
-  },
+  node: process.env.ELASTICSEARCH_URL || "http://localhost:9201",
   auth: {
     apiKey: process.env.ES_API_KEY,
   },

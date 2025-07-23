@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { Zap, TrendingUp, TrendingDown, Leaf, PoundSterling, Thermometer, Lightbulb } from 'lucide-react';
 import { cn } from '../../lib/utils';
 

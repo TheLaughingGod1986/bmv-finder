@@ -14,7 +14,7 @@ export function useUserTier(userId: string | null | undefined) {
       
       setLoading(true);
       try {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('profiles')
           .select('tier')
           .eq('id', userId)

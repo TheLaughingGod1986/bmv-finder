@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/SimpleCard';
 import { Input } from '../components/SimpleInput';
 import Button from '../components/Button';
-import { Search, Target, Loader2, Home, TrendingUp, BarChart3, Info, DollarSign } from 'lucide-react';
+import { Search, Target, Loader2, Home, TrendingUp, BarChart3, Info, DollarSign, PoundSterling } from 'lucide-react';
 import { useToast } from '../components/ToastProvider';
 import EnhancedDealAnalysisCard from '../components/EnhancedDealAnalysisCard';
 import { formatPostcode } from '@/utils/formatPostcode';
@@ -15,9 +15,9 @@ import { motion } from 'framer-motion';
 interface DealAnalysisData {
   estimatedValue: number | null;
   confidence: 'low' | 'medium' | 'high';
-  comparables: any[];
+  comparables: unknown[];
   usedBedroomFilter: boolean;
-  subject: any | null;
+  subject: unknown | null;
 }
 
 export default function AdvancedDealAnalysisPage() {
@@ -105,7 +105,7 @@ export default function AdvancedDealAnalysisPage() {
                 Portfolio analytics
               </span>
               <span className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" />
+                <PoundSterling className="w-3 h-3" />
                 Total asset tracking
               </span>
               <span className="flex items-center gap-1">
@@ -256,7 +256,7 @@ export default function AdvancedDealAnalysisPage() {
                         onClick={() => {
                           setHouseNumber(property.number);
                           setPostcode(property.postcode);
-                          setTimeout(() => handleSearch(), 100);
+                          performSearch(property.postcode, property.number);
                         }}
                         className="w-full bg-primary-600 hover:bg-primary-700 text-white text-sm"
                       >

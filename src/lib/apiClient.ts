@@ -79,7 +79,16 @@ class ApiClient {
     return this.request(`/api/recent-sales?${params.toString()}`);
   }
 
-  async getWhatShouldIPay(params: { postcode: string; propertyType: string; offerMargin: number }) {
+  async getWhatShouldIPay(params: { 
+    postcode: string; 
+    propertyType: string; 
+    offerMargin: number;
+    bedrooms?: number;
+    plotSize?: number;
+    condition?: string;
+    epcRating?: string;
+    searchRadius?: number;
+  }) {
     return this.request('/api/what-should-i-pay', {
       method: 'POST',
       body: JSON.stringify(params),
@@ -139,6 +148,13 @@ class ApiClient {
     return this.request('/api/create-checkout-session', {
       method: 'POST',
       body: JSON.stringify({ userId, priceId }),
+    });
+  }
+
+  async createPDFReportSession(userId: string, email: string, propertyData: any) {
+    return this.request('/api/create-pdf-report-session', {
+      method: 'POST',
+      body: JSON.stringify({ userId, email, propertyData }),
     });
   }
 

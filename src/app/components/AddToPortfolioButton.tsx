@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Home, Plus, Check, AlertCircle } from 'lucide-react';
 import { useToast } from './ToastProvider';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -47,12 +47,7 @@ export default function AddToPortfolioButton({
   const user = useUser();
 
   const handleAddToPortfolio = async () => {
-    console.log('🔍 AddToPortfolioButton: handleAddToPortfolio called');
-    console.log('🔍 AddToPortfolioButton: user:', user);
-    console.log('🔍 AddToPortfolioButton: propertyData:', propertyData);
-    
     if (!user) {
-      console.log('🔍 AddToPortfolioButton: No user, showing error toast');
       showToast({
         type: 'error',
         title: 'Authentication Required',
@@ -62,15 +57,12 @@ export default function AddToPortfolioButton({
     }
 
     if (loading) {
-      console.log('🔍 AddToPortfolioButton: Already loading, returning');
       return;
     }
 
-    console.log('🔍 AddToPortfolioButton: Setting loading to true');
     setLoading(true);
     
     try {
-      console.log('🔍 AddToPortfolioButton: Making API call');
       const response = await fetch('/api/portfolio/add', {
         method: 'POST',
         headers: {
@@ -83,10 +75,8 @@ export default function AddToPortfolioButton({
       });
 
       const data = await response.json();
-      console.log('🔍 AddToPortfolioButton: API response:', { status: response.status, data });
 
       if (response.ok) {
-        console.log('🔍 AddToPortfolioButton: Success! Setting added to true');
         setAdded(true);
         showToast({
           type: 'success',
@@ -96,12 +86,10 @@ export default function AddToPortfolioButton({
 
         // Reset added state after 3 seconds
         setTimeout(() => {
-          console.log('🔍 AddToPortfolioButton: Resetting added state');
           setAdded(false);
         }, 3000);
       } else {
         if (response.status === 409) {
-          console.log('🔍 AddToPortfolioButton: Property already exists');
           showToast({
             type: 'warning',
             title: 'Already in Portfolio',
@@ -112,23 +100,18 @@ export default function AddToPortfolioButton({
         }
       }
     } catch (err) {
-      console.error('🔍 AddToPortfolioButton: Error adding to portfolio:', err);
       showToast({
         type: 'error',
         title: 'Error',
         message: err instanceof Error ? err.message : 'Failed to add property to portfolio'
       });
     } finally {
-      console.log('🔍 AddToPortfolioButton: Setting loading to false');
       setLoading(false);
     }
   };
 
   const getButtonContent = () => {
-    console.log('🔍 AddToPortfolioButton: getButtonContent called', { added, loading });
-    
     if (added) {
-      console.log('🔍 AddToPortfolioButton: Rendering added state');
       return (
         <>
           <Check className="h-4 w-4" />
@@ -138,7 +121,6 @@ export default function AddToPortfolioButton({
     }
 
     if (loading) {
-      console.log('🔍 AddToPortfolioButton: Rendering loading state');
       return (
         <>
           <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
@@ -147,48 +129,36 @@ export default function AddToPortfolioButton({
       );
     }
 
-    console.log('🔍 AddToPortfolioButton: Rendering default state');
-    return (
+    return children || (
       <>
         {showIcon && <Plus className="h-4 w-4" />}
-        {children || 'Add to Portfolio'}
+        Add to Portfolio
       </>
     );
   };
 
   const getButtonClasses = () => {
-    console.log('🔍 AddToPortfolioButton: getButtonClasses called', { added, loading, variant, size, className });
+    const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-target';
     
-    const baseClasses = 'inline-flex items-center gap-2 font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
-    
-    const variantClasses = {
-      default: 'bg-green-600 hover:bg-green-700 text-white focus:ring-green-500',
-      outline: 'border-2 border-green-600 text-green-600 hover:bg-green-50 focus:ring-green-500',
-      ghost: 'text-green-600 hover:bg-green-50 focus:ring-green-500'
-    };
-
     const sizeClasses = {
-      sm: 'px-3 py-1.5 text-sm',
-      md: 'px-4 py-2 text-base',
-      lg: 'px-6 py-3 text-lg'
+      sm: 'px-3 py-1.5 text-sm rounded-md',
+      md: 'px-4 py-2 text-sm rounded-lg',
+      lg: 'px-6 py-3 text-base rounded-lg'
     };
 
-    // Override styling based on state
-    let stateClasses = '';
-    if (added) {
-      stateClasses = 'bg-green-600 text-white border-green-600 cursor-default hover:bg-green-600';
-      console.log('🔍 AddToPortfolioButton: Using added state classes:', stateClasses);
-    } else if (loading) {
-      stateClasses = 'opacity-75 cursor-not-allowed';
-      console.log('🔍 AddToPortfolioButton: Using loading state classes:', stateClasses);
-    } else {
-      stateClasses = variantClasses[variant];
-      console.log('🔍 AddToPortfolioButton: Using default variant classes:', stateClasses);
-    }
+    const variantClasses = {
+      default: 'bg-primary-700 text-white hover:bg-primary-800 focus:ring-primary-500 shadow-soft',
+      outline: 'border border-primary-300 text-primary-700 bg-white hover:bg-primary-50 focus:ring-primary-500',
+      ghost: 'text-primary-700 hover:bg-primary-50 focus:ring-primary-500'
+    };
 
-    const finalClasses = `${baseClasses} ${stateClasses} ${sizeClasses[size]} ${className}`;
-    console.log('🔍 AddToPortfolioButton: Final classes:', finalClasses);
-    return finalClasses;
+    const stateClasses = added 
+      ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-soft'
+      : loading
+      ? 'bg-gray-400 text-white cursor-not-allowed shadow-soft'
+      : variantClasses[variant];
+
+    return `${baseClasses} ${sizeClasses[size]} ${stateClasses} ${className}`;
   };
 
   return (
@@ -204,7 +174,7 @@ export default function AddToPortfolioButton({
 }
 
 // Helper function to extract property data from comprehensive valuation
-export function extractPropertyDataFromValuation(valuationData: any) {
+export function extractPropertyDataFromValuation(valuationData: { property: { address: string; postcode: string; propertyType: string; bedrooms?: number; floorArea?: number; epcRating?: string }; summary: { finalValue: number }; methods: { salesComparison: { value: number } } }) {
   if (!valuationData || !valuationData.property) {
     return null;
   }

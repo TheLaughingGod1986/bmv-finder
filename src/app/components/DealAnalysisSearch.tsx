@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import Button from './Button';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from './SimpleCard';
 import { Input } from './SimpleInput';
@@ -27,9 +27,9 @@ interface SearchResult {
 interface DealAnalysisData {
   estimatedValue: number | null;
   confidence: 'low' | 'medium' | 'high';
-  comparables: any[];
+  comparables: unknown[];
   usedBedroomFilter: boolean;
-  subject: any | null;
+  subject: unknown | null;
 }
 
 export default function DealAnalysisSearch() {
@@ -207,7 +207,7 @@ export default function DealAnalysisSearch() {
 
 
 
-  const handleAddToPortfolio = (valuation: any) => {
+  const handleAddToPortfolio = (valuation: unknown) => {
     showToast({
       type: 'success',
       title: 'Added to Portfolio',

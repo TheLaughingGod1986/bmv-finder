@@ -8,7 +8,8 @@ const nextConfig = {
   
   // Security headers
   async headers() {
-    // Relaxed Content Security Policy for compatibility with all required services
+    // Only set CSP in production
+    if (process.env.NODE_ENV !== 'production') return [];
     return [
       {
         source: '/(.*)',
@@ -96,3 +97,4 @@ const nextConfig = {
 };
 
 module.exports = nextConfig;
+

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   View,
   Text,
@@ -21,7 +21,7 @@ interface UserProfile {
   searches: number;
 }
 
-export default function AccountScreen({ navigation }: any) {
+export default function AccountScreen({ navigation }: { navigation: unknown }) {
   const [notifications, setNotifications] = useState(true);
   const [locationServices, setLocationServices] = useState(true);
   const [darkMode, setDarkMode] = useState(false);
@@ -43,7 +43,7 @@ export default function AccountScreen({ navigation }: any) {
       'Are you sure you want to logout?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: () => console.log('Logout') },
+                    { text: 'Logout', style: 'destructive', onPress: () => {/* Logout */} },
       ]
     );
   };
@@ -54,7 +54,7 @@ export default function AccountScreen({ navigation }: any) {
       'This action cannot be undone. Are you sure?',
       [
         { text: 'Cancel', style: 'cancel' },
-        { text: 'Delete', style: 'destructive', onPress: () => console.log('Delete account') },
+                    { text: 'Delete', style: 'destructive', onPress: () => {/* Delete account */} },
       ]
     );
   };

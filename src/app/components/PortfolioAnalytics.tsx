@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './SimpleCard';
 import { 
   TrendingUp, 
@@ -179,7 +179,7 @@ export default function PortfolioAnalytics() {
       setAnalytics(mockAnalytics);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching analytics:', error);
+              // Error fetching analytics
       setLoading(false);
     }
   };

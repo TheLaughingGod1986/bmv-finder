@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Filter, 
@@ -25,7 +25,7 @@ interface EnhancedFiltersProps {
     duration: string[];
     year: string[];
   };
-  onFiltersChange: (filters: any) => void;
+  onFiltersChange: (filters: { priceRange: { min: number; max: number }; dateRange: { start: string; end: string }; propertyType: string[]; duration: string[]; year: string[] }) => void;
   onReset: () => void;
   className?: string;
 }
@@ -58,7 +58,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
     return { value: year.toString(), label: year.toString() };
   });
 
-  const handleFilterChange = (key: string, value: any) => {
+  const handleFilterChange = (key: string, value: string | number | { min: number; max: number } | { start: string; end: string } | string[]) => {
     const newFilters = { ...localFilters, [key]: value };
     setLocalFilters(newFilters);
     onFiltersChange(newFilters);

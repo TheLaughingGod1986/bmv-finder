@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, AlertTriangle, Award, Target, BarChart3, Info, Lightbulb, Shield, Zap } from 'lucide-react';
 

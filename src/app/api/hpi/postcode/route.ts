@@ -7,6 +7,20 @@ const INDEX_NAME = 'house_price_index';
 function getRegionFromPostcode(postcode: string): string {
   const upperPostcode = postcode.toUpperCase();
   
+  // London
+  if (
+    upperPostcode.startsWith('E') || upperPostcode.startsWith('EC') ||
+    (upperPostcode.startsWith('N') && !upperPostcode.startsWith('NE') && !upperPostcode.startsWith('NW') && /^N[0-9]/.test(upperPostcode)) ||
+    upperPostcode.startsWith('NW') ||
+    upperPostcode.startsWith('SE') || upperPostcode.startsWith('SW') ||
+    upperPostcode.startsWith('W') || upperPostcode.startsWith('WC')
+  ) {
+    return 'london';
+  }
+  // East of England (move above Yorkshire)
+  if (upperPostcode.startsWith('AL') || upperPostcode.startsWith('CB') || upperPostcode.startsWith('CM') || upperPostcode.startsWith('CO') || upperPostcode.startsWith('IP') || upperPostcode.startsWith('LU') || upperPostcode.startsWith('MK') || upperPostcode.startsWith('NN') || upperPostcode.startsWith('NR') || upperPostcode.startsWith('PE') || upperPostcode.startsWith('SG') || upperPostcode.startsWith('SS')) {
+    return 'east-of-england';
+  }
   // North East
   if (upperPostcode.startsWith('NE') || upperPostcode.startsWith('SR') || upperPostcode.startsWith('DL') || upperPostcode.startsWith('TS')) {
     return 'north-east';
@@ -26,22 +40,6 @@ function getRegionFromPostcode(postcode: string): string {
   // West Midlands
   if (upperPostcode.startsWith('B') || upperPostcode.startsWith('CV') || upperPostcode.startsWith('DY') || upperPostcode.startsWith('HR') || upperPostcode.startsWith('TF') || upperPostcode.startsWith('WS') || upperPostcode.startsWith('WV')) {
     return 'west-midlands-region';
-  }
-  // East of England
-  if (upperPostcode.startsWith('AL') || upperPostcode.startsWith('CB') || upperPostcode.startsWith('CM') || upperPostcode.startsWith('CO') || upperPostcode.startsWith('IP') || upperPostcode.startsWith('LU') || upperPostcode.startsWith('MK') || upperPostcode.startsWith('NN') || upperPostcode.startsWith('NR') || upperPostcode.startsWith('PE') || upperPostcode.startsWith('SG') || upperPostcode.startsWith('SS')) {
-    return 'east-of-england';
-  }
-  // London
-  if (upperPostcode.startsWith('E') || upperPostcode.startsWith('EC') || upperPostcode.startsWith('N') || upperPostcode.startsWith('NW') || upperPostcode.startsWith('SE') || upperPostcode.startsWith('SW') || upperPostcode.startsWith('W') || upperPostcode.startsWith('WC')) {
-    return 'london';
-  }
-  // South East
-  if (upperPostcode.startsWith('BN') || upperPostcode.startsWith('GU') || upperPostcode.startsWith('HP') || upperPostcode.startsWith('ME') || upperPostcode.startsWith('OX') || upperPostcode.startsWith('PO') || upperPostcode.startsWith('RG') || upperPostcode.startsWith('RH') || upperPostcode.startsWith('SL') || upperPostcode.startsWith('SO') || upperPostcode.startsWith('TN') || upperPostcode.startsWith('TW')) {
-    return 'south-east';
-  }
-  // South West
-  if (upperPostcode.startsWith('BA') || upperPostcode.startsWith('BS') || upperPostcode.startsWith('DT') || upperPostcode.startsWith('EX') || upperPostcode.startsWith('GL') || upperPostcode.startsWith('PL') || upperPostcode.startsWith('SN') || upperPostcode.startsWith('SP') || upperPostcode.startsWith('TA') || upperPostcode.startsWith('TQ') || upperPostcode.startsWith('TR')) {
-    return 'south-west';
   }
   
   // Default to England if no match

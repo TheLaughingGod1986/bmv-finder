@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -50,7 +50,7 @@ interface Property {
   };
 }
 
-export default function PropertyDetailScreen({ navigation, route }: any) {
+export default function PropertyDetailScreen({ navigation, route }: { navigation: unknown; route: unknown }) {
   const [property, setProperty] = useState<Property | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);

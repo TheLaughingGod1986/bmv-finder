@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { TrendingUp, TrendingDown, Calendar, Building, PoundSterling, Info, BarChart3, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -47,19 +47,19 @@ function MiniTrendChart({ data }: { data: HpiRecord[] }) {
   const min = Math.min(...values);
   const max = Math.max(...values);
   const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * 100;
+    const x = (i / (values.length - 1)) * 800;
     const y = 100 - ((v - min) / (max - min || 1)) * 100;
     return `${x},${y}`;
   }).join(' ');
   return (
-    <svg viewBox="0 0 100 100" width={120} height={40} className="block mx-auto">
+    <svg viewBox="0 0 800 100" width="100%" height="60" className="block">
       <polyline
         fill="none"
         stroke="#3A7CA5"
         strokeWidth="3"
         points={points}
       />
-      <circle cx="100" cy={100 - ((values[values.length-1] - min) / (max - min || 1)) * 100} r="2.5" fill="#3A7CA5" />
+      <circle cx="800" cy={100 - ((values[values.length-1] - min) / (max - min || 1)) * 100} r="3" fill="#3A7CA5" />
     </svg>
   );
 }
@@ -95,7 +95,10 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
     try {
       const response = await apiClient.getHpiData(trimmed);
       if (!response.error && response.data && typeof response.data === 'object' && 'results' in response.data && Array.isArray((response.data as any).results) && (response.data as any).results.length > 0) {
-        setData((response.data as any).results);
+        setData((response.data as { results: unknown[] }).results.map((r: unknown) => ({
+          ...r,
+          index: r.hpiIndex !== undefined ? r.hpiIndex : r.index // Map hpiIndex to index for frontend compatibility
+        })));
         setSource((response.data as any).source);
         if ((response.data as any).region) setRegion((response.data as any).region);
       } else {
@@ -218,12 +221,23 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
 
                 {/* Mini Trend Chart */}
                 {data.length > 1 && (
-                  <div className="bg-gray-50 rounded-lg p-4 flex flex-col items-center">
+                  <div className="bg-gray-50 rounded-lg p-4 w-full">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="w-4 h-4 text-primary-600" />
                       <span className="text-sm font-medium text-gray-700">12-Month Trend</span>
                     </div>
+                    <div className="text-xs text-gray-600 mb-2">
+                      This chart shows how the House Price Index has changed over the past 12 months for this region.
+                    </div>
                     <MiniTrendChart data={data.slice(0, 12).reverse()} />
+                    <div className="flex justify-between text-xs text-gray-500 mt-2 w-full">
+                      <span>
+                        {data.length > 1 ? new Date(data[Math.min(11, data.length-1)].date + '-01').toLocaleString('default', { month: 'short', year: 'numeric' }) : ''}
+                      </span>
+                      <span>
+                        {data.length > 0 ? new Date(data[0].date + '-01').toLocaleString('default', { month: 'short', year: 'numeric' }) : ''}
+                      </span>
+                    </div>
                   </div>
                 )}
 

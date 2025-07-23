@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -58,9 +58,9 @@ export default function Home() {
   const [paginationDirection, setPaginationDirection] = useState<'next' | 'previous'>('next');
   const [totalCount, setTotalCount] = useState(0);
   const [pageSize] = useState(20);
-  const [searchAfter, setSearchAfter] = useState<any>(null);
+  const [searchAfter, setSearchAfter] = useState<unknown>(null);
   const [hasMore, setHasMore] = useState(false);
-  const [searchAfterHistory, setSearchAfterHistory] = useState<any[]>([]);
+  const [searchAfterHistory, setSearchAfterHistory] = useState<unknown[]>([]);
   
   // Data freshness state
   const [lastUpdatedData, setLastUpdatedData] = useState<{
@@ -94,7 +94,7 @@ export default function Home() {
 
   // HPI Data state
   const [showHpiData, setShowHpiData] = useState(false);
-  const [hpiQuery, setHpiQuery] = useState<any>(null);
+  const [hpiQuery, setHpiQuery] = useState<{ type: 'postcode' | 'region' | 'region_fallback'; value: string } | null>(null);
   const [showRecentSales, setShowRecentSales] = useState(false);
   const [recentSalesPostcode, setRecentSalesPostcode] = useState('');
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
@@ -312,7 +312,7 @@ export default function Home() {
   };
 
   // Handle scroll for back to top button
-  React.useEffect(() => {
+  useEffect(() => {
     const handleScroll = () => {
       setShowBackToTop(window.scrollY > 400);
     };
@@ -332,99 +332,100 @@ export default function Home() {
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchLastUpdated();
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6]">
-      <Analytics />
-      <SpeedInsights />
+    <>
+      <div className="min-h-screen bg-neutral-light">
+        <Analytics />
+        <SpeedInsights />
       
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-primary-50 to-primary-100 py-8 sm:py-12 lg:py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-8 sm:mb-12">
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary mb-4 sm:mb-6"
-            >
-              UK Property Price Search
-            </motion.h1>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto mb-6 sm:mb-8"
-            >
-              Search millions of UK property sales with instant access to Land Registry data, market trends, and investment insights.
-            </motion.p>
-          </div>
-
-          {/* Search Component */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="max-w-6xl mx-auto"
-          >
-            <Section className="mb-12">
-              <AddressSearchInput
-                value={searchTerm}
-                onChange={setSearchTerm}
-                onSearch={handleSearch}
-                isLoading={isLoading}
-                placeholder="Start typing a postcode or address..."
-                showHistory={true}
-                showSuggestions={true}
-                debounceMs={300}
-                minSearchLength={2}
-              />
-              <div className="mt-6 text-center">
-                <a href="/advanced-deal-analysis" className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold shadow hover:bg-primary-700 transition">
-                  Try Advanced Deal Analysis
-                </a>
-              </div>
-            </Section>
-          </motion.div>
-
-          {/* Quick Stats */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12"
-          >
-            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-soft text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">25M+</div>
-              <div className="text-sm sm:text-base text-text-secondary">Property Sales</div>
-            </div>
-            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-soft text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">1995-2024</div>
-              <div className="text-sm sm:text-base text-text-secondary">Data Range</div>
-            </div>
-            <div className="bg-white rounded-xl p-4 sm:p-6 border border-gray-200 shadow-soft text-center">
-              <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">Free</div>
-              <div className="text-sm sm:text-base text-text-secondary">Basic Search</div>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* Results Section */}
-        {hasSearched && (
-          <div ref={resultsRef} className="space-y-6 sm:space-y-8">
-            {/* Results Summary */}
-            {soldPrices.length > 0 && (
-              <motion.div
+        {/* Hero Section */}
+        <section className="relative bg-gradient-to-br from-primary-50 to-primary-100 py-8 sm:py-12 lg:py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8 sm:mb-12">
+              <motion.h1
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                transition={{ duration: 0.6 }}
+                className="text-3xl sm:text-4xl lg:text-5xl font-bold text-text-primary mb-4 sm:mb-6"
               >
+                UK Property Price Search
+              </motion.h1>
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-lg sm:text-xl text-text-secondary max-w-3xl mx-auto mb-6 sm:mb-8"
+              >
+                Search millions of UK property sales with instant access to Land Registry data, market trends, and investment insights.
+              </motion.p>
+            </div>
+
+            {/* Search Component */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="max-w-6xl mx-auto"
+            >
+              <Section className="mb-12">
+                <AddressSearchInput
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  onSearch={handleSearch}
+                  isLoading={isLoading}
+                  placeholder="Start typing a postcode or address..."
+                  showHistory={true}
+                  showSuggestions={true}
+                  debounceMs={300}
+                  minSearchLength={2}
+                />
+                <div className="mt-6 text-center">
+                  <a href="/advanced-deal-analysis" className="inline-block px-6 py-3 bg-primary-600 text-white rounded-lg font-semibold shadow hover:bg-primary-700 transition">
+                    Try Advanced Deal Analysis
+                  </a>
+                </div>
+              </Section>
+            </motion.div>
+
+            {/* Quick Stats */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12"
+            >
+              <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 shadow-soft text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">25M+</div>
+                <div className="text-sm sm:text-base text-text-secondary">Property Sales</div>
+              </div>
+              <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 shadow-soft text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">1995-2024</div>
+                <div className="text-sm sm:text-base text-text-secondary">Data Range</div>
+              </div>
+              <div className="bg-white rounded-xl p-4 sm:p-6 border border-neutral-200 shadow-soft text-center">
+                <div className="text-2xl sm:text-3xl font-bold text-primary-600 mb-2">Free</div>
+                <div className="text-sm sm:text-base text-text-secondary">Basic Search</div>
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+          {/* Results Section */}
+          {hasSearched && (
+            <div ref={resultsRef} className="space-y-6 sm:space-y-8">
+              {/* Results Summary */}
+              {soldPrices.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
                                  <EnhancedResultsSummary
                    totalCount={totalCount}
                    displayedCount={displayedSoldPrices.length}
@@ -432,291 +433,293 @@ export default function Home() {
                    lastUpdatedData={lastUpdatedData}
                    className="mb-6"
                  />
-              </motion.div>
-            )}
-
-            
-
-            {/* Results Table */}
-            {soldPrices.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.3 }}
-              >
-                <EnhancedSoldPricesTable
-                  soldPrices={displayedSoldPrices}
-                  allSales={soldPrices}
-                  onRowClick={handleRowSelect}
-                  onShowHistory={handlePropertyClick}
-                  sortConfig={sortConfig}
-                  onSort={key => setSortConfig(cfg => ({ ...cfg, key, direction: cfg.direction === 'ascending' ? 'descending' : 'ascending' }))}
-                  isLoading={isLoading}
-                  selectedRowId={selectedRowId}
-                  className="mb-6 sm:mb-8"
-                />
-              </motion.div>
-            )}
-
-            {/* Pagination */}
-            {soldPrices.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.4 }}
-                className="flex flex-col sm:flex-row items-center justify-between gap-4"
-              >
-                <div className="text-sm text-text-secondary">
-                  Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} results
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => handleSearch(searchTerm, page - 1, 'previous')}
-                    disabled={page === 1 || isPaginationLoading}
-                    className="px-4 py-2 text-sm font-medium text-text-primary bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target"
-                  >
-                    Previous
-                  </button>
-                  <span className="px-4 py-2 text-sm font-medium text-text-primary bg-gray-100 rounded-lg">
-                    Page {page}
-                  </span>
-                  <button
-                    onClick={() => handleSearch(searchTerm, page + 1, 'next')}
-                    disabled={!hasMore || isPaginationLoading}
-                    className="px-4 py-2 text-sm font-medium text-text-primary bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target"
-                  >
-                    Next
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Error Display */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-                className="bg-red-50 border border-red-200 rounded-xl p-6 text-center"
-              >
-                <div className="text-red-600 mb-2">
-                  <AlertTriangle className="w-8 h-8 mx-auto" />
-                </div>
-                <h3 className="text-lg font-semibold text-red-800 mb-2">Search Error</h3>
-                <p className="text-red-700">{error}</p>
-              </motion.div>
-            )}
-
-                         {/* Empty State */}
-             {hasSearched && soldPrices.length === 0 && !isLoading && !error && (
-               <motion.div
-                 initial={{ opacity: 0, y: 20 }}
-                 animate={{ opacity: 1, y: 0 }}
-                 transition={{ duration: 0.4 }}
-                 className="text-center py-12"
-               >
-                 <div className="text-6xl mb-4">🏠</div>
-                 <h3 className="text-xl font-semibold text-text-primary mb-2">
-                   No properties found
-                 </h3>
-                 <p className="text-text-secondary mb-4">
-                   Try adjusting your search terms or filters to find more properties.
-                 </p>
-                 <button
-                   onClick={() => setHasSearched(false)}
-                   className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-target"
-                 >
-                   Start New Search
-                 </button>
-               </motion.div>
-             )}
-          </div>
-        )}
-
-        {/* Features Section */}
-        {!hasSearched && (
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="py-8 sm:py-12"
-          >
-            <div className="text-center mb-8 sm:mb-12">
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary mb-4">
-                Powerful Property Insights
-              </h2>
-              <p className="text-lg text-text-secondary max-w-3xl mx-auto">
-                Get comprehensive property data and market analysis to make informed decisions.
-              </p>
-            </div>
-
-                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
-                 <Search className="w-8 h-8 mx-auto mb-4 text-primary-600" />
-                 <h3 className="text-lg font-semibold text-text-primary mb-2">Instant Search</h3>
-                 <p className="text-text-secondary">Search millions of property sales instantly with our powerful database.</p>
-               </div>
-               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
-                 <BarChart className="w-8 h-8 mx-auto mb-4 text-primary-600" />
-                 <h3 className="text-lg font-semibold text-text-primary mb-2">Market Trends</h3>
-                 <p className="text-text-secondary">Analyze price trends and market performance over time.</p>
-               </div>
-               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
-                 <Calculator className="w-8 h-8 mx-auto mb-4 text-primary-600" />
-                 <h3 className="text-lg font-semibold text-text-primary mb-2">Investment Tools</h3>
-                 <p className="text-text-secondary">Calculate potential returns and analyze investment opportunities.</p>
-               </div>
-               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
-                 <BookOpen className="w-8 h-8 mx-auto mb-4 text-primary-600" />
-                 <h3 className="text-lg font-semibold text-text-primary mb-2">Detailed Reports</h3>
-                 <p className="text-text-secondary">Get comprehensive property reports and market analysis.</p>
-               </div>
-               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
-                 <MapPin className="w-8 h-8 mx-auto mb-4 text-primary-600" />
-                 <h3 className="text-lg font-semibold text-text-primary mb-2">Location Insights</h3>
-                 <p className="text-text-secondary">Understand local market conditions and property values.</p>
-               </div>
-               <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-soft text-center">
-                 <TrendingUp className="w-8 h-8 mx-auto mb-4 text-primary-600" />
-                 <h3 className="text-lg font-semibold text-text-primary mb-2">Growth Analysis</h3>
-                 <p className="text-text-secondary">Track property value growth and investment performance.</p>
-               </div>
-             </div>
-          </motion.section>
-        )}
-
-        {/* Trust and Social Proof */}
-        {!hasSearched && (
-          <>
-            <TrustBadges />
-            <PartnerLogos />
-            <Testimonials />
-          </>
-        )}
-      </main>
-
-      {/* Filters Modal */}
-      <EnhancedFilters
-        isOpen={isFiltersOpen}
-        onClose={() => setIsFiltersOpen(false)}
-        filters={filters}
-        onFiltersChange={setFilters}
-        onReset={() => {
-          setFilters({
-            priceRange: { min: 0, max: 10000000 },
-            dateRange: { start: '', end: '' },
-            propertyType: [],
-            duration: [],
-            year: []
-          });
-        }}
-      />
-
-             {/* Property History Modal */}
-       {showHistoryModal && selectedProperty && (
-         <PropertyHistoryModal
-           onClose={() => setShowHistoryModal(false)}
-           property={selectedProperty}
-           history={propertyHistory}
-         />
-       )}
-
-      {/* Back to Top Button */}
-      <AnimatePresence>
-        {showBackToTop && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            onClick={scrollToTop}
-            className="fixed bottom-6 right-6 z-50 p-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors touch-target"
-            aria-label="Back to top"
-          >
-            <ArrowUp className="w-5 h-5" />
-          </motion.button>
-        )}
-      </AnimatePresence>
-
-             {/* Pagination Loading Overlay */}
-       <PaginationLoadingOverlay isLoading={isPaginationLoading} direction={paginationDirection} />
-
-      {/* Usage Progress for Free Users */}
-      {usageData && (
-        <section className="mb-8 bg-[#F5F5DC] rounded-xl p-6 border border-[#D2B48C]">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-[#2C6E91] flex items-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-              Your Free Lookups
-            </h2>
-            <span className="text-sm font-semibold text-[#3B755D]">
-              {usageData.lookupsUsed}/{usageData.lookupsLimit} remaining
-            </span>
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="mb-4">
-            <div className="w-full bg-[#E5E5E5] rounded-full h-2">
-              <div 
-                className={`h-2 rounded-full transition-all duration-500 ${
-                  usagePercentage >= 80 ? 'bg-red-500' : 
-                  usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-[#5DA271]'
-                }`}
-                style={{ width: `${usagePercentage}%` }}
-              />
-            </div>
-            <div className="flex justify-between text-sm text-[#3B755D] mt-2">
-              <span>{usagePercentage}% used</span>
-              {usagePercentage >= 80 && (
-                <span className="text-red-600 font-semibold">Almost at limit!</span>
+                </motion.div>
               )}
-            </div>
-          </div>
-          
-          {/* Upgrade CTA for high usage */}
-          {usagePercentage >= 60 && (
-            <div className="p-4 bg-gradient-to-r from-[#3A7CA5] to-[#2C6E91] rounded-lg text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold mb-1">Ready for unlimited access?</h3>
-                  <p className="text-sm opacity-90">Upgrade to Pro for unlimited lookups and advanced features</p>
-                </div>
-                <a
-                  href="/account/upgrade"
-                  className="px-4 py-2 bg-white text-[#2C6E91] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+
+              
+
+              {/* Results Table */}
+              {soldPrices.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.3 }}
                 >
-                  Upgrade Now
-                </a>
-              </div>
+                  <EnhancedSoldPricesTable
+                    soldPrices={displayedSoldPrices}
+                    allSales={soldPrices}
+                    onRowClick={handleRowSelect}
+                    onShowHistory={handlePropertyClick}
+                    sortConfig={sortConfig}
+                    onSort={key => setSortConfig(cfg => ({ ...cfg, key, direction: cfg.direction === 'ascending' ? 'descending' : 'ascending' }))}
+                    isLoading={isLoading}
+                    selectedRowId={selectedRowId}
+                    className="mb-6 sm:mb-8"
+                  />
+                </motion.div>
+              )}
+
+              {/* Pagination */}
+              {soldPrices.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.4 }}
+                  className="flex flex-col sm:flex-row items-center justify-between gap-4"
+                >
+                  <div className="text-sm text-text-secondary">
+                    Showing {((page - 1) * pageSize) + 1} to {Math.min(page * pageSize, totalCount)} of {totalCount} results
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleSearch(searchTerm, page - 1, 'previous')}
+                      disabled={page === 1 || isPaginationLoading}
+                      className="px-4 py-2 text-sm font-medium text-primary-700 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target shadow-soft"
+                    >
+                      Previous
+                    </button>
+                    <span className="px-4 py-2 text-sm font-medium text-primary-700 bg-neutral-100 rounded-lg border border-neutral-200">
+                      Page {page}
+                    </span>
+                    <button
+                      onClick={() => handleSearch(searchTerm, page + 1, 'next')}
+                      disabled={!hasMore || isPaginationLoading}
+                      className="px-4 py-2 text-sm font-medium text-primary-700 bg-white border border-neutral-200 rounded-lg hover:bg-neutral-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target shadow-soft"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Error Display */}
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                  className="bg-red-50 border border-red-200 rounded-xl p-6 text-center"
+                >
+                  <div className="text-red-600 mb-2">
+                    <AlertTriangle className="w-8 h-8 mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-red-800 mb-2">Search Error</h3>
+                  <p className="text-red-700">{error}</p>
+                </motion.div>
+              )}
+
+                           {/* Empty State */}
+               {hasSearched && soldPrices.length === 0 && !isLoading && !error && (
+                 <motion.div
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   transition={{ duration: 0.4 }}
+                   className="text-center py-12"
+                 >
+                   <div className="text-6xl mb-4">🏠</div>
+                   <h3 className="text-xl font-semibold text-text-primary mb-2">
+                     No properties found
+                   </h3>
+                   <p className="text-text-secondary mb-4">
+                     Try adjusting your search terms or filters to find more properties.
+                   </p>
+                   <button
+                     onClick={() => setHasSearched(false)}
+                     className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors touch-target shadow-soft"
+                   >
+                     Start New Search
+                   </button>
+                 </motion.div>
+               )}
             </div>
           )}
-        </section>
-      )}
 
-      {/* Achievement Toast */}
-      {showAchievementToast && currentAchievement && (
-        <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-[#D4AF37] to-[#C0C0C0] text-white p-4 rounded-lg shadow-lg border border-white">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl">🏆</div>
-            <div>
-              <h3 className="font-bold">Achievement Unlocked!</h3>
-              <p className="text-sm opacity-90">{currentAchievement}</p>
-            </div>
-            <button
-              onClick={() => setShowAchievementToast(false)}
-              className="text-white text-opacity-70 hover:text-opacity-100"
+          {/* Features Section */}
+          {!hasSearched && (
+            <motion.section
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="py-8 sm:py-12"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
+              <div className="text-center mb-8 sm:mb-12">
+                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-text-primary mb-4">
+                  Powerful Property Insights
+                </h2>
+                <p className="text-lg text-text-secondary max-w-3xl mx-auto">
+                  Get comprehensive property data and market analysis to make informed decisions.
+                </p>
+              </div>
+
+                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
+                 <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-soft text-center">
+                   <Search className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                   <h3 className="text-lg font-semibold text-text-primary mb-2">Instant Search</h3>
+                   <p className="text-text-secondary">Search millions of property sales instantly with our powerful database.</p>
+                 </div>
+                 <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-soft text-center">
+                   <BarChart className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                   <h3 className="text-lg font-semibold text-text-primary mb-2">Market Trends</h3>
+                   <p className="text-text-secondary">Analyze price trends and market performance over time.</p>
+                 </div>
+                 <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-soft text-center">
+                   <Calculator className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                   <h3 className="text-lg font-semibold text-text-primary mb-2">Investment Tools</h3>
+                   <p className="text-text-secondary">Calculate potential returns and analyze investment opportunities.</p>
+                 </div>
+                 <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-soft text-center">
+                   <BookOpen className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                   <h3 className="text-lg font-semibold text-text-primary mb-2">Detailed Reports</h3>
+                   <p className="text-text-secondary">Get comprehensive property reports and market analysis.</p>
+                 </div>
+                 <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-soft text-center">
+                   <MapPin className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                   <h3 className="text-lg font-semibold text-text-primary mb-2">Location Insights</h3>
+                   <p className="text-text-secondary">Understand local market conditions and property values.</p>
+                 </div>
+                 <div className="bg-white rounded-xl p-6 border border-neutral-200 shadow-soft text-center">
+                   <TrendingUp className="w-8 h-8 mx-auto mb-4 text-primary-600" />
+                   <h3 className="text-lg font-semibold text-text-primary mb-2">Growth Analysis</h3>
+                   <p className="text-text-secondary">Track property value growth and investment performance.</p>
+                 </div>
+               </div>
+            </motion.section>
+          )}
+
+          {/* Trust and Social Proof */}
+          {!hasSearched && (
+            <>
+              <TrustBadges />
+              <PartnerLogos />
+              <Testimonials />
+            </>
+          )}
+        </main>
+
+        {/* Filters Modal */}
+        <EnhancedFilters
+          isOpen={isFiltersOpen}
+          onClose={() => setIsFiltersOpen(false)}
+          filters={filters}
+          onFiltersChange={setFilters}
+          onReset={() => {
+            setFilters({
+              priceRange: { min: 0, max: 10000000 },
+              dateRange: { start: '', end: '' },
+              propertyType: [],
+              duration: [],
+              year: []
+            });
+          }}
+        />
+
+               {/* Property History Modal */}
+         {showHistoryModal && selectedProperty && (
+           <PropertyHistoryModal
+             onClose={() => setShowHistoryModal(false)}
+             property={selectedProperty}
+             history={propertyHistory}
+           />
+         )}
+
+        {/* Back to Top Button */}
+        <AnimatePresence>
+          {showBackToTop && (
+            <motion.button
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              onClick={scrollToTop}
+              className="fixed bottom-6 right-6 z-50 p-3 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors touch-target"
+              aria-label="Back to top"
+            >
+              <ArrowUp className="w-5 h-5" />
+            </motion.button>
+          )}
+        </AnimatePresence>
+
+               {/* Pagination Loading Overlay */}
+         <PaginationLoadingOverlay isLoading={isPaginationLoading} direction={paginationDirection} />
+
+        {/* Usage Progress for Free Users */}
+        {usageData && (
+          <section className="mb-8 bg-neutral-100 rounded-xl p-6 border border-neutral-200 shadow-soft">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-primary-700 flex items-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                Your Free Lookups
+              </h2>
+              <span className="text-sm font-semibold text-primary-600">
+                {usageData.lookupsUsed}/{usageData.lookupsLimit} remaining
+              </span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="mb-4">
+              <div className="w-full bg-neutral-200 rounded-full h-2">
+                <div 
+                  className={`h-2 rounded-full transition-all duration-500 ${
+                    usagePercentage >= 80 ? 'bg-red-500' : 
+                    usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-secondary-600'
+                  }`}
+                  style={{ width: `${usagePercentage}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-sm text-primary-600 mt-2">
+                <span>{usagePercentage}% used</span>
+                {usagePercentage >= 80 && (
+                  <span className="text-red-600 font-semibold">Almost at limit!</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Upgrade CTA for high usage */}
+            {usagePercentage >= 60 && (
+              <div className="p-4 bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg text-white shadow-soft">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-bold mb-1">Ready for unlimited access?</h3>
+                    <p className="text-sm opacity-90">Upgrade to Pro for unlimited lookups and advanced features</p>
+                  </div>
+                  <a
+                    href="/account/upgrade"
+                    className="px-4 py-2 bg-white text-primary-700 rounded-lg font-semibold hover:bg-neutral-100 transition-colors shadow-soft"
+                  >
+                    Upgrade Now
+                  </a>
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Achievement Toast */}
+        {showAchievementToast && currentAchievement && (
+          <div className="fixed top-4 right-4 z-50 bg-gradient-to-r from-yellow-500 to-gray-400 text-white p-4 rounded-lg shadow-soft border border-white">
+            <div className="flex items-center gap-3">
+              <div className="text-2xl">🏆</div>
+              <div>
+                <h3 className="font-bold">Achievement Unlocked!</h3>
+                <p className="text-sm opacity-90">{currentAchievement}</p>
+              </div>
+              <button
+                onClick={() => setShowAchievementToast(false)}
+                className="text-white text-opacity-70 hover:text-opacity-100"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
+
 
 
 

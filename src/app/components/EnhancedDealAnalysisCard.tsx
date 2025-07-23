@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { Card, CardContent, CardHeader, CardTitle, Badge } from './SimpleCard';
 import { Home, MapPin, Bed, Calendar, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 

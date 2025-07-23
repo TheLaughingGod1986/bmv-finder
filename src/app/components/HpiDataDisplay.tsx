@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { TrendingUp, TrendingDown, Info, MapPin, Calendar, BarChart3, X, Building, PoundSterling } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -91,7 +91,7 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
         setData([]);
         setSource(null);
         setRegion(null);
-        console.error('Error fetching HPI data:', err);
+        // Error fetching HPI data
       } finally {
         setLoading(false);
       }

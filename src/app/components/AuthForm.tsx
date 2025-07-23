@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { supabase } from '../../lib/supabaseClient';
 
 export default function AuthForm() {

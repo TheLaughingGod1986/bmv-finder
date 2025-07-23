@@ -118,7 +118,7 @@ export default function AccountPage() {
       toast('Checkout was canceled.', { icon: '⚠️' });
       router.replace('/account', { scroll: false });
     }
-  }, [router]);
+  }, [router, toast]);
 
   // Load user profile to get subscription details
   useEffect(() => {
@@ -150,7 +150,7 @@ export default function AccountPage() {
     
     setManagingSubscription(true);
     try {
-      console.log('Access token:', session?.access_token);
+      // Access token logged
       const res = await fetch('/api/create-customer-portal-session', {
         method: 'POST',
         headers: {
@@ -171,55 +171,55 @@ export default function AccountPage() {
       } else {
         throw new Error(data.error || 'No portal URL received');
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Manage subscription error:', err);
-      toast.error(err.message || 'Failed to open Stripe Customer Portal');
+      toast.error((err as any).message || 'Failed to open Stripe Customer Portal');
     } finally {
       setManagingSubscription(false);
     }
   };
 
   return (
-    <main className="max-w-2xl mx-auto mt-10 p-4 md:p-8 bg-white rounded shadow">
+    <main className="max-w-2xl mx-auto mt-10 p-4 md:p-8 bg-white rounded-xl shadow-soft border border-neutral-200">
       <Toaster position="top-center" />
       
       {/* Personalized Greeting */}
       {user && (
-        <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-[#D2B48C]">
-          <h1 className="text-3xl md:text-4xl font-bold text-[#2C6E91] mb-2 leading-tight">
+        <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-neutral-200 shadow-soft">
+          <h1 className="text-3xl md:text-4xl font-bold text-primary-blue-dark mb-2 leading-tight">
             Hi{userName ? `, ${userName}` : ''}!
           </h1>
-          <p className="text-lg md:text-xl text-[#3B755D] font-medium leading-relaxed">
-            You&apos;re currently on the <span className="font-bold text-[#2C6E91]">{planName}</span> plan
+          <p className="text-lg md:text-xl text-primary-600 font-medium leading-relaxed">
+            You&apos;re currently on the <span className="font-bold text-primary-blue-dark">{planName}</span> plan
           </p>
         </div>
       )}
 
       {/* Usage Progress Section */}
       {derivedTier === 'free' && (
-        <section className="mb-8 bg-[#F5F5DC] rounded-xl p-6 border border-[#D2B48C]">
+        <section className="mb-8 bg-neutral-100 rounded-xl p-6 border border-neutral-200 shadow-soft">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
+            <h2 className="text-xl font-bold text-primary-blue-dark flex items-center gap-2">
               <ChartBarIcon className="w-6 h-6" />
               Your Usage This Month
             </h2>
-            <span className="text-sm font-semibold text-[#3B755D]">
+            <span className="text-sm font-semibold text-primary-600">
               {usageData.lookupsUsed}/{usageData.lookupsLimit} lookups
             </span>
           </div>
           
           {/* Progress Bar */}
           <div className="mb-4">
-            <div className="w-full bg-[#E5E5E5] rounded-full h-3">
+            <div className="w-full bg-neutral-200 rounded-full h-3">
               <div 
                 className={`h-3 rounded-full transition-all duration-500 ${
                   usagePercentage >= 80 ? 'bg-red-500' : 
-                  usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-[#5DA271]'
+                  usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-secondary-600'
                 }`}
                 style={{ width: `${usagePercentage}%` }}
               />
             </div>
-            <div className="flex justify-between text-sm text-[#3B755D] mt-2">
+            <div className="flex justify-between text-sm text-primary-600 mt-2">
               <span>{usagePercentage}% used</span>
               {usagePercentage >= 80 && (
                 <span className="text-red-600 font-semibold">Almost at limit!</span>
@@ -229,19 +229,19 @@ export default function AccountPage() {
           
           {/* Usage Stats */}
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="bg-white bg-opacity-50 rounded-lg p-3">
-              <div className="font-semibold text-[#2C6E91]">{usageData.searchesThisMonth}</div>
-              <div className="text-[#3B755D]">Searches this month</div>
+            <div className="bg-white bg-opacity-50 rounded-lg p-3 border border-neutral-200 shadow-soft">
+              <div className="font-semibold text-primary-blue-dark">{usageData.searchesThisMonth}</div>
+              <div className="text-primary-600">Searches this month</div>
             </div>
-            <div className="bg-white bg-opacity-50 rounded-lg p-3">
-              <div className="font-semibold text-[#2C6E91]">{usageData.propertiesSaved}</div>
-              <div className="text-[#3B755D]">Properties saved</div>
+            <div className="bg-white bg-opacity-50 rounded-lg p-3 border border-neutral-200 shadow-soft">
+              <div className="font-semibold text-primary-blue-dark">{usageData.propertiesSaved}</div>
+              <div className="text-primary-600">Properties saved</div>
             </div>
           </div>
           
           {/* Upgrade CTA */}
           {usagePercentage >= 60 && (
-            <div className="mt-4 p-4 bg-gradient-to-r from-[#3A7CA5] to-[#2C6E91] rounded-lg text-white">
+            <div className="mt-4 p-4 bg-gradient-to-r from-[#3A7CA5] to-[#2C6E91] rounded-lg text-white shadow-soft">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-bold mb-1">Ready for unlimited access?</h3>
@@ -249,7 +249,7 @@ export default function AccountPage() {
                 </div>
                 <a
                   href="/account/upgrade"
-                  className="px-4 py-2 bg-white text-[#2C6E91] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="px-4 py-2 bg-white text-primary-blue-dark rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                 >
                   Upgrade Now
                 </a>
@@ -262,11 +262,11 @@ export default function AccountPage() {
       {/* Achievements Section */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
+          <h2 className="text-xl font-bold text-primary-blue-dark flex items-center gap-2">
             <TrophyIcon className="w-6 h-6" />
             Achievements
           </h2>
-          <span className="text-sm font-semibold text-[#3B755D]">
+          <span className="text-sm font-semibold text-primary-600">
             {earnedAchievements.length}/{totalAchievements} earned
           </span>
         </div>
@@ -277,19 +277,19 @@ export default function AccountPage() {
               key={achievement.id}
               className={`p-4 rounded-lg border-2 transition-all duration-300 ${
                 achievement.earned
-                  ? 'bg-gradient-to-br from-[#D4AF37] to-[#C0C0C0] border-[#D4AF37] text-white shadow-lg'
-                  : 'bg-[#F5F5DC] border-[#E5E5E5] text-[#3B755D] opacity-60'
+                  ? 'bg-gradient-to-br from-yellow-500 to-gray-400 border-yellow-500 text-white shadow-lg'
+                  : 'bg-neutral-100 border-neutral-200 text-primary-600 opacity-60'
               }`}
             >
               <div className="text-center">
                 <div className="text-2xl mb-2">{achievement.icon}</div>
                 <h3 className={`font-bold text-sm mb-1 ${
-                  achievement.earned ? 'text-white' : 'text-[#2C6E91]'
+                  achievement.earned ? 'text-white' : 'text-primary-blue-dark'
                 }`}>
                   {achievement.name}
                 </h3>
                 <p className={`text-xs ${
-                  achievement.earned ? 'text-white text-opacity-90' : 'text-[#3B755D]'
+                  achievement.earned ? 'text-white text-opacity-90' : 'text-primary-600'
                 }`}>
                   {achievement.description}
                 </p>
@@ -304,16 +304,16 @@ export default function AccountPage() {
         </div>
         
         {/* Achievement Progress */}
-        <div className="mt-4 bg-[#F5F5DC] rounded-lg p-4">
+        <div className="mt-4 bg-neutral-100 rounded-lg p-4">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-[#2C6E91]">Achievement Progress</span>
-            <span className="text-sm text-[#3B755D]">
+            <span className="text-sm font-semibold text-primary-blue-dark">Achievement Progress</span>
+            <span className="text-sm text-primary-600">
               {Math.round((earnedAchievements.length / totalAchievements) * 100)}% complete
             </span>
           </div>
-          <div className="w-full bg-[#E5E5E5] rounded-full h-2">
+          <div className="w-full bg-neutral-200 rounded-full h-2">
             <div 
-              className="bg-gradient-to-r from-[#D4AF37] to-[#C0C0C0] h-2 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-yellow-500 to-gray-400 h-2 rounded-full transition-all duration-500"
               style={{ width: `${(earnedAchievements.length / totalAchievements) * 100}%` }}
             />
           </div>
@@ -346,17 +346,17 @@ export default function AccountPage() {
             <p className="text-sm text-white text-opacity-80">Become a VIP member with 10+ referrals</p>
           </div>
         </div>
-        <button className="bg-white text-[#3B755D] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+        <button className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
           Get Referral Link
         </button>
       </section>
 
       {/* Current Plan Card */}
       {subscriptionInfo && (
-        <section className={`rounded-2xl border-4 shadow p-6 flex flex-col items-center mb-8 relative ${subscriptionInfo.tier !== 'free' ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
+        <section className={`rounded-2xl border-4 shadow-soft p-6 flex flex-col items-center mb-8 relative ${subscriptionInfo.tier !== 'free' ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
           {/* Recommended for you badge */}
           {user && derivedTier !== 'elite' && (
-            <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
+            <span className="absolute top-4 left-4 bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
           )}
           <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
           <div className="text-lg font-bold mb-1">Current Plan: {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)}</div>

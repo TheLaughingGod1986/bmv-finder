@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 
 interface FooterProps {
   className?: string;
@@ -8,7 +8,7 @@ interface FooterProps {
 
 export default function Footer({ className = '' }: FooterProps) {
   return (
-    <footer className={`bg-[#2C6E91] text-white py-8 mt-auto ${className}`}>
+    <footer className={`bg-primary-blue-dark text-white py-8 mt-auto ${className}`}>
       <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-lg font-bold">UK Property Insights</div>
         <div className="flex gap-6 text-sm">
@@ -20,7 +20,7 @@ export default function Footer({ className = '' }: FooterProps) {
           <a href="/privacy" className="hover:underline">Privacy Policy</a>
           <a href="/terms" className="hover:underline">Terms</a>
         </div>
-        <div className="text-xs text-[#C0C0C0]">
+        <div className="text-xs text-gray-400">
           &copy; {new Date().getFullYear()} UK Property Insights. All rights reserved.
         </div>
       </div>

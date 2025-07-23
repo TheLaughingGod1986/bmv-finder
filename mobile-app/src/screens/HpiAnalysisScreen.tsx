@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -31,7 +31,7 @@ interface HpiData {
   };
 }
 
-export default function HpiAnalysisScreen({ navigation, route }: any) {
+export default function HpiAnalysisScreen({ navigation, route }: { navigation: unknown; route: unknown }) {
   const [hpiData, setHpiData] = useState<HpiData | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedTimeframe, setSelectedTimeframe] = useState('12m');

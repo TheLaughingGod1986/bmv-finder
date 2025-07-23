@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, TrendingUp, Search, MapPin, Sparkles, Clock, BarChart3, Calculator, BookOpen, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../../lib/utils';

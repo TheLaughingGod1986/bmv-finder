@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -54,7 +54,7 @@ const GrowthOverYearsChart: React.FC<GrowthOverYearsChartProps> = ({ soldPrices 
     plugins: {
       legend: { display: false },
       title: { display: false },
-      tooltip: { enabled: true, callbacks: { label: (ctx: any) => `${ctx.parsed.y}%` } },
+              tooltip: { enabled: true, callbacks: { label: (ctx: { parsed: { y: number } }) => `${ctx.parsed.y}%` } },
     },
     scales: {
       x: { title: { display: true, text: 'Year' } },

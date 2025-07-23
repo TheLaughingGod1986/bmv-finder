@@ -1,4 +1,4 @@
-import React from 'react';
+
 import BusinessIntelligenceDashboard from '../components/BusinessIntelligenceDashboard';
 import DataQualityDashboard from '../components/DataQualityDashboard';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, Clock, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePostcodeHistory } from '../../utils/usePostcodeHistory';
@@ -74,8 +74,8 @@ const SmartSearchInput: React.FC<SmartSearchInputProps> = ({
       debounceRef.current = setTimeout(async () => {
         try {
           const response = await apiClient.suggestPostcodes(safeValue);
-          if (!response.error && response.data && typeof response.data === 'object' && 'suggestions' in response.data && Array.isArray((response.data as any).suggestions)) {
-            setSuggestions((response.data as any).suggestions.map((s: string) => ({ text: s })));
+                      if (!response.error && response.data && typeof response.data === 'object' && 'suggestions' in response.data && Array.isArray((response.data as { suggestions: string[] }).suggestions)) {
+              setSuggestions((response.data as { suggestions: string[] }).suggestions.map((s: string) => ({ text: s })));
           }
         } catch (e) {
           setSuggestions([]);

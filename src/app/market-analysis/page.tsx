@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, BarChart3, MapPin, Calendar, Target, Award, AlertTriangle, Info, Building, PoundSterling, Users, Home, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { apiClient } from '@/lib/apiClient';
@@ -72,14 +72,14 @@ export default function MarketAnalysisPage() {
         : `/api/market-analysis/enhanced?timeframe=${timeframe}`;
       
       const response = await fetch(url);
-      let data: any = null;
+      let data: { success: boolean; data?: unknown } | null = null;
       try {
         if (!response.ok) {
           throw new Error(`API error: ${response.status}`);
         }
         data = await response.json();
       } catch (jsonErr) {
-        console.error('Failed to parse market analysis API response as JSON:', jsonErr);
+        // Failed to parse market analysis API response as JSON
         setMarketData([]);
         setFilteredData([]);
         setSummary(null);
@@ -87,7 +87,7 @@ export default function MarketAnalysisPage() {
         return;
       }
       
-      console.log('Market Analysis API Response:', data); // Debug logging
+              // Market Analysis API Response received
       
       if (data.success && data.data) {
         setMarketData(data.data);
@@ -100,7 +100,7 @@ export default function MarketAnalysisPage() {
         setSummary(null);
       }
     } catch (error) {
-      console.error('Error loading market data:', error);
+      // Error loading market data
       setMarketData([]);
       setFilteredData([]);
       setSummary(null);
@@ -131,7 +131,7 @@ export default function MarketAnalysisPage() {
     }
   };
 
-  const calculateVolatility = (region: any) => {
+  const calculateVolatility = (region: { salesCount: number; priceRange: { min: number; max: number } }) => {
     // Simplified volatility calculation based on YoY growth
     const growth = region.yoyGrowth || 0;
     // Use a simplified volatility calculation since we don't have monthly data
@@ -151,7 +151,7 @@ export default function MarketAnalysisPage() {
     return 'high';
   };
 
-  const calculateInvestmentScore = (region: any) => {
+  const calculateInvestmentScore = (region: { yoyGrowth: number; salesCount: number; avgPrice: number }) => {
     const yoyGrowth = region.yoyGrowth || 0;
     const volatility = calculateVolatility(region);
     

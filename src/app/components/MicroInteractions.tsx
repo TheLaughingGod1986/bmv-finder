@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, XCircle, AlertCircle, Info, Loader2 } from 'lucide-react';
 
@@ -48,17 +48,17 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
       animate={{ opacity: isVisible ? 1 : 0, y: isVisible ? 0 : 20 }}
       transition={{ duration: 0.6 }}
     >
-      <h2 className="text-2xl font-bold text-[#2C6E91] mb-6">Microinteractions Demo</h2>
+      <h2 className="text-2xl font-bold text-primary-blue-dark mb-6">Microinteractions Demo</h2>
       
       {/* Loading States */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-[#2C6E91] mb-4">Loading States</h3>
+        <h3 className="text-lg font-semibold text-primary-blue-dark mb-4">Loading States</h3>
         <div className="flex gap-4 flex-wrap">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={simulateLoading}
-            className="px-4 py-2 bg-[#3A7CA5] text-white rounded-lg font-medium"
+            className="px-4 py-2 bg-primary-blue text-white rounded-lg font-medium"
           >
             Simulate Success
           </motion.button>
@@ -81,7 +81,7 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="text-[#3B755D]"
+                className="text-primary-green-dark"
               >
                 Click a button to see loading states
               </motion.div>
@@ -93,7 +93,7 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="flex items-center gap-2 text-[#3A7CA5]"
+                className="flex items-center gap-2 text-primary-blue"
               >
                 <Loader2 className="w-4 h-4 animate-spin" />
                 Processing...
@@ -131,7 +131,7 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
 
       {/* Interactive Cards */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-[#2C6E91] mb-4">Interactive Cards</h3>
+        <h3 className="text-lg font-semibold text-primary-blue-dark mb-4">Interactive Cards</h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {cards.map((card) => (
             <motion.div
@@ -145,7 +145,7 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
               onHoverEnd={() => setHoveredCard(null)}
               onClick={() => handleButtonClick(`card-${card.id}`)}
               className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                hoveredCard === card.id ? 'border-[#3A7CA5] bg-[#F5F5DC]' : 'border-[#E5E5E5] bg-white'
+                hoveredCard === card.id ? 'border-primary-blue bg-neutral-100' : 'border-neutral-200 bg-white'
               }`}
             >
               <motion.div
@@ -154,8 +154,8 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
                 }}
                 transition={{ duration: 0.3 }}
               >
-                <h4 className="font-semibold text-[#2C6E91] mb-2">{card.title}</h4>
-                <p className="text-sm text-[#3B755D]">{card.description}</p>
+                <h4 className="font-semibold text-primary-blue-dark mb-2">{card.title}</h4>
+                <p className="text-sm text-primary-green-dark">{card.description}</p>
               </motion.div>
             </motion.div>
           ))}
@@ -164,12 +164,12 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
 
       {/* Animated Buttons */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-[#2C6E91] mb-4">Animated Buttons</h3>
+        <h3 className="text-lg font-semibold text-primary-blue-dark mb-4">Animated Buttons</h3>
         <div className="flex gap-4 flex-wrap">
           <motion.button
             whileHover={{ scale: 1.05, backgroundColor: '#2C6E91' }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-[#3A7CA5] text-white rounded-lg font-medium transition-colors"
+            className="px-6 py-3 bg-primary-blue text-white rounded-lg font-medium transition-colors"
           >
             Hover & Click
           </motion.button>
@@ -180,7 +180,7 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
               boxShadow: "0 5px 15px rgba(93, 162, 113, 0.4)"
             }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-[#5DA271] text-white rounded-lg font-medium"
+            className="px-6 py-3 bg-primary-green text-white rounded-lg font-medium"
           >
             Glow Effect
           </motion.button>
@@ -191,7 +191,7 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
               rotate: 5
             }}
             whileTap={{ scale: 0.95, rotate: -5 }}
-            className="px-6 py-3 bg-[#D4AF37] text-white rounded-lg font-medium"
+            className="px-6 py-3 bg-yellow-500 text-white rounded-lg font-medium"
           >
             Rotate on Hover
           </motion.button>
@@ -200,16 +200,16 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
 
       {/* Progress Indicators */}
       <div className="mb-8">
-        <h3 className="text-lg font-semibold text-[#2C6E91] mb-4">Progress Indicators</h3>
+        <h3 className="text-lg font-semibold text-primary-blue-dark mb-4">Progress Indicators</h3>
         <div className="space-y-4">
           <div>
-            <div className="flex justify-between text-sm text-[#3B755D] mb-2">
+            <div className="flex justify-between text-sm text-primary-green-dark mb-2">
               <span>Loading Progress</span>
               <span>75%</span>
             </div>
-            <div className="w-full bg-[#E5E5E5] rounded-full h-2">
+            <div className="w-full bg-neutral-200 rounded-full h-2">
               <motion.div
-                className="bg-[#3A7CA5] h-2 rounded-full"
+                className="bg-primary-blue h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: "75%" }}
                 transition={{ duration: 2, ease: "easeOut" }}
@@ -218,13 +218,13 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
           </div>
           
           <div>
-            <div className="flex justify-between text-sm text-[#3B755D] mb-2">
+            <div className="flex justify-between text-sm text-primary-green-dark mb-2">
               <span>Upload Progress</span>
               <span>45%</span>
             </div>
-            <div className="w-full bg-[#E5E5E5] rounded-full h-2">
+            <div className="w-full bg-neutral-200 rounded-full h-2">
               <motion.div
-                className="bg-[#5DA271] h-2 rounded-full"
+                className="bg-primary-green h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: "45%" }}
                 transition={{ duration: 1.5, ease: "easeOut" }}
@@ -236,12 +236,12 @@ export default function MicroInteractions({ className = '' }: MicroInteractionsP
 
       {/* Notification Badge */}
       <div>
-        <h3 className="text-lg font-semibold text-[#2C6E91] mb-4">Notification Badge</h3>
+        <h3 className="text-lg font-semibold text-primary-blue-dark mb-4">Notification Badge</h3>
         <div className="relative inline-block">
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            className="px-6 py-3 bg-[#3A7CA5] text-white rounded-lg font-medium"
+            className="px-6 py-3 bg-primary-blue text-white rounded-lg font-medium"
           >
             Notifications
           </motion.button>

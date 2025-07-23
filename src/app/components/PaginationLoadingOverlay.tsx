@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ArrowLeft, ArrowRight } from 'lucide-react';
 import { cn } from '../../lib/utils';

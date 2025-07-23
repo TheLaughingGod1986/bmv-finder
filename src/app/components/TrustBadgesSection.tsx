@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 
 interface TrustBadge {
   icon: string;
@@ -97,7 +97,7 @@ export default function TrustBadgesSection({
           {badges.map((badge, index) => (
             <span 
               key={index}
-              className="flex items-center gap-2 bg-[#E5E5E5] text-[#2C6E91] px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-[#D2B48C]"
+              className="flex items-center gap-2 bg-neutral-200 text-primary-blue-dark px-4 py-3 rounded-full font-bold text-sm shadow-sm border border-neutral-200"
             >
               <span style={{ color: badge.color || '#5DA271' }}>{badge.icon}</span>
               {badge.text}
@@ -109,12 +109,12 @@ export default function TrustBadgesSection({
       {/* Partner/Press Logos */}
       {showPartners && (
         <section className="mb-12 text-center">
-          <h2 className="text-lg font-semibold text-[#3B755D] mb-6">As featured in</h2>
+          <h2 className="text-lg font-semibold text-primary-green-dark mb-6">As featured in</h2>
           <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
             {partners.map((partner, index) => (
               <div 
                 key={index}
-                className="h-8 w-24 bg-[#E5E5E5] rounded flex items-center justify-center text-[#2C6E91] font-bold text-sm"
+                className="h-8 w-24 bg-neutral-200 rounded flex items-center justify-center text-primary-blue-dark font-bold text-sm"
               >
                 {partner.name}
               </div>
@@ -126,10 +126,10 @@ export default function TrustBadgesSection({
       {/* Testimonials */}
       {showTestimonials && (
         <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-8 text-center text-[#2C6E91]">What our users say</h2>
+          <h2 className="text-2xl font-bold mb-8 text-center text-primary-blue-dark">What our users say</h2>
           <div className="grid md:grid-cols-3 gap-6">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-[#F5F5DC] p-6 rounded-xl border border-[#D2B48C]">
+              <div key={index} className="bg-neutral-100 p-6 rounded-xl border border-neutral-200">
                 <div className="flex items-center mb-4">
                   <div 
                     className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3"
@@ -138,11 +138,11 @@ export default function TrustBadgesSection({
                     {testimonial.avatar}
                   </div>
                   <div>
-                    <p className="font-bold text-[#2C6E91]">{testimonial.name}</p>
-                    <p className="text-sm text-[#3B755D]">{testimonial.role}</p>
+                    <p className="font-bold text-primary-blue-dark">{testimonial.name}</p>
+                    <p className="text-sm text-primary-green-dark">{testimonial.role}</p>
                   </div>
                 </div>
-                <p className="text-[#3B755D] leading-relaxed">{testimonial.content}</p>
+                <p className="text-primary-green-dark leading-relaxed">{testimonial.content}</p>
               </div>
             ))}
           </div>

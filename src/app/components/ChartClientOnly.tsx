@@ -16,12 +16,12 @@ ChartJS.register(
   Filler
 );
 
-export function LineChart(props: any) {
+export function LineChart(props: { data: unknown; options?: unknown }) {
   return <Line {...props} />;
 }
-export function BarChart(props: any) {
+export function BarChart(props: { data: unknown; options?: unknown }) {
   return <Bar {...props} />;
 }
-export function DoughnutChart(props: any) {
+export function DoughnutChart(props: { data: unknown; options?: unknown }) {
   return <Doughnut {...props} />;
 } 

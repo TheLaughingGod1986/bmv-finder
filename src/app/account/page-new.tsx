@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import { useRouter } from 'next/navigation';
@@ -124,12 +124,12 @@ export default function AccountPageNew() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-[#F5F5DC]">
+      <div className="min-h-screen bg-neutral-100">
         <Header />
         <Section background="white">
           <div className="text-center py-12">
-            <h1 className="text-3xl font-bold text-[#2C6E91] mb-4">Please Log In</h1>
-            <p className="text-[#3B755D] mb-6">You need to be logged in to access your account.</p>
+            <h1 className="text-3xl font-bold text-primary-blue-dark mb-4">Please Log In</h1>
+            <p className="text-primary-green-dark mb-6">You need to be logged in to access your account.</p>
             <Link href="/">
               <Button variant="primary">
                 Go to Home
@@ -142,14 +142,14 @@ export default function AccountPageNew() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F5DC]">
+    <div className="min-h-screen bg-neutral-100">
       <Header />
       
       {/* Account Header */}
       <Section background="white">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-[#2C6E91] mb-2">Your Account</h1>
-          <p className="text-lg text-[#3B755D]">Manage your subscription and profile settings</p>
+          <h1 className="text-4xl font-bold text-primary-blue-dark mb-2">Your Account</h1>
+          <p className="text-lg text-primary-green-dark">Manage your subscription and profile settings</p>
         </div>
       </Section>
 
@@ -159,22 +159,22 @@ export default function AccountPageNew() {
           <div className="max-w-4xl mx-auto">
             <div className={`rounded-2xl border-4 shadow-lg p-8 flex flex-col items-center relative ${
               subscriptionInfo.tier !== 'free' 
-                ? 'border-[#3A7CA5] bg-gradient-to-br from-[#3A7CA5]/10 to-[#2C6E91]/10' 
-                : 'border-[#E5E5E5] bg-white'
+                ? 'border-primary-blue bg-gradient-to-br from-[#3A7CA5]/10 to-[#2C6E91]/10' 
+                : 'border-neutral-200 bg-white'
             }`}>
               <span className={`absolute top-4 right-4 text-xs font-bold px-4 py-2 rounded-full shadow-lg border-2 border-white ${
                 subscriptionInfo.tier !== 'free' 
-                  ? 'bg-[#3A7CA5] text-white' 
-                  : 'bg-[#E5E5E5] text-[#2C6E91]'
+                  ? 'bg-primary-blue text-white' 
+                  : 'bg-neutral-200 text-primary-blue-dark'
               }`}>
                 Current Plan
               </span>
               
-              <div className="text-2xl font-bold mb-2 text-[#2C6E91]">
+              <div className="text-2xl font-bold mb-2 text-primary-blue-dark">
                 {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)} Plan
               </div>
               
-              <div className="mb-4 text-[#3B755D] text-center max-w-md">
+              <div className="mb-4 text-primary-green-dark text-center max-w-md">
                 {subscriptionInfo.tier === 'free' 
                   ? 'Basic access with limited features' 
                   : subscriptionInfo.tier === 'pro' 
@@ -183,11 +183,11 @@ export default function AccountPageNew() {
                 }
               </div>
               
-              <div className="flex items-center gap-2 text-[#3A7CA5] font-bold text-2xl mb-4">
+              <div className="flex items-center gap-2 text-primary-blue font-bold text-2xl mb-4">
                 {subscriptionInfo.price && subscriptionInfo.billingInterval ? (
                   <>
                     {subscriptionInfo.price}
-                    <span className="text-lg font-normal text-[#3B755D]">/ {subscriptionInfo.billingInterval}</span>
+                    <span className="text-lg font-normal text-primary-green-dark">/ {subscriptionInfo.billingInterval}</span>
                   </>
                 ) : (
                   <>{subscriptionInfo.tier === 'free' ? '£0' : ''}</>
@@ -196,8 +196,8 @@ export default function AccountPageNew() {
               
               {/* Renewal/Expiration Date */}
               {subscriptionInfo.renewalDate && (
-                <div className="flex items-center gap-2 text-[#3B755D] mb-4">
-                  <CalendarIcon className="h-5 w-5 text-[#3A7CA5]" aria-hidden="true" />
+                <div className="flex items-center gap-2 text-primary-green-dark mb-4">
+                  <CalendarIcon className="h-5 w-5 text-primary-blue" aria-hidden="true" />
                   <span>Renewal date: <strong>{subscriptionInfo.renewalDate}</strong></span>
                 </div>
               )}
@@ -244,8 +244,8 @@ export default function AccountPageNew() {
       <Section background="light">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-[#2C6E91] mb-4">Account Features</h2>
-            <p className="text-lg text-[#3B755D]">Everything you need to manage your property research</p>
+            <h2 className="text-3xl font-bold text-primary-blue-dark mb-4">Account Features</h2>
+            <p className="text-lg text-primary-green-dark">Everything you need to manage your property research</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
@@ -279,8 +279,8 @@ export default function AccountPageNew() {
       <Section background="light">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-[#2C6E91] mb-4">Quick Actions</h2>
-            <p className="text-[#3B755D]">Access your most used features</p>
+            <h2 className="text-2xl font-bold text-primary-blue-dark mb-4">Quick Actions</h2>
+            <p className="text-primary-green-dark">Access your most used features</p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -289,7 +289,7 @@ export default function AccountPageNew() {
                 variant="outline"
                 className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
               >
-                <UserIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <UserIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Search Properties</span>
               </Button>
             </Link>
@@ -299,7 +299,7 @@ export default function AccountPageNew() {
                 variant="outline"
                 className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
               >
-                <ShieldCheckIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <ShieldCheckIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Property Valuations</span>
               </Button>
             </Link>
@@ -309,7 +309,7 @@ export default function AccountPageNew() {
                 variant="outline"
                 className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
               >
-                <CogIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <CogIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Deal Calculator</span>
               </Button>
             </Link>
@@ -319,7 +319,7 @@ export default function AccountPageNew() {
                 variant="outline"
                 className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
               >
-                <ArrowUpRightIcon className="w-8 h-8 text-[#3A7CA5]" />
+                <ArrowUpRightIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Market Trends</span>
               </Button>
             </Link>

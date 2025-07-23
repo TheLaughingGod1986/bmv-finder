@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowUpDown, 
@@ -202,7 +202,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
       {soldPrices.map((property, index) => {
         const key = addressKey(property);
         const count = allSales.filter(sale => addressKey(sale) === key).length;
-        console.log(`[DEBUG] Row ${index}: addressKey=${key}, count=${count}`);
+        // Debug: Row processed
         return null;
       })}
       

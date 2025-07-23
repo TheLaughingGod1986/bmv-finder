@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { Calculator, TrendingUp, Target } from 'lucide-react';
 import DealCalculator from '../components/DealCalculator';
 
 export default function DealCalculatorPage() {
   return (
-    <div className="min-h-screen bg-[#FAF9F6] font-sans">
+    <div className="min-h-screen bg-neutral-light font-sans">
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Standardized Header */}
         <section className="mb-10 max-w-3xl mx-auto pt-10">

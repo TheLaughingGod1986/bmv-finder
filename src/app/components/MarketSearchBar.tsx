@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Search, MapPin } from 'lucide-react';
 import SmartSearchInput from './SmartSearchInput';
 
@@ -26,7 +26,7 @@ interface MarketData {
 }
 
 interface MarketSearchBarProps {
-  onSearchChange: (searchTerm: string, filteredData: any[]) => void;
+  onSearchChange: (searchTerm: string, filteredData: MarketData[]) => void;
   placeholder?: string;
   initialValue?: string;
   timeframe?: string;
@@ -68,7 +68,7 @@ export default function MarketSearchBar({ onSearchChange, placeholder = "Search 
         setSearchMessage(`No matching region found for "${term}"`);
       }
     } catch (error) {
-      console.error('Search error:', error);
+      // Search error
       onSearchChange(term, []);
       setSearchMessage('Search failed. Please try again.');
     } finally {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, TrendingUp, BarChart3, Target, Filter } from 'lucide-react';
 import { BMVScoreEngine } from '../../lib/bmvScoreEngine';
@@ -22,7 +22,7 @@ const HeatmapView: React.FC<HeatmapViewProps> = ({
 }) => {
   const [mode, setMode] = useState<HeatmapMode>('yield');
   const [selectedPostcode, setSelectedPostcode] = useState<string | null>(null);
-  const [heatmapData, setHeatmapData] = useState<any[]>([]);
+  const [heatmapData, setHeatmapData] = useState<{ postcode: string; rentalYield: number; growth: number; bmvScore: number; transactionCount: number }[]>([]);
 
   useEffect(() => {
     let cancelled = false;

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './SimpleCard';
 import Button from './Button';
 import { 
@@ -77,7 +77,7 @@ interface NextGenValuationCardProps {
         supplyIndicator: 'high' | 'medium' | 'low';
       };
     };
-    features: any;
+    features: unknown;
   };
   loading?: boolean;
 }

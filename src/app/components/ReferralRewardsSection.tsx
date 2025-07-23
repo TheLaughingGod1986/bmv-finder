@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { GiftIcon } from '@heroicons/react/24/outline';
 
 interface ReferralReward {
@@ -67,7 +67,7 @@ export default function ReferralRewardsSection({
       
       <button 
         onClick={onCtaClick}
-        className="bg-white text-[#3B755D] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+        className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
       >
         {ctaText}
       </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Award, Trophy, AlertTriangle, BarChart3, MapPin, Calendar } from 'lucide-react';
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { apiClient, PropertySearchResult, HpiData, BmvScore } from '@/lib/apiClient';
 
 // Example: Updated Property Search Component
@@ -68,7 +68,7 @@ export function HpiDataExample() {
         setHpiData(response.data as HpiData);
       }
     } catch (err) {
-      console.error('Failed to fetch HPI data:', err);
+              // Failed to fetch HPI data
     } finally {
       setLoading(false);
     }
@@ -118,7 +118,7 @@ export function BmvScoringExample() {
         setBmvScore(response.data as BmvScore);
       }
     } catch (err) {
-      console.error('Failed to calculate BMV score:', err);
+              // Failed to calculate BMV score
     } finally {
       setLoading(false);
     }
@@ -164,7 +164,7 @@ export function CustomApiExample() {
         setData(response.data);
       }
     } catch (err) {
-      console.error('Custom request failed:', err);
+              // Custom request failed
     }
   };
 
