@@ -120,3 +120,19 @@ The system is **production-ready** and provides significant value for property i
 - [ ] Update all main pages (market-analysis, deal-calculator, advanced-deal-analysis, what-should-i-pay, hpi-dashboard, hpi-search, portfolio-tracker, account, admin, paywall, pricing, roadmap, property-projects, saved-searches) to use the new global components and consistent layout/section structure.
 - [ ] Standardize navigation and footer across all pages to match the new design system.
 - [ ] Test all pages for design, UX, and UI consistency, including mobile responsiveness and accessibility. 
+
+# QA & Approval Tasks
+
+- [ ] Home page: Test search, charts, and table. Approve or provide feedback.
+- [ ] Property details modal: Test all tabs (Information, Sale History, Growth, Map). Approve or provide feedback.
+- [ ] Market Analysis page: Test charts, filters, and data explanations. Approve or provide feedback.
+- [ ] Portfolio/Tracker page: Test adding, viewing, and removing properties. Approve or provide feedback.
+- [ ] Pricing/Upgrade page: Test plan selection and upgrade flow. Approve or provide feedback.
+- [ ] Account/Profile page: Test user info, settings, and upgrade/downgrade. Approve or provide feedback.
+- [ ] Saved Searches: Test saving, viewing, and deleting searches. Approve or provide feedback.
+- [ ] Any other key flows or pages: Test and note any issues or suggestions.
+
+**Instructions:**
+- Go through each page/section above.
+- Test all main features and UI elements.
+- Mark as complete when approved, or leave notes for changes needed. 

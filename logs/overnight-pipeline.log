@@ -54,3 +54,29 @@
     at indexToElasticsearch (/Users/benjaminoats/my-vibe-project/bmv-finder/scripts/full-data-pipeline-overnight.js:548:10)
     at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
     at async main (/Users/benjaminoats/my-vibe-project/bmv-finder/scripts/full-data-pipeline-overnight.js:633:7)
+[2025-07-24T22:46:27.950Z] [INFO] === OVERNIGHT DATA PIPELINE STARTED ===
+[2025-07-24T22:46:27.957Z] [INFO] Configuration: {
+  "LAND_REGISTRY_FILE": "data/land-registry-2006plus.csv",
+  "EPC_FILE": "data/epc-certificates.csv",
+  "HPI_FILE": "data/hpi-regions.csv",
+  "OUTPUT_FILE": "data/unified-enhanced-dataset.csv",
+  "CHECKPOINT_FILE": "data/overnight-checkpoint.json",
+  "LOG_FILE": "logs/overnight-pipeline.log",
+  "BATCH_SIZE": 10000,
+  "ELASTICSEARCH_URL": "http://localhost:9200",
+  "INDEX_NAME": "enhanced-properties"
+}
+[2025-07-24T22:46:27.957Z] [INFO] Starting property processing...
+[2025-07-24T22:46:27.957Z] [INFO] Starting overnight data processing pipeline...
+[2025-07-24T22:46:27.957Z] [INFO] Loading EPC data into memory...
+[2025-07-24T22:46:27.957Z] [WARN] EPC file not found, skipping EPC matching
+[2025-07-24T22:46:27.957Z] [INFO] Loading HPI data into memory...
+[2025-07-24T22:46:27.958Z] [WARN] HPI file not found, skipping HPI matching
+[2025-07-24T22:46:27.958Z] [INFO] Starting property processing...
+[2025-07-24T22:46:27.958Z] [ERROR] Pipeline failed: Land Registry file not found: data/land-registry-2006plus.csv
+[2025-07-24T22:46:27.958Z] [ERROR] Stack trace: Error: Land Registry file not found: data/land-registry-2006plus.csv
+    at /Users/benjaminoats/my-vibe-project/bmv-finder/scripts/full-data-pipeline-overnight.js:342:14
+    at new Promise (<anonymous>)
+    at processProperties (/Users/benjaminoats/my-vibe-project/bmv-finder/scripts/full-data-pipeline-overnight.js:340:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at async main (/Users/benjaminoats/my-vibe-project/bmv-finder/scripts/full-data-pipeline-overnight.js:629:9)
