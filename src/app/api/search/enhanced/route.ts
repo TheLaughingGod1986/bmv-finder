@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Required parameters
     if (postcode) {
-      must.push({ match: { postcode: postcode } });
+      must.push({ match_phrase: { postcode: postcode } });
     }
 
     if (number) {
@@ -164,7 +164,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query, filters, size = 10 } = body;
+    const { query, filters, page = 1, size = 10 } = body;
 
     // Build advanced search query
     const searchBody: any = {
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
           must_not: []
         }
       },
-      size: Math.min(size, 100),
+      size: Math.min(size * 10, 1000), // Get more results to group client-side
       sort: [
         { date: { order: 'desc' } }
       ]
@@ -184,14 +184,31 @@ export async function POST(request: NextRequest) {
 
     // Add text search if provided
     if (query) {
-      searchBody.query.bool.must.push({
-        multi_match: {
-          query: query,
-          fields: ['full_address', 'street', 'locality', 'town_city', 'postcode'],
-          type: 'best_fields',
-          fuzziness: 'AUTO'
-        }
-      });
+      // Check if query looks like a postcode
+      const postcodePattern = /^[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i;
+      if (postcodePattern.test(query.trim())) {
+        // For postcodes, use exact matching
+        const normalizedPostcode = query.trim().toUpperCase();
+        searchBody.query.bool.must.push({
+          bool: {
+            should: [
+              { match_phrase: { postcode: normalizedPostcode } },
+              { match_phrase: { postcode: normalizedPostcode.replace(/\s/g, '') } }
+            ],
+            minimum_should_match: 1
+          }
+        });
+      } else {
+        // For other searches, use fuzzy matching
+        searchBody.query.bool.must.push({
+          multi_match: {
+            query: query,
+            fields: ['full_address', 'street', 'locality', 'town_city', 'postcode'],
+            type: 'best_fields',
+            fuzziness: 'AUTO'
+          }
+        });
+      }
     }
 
     // Add filters
@@ -235,7 +252,7 @@ export async function POST(request: NextRequest) {
       body: searchBody
     });
 
-    const results = response.hits.hits.map(hit => {
+    const allHits = response.hits.hits.map(hit => {
       const source = hit._source as any;
       return {
         // Basic property information
@@ -285,10 +302,46 @@ export async function POST(request: NextRequest) {
       };
     });
 
+    // Group by address (paon + street + postcode)
+    const groupedResults = new Map();
+    
+    allHits.forEach(hit => {
+      const addressKey = `${hit.paon}|${hit.street}|${hit.postcode}`;
+      
+      if (!groupedResults.has(addressKey)) {
+        groupedResults.set(addressKey, {
+          ...hit,
+          sales_count: 0,
+          all_sales: [],
+          address_key: addressKey
+        });
+      }
+      
+      const group = groupedResults.get(addressKey);
+      group.sales_count++;
+      group.all_sales.push(hit);
+      
+      // Keep the latest sale as the main record
+      if (new Date(hit.date) > new Date(group.date)) {
+        Object.assign(group, hit);
+      }
+    });
+
+    // Convert to array and sort by latest sale date
+    const results = Array.from(groupedResults.values())
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice((page - 1) * size, page * size);
+
     return NextResponse.json({
       success: true,
-      total: typeof response.hits.total === 'object' ? response.hits.total.value : response.hits.total,
+      total: groupedResults.size,
       results: results,
+      pagination: {
+        page,
+        size,
+        has_more: (page * size) < groupedResults.size,
+        total_pages: Math.ceil(groupedResults.size / size)
+      },
       query: searchBody.query
     });
 

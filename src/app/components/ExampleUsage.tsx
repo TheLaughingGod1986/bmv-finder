@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { apiClient, PropertySearchResult, HpiData, BmvScore } from '@/lib/apiClient';
+import Button from './Button';
 
 // Example: Updated Property Search Component
 export function PropertySearchExample() {
@@ -37,9 +38,9 @@ export function PropertySearchExample() {
         onChange={(e) => setSearchTerm(e.target.value)}
         placeholder="Enter postcode or address"
       />
-      <button onClick={handleSearch} disabled={loading}>
+      <Button onClick={handleSearch} disabled={loading}>
         {loading ? 'Searching...' : 'Search'}
-      </button>
+      </Button>
       
       {error && <div className="error">{error}</div>}
       {results && (
@@ -82,9 +83,9 @@ export function HpiDataExample() {
         onChange={(e) => setPostcode(e.target.value)}
         placeholder="Enter postcode"
       />
-      <button onClick={fetchHpiData} disabled={loading}>
+      <Button onClick={fetchHpiData} disabled={loading}>
         {loading ? 'Loading...' : 'Get HPI Data'}
-      </button>
+      </Button>
       
       {hpiData && (
         <div>
@@ -132,9 +133,9 @@ export function BmvScoringExample() {
         onChange={(e) => setPostcode(e.target.value)}
         placeholder="Enter postcode"
       />
-      <button onClick={calculateBmvScore} disabled={loading}>
+      <Button onClick={calculateBmvScore} disabled={loading}>
         {loading ? 'Calculating...' : 'Calculate BMV Score'}
-      </button>
+      </Button>
       
       {bmvScore && (
         <div>
@@ -170,7 +171,9 @@ export function CustomApiExample() {
 
   return (
     <div>
-      <button onClick={makeCustomRequest}>Make Custom Request</button>
+      <Button onClick={makeCustomRequest}>
+        Make Custom Request
+      </Button>
       {data && <pre>{JSON.stringify(data, null, 2)}</pre>}
     </div>
   );

@@ -13,10 +13,30 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from './components/ToastProvider';
 import AddressSearchInput from './components/AddressSearchInput';
+import GroupedSoldPricesTable from './components/GroupedSoldPricesTable';
+
+// Add fetch utility for enhanced property search with pagination
+async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
+  const res = await fetch('/api/search/enhanced', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      query, 
+      size: 10, // Show 10 results per page
+      page,
+      after 
+    })
+  });
+  if (!res.ok) throw new Error('Failed to fetch property results');
+  return res.json();
+}
 
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [results, setResults] = useState<any[] | null>(null);
+  const [error, setError] = useState('');
+  const [pagination, setPagination] = useState({ page: 1, size: 10, has_more: false, after_key: null });
   const { showToast } = useToast();
   const router = useRouter();
 
@@ -25,15 +45,46 @@ export default function Home() {
       showToast({
         type: 'warning',
         title: 'Search Required',
-        message: 'Please enter a postcode or address to search.',
+        message: 'Please enter a postcode, address, or area to search.',
       });
       return;
     }
+    setIsLoading(true);
+    setError('');
+    setResults(null);
+            setPagination({ page: 1, size: 10, has_more: false, after_key: null });
+    try {
+      const data = await fetchEnhancedProperties(searchInput.trim(), 1);
+      if (data && data.results && data.results.length > 0) {
+        setResults(data.results);
+        setPagination(data.pagination || { page: 1, size: 10, has_more: false, after_key: null });
+      } else {
+        setResults([]);
+        setError('No properties found.');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch results.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  const handlePageChange = useCallback(async (page: number, after?: any) => {
+    if (!searchTerm.trim()) return;
     
     setIsLoading(true);
-    // Navigate to search results
-    router.push(`/search?q=${encodeURIComponent(searchInput.trim())}`);
-  }, [showToast, router]);
+    try {
+      const data = await fetchEnhancedProperties(searchTerm.trim(), page, after);
+      if (data && data.results) {
+        setResults(data.results);
+        setPagination(data.pagination || { page, size: 10, has_more: false, after_key: null });
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch results.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [searchTerm]);
 
   const features = [
     {
@@ -113,7 +164,7 @@ export default function Home() {
         {/* Hero Section */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-10"></div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+          <div className="relative max-w-none mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
             <div className="text-center">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -160,11 +211,57 @@ export default function Home() {
                   onChange={setSearchTerm}
                   onSearch={handleSearch}
                   isLoading={isLoading}
-                  placeholder="Enter a postcode or address to start..."
+                  placeholder="Enter a postcode, address, or area to start..."
                   showHistory={true}
-                  showSuggestions={true}
+                  showSuggestions={false}
                   className="w-full"
                 />
+                {/* Instant Results Table Below Search Bar */}
+                <AnimatePresence>
+                  {isLoading && (
+                    <motion.div
+                      key="loading"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-4 flex justify-center"
+                    >
+                      <div className="text-blue-600 text-sm font-medium">Searching...</div>
+                    </motion.div>
+                  )}
+                  {error && !isLoading && (
+                    <motion.div
+                      key="error"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="mt-4 text-center text-red-500 text-sm font-medium"
+                    >
+                      {error}
+                    </motion.div>
+                  )}
+                  {results && !isLoading && !error && (
+                    <motion.div
+                      key="results"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="mt-4 w-full max-w-none"
+                    >
+                      <GroupedSoldPricesTable
+                        soldPrices={results}
+                        onRowClick={() => {}}
+                        sortConfig={{ key: 'date', direction: 'descending' }}
+                        onSort={() => {}}
+                        isLoading={false}
+                        selectedRowId={null}
+                        pagination={pagination}
+                        onPageChange={handlePageChange}
+                        className="w-full"
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
 
               {/* CTA Buttons */}

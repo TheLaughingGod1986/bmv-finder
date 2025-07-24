@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Button from './Button';
 
 // Reusable input component
 interface InputFieldProps {
@@ -181,21 +182,21 @@ export default function DealCalculator() {
         </div>
       </div>
       <div className="mt-10 flex flex-col md:flex-row items-center justify-between gap-6">
-        <button
+        <Button
           type="button"
           className="px-7 py-3 rounded-2xl bg-primary text-beige font-bold border-2 border-gold lux-accent-gold shadow-md hover:bg-primary-light transition-colors disabled:opacity-50"
           onClick={handleSave}
           disabled={!isValid}
         >
           Save Deal
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           className="px-7 py-3 rounded-2xl bg-taupe text-primary font-bold border-2 border-silver lux-accent-silver shadow-md hover:bg-gold hover:text-beige transition-colors"
           onClick={() => setShowSaved(true)}
         >
           View Saved Deals
-        </button>
+        </Button>
       </div>
       {/* Saved Deals Modal */}
       {showSaved && (

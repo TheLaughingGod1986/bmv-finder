@@ -8,6 +8,7 @@ import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import UpgradePrompt from './UpgradePrompt';
 import { apiClient } from '@/lib/apiClient';
+import Button from './Button';
 
 interface EnhancedEmptyStateProps {
   postcode: string;
@@ -180,19 +181,19 @@ const EnhancedEmptyState: React.FC<EnhancedEmptyStateProps> = ({
         transition={{ delay: 0.6 }}
         className="flex flex-col sm:flex-row gap-6 justify-center items-center"
       >
-        <button
+        <Button
           onClick={onTryDifferentSearch}
           className="px-7 py-3 bg-primary text-beige rounded-2xl font-bold hover:bg-primary-light border-2 border-gold lux-accent-gold shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-gold focus:ring-offset-2"
         >
           Try Different Search
-        </button>
+        </Button>
         
-        <button
+        <Button
           onClick={() => onSearchSuggestion('SW1')}
           className="px-7 py-3 bg-taupe text-primary rounded-2xl font-bold hover:bg-gold hover:text-beige border-2 border-silver lux-accent-silver shadow-md transition-colors focus:outline-none focus:ring-2 focus:ring-silver focus:ring-offset-2"
         >
           Browse London Areas
-        </button>
+        </Button>
       </motion.div>
 
       {/* Additional Help */}

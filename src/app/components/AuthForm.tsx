@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import { supabase } from '../../lib/supabaseClient';
+import Button from './Button';
 
 export default function AuthForm() {
   const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
@@ -97,32 +98,32 @@ export default function AuthForm() {
         />
         </div>
 
-        <button
+        <Button
           type="submit"
           disabled={loading}
           className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
         >
           {loading ? "Loading..." : mode === "sign-in" ? "Sign In" : "Sign Up"}
-        </button>
+        </Button>
       </form>
 
       <div className="mt-4">
-        <button
+        <Button
           onClick={handleOAuthSignIn}
           disabled={loading}
           className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
         >
           {loading ? "Loading..." : "Sign in with Google"}
-        </button>
+        </Button>
       </div>
 
       <div className="mt-4 text-center">
-        <button
+        <Button
           onClick={() => setMode(mode === "sign-in" ? "sign-up" : "sign-in")}
           className="text-sm text-indigo-600 hover:text-indigo-500"
         >
           {mode === "sign-in" ? "Need an account? Sign up" : "Already have an account? Sign in"}
-        </button>
+        </Button>
       </div>
     </div>
   );

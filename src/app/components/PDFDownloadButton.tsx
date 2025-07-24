@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Download, FileText, Star, Shield, TrendingUp } from 'lucide-react';
 import { useToast } from './ToastProvider';
 import { apiClient } from '@/lib/apiClient';
+import Button from './Button';
 
 interface PDFDownloadButtonProps {
   userId: string;
@@ -171,7 +172,7 @@ export default function PDFDownloadButton({
 
       {!userId ? (
         <div className="space-y-3">
-          <button
+          <Button
             onClick={() => window.location.href = '/auth?redirect=/what-should-i-pay'}
             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 shadow-lg hover:shadow-xl"
           >
@@ -179,14 +180,14 @@ export default function PDFDownloadButton({
               <Shield className="w-4 h-4" />
               <span className="text-base">Login to Purchase</span>
             </div>
-          </button>
+          </Button>
           <p className="text-xs text-gray-500 text-center">
             Create an account to purchase this report
           </p>
         </div>
       ) : (effectiveTier === 'elite' || effectiveTier === 'Elite') ? (
         <>
-          <button
+          <Button
             onClick={handleFreeDownload}
             disabled={loading}
             className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
@@ -202,7 +203,7 @@ export default function PDFDownloadButton({
                 <span className="text-base">Download Free Report</span>
               </div>
             )}
-          </button>
+          </Button>
 
           <div className="text-center mt-3">
             <div className="inline-flex items-center gap-2 bg-green-50 border border-green-200 rounded-full px-2 py-1">
@@ -213,7 +214,7 @@ export default function PDFDownloadButton({
         </>
       ) : (
         <>
-          <button
+          <Button
             onClick={handlePurchase}
             disabled={loading}
             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none shadow-lg hover:shadow-xl"
@@ -229,7 +230,7 @@ export default function PDFDownloadButton({
                 <span className="text-base">Get Professional Report</span>
               </div>
             )}
-          </button>
+          </Button>
 
           <div className="text-center mt-3">
             <div className="inline-flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-2 py-1">

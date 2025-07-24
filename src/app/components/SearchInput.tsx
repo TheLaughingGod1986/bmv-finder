@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Search, Loader2 } from 'lucide-react';
+import Button from './Button';
+import { formatPostcode } from '../../utils/formatPostcode';
 
 interface SearchInputProps {
   onSearch: (query: string) => void;
@@ -40,18 +42,29 @@ export default function SearchInput({
     // UK postcode regex (loose, covers most cases)
     const POSTCODE_REGEX = /^[A-Z]{1,2}[0-9][0-9A-Z]? ?[0-9][A-Z]{2}$/i;
     const isPostcode = POSTCODE_REGEX.test(searchQuery.toUpperCase());
-    
+    let queryToSend = searchQuery.trim();
+    if (isPostcode) {
+      queryToSend = formatPostcode(queryToSend);
+    }
     if (!isPostcode && searchQuery.length < 3) {
       setError('Please enter at least 3 characters for a street or town search');
       return;
     }
 
     setError(null);
-    onSearch(searchQuery.trim());
+    onSearch(queryToSend);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+    let input = e.target.value;
+    // UK postcode regex (loose, covers most cases)
+    const POSTCODE_REGEX = /^[A-Za-z]{1,2}\s*\d/;
+    if (POSTCODE_REGEX.test(input)) {
+      input = formatPostcode(input);
+      setSearchQuery(input.toUpperCase());
+    } else {
+      setSearchQuery(input);
+    }
     if (error) {
       setError(null);
     }
@@ -82,7 +95,7 @@ export default function SearchInput({
           <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-blue w-5 h-5 animate-spin" />
         )}
       </div>
-      <button 
+      <Button 
         type="submit" 
         disabled={disabled || loading || !searchQuery.trim()}
         className={`px-6 py-3 rounded-lg font-semibold shadow transition-all duration-200 ease-in-out hover:scale-105 active:scale-95 ${
@@ -99,7 +112,7 @@ export default function SearchInput({
         ) : (
           'Search'
         )}
-      </button>
+      </Button>
       {error && (
         <div id={`${id}-error`} className="text-red-600 text-sm mt-1" role="alert" aria-live="polite">
           {error}

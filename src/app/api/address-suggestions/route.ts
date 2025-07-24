@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { formatPostcode } from '@/utils/formatPostcode';
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,8 +12,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Search for postcodes and addresses
+    const formattedQuery = formatPostcode(query);
     const response = await esClient.search({
-      index: 'properties',
+      index: 'properties-enhanced',
       body: {
         size: 0,
         query: {
@@ -20,12 +22,12 @@ export async function GET(request: NextRequest) {
             should: [
               {
                 match_phrase: {
-                  postcode: query
+                  postcode: formattedQuery
                 }
               },
               {
                 match_phrase: {
-                  postcode: query.replace(/\s/g, '')
+                  postcode: formattedQuery.replace(/\s/g, '')
                 }
               }
             ]

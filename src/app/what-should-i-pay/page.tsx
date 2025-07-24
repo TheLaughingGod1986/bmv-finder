@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import ValuationBreakdown from '../components/ValuationBreakdown';
 import ValuationExplanation from '../components/ValuationExplanation';
 import MarketInsights from '../components/MarketInsights';
@@ -15,7 +16,7 @@ import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 import SmartSearchInput from '../components/SmartSearchInput';
 import PDFDownloadButton from '../components/PDFDownloadButton';
 
-export default function WhatShouldIPayPage() {
+function WhatShouldIPayPageContent() {
   const [postcode, setPostcode] = useState('');
   const [propertyType, setPropertyType] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,6 +28,15 @@ export default function WhatShouldIPayPage() {
   const session = useSession();
   const { tier, loading: tierLoading } = useUserTier(user?.id || session?.user?.id);
   const { history, saveToHistory } = usePostcodeHistory();
+  const searchParams = useSearchParams();
+
+  // Handle postcode from URL parameter
+  useEffect(() => {
+    const urlPostcode = searchParams.get('postcode');
+    if (urlPostcode && !postcode) {
+      setPostcode(urlPostcode);
+    }
+  }, [searchParams, postcode]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -266,5 +276,13 @@ export default function WhatShouldIPayPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function WhatShouldIPayPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <WhatShouldIPayPageContent />
+    </Suspense>
   );
 } 

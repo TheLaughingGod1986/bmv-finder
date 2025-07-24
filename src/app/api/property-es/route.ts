@@ -83,12 +83,12 @@ export async function POST(req: NextRequest) {
       if (isPostcodeSearch) {
         // Return all sales for postcode (no deduplication)
         const result = await esClient.search({
-          index: 'properties',
+          index: 'properties-enhanced',
           size: safePageSize,
           from: (safePage - 1) * safePageSize,
           query,
           sort: [
-            { dateOfTransfer: { order: 'desc' } }
+            { date: { order: 'desc' } }
           ]
         });
         const hits = result.hits.hits.map(hit => hit._source as Record<string, unknown>);
@@ -101,7 +101,7 @@ export async function POST(req: NextRequest) {
       } else if (canAggregate) {
         // Use composite aggregation for deduplication
         const result = await esClient.search({
-          index: 'properties',
+          index: 'properties-enhanced',
           size: 0, // no hits, just aggs
           query,
           aggs: {
@@ -121,16 +121,16 @@ export async function POST(req: NextRequest) {
                   }
                 ]
               },
-              aggs: {
-                most_recent_sale: {
-                  top_hits: {
-                    size: 1,
-                    sort: [
-                      { dateOfTransfer: { order: 'desc' } }
-                    ]
+                                aggs: {
+                    most_recent_sale: {
+                      top_hits: {
+                        size: 1,
+                        sort: [
+                          { date: { order: 'desc' } }
+                        ]
+                      }
+                    }
                   }
-                }
-              }
             }
           }
         });
@@ -146,12 +146,12 @@ export async function POST(req: NextRequest) {
       } else {
         // Fallback: normal search
         const result = await esClient.search({
-          index: 'properties',
+          index: 'properties-enhanced',
           size: safePageSize,
           from: (safePage - 1) * safePageSize,
           query,
           sort: [
-            { dateOfTransfer: { order: 'desc' } }
+            { date: { order: 'desc' } }
           ]
         });
 

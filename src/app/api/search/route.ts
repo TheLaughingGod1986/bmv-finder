@@ -16,19 +16,19 @@ export async function GET(request: NextRequest) {
   try {
     // Search for properties in the correct index
     const response = await esClient.search({
-      index: 'properties',
+      index: 'properties-enhanced',
       body: {
         query: {
           bool: {
             must: [
-              { term: { postcode: postcode.toUpperCase() } },
-              { term: { paon: number.trim().toLowerCase() } }
+              { match_phrase: { postcode: postcode.toUpperCase() } },
+              { match: { paon: number.trim() } }
             ]
           }
         },
         size: 10,
         sort: [
-          { dateOfTransfer: { order: 'desc' } }
+          { date: { order: 'desc' } }
         ]
       }
     });
@@ -36,14 +36,14 @@ export async function GET(request: NextRequest) {
     const results = response.hits.hits.map(hit => {
       const source = hit._source as any;
       return {
-        address: `${source.paon} ${source.street}, ${source.postcode}`,
+        address: source.full_address || `${source.paon} ${source.street}, ${source.postcode}`,
         postcode: source.postcode,
         price: source.price,
-        date: source.dateOfTransfer,
-        property_type: source.propertyType,
-        new_build: source.old_new === 'Y',
-        estate_type: source.transactionCategory,
-        transaction_type: source.transactionCategory
+        date: source.date,
+        property_type: source.property_type_label || source.property_type,
+        new_build: source.new_build_label === 'Y' || source.new_build === true,
+        estate_type: source.estate_type_label || source.estate_type,
+        transaction_type: source.transaction_category_label || source.transaction_category
       };
     });
 

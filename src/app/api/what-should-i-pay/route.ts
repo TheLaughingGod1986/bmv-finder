@@ -4,6 +4,7 @@ import { scoreConfidence } from '@/utils/confidenceScorer';
 import { esClient } from '@/lib/esClient';
 import { postcodeToRegion } from '@/utils/postcodeToRegion';
 import { parse, format, differenceInMonths } from 'date-fns';
+import { formatPostcode } from '@/utils/formatPostcode';
 
 // Helper: convert frontend property type to database code
 function mapPropertyType(frontendType: string): string {
@@ -339,7 +340,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const normalizedPostcode = normalizePostcode(postcode);
+    const normalizedPostcode = formatPostcode(postcode);
     const mappedPropertyType = mapPropertyType(propertyType);
     console.log('🔍 Enhanced What Should I Pay:', { postcode: normalizedPostcode, propertyType: mappedPropertyType, bedrooms, plotSize, epcRating, condition, searchRadius });
 

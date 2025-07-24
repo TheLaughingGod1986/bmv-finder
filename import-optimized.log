@@ -1,0 +1,12 @@
+📍 Resuming from checkpoint: 30,280,002 records
+🚀 Starting import with batch size: 2000
+📊 Target file: pp-complete.csv
+✅ Imported 30,282,002 records (247691/sec)
+✅ Imported 30,284,002 records (247192/sec)
+✅ Imported 30,286,002 records (246846/sec)
+✅ Imported 30,288,002 records (246370/sec)
+✅ Imported final 1,102 records
+🎉 Import complete!
+📊 Total records: 30,289,104
+⏱️  Total time: 123s
+🚀 Average rate: 245995 records/sec

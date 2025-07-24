@@ -112,3 +112,11 @@ The BMV Finder is a **comprehensive property valuation platform** that provides 
 - **Delivers excellent user experience** with fast, reliable performance
 
 The system is **production-ready** and provides significant value for property investors, buyers, and professionals seeking accurate, conservative property valuations based on real market data. 
+
+## Site-wide Design/UX/UI Consistency Refactor Checklist
+
+- [ ] Audit and refactor all global UI components (Button, Card, Section, Input, Toast, Table, Chart, etc.) to match the new home page style and ensure consistency across the site. (**In Progress**)
+- [ ] Review all standalone components and replace with global components where possible, or refactor them to use global styles.
+- [ ] Update all main pages (market-analysis, deal-calculator, advanced-deal-analysis, what-should-i-pay, hpi-dashboard, hpi-search, portfolio-tracker, account, admin, paywall, pricing, roadmap, property-projects, saved-searches) to use the new global components and consistent layout/section structure.
+- [ ] Standardize navigation and footer across all pages to match the new design system.
+- [ ] Test all pages for design, UX, and UI consistency, including mobile responsiveness and accessibility. 

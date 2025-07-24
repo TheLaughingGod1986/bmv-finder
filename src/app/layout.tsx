@@ -5,7 +5,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
 import { ToastProvider } from './components/ToastProvider';
 import ClientNavigation from './components/ClientNavigation';
-// import SupabaseUserProvider from './components/SupabaseUserProvider';
+import SupabaseUserProvider from './components/SupabaseUserProvider';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -176,16 +176,18 @@ export default function RootLayout({
         >
           Skip to main content
         </a>
-        <ClientNavigation />
-        <main 
-          id="main-content" 
-          tabIndex={-1} 
-          className="min-h-screen bg-neutral-light relative"
-        >
-          <ToastProvider>
-            {children}
-          </ToastProvider>
-        </main>
+        <SupabaseUserProvider>
+          <ClientNavigation />
+          <main 
+            id="main-content" 
+            tabIndex={-1} 
+            className="min-h-screen bg-neutral-light relative"
+          >
+            <ToastProvider>
+              {children}
+            </ToastProvider>
+          </main>
+        </SupabaseUserProvider>
         <Analytics />
         <SpeedInsights />
       </body>

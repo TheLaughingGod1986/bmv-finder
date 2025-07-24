@@ -7,21 +7,43 @@ services:
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false
-      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      # Optimized memory settings for import performance
+      - ES_JAVA_OPTS=-Xms2g -Xmx2g
       - cluster.name=bmv-finder-cluster
       - node.name=bmv-finder-node
+      # Performance tuning for bulk imports
+      - indices.memory.index_buffer_size=30%
+      - indices.queries.cache.size=20%
+      - indices.fielddata.cache.size=20%
+      - thread_pool.write.queue_size=1000
+      - thread_pool.write.size=8
+      - thread_pool.search.queue_size=1000
+      - thread_pool.search.size=8
+      # Bulk import optimizations
+      - action.auto_create_index=false
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - indices.recovery.max_bytes_per_sec=100mb
+      - indices.recovery.max_concurrent_operations=3
     ports:
       - "9201:9200"
       - "9300:9300"
     volumes:
       - elasticsearch_data:/usr/share/elasticsearch/data
     restart: unless-stopped
+    # Improved health check
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    # Resource limits for better performance
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 2G
 
 volumes:
   elasticsearch_data:

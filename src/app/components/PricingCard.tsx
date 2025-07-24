@@ -2,6 +2,7 @@
 
 
 import Link from 'next/link';
+import Button from './Button';
 
 interface PricingCardProps {
   title: string;
@@ -127,7 +128,7 @@ export default function PricingCard({
             {buttonText}
           </Link>
         ) : (
-          <button
+          <Button
             onClick={onClick}
             disabled={disabled}
             className={`w-full py-3 md:py-4 px-4 md:px-6 rounded-lg font-semibold text-sm md:text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 ${buttonClassName || 'bg-primary-700 hover:bg-primary-800 text-white shadow-md hover:shadow-lg'} ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -135,7 +136,7 @@ export default function PricingCard({
             aria-describedby={ariaDescribedby}
           >
             {buttonText}
-          </button>
+          </Button>
         )}
       </div>
     </div>
