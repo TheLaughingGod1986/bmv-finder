@@ -209,22 +209,22 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
       {/* Price Indicator Legend */}
       {soldPrices.length > 0 && hasEnoughData && (
         <div className="mb-2 p-2 bg-gray-50 rounded-lg">
-          <div className="text-xs font-medium text-gray-700 mb-1">Price Indicators (Based on Last 5 Years + Inflation):</div>
+          <div className="text-xs font-medium text-gray-700 mb-1">Price Indicators (Based on Last 24 Months Average):</div>
           <div className="flex flex-wrap gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: '#5DA271', color: '#fff' }}>
-              <span>↓</span> Excellent Deal (10%+ below inflation-adjusted median)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-              <span>↓</span> Good Deal (5-10% below inflation-adjusted median)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-              <span>→</span> Fair Price (within 5% of inflation-adjusted median)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
-              <span>↑</span> Expensive (5-10% above inflation-adjusted median)
-            </span>
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800">
-              <span>↑</span> Overpriced (10%+ above inflation-adjusted median)
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: '#5DA271', color: '#fff' }}>
+                <span>↓</span> Excellent Deal (10%+ below 24-month average)
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-800">
+                <span>↓</span> Good Deal (5-10% below 24-month average)
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
+                <span>→</span> Fair Price (within 5% of 24-month average)
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
+                <span>↑</span> Expensive (5-10% above 24-month average)
+              </span>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800">
+                <span>↑</span> Overpriced (10%+ above 24-month average)
             </span>
           </div>
           <div className="text-xs text-gray-600 mt-2 flex items-center gap-1">

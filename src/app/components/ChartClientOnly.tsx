@@ -18,12 +18,12 @@ ChartJS.register(
   Filler
 );
 
-export function LineChart(props: { data: ChartData<'line', (number | import('chart.js').Point)[], unknown>; options?: ChartOptions<'line'> }) {
+export function LineChart(props: { data: ChartData<'line', (number | import('chart.js').Point)[], unknown>; options?: ChartOptions<'line'>; height?: number }) {
   return <Line {...(props as React.ComponentProps<typeof Line>)} />;
 }
-export function BarChart(props: { data: ChartData<'bar', (number | import('chart.js').Point)[], unknown>; options?: ChartOptions<'bar'> }) {
+export function BarChart(props: { data: ChartData<'bar', (number | import('chart.js').Point)[], unknown>; options?: ChartOptions<'bar'>; height?: number }) {
   return <Bar {...(props as React.ComponentProps<typeof Bar>)} />;
 }
-export function DoughnutChart(props: { data: ChartData<'doughnut', number[], unknown>; options?: ChartOptions<'doughnut'> }) {
+export function DoughnutChart(props: { data: ChartData<'doughnut', number[], unknown>; options?: ChartOptions<'doughnut'>; height?: number }) {
   return <Doughnut {...(props as React.ComponentProps<typeof Doughnut>)} />;
 } 

@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation';
 import { useToast } from './components/ToastProvider';
 import AddressSearchInput from './components/AddressSearchInput';
 import GroupedSoldPricesTable from './components/GroupedSoldPricesTable';
+import { LineChart, BarChart } from './components/ChartClientOnly';
 
 // Add fetch utility for enhanced property search with pagination
 async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
@@ -40,9 +41,27 @@ export default function Home() {
   const { showToast } = useToast();
   const router = useRouter();
   const [hpiData, setHpiData] = useState<any[]>([]);
+  const [localPriceData, setLocalPriceData] = useState<any[]>([]);
   const [hpiLoading, setHpiLoading] = useState(false);
   const [hpiError, setHpiError] = useState<string | null>(null);
   const [hpiTooltip, setHpiTooltip] = useState<{ x: number; y: number; value: number; date: string } | null>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
+  const scrollToChart = () => {
+    if (chartRef.current) {
+      const y = chartRef.current.getBoundingClientRect().top + window.scrollY - 24; // smaller offset for less gap
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
+  const [totalProperties, setTotalProperties] = useState<number | null>(null);
+
+  // Scroll to chart/table after results are set and not loading
+  useEffect(() => {
+    if (results && !isLoading && !error) {
+      setTimeout(() => {
+        scrollToChart();
+      }, 100);
+    }
+  }, [results, isLoading, error]);
 
   const handleSearch = useCallback(async (searchInput: string) => {
     if (!searchInput.trim()) {
@@ -57,17 +76,43 @@ export default function Home() {
     setError('');
     setResults(null);
     setPagination({ page: 1, size: 10, has_more: false, after_key: null });
+    setTotalProperties(null);
     try {
       const data = await fetchEnhancedProperties(searchInput.trim(), 1);
       if (data && data.results && data.results.length > 0) {
         setResults(data.results);
         setPagination(data.pagination || { page: 1, size: 10, has_more: false, after_key: null });
+        setTotalProperties(typeof data.total === 'number' ? data.total : null);
       } else {
         setResults([]);
         setError('No properties found.');
+        setTotalProperties(0);
       }
+
+      // Fetch HPI data for the current postcode
+      try {
+        const hpiResponse = await fetch(`/api/hpi/postcode?postcode=${encodeURIComponent(searchInput)}`);
+        if (hpiResponse.ok) {
+          const hpiResult = await hpiResponse.json();
+          if (hpiResult.results && hpiResult.results.length > 0) {
+            setHpiData(hpiResult.results);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching HPI data:', error);
+      }
+
+      // Fetch local price data for comparison
+      if (data && data.results && data.results.length > 0) {
+        const yearlyPrices = getAvgPricePerYear(data.results.filter(r => 
+          r.postcode && r.postcode.replace(/\s/g, '').toUpperCase() === searchInput.replace(/\s/g, '').toUpperCase()
+        ));
+        setLocalPriceData(yearlyPrices);
+      }
+
     } catch (err: any) {
       setError(err.message || 'Failed to fetch results.');
+      setTotalProperties(null);
     } finally {
       setIsLoading(false);
     }
@@ -82,9 +127,11 @@ export default function Home() {
       if (data && data.results) {
         setResults(data.results);
         setPagination(data.pagination || { page, size: 10, has_more: false, after_key: null });
+        setTotalProperties(typeof data.total === 'number' ? data.total : null);
       }
     } catch (err: any) {
       setError(err.message || 'Failed to fetch results.');
+      setTotalProperties(null);
     } finally {
       setIsLoading(false);
     }
@@ -198,6 +245,19 @@ export default function Home() {
       rating: 5
     }
   ];
+
+  // Calculate HPI growth summary values
+  let hpiPct: number | null = null;
+  let hpiStartYear: string | null = null;
+  let hpiEndYear: string | null = null;
+  if (hpiData.length > 1) {
+    const sortedData = hpiData.slice().sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const first = sortedData[0];
+    const last = sortedData[sortedData.length - 1];
+    hpiPct = ((last.index - first.index) / first.index) * 100;
+    hpiStartYear = first.date?.slice(0, 4) || null;
+    hpiEndYear = last.date?.slice(0, 4) || null;
+  }
 
   return (
     <>
@@ -349,6 +409,7 @@ export default function Home() {
         {/* Full-width Postcode Price Growth Section */}
         {results && !isLoading && !error && (
           <motion.div
+            ref={chartRef}
             key="results"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -356,151 +417,227 @@ export default function Home() {
             className="my-12 w-full"
           >
             <section className="w-full px-0 md:px-8">
-              {/* HPI Growth Chart for Postcode */}
-              {searchTerm && hpiData.length > 1 && (
-                <div className="mb-6 w-full">
-                  <div className="w-full mb-4 px-4 md:px-8">
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-6 py-4 mb-2 text-blue-900 text-sm">
-                      <strong>What you're seeing:</strong> The chart below shows the <b>House Price Index (HPI)</b> growth for the searched postcode area, based on official regional HPI data. The table lists all property sales in this postcode from the Land Registry. If HPI data is unavailable, we show the average sale price trend from actual sales in this postcode. <br />
-                      <span className="text-blue-700">Data sources: UK Land Registry sales, HPI (ONS/official regional data).</span>
+              {searchTerm && (hpiData.length > 1 || localPriceData.length > 1) && (
+                <div className="mb-6 w-full" ref={chartRef}>
+                  <div className="flex flex-col md:flex-row gap-6 w-full">
+                    {/* Local Price Growth Chart + Summary */}
+                    <div className="flex-1 min-w-0 bg-gray-50 rounded-xl shadow-inner p-4 flex flex-col items-center justify-center">
+                      {localPriceData.length > 1 ? (
+                        <>
+                          {(() => {
+                            const first = localPriceData[0];
+                            const last = localPriceData[localPriceData.length - 1];
+                            const pct = ((last.avg - first.avg) / first.avg) * 100;
+                            const startYear = first.year;
+                            const endYear = last.year;
+                            return (
+                              <div className="mb-2 flex flex-col items-center justify-center gap-1">
+                                <span className={`text-2xl font-bold ${pct > 0 ? 'text-green-700' : pct < 0 ? 'text-red-700' : 'text-gray-700'}`}>{pct > 0 ? '+' : ''}{pct.toFixed(1)}% <span className="text-base text-gray-600 font-medium">Local Growth</span></span>
+                                <span className="text-xs text-gray-500">{startYear} to {endYear}</span>
+                              </div>
+                            );
+                          })()}
+                          <div className="w-full" style={{height: 220}}>
+                            <LineChart
+                              data={{
+                                labels: localPriceData.map((d: any) => d.year),
+                                datasets: [
+                                  {
+                                    label: 'Local Average Price (£)',
+                                    data: localPriceData.map((d: any) => d.avg),
+                                    borderColor: 'rgb(34, 197, 94)',
+                                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                    fill: true,
+                                    tension: 0.6
+                                  }
+                                ]
+                              }}
+                              options={{
+                                responsive: true,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { beginAtZero: false } },
+                                maintainAspectRatio: false
+                              }}
+                              height={130}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full w-full min-h-[220px] text-gray-400 text-center">
+                          <span className="text-lg font-medium">No data available for this chart.</span>
+                        </div>
+                      )}
                     </div>
-                  </div>
-                  <span className="mb-2 font-semibold text-lg text-primary-700 block text-center w-full">Postcode Price Growth (HPI Index)</span>
-                  <div className="relative w-full bg-gray-50 rounded-xl shadow-inner p-4 overflow-x-auto">
-                    <div className="min-w-[600px] w-full">
-                      <svg width="100%" height="220" viewBox="0 0 340 220" className="w-full h-56">
-                        {/* Simplified chart content */}
-                        <text x="170" y="110" textAnchor="middle" fill="#888" fontSize="16">HPI Chart Loading...</text>
-                      </svg>
+                    {/* HPI Growth Chart + Summary */}
+                    <div className="flex-1 min-w-0 bg-gray-50 rounded-xl shadow-inner p-4 flex flex-col items-center justify-center">
+                      {hpiData.length > 1 && hpiPct !== null && hpiStartYear && hpiEndYear ? (
+                        <>
+                          <div className="mb-2 flex flex-col items-center justify-center gap-1">
+                            <span className={`text-2xl font-bold ${hpiPct > 0 ? 'text-green-700' : hpiPct < 0 ? 'text-red-700' : 'text-gray-700'}`}>{hpiPct > 0 ? '+' : ''}{hpiPct.toFixed(1)}% <span className="text-base text-gray-600 font-medium">HPI Growth</span></span>
+                            <span className="text-xs text-gray-500">{hpiStartYear} to {hpiEndYear}</span>
+                          </div>
+                          <div className="w-full" style={{height: 220}}>
+                            <LineChart
+                              data={{
+                                labels: hpiData.slice().reverse().map((d: any) => d.date),
+                                datasets: [
+                                  {
+                                    label: 'HPI Index',
+                                    data: hpiData.slice().reverse().map((d: any) => d.index),
+                                    borderColor: 'rgb(59, 130, 246)',
+                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                    fill: true,
+                                    tension: 0.6
+                                  }
+                                ]
+                              }}
+                              options={{
+                                responsive: true,
+                                plugins: { legend: { display: false } },
+                                scales: { y: { beginAtZero: false } },
+                                maintainAspectRatio: false
+                              }}
+                              height={130}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full w-full min-h-[220px] text-gray-400 text-center">
+                          <span className="text-lg font-medium">No data available for this chart.</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
               )}
               
-              {/* Fallback: Chart using average sale price data */}
-              {searchTerm && (!hpiData || hpiData.length <= 1) && results && results.length > 0 && (
-                <div className="mb-6 w-full">
-                  <div className="w-full mb-4 px-4 md:px-8">
-                    <div className="bg-blue-50 border border-blue-100 rounded-lg px-6 py-4 mb-2 text-blue-900 text-sm">
-                      <strong>What you're seeing:</strong> The chart below shows the average sale price trend for this postcode area over time, based on actual Land Registry sales. The table lists all property sales in this postcode. <br />
-                      <span className="text-blue-700">Data source: UK Land Registry sales data.</span>
-                    </div>
-                  </div>
-                  {(() => {
-                    const yearly = getAvgPricePerYear(results.filter(r => r.postcode && r.postcode.replace(/\s/g, '').toUpperCase() === searchTerm.replace(/\s/g, '').toUpperCase()));
-                    if (yearly.length < 2) return null;
-                    
-                    const min = Math.min(...yearly.map(y => y.avg));
-                    const max = Math.max(...yearly.map(y => y.avg));
-                    const pct = ((yearly[yearly.length - 1].avg - yearly[0].avg) / yearly[0].avg) * 100;
-                    
-                    return (
-                      <>
-                        <div className="mb-2 text-sm font-semibold flex items-center gap-2 px-4 md:px-8">
-                          <span>Total Growth:</span>
-                          <span className={pct > 0 ? 'text-green-600' : pct < 0 ? 'text-red-600' : 'text-gray-600'}>
-                            {pct > 0 ? '+' : ''}{pct.toFixed(1)}%
-                          </span>
-                        </div>
-                        <span className="mb-2 font-semibold text-lg text-primary-700 block text-center w-full">Postcode Price Growth (Average Sale Price)</span>
-                        <div className="relative w-full bg-gray-50 rounded-xl shadow-inner p-4">
-                          <div className="w-full">
-                            <svg width="100%" height="220" viewBox="0 0 800 220" className="w-full h-56" preserveAspectRatio="xMidYMid meet">
-                              {/* Grid lines */}
-                              {[0, 0.25, 0.5, 0.75, 1].map((t, i) => (
-                                <line key={i} x1="80" x2="720" y1={40 + t * 140} y2={40 + t * 140} stroke="#F0F0F0" strokeDasharray="4 2" />
-                              ))}
-                              {/* Y axis */}
-                              <line x1="80" x2="80" y1={40} y2={180} stroke="#E5E5E5" />
-                              {/* Y axis min/max labels */}
-                              <text x={70} y={180} fontSize="12" fill="#888" textAnchor="end">{min.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 })}</text>
-                              <text x={70} y={50} fontSize="12" fill="#888" textAnchor="end">{max.toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 })}</text>
-                              {/* Y axis label */}
-                              <text x="50" y="30" fontSize="13" fill="#888" textAnchor="start" fontWeight="bold">Avg Price</text>
-                              {/* X axis label */}
-                              <text x="720" y="210" fontSize="13" fill="#888" textAnchor="end" fontWeight="bold">Year</text>
-                              
-                              {/* Chart data */}
-                              {(() => {
-                                const chartW = 640, chartH = 140, x0 = 80, y0 = 40;
-                                const xs = yearly.map((_, i) => x0 + (i / (yearly.length - 1 || 1)) * chartW);
-                                const ys = yearly.map(y => y0 + chartH - ((y.avg - min) / (max - min || 1)) * chartH);
-                                
-                                // Smooth line path
-                                function getSmoothPath(xs: number[], ys: number[]) {
-                                  if (xs.length < 2) return '';
-                                  let d = `M${xs[0]},${ys[0]}`;
-                                  for (let i = 1; i < xs.length; i++) {
-                                    const xMid = (xs[i - 1] + xs[i]) / 2;
-                                    d += ` Q${xMid},${ys[i - 1]} ${xs[i]},${ys[i]}`;
-                                  }
-                                  return d;
-                                }
-                                
-                                // X axis labels: only show first, last, and middle
-                                let labelIdxs = [0];
-                                if (yearly.length > 3) {
-                                  labelIdxs.push(Math.floor((yearly.length - 1) / 2));
-                                  if (yearly.length > 4) labelIdxs.push(Math.ceil((yearly.length - 1) / 2));
-                                }
-                                labelIdxs.push(yearly.length - 1);
-                                labelIdxs = Array.from(new Set(labelIdxs)).sort((a, b) => a - b);
-                                
-                                return (
-                                  <>
-                                    {/* Smooth line */}
-                                    <path
-                                      d={getSmoothPath(xs, ys)}
-                                      fill="none"
-                                      stroke="#3A7CA5"
-                                      strokeWidth="3"
-                                    />
-                                    {/* Dots with tooltips */}
-                                    {xs.map((x, i) => (
-                                      <g key={i}>
-                                        <circle
-                                          cx={x}
-                                          cy={ys[i]}
-                                          r={i === xs.length - 1 ? 7 : 5}
-                                          fill={i === xs.length - 1 ? '#2563eb' : '#3A7CA5'}
-                                          stroke="#fff"
-                                          strokeWidth="2"
-                                          style={{ filter: i === xs.length - 1 ? 'drop-shadow(0 2px 6px #2563eb33)' : undefined, cursor: 'pointer' }}
-                                        />
-                                        <title>{`${yearly[i].year}: £${Math.round(yearly[i].avg).toLocaleString()}`}</title>
-                                      </g>
-                                    ))}
-                                    {/* Value labels above dots */}
-                                    {xs.map((x, i) => (
-                                      <g key={i}>
-                                        <text x={x + 8} y={ys[i] - 12} fontSize="13" fontWeight="bold" textAnchor="start" stroke="#fff" strokeWidth="4" paintOrder="stroke" style={{ pointerEvents: 'none' }}>{Math.round(yearly[i].avg).toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 })}</text>
-                                        <text x={x + 8} y={ys[i] - 12} fontSize="13" fontWeight="bold" textAnchor="start" fill={i === xs.length - 1 ? '#2563eb' : '#2C6E91'} style={{ pointerEvents: 'none' }}>{Math.round(yearly[i].avg).toLocaleString('en-GB', { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 })}</text>
-                                      </g>
-                                    ))}
-                                    {/* X axis labels */}
-                                    {labelIdxs.map(i => (
-                                      <text key={i} x={xs[i]} y={200} fontSize="12" textAnchor="middle" fill="#888">{yearly[i].year}</text>
-                                    ))}
-                                  </>
-                                );
-                              })()}
-                            </svg>
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
             </section>
           </motion.div>
         )}
+
+                {/* Market Prediction Section */}
+        {results && (localPriceData.length > 1 || hpiData.length > 1) && (() => {
+          // Calculate market prediction values
+          const localGrowth = localPriceData.length > 1 ? 
+            ((localPriceData[localPriceData.length - 1]?.avg || 0) - (localPriceData[0]?.avg || 0)) / (localPriceData[0]?.avg || 1) * 100 : 0;
+          const hpiGrowth = hpiPct || 0;
+          const recentLocalGrowth = localPriceData.length > 1 ? 
+            ((localPriceData[localPriceData.length - 1]?.avg || 0) - (localPriceData[localPriceData.length - 2]?.avg || 0)) / (localPriceData[localPriceData.length - 2]?.avg || 1) * 100 : 0;
+          
+          // Market state calculation
+          let marketState = 'neutral';
+          let stateColor = 'text-gray-600';
+          let stateBg = 'bg-gray-100';
+          
+          if (recentLocalGrowth > 2 && hpiGrowth > 0) {
+            marketState = 'seller';
+            stateColor = 'text-red-600';
+            stateBg = 'bg-red-100';
+          } else if (recentLocalGrowth < -2 || hpiGrowth < -5) {
+            marketState = 'buyer';
+            stateColor = 'text-green-600';
+            stateBg = 'bg-green-100';
+          }
+          
+          // Confidence calculation
+          const localDataPoints = localPriceData.length;
+          const hpiDataPoints = hpiData.length;
+          const confidence = Math.min(95, Math.max(30, 
+            (localDataPoints / 10) * 30 + 
+            (hpiDataPoints / 24) * 40 + 
+            25
+          ));
+          
+          // Recommendation calculation
+          let recommendation = 'Monitor';
+          let recColor = 'text-gray-600';
+          
+          if (recentLocalGrowth > 3 && hpiGrowth > 2) {
+            recommendation = 'Consider Selling';
+            recColor = 'text-red-600';
+          } else if (recentLocalGrowth < -3 || hpiGrowth < -5) {
+            recommendation = 'Good Buying Opportunity';
+            recColor = 'text-green-600';
+          }
+          
+          // Volatility calculation
+          const volatility = Math.abs((hpiPct || 0) / 12);
+          const volatilityLevel = volatility < 1 ? 'Low' : volatility < 3 ? 'Medium' : 'High';
+          
+          return (
+            <div className="w-full bg-white rounded-xl shadow-lg p-6 mb-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="w-5 h-5 text-blue-600" />
+                Market Prediction
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Market State Card */}
+                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-blue-700">Market State</span>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${stateColor} ${stateBg}`}>
+                      {marketState === 'seller' ? 'Seller\'s Market' : marketState === 'buyer' ? 'Buyer\'s Market' : 'Neutral Market'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Based on recent price trends and HPI data
+                  </p>
+                </div>
+
+                {/* Confidence Level Card */}
+                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-purple-700">Confidence</span>
+                    <span className="text-sm font-bold text-purple-700">
+                      {Math.round(confidence)}%
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Based on data quality and consistency
+                  </p>
+                </div>
+
+                {/* Recommendation Card */}
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-orange-700">Recommendation</span>
+                    <span className={`text-sm font-semibold ${recColor}`}>
+                      {recommendation}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-600">
+                    Based on current market conditions
+                  </p>
+                </div>
+              </div>
+
+              {/* Market Analysis Details */}
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-sm font-semibold text-gray-700 mb-2">Market Analysis Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600">
+                  <div>
+                    <p><strong>Local Price Trend:</strong> {localGrowth > 0 ? '+' : ''}{localGrowth.toFixed(1)}% over {localPriceData.length > 1 ? `${localPriceData[0]?.year}-${localPriceData[localPriceData.length - 1]?.year}` : 'N/A'}</p>
+                    <p><strong>HPI Trend:</strong> {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% over {hpiStartYear}-{hpiEndYear}</p>
+                    <p><strong>Recent Momentum:</strong> {recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}%</p>
+                  </div>
+                  <div>
+                    <p><strong>Data Quality:</strong> {localPriceData.length} local data points, {hpiData.length} HPI data points</p>
+                    <p><strong>Market Volatility:</strong> {volatilityLevel}</p>
+                    <p><strong>Timeframe:</strong> Last 24 months analysis</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Main Content Container (centered) - Only show after search */}
         {results !== null && (
           <div className="relative max-w-screen-2xl w-[90vw] mx-auto">
             <GroupedSoldPricesTable
               soldPrices={results}
+              totalProperties={totalProperties}
               onRowClick={() => {}}
               sortConfig={{ key: 'date', direction: 'descending' }}
               onSort={() => {}}

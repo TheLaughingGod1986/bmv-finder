@@ -3,6 +3,10 @@ import { SessionContextProvider } from '@supabase/auth-helpers-react';
 import { supabase } from '../../lib/supabaseClient';
 
 export default function SupabaseUserProvider({ children }: { children: React.ReactNode }) {
-  // Remove useMemo and direct createClient usage
+  // If Supabase is not configured, render children without the provider
+  if (!supabase) {
+    return <>{children}</>;
+  }
+
   return <SessionContextProvider supabaseClient={supabase}>{children}</SessionContextProvider>;
 } 

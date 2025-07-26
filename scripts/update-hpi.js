@@ -10,13 +10,12 @@ const path = require('path');
 
 // Configuration
 const INDEX_NAME = 'house_price_index';
-const HPI_FILE_PATH = './data/hpi-full.csv'; // Use local file instead of URL
+const HPI_FILE_PATH = './data/hpi-regions.csv'; // Use local file instead of URL
 const LOG_FILE = 'hpi-update.log';
 
 // Initialize Elasticsearch client with Elastic Cloud config
 const esClient = new Client({
-  cloud: { id: process.env.ES_CLOUD_ID },
-  auth: { apiKey: process.env.ES_API_KEY }
+  node: 'http://localhost:9201'
 });
 
 // Logging function
@@ -109,17 +108,16 @@ function parseCsvData(csvData) {
       
       const fields = record.split(',').map(field => field.replace(/"/g, '').trim());
       
-      // Map CSV fields to expected structure
-      const period = fields[3]; // "Period" column
-      const region = fields[0]; // "Name" column (e.g., "United Kingdom", "London")
-      const index = fields[9]; // "House price index All property types" column
-      const averagePrice = fields[6]; // "Average price All property types" column
+      // Map CSV fields to expected structure (regionLabel,date,hpiIndex)
+      const regionLabel = fields[0]; // "regionLabel" column
+      const date = fields[1]; // "date" column (format: "1995-01")
+      const hpiIndex = fields[2]; // "hpiIndex" column
       
       // Skip records without essential data
-      if (!period || !index) return;
+      if (!date || !hpiIndex) return;
       
       // Parse period (format: "1990-01", "2024-07")
-      const [year, month] = period.split('-');
+      const [year, month] = date.split('-');
       if (!year || !month) return;
       
       const yearNum = parseInt(year);
@@ -128,15 +126,14 @@ function parseCsvData(csvData) {
       if (isNaN(yearNum) || isNaN(monthNum)) return;
       
       const document = {
-        date: `${year}-${month.padStart(2, '0')}`,
+        date: date,
         year: yearNum,
         month: monthNum,
-        index: parseFloat(index) || 0,
-        averagePrice: parseFloat(averagePrice) || 0,
-        region: region || 'United Kingdom',
-        regionCode: fields[2] || '', // "Region GSS code"
+        index: parseFloat(hpiIndex) || 0,
+        region: regionLabel || 'Unknown',
+        regionCode: '', // Not available in this format
         source: 'ONS HPI',
-        indexedAt: new Date().toISOString()
+        lastUpdated: new Date().toISOString()
       };
       
       documents.push(document);
@@ -172,11 +169,10 @@ async function indexHpiData(records) {
           year: record.year,
           month: record.month,
           index: record.index,
-          averagePrice: record.averagePrice,
           region: record.region,
           regionCode: record.regionCode,
           source: record.source,
-          indexedAt: record.indexedAt
+          lastUpdated: record.lastUpdated
         };
         
         operations.push({ index: { _index: INDEX_NAME } });

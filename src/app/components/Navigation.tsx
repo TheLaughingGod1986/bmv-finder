@@ -35,6 +35,7 @@ interface UpdateStats {
 
 const navItems = [
   { name: 'Deal Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'BMV & investment' },
+  { name: 'Deal Calculator', href: '/deal-calculator', icon: Calculator, description: 'ROI & yield' },
   { name: 'Market Trends', href: '/market-analysis', icon: BarChart3, description: 'Regional insights' },
   { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: TrendingUp, description: 'Price trends' },
   { name: 'Valuation', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },
@@ -79,12 +80,7 @@ export default function Navigation() {
         if (data.error) {
           setError(data.error);
         } else {
-          setStats({
-            ...data,
-            propertiesCount: 22867734,
-            recentSalesCount: 50005,
-            hpiCount: 216854
-          });
+          setStats(data);
         }
       })
       .catch(err => {
@@ -165,7 +161,7 @@ export default function Navigation() {
               {(user || session || pathname === '/account') ? (
                 <Link
                   href="/account"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-emerald-500/25 transform hover:-translate-y-0.5 transition-all duration-300 text-sm h-10"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg hover:bg-emerald-700 transform hover:-translate-y-0.5 transition-all duration-300 text-sm h-10"
                 >
                   <Users className="w-4 h-4" />
                   Account

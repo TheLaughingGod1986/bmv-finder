@@ -1,4 +1,3 @@
-import { adjustForInflation, getRecentAdjustedPrices } from './inflationAdjustment';
 import { SoldPrice } from '../../types/sold-price';
 
 export interface PriceIndicator {
@@ -11,23 +10,19 @@ export interface PriceIndicator {
 }
 
 /**
- * Calculate median price from an array of prices
+ * Calculate average price from an array of prices
  */
-export function calculateMedian(prices: number[]): number | null {
+export function calculateAverage(prices: number[]): number | null {
   if (prices.length === 0) return null;
-  const sorted = [...prices].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 === 0 
-    ? (sorted[mid - 1] + sorted[mid]) / 2 
-    : sorted[mid];
+  const sum = prices.reduce((total, price) => total + price, 0);
+  return sum / prices.length;
 }
 
 /**
- * Get enhanced price indicator based on inflation-adjusted recent sales
+ * Get simplified price indicator based on 24-month average
  * @param price - The price to analyze
  * @param soldPrices - Array of all sold prices in the area
- * @param saleYear - The year of the sale being analyzed
- * @returns Price indicator with enhanced analysis
+ * @returns Price indicator with simple analysis
  */
 export function getEnhancedPriceIndicator(
   price: number | null, 
@@ -45,31 +40,33 @@ export function getEnhancedPriceIndicator(
     };
   }
 
-  // Get recent sales (last 5 years) with inflation adjustment
-  const recentAdjustedPrices = getRecentAdjustedPrices(soldPrices);
+  // Get sales from last 24 months
+  const currentDate = new Date();
+  const twentyFourMonthsAgo = new Date(currentDate.getFullYear() - 2, currentDate.getMonth(), currentDate.getDate());
   
-  // Use inflation-adjusted recent prices for median calculation, fallback to all prices
-  const medianPrice = calculateMedian(recentAdjustedPrices.length > 0 ? recentAdjustedPrices : soldPrices.map(p => p.price));
+  const recentPrices = soldPrices
+    .filter(sale => {
+      const saleDate = new Date(sale.dateOfTransfer);
+      return saleDate >= twentyFourMonthsAgo;
+    })
+    .map(sale => sale.price)
+    .filter(price => price > 0);
   
-  if (!medianPrice) {
+  // Use recent prices for average calculation, fallback to all prices if no recent data
+  const averagePrice = calculateAverage(recentPrices.length > 0 ? recentPrices : soldPrices.map(p => p.price));
+  
+  if (!averagePrice) {
     return { 
       label: 'N/A', 
       color: 'gray', 
       bgColor: 'bg-gray-100', 
       textColor: 'text-gray-600', 
       icon: '',
-      description: 'Unable to calculate median price'
+      description: 'Unable to calculate average price'
     };
   }
 
-  // Adjust the current price for inflation if it's not from the current year
-  const currentYear = new Date().getFullYear();
-  const yearToUse = saleYear || currentYear;
-  
-  // Adjust price for inflation if it's not from current year
-  const adjustedPrice = yearToUse < currentYear ? adjustForInflation(price, yearToUse) : price;
-  
-  const diff = (adjustedPrice - medianPrice) / medianPrice;
+  const diff = (price - averagePrice) / averagePrice;
   
   if (diff <= -0.10) {
     return { 
@@ -78,7 +75,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-[#5DA271]', 
       textColor: 'text-white', 
       icon: '↓',
-      description: '10%+ below inflation-adjusted median'
+      description: '10%+ below 24-month average'
     };
   } else if (diff <= -0.05) {
     return { 
@@ -87,7 +84,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-green-100', 
       textColor: 'text-green-800', 
       icon: '↓',
-      description: '5-10% below inflation-adjusted median'
+      description: '5-10% below 24-month average'
     };
   } else if (diff >= 0.10) {
     return { 
@@ -96,7 +93,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-red-100', 
       textColor: 'text-red-800', 
       icon: '↑',
-      description: '10%+ above inflation-adjusted median'
+      description: '10%+ above 24-month average'
     };
   } else if (diff >= 0.05) {
     return { 
@@ -105,7 +102,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-orange-100', 
       textColor: 'text-orange-800', 
       icon: '↑',
-      description: '5-10% above inflation-adjusted median'
+      description: '5-10% above 24-month average'
     };
   } else {
     return { 
@@ -114,7 +111,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-yellow-100', 
       textColor: 'text-yellow-800', 
       icon: '→',
-      description: 'Within 5% of inflation-adjusted median'
+      description: 'Within 5% of 24-month average'
     };
   }
 }
@@ -129,35 +126,35 @@ export function getPriceIndicatorLegend() {
       bgColor: 'bg-[#5DA271]',
       textColor: 'text-white',
       icon: '↓',
-      description: '10%+ below inflation-adjusted median'
+      description: '10%+ below 24-month average'
     },
     {
       label: 'Good Deal',
       bgColor: 'bg-green-100',
       textColor: 'text-green-800',
       icon: '↓',
-      description: '5-10% below inflation-adjusted median'
+      description: '5-10% below 24-month average'
     },
     {
       label: 'Fair Price',
       bgColor: 'bg-yellow-100',
       textColor: 'text-yellow-800',
       icon: '→',
-      description: 'Within 5% of inflation-adjusted median'
+      description: 'Within 5% of 24-month average'
     },
     {
       label: 'Expensive',
       bgColor: 'bg-orange-100',
       textColor: 'text-orange-800',
       icon: '↑',
-      description: '5-10% above inflation-adjusted median'
+      description: '5-10% above 24-month average'
     },
     {
       label: 'Overpriced',
       bgColor: 'bg-red-100',
       textColor: 'text-red-800',
       icon: '↑',
-      description: '10%+ above inflation-adjusted median'
+      description: '10%+ above 24-month average'
     }
   ];
 } 

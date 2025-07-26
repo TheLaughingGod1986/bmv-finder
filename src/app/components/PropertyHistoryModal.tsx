@@ -7,7 +7,7 @@ import AreaPriceTrendChart from './AreaPriceTrendChart';
 import BMVScoreExplanation from './BMVScoreExplanation';
 import { X, Home, TrendingUp, MapPin, Calendar, PoundSterling, RefreshCw, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { adjustForInflation, getRecentAdjustedPrices, isWithinLast5Years } from '@/utils/inflationAdjustment';
+
 
 interface PropertyHistoryModalProps {
   property: SoldPrice;
@@ -195,24 +195,14 @@ export default function PropertyHistoryModal({
   const maxPrice = validPrices.length ? Math.max(...validPrices) : null;
 
   // Calculate median price for price indicators
-  const calculateMedian = (prices: number[]) => {
-    if (prices.length === 0) return null;
-    const sorted = [...prices].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 === 0 
-      ? (sorted[mid - 1] + sorted[mid]) / 2 
-      : sorted[mid];
-  };
 
-  // Get recent sales (last 5 years) with inflation adjustment
-  const recentAdjustedPrices = getRecentAdjustedPrices(history);
-  
-  // Use inflation-adjusted recent prices for median calculation
-  const medianPrice = calculateMedian(recentAdjustedPrices.length > 0 ? recentAdjustedPrices : validPrices);
 
-  // Enhanced price indicator with inflation adjustment
-  const getPriceIndicator = (price: number | null, median: number | null) => {
-    if (!price || !median) return { 
+  // Calculate average price from recent sales
+  const averagePrice = validPrices.length > 0 ? validPrices.reduce((sum, price) => sum + price, 0) / validPrices.length : null;
+
+  // Simplified price indicator based on 24-month average
+  const getPriceIndicator = (price: number | null, average: number | null) => {
+    if (!price || !average) return { 
       label: 'N/A', 
       color: 'gray', 
       bgColor: 'bg-gray-100', 
@@ -220,16 +210,7 @@ export default function PropertyHistoryModal({
       description: 'Insufficient data for price analysis'
     };
     
-    // Adjust the current price for inflation if it's not from the current year
-    
-    // Find the sale year for this price
-    const saleData = history.find(sale => sale.price === price);
-    const saleYear = saleData ? new Date(saleData.dateOfTransfer).getFullYear() : new Date().getFullYear();
-    
-    // Adjust price for inflation if it's not from current year
-    const adjustedPrice = saleYear < new Date().getFullYear() ? adjustForInflation(price, saleYear) : price;
-    
-    const diff = (adjustedPrice - median) / median;
+    const diff = (price - average) / average;
     
     if (diff <= -0.10) {
       return { 
@@ -238,7 +219,7 @@ export default function PropertyHistoryModal({
         bgColor: 'bg-primary-green', 
         textColor: 'text-white',
         icon: '↓',
-        description: '10%+ below inflation-adjusted median'
+        description: '10%+ below 24-month average'
       };
     } else if (diff <= -0.05) {
       return { 
@@ -247,7 +228,7 @@ export default function PropertyHistoryModal({
         bgColor: 'bg-green-100', 
         textColor: 'text-green-800',
         icon: '↓',
-        description: '5-10% below inflation-adjusted median'
+        description: '5-10% below 24-month average'
       };
     } else if (diff >= 0.10) {
       return { 
@@ -256,7 +237,7 @@ export default function PropertyHistoryModal({
         bgColor: 'bg-red-100', 
         textColor: 'text-red-800',
         icon: '↑',
-        description: '10%+ above inflation-adjusted median'
+        description: '10%+ above 24-month average'
       };
     } else if (diff >= 0.05) {
       return { 
@@ -265,7 +246,7 @@ export default function PropertyHistoryModal({
         bgColor: 'bg-orange-100', 
         textColor: 'text-orange-800',
         icon: '↑',
-        description: '5-10% above inflation-adjusted median'
+        description: '5-10% above 24-month average'
       };
     } else {
       return { 
@@ -274,7 +255,7 @@ export default function PropertyHistoryModal({
         bgColor: 'bg-yellow-100', 
         textColor: 'text-yellow-800',
         icon: '→',
-        description: 'Within 5% of inflation-adjusted median'
+        description: 'Within 5% of 24-month average'
       };
     }
   };
@@ -514,7 +495,7 @@ export default function PropertyHistoryModal({
                 )}
 
                 {/* Price Indicator Legend */}
-                {recentSales.length > 0 && medianPrice !== null && (
+                {recentSales.length > 0 && averagePrice !== null && (
                   <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                     <div className="text-sm font-medium text-gray-700 mb-2">Price Indicators:</div>
                     <div className="flex flex-wrap gap-3 text-xs">
@@ -608,7 +589,7 @@ export default function PropertyHistoryModal({
                             </td>
                             <td className="py-3 px-4">
                               {(() => {
-                                const indicator = getPriceIndicator(Number(sale.price), medianPrice);
+                                const indicator = getPriceIndicator(Number(sale.price), averagePrice);
                                 return (
                                   <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${indicator.bgColor} ${indicator.textColor}`}>
                                     <span className="text-xs">{indicator.icon}</span>
@@ -641,12 +622,12 @@ export default function PropertyHistoryModal({
                           </div>
                           <div className="text-sm text-purple-800">Highest Price</div>
                         </div>
-                        {medianPrice !== null && (
+                        {averagePrice !== null && (
                           <div className="bg-yellow-50 rounded-lg p-4 text-center">
                             <div className="text-2xl font-bold text-yellow-600">
-                              {formatPrice(medianPrice)}
+                              {formatPrice(averagePrice)}
                             </div>
-                            <div className="text-sm text-yellow-800">Median Price</div>
+                                                          <div className="text-sm text-yellow-800">Average Price</div>
                           </div>
                         )}
                       </div>

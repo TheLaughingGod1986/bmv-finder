@@ -15,35 +15,35 @@ function getRegionFromPostcode(postcode: string): string {
     upperPostcode.startsWith('SE') || upperPostcode.startsWith('SW') ||
     upperPostcode.startsWith('W') || upperPostcode.startsWith('WC')
   ) {
-    return 'london';
+    return 'London';
   }
   // East of England (move above Yorkshire)
   if (upperPostcode.startsWith('AL') || upperPostcode.startsWith('CB') || upperPostcode.startsWith('CM') || upperPostcode.startsWith('CO') || upperPostcode.startsWith('IP') || upperPostcode.startsWith('LU') || upperPostcode.startsWith('MK') || upperPostcode.startsWith('NN') || upperPostcode.startsWith('NR') || upperPostcode.startsWith('PE') || upperPostcode.startsWith('SG') || upperPostcode.startsWith('SS')) {
-    return 'east-of-england';
+    return 'East of England';
   }
   // North East
   if (upperPostcode.startsWith('NE') || upperPostcode.startsWith('SR') || upperPostcode.startsWith('DL') || upperPostcode.startsWith('TS')) {
-    return 'north-east';
+    return 'North East';
   }
   // North West
   if (upperPostcode.startsWith('L') || upperPostcode.startsWith('M') || upperPostcode.startsWith('PR') || upperPostcode.startsWith('BB') || upperPostcode.startsWith('OL') || upperPostcode.startsWith('SK') || upperPostcode.startsWith('WA') || upperPostcode.startsWith('WN') || upperPostcode.startsWith('BL') || upperPostcode.startsWith('CA') || upperPostcode.startsWith('LA')) {
-    return 'north-west';
+    return 'North West';
   }
   // Yorkshire and the Humber
   if (upperPostcode.startsWith('BD') || upperPostcode.startsWith('HD') || upperPostcode.startsWith('HG') || upperPostcode.startsWith('HX') || upperPostcode.startsWith('LS') || upperPostcode.startsWith('S') || upperPostcode.startsWith('WF') || upperPostcode.startsWith('YO')) {
-    return 'yorkshire-and-the-humber';
+    return 'Yorkshire and The Humber';
   }
   // East Midlands
   if (upperPostcode.startsWith('DE') || upperPostcode.startsWith('LE') || upperPostcode.startsWith('NG') || upperPostcode.startsWith('LN') || upperPostcode.startsWith('PE')) {
-    return 'east-midlands';
+    return 'East Midlands';
   }
   // West Midlands
   if (upperPostcode.startsWith('B') || upperPostcode.startsWith('CV') || upperPostcode.startsWith('DY') || upperPostcode.startsWith('HR') || upperPostcode.startsWith('TF') || upperPostcode.startsWith('WS') || upperPostcode.startsWith('WV')) {
-    return 'west-midlands-region';
+    return 'West Midlands Region';
   }
   
   // Default to England if no match
-  return 'england';
+  return 'England';
 }
 
 // HPI search by region
