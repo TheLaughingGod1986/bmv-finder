@@ -493,20 +493,10 @@ export default function Home() {
               const recentLocalGrowth = localPriceData.length > 1 ? 
                 ((localPriceData[localPriceData.length - 1]?.avg || 0) - (localPriceData[localPriceData.length - 2]?.avg || 0)) / (localPriceData[localPriceData.length - 2]?.avg || 1) * 100 : 0;
               
-              // Market state calculation
+              // Market state calculation - Will be updated after recommendation logic
               let marketState = 'neutral';
               let stateColor = 'text-gray-600';
               let stateBg = 'bg-gray-100';
-              
-              if (recentLocalGrowth > 2 && hpiGrowth > 0) {
-                marketState = 'seller';
-                stateColor = 'text-red-600';
-                stateBg = 'bg-red-100';
-              } else if (recentLocalGrowth < -2 || hpiGrowth < -5) {
-                marketState = 'buyer';
-                stateColor = 'text-green-600';
-                stateBg = 'bg-green-100';
-              }
               
               // Confidence calculation
               const localDataPoints = localPriceData.length;
@@ -549,6 +539,33 @@ export default function Home() {
                 recommendationReason = 'Market conditions favor buyers';
               }
               
+              // Update market state based on recommendation logic
+              if (isInLoss) {
+                // If in loss, show neutral or buyer's market
+                if (isRecentGrowth && isRegionalGrowth) {
+                  marketState = 'neutral';
+                  stateColor = 'text-blue-600';
+                  stateBg = 'bg-blue-100';
+                } else {
+                  marketState = 'buyer';
+                  stateColor = 'text-green-600';
+                  stateBg = 'bg-green-100';
+                }
+              } else if (isRecentGrowth && isRegionalGrowth && localGrowth > 5) {
+                // Only show seller's market if we have strong positive growth
+                marketState = 'seller';
+                stateColor = 'text-red-600';
+                stateBg = 'bg-red-100';
+              } else if (recentLocalGrowth < -2 || hpiGrowth < -5) {
+                marketState = 'buyer';
+                stateColor = 'text-green-600';
+                stateBg = 'bg-green-100';
+              } else {
+                marketState = 'neutral';
+                stateColor = 'text-gray-600';
+                stateBg = 'bg-gray-100';
+              }
+              
               // Volatility calculation
               const volatility = Math.abs((hpiPct || 0) / 12);
               const volatilityLevel = volatility < 1 ? 'Low' : volatility < 3 ? 'Medium' : 'High';
@@ -579,7 +596,13 @@ export default function Home() {
                   
                   {/* Main Recommendation - Prominent Card */}
                   <div className="relative z-10 mb-6">
-                    <div className={`bg-gradient-to-r ${recColor.includes('green') ? 'from-emerald-700 to-green-800' : recColor.includes('red') ? 'from-red-600 to-pink-700' : 'from-blue-600 to-purple-700'} rounded-xl p-6 shadow-lg`}>
+                    <div className={`bg-gradient-to-r ${
+                      recColor.includes('green') ? 'from-emerald-700 to-green-800' : 
+                      recColor.includes('red') ? 'from-red-600 to-pink-700' : 
+                      recColor.includes('blue') ? 'from-blue-600 to-indigo-700' :
+                      recColor.includes('orange') ? 'from-orange-600 to-red-600' :
+                      'from-blue-600 to-purple-700'
+                    } rounded-xl p-6 shadow-lg`}>
                       <div className="flex items-center justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-3">
@@ -588,9 +611,7 @@ export default function Home() {
                           </div>
                           <h4 className="text-3xl font-bold mb-3 text-white drop-shadow-sm">{recommendation}</h4>
                           <p className="text-base text-white mb-4 font-medium">
-                            {recColor.includes('green') ? 'Market conditions favor buyers' : 
-                             recColor.includes('red') ? 'Market conditions favor sellers' : 
-                             'Market is balanced - consider timing'}
+                            {recommendationReason}
                           </p>
                           
                           {/* Explanation for Good Buying Opportunity */}
@@ -671,6 +692,47 @@ export default function Home() {
                             </div>
                           )}
 
+                          {/* Explanation for Hold Position */}
+                          {(recColor.includes('orange') || recColor.includes('blue')) && (
+                            <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
+                              <div className="text-sm">
+                                <div className={`font-bold mb-4 ${recColor.includes('blue') ? 'text-blue-800' : 'text-orange-800'} text-base`}>
+                                  {recColor.includes('blue') ? 'Why you should hold and monitor:' : 'Why you should hold your position:'}
+                                </div>
+                                <ul className="space-y-3">
+                                  <li className="flex items-start gap-3">
+                                    <span className={`${recColor.includes('blue') ? 'text-blue-600' : 'text-orange-600'} font-bold text-lg mt-0.5`}>•</span>
+                                    <div>
+                                      <span className={`font-bold ${recColor.includes('blue') ? 'text-blue-800' : 'text-orange-800'}`}>Current market position:</span>
+                                      <span className="text-gray-700 ml-2">Overall growth shows {localGrowth.toFixed(1)}% change, indicating {localGrowth > 0 ? 'gains' : 'potential losses'}</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className={`${recColor.includes('blue') ? 'text-blue-600' : 'text-orange-600'} font-bold text-lg mt-0.5`}>•</span>
+                                    <div>
+                                      <span className={`font-bold ${recColor.includes('blue') ? 'text-blue-800' : 'text-orange-800'}`}>Recent trends:</span>
+                                      <span className="text-gray-700 ml-2">Recent sales show {recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}% {recentLocalGrowth > 0 ? 'increase' : 'decrease'} in local prices</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className={`${recColor.includes('blue') ? 'text-blue-600' : 'text-orange-600'} font-bold text-lg mt-0.5`}>•</span>
+                                    <div>
+                                      <span className={`font-bold ${recColor.includes('blue') ? 'text-blue-800' : 'text-orange-800'}`}>Regional outlook:</span>
+                                      <span className="text-gray-700 ml-2">HPI shows {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% regional movement</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className={`${recColor.includes('blue') ? 'text-blue-600' : 'text-orange-600'} font-bold text-lg mt-0.5`}>•</span>
+                                    <div>
+                                      <span className={`font-bold ${recColor.includes('blue') ? 'text-blue-800' : 'text-orange-800'}`}>Strategy:</span>
+                                      <span className="text-gray-700 ml-2">{recColor.includes('blue') ? 'Market showing recovery signs - consider holding for better prices' : 'Current conditions suggest holding to avoid selling at a loss'}</span>
+                                    </div>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+
                           {/* Explanation for Monitor/Neutral */}
                           {!recColor.includes('green') && !recColor.includes('red') && (
                             <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
@@ -710,12 +772,6 @@ export default function Home() {
                             </div>
                           )}
                         </div>
-                                          <div className="text-right ml-6">
-                    <div className="bg-white bg-opacity-90 rounded-xl p-4 shadow-lg border border-white border-opacity-30">
-                      <div className="text-4xl font-bold text-gray-900 drop-shadow-sm">{Math.round(confidence)}%</div>
-                      <div className="text-sm text-gray-700 font-medium">Confidence</div>
-                    </div>
-                  </div>
                       </div>
                     </div>
                   </div>
