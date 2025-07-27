@@ -15,6 +15,7 @@ import { useToast } from './components/ToastProvider';
 import AddressSearchInput from './components/AddressSearchInput';
 import GroupedSoldPricesTable from './components/GroupedSoldPricesTable';
 import { LineChart, BarChart } from './components/ChartClientOnly';
+import HpiDataCard from './components/HpiDataCard';
 
 // Add fetch utility for enhanced property search with pagination
 async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
@@ -38,6 +39,10 @@ export default function Home() {
   const [results, setResults] = useState<any[] | null>(null);
   const [error, setError] = useState('');
   const [pagination, setPagination] = useState({ page: 1, size: 10, has_more: false, after_key: null });
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({
+    key: 'date',
+    direction: 'descending'
+  });
   const { showToast } = useToast();
   const router = useRouter();
   const [hpiData, setHpiData] = useState<any[]>([]);
@@ -46,13 +51,63 @@ export default function Home() {
   const [hpiError, setHpiError] = useState<string | null>(null);
   const [hpiTooltip, setHpiTooltip] = useState<{ x: number; y: number; value: number; date: string } | null>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const marketPredictionRef = useRef<HTMLDivElement>(null);
+  
   const scrollToChart = () => {
     if (chartRef.current) {
       const y = chartRef.current.getBoundingClientRect().top + window.scrollY - 24; // smaller offset for less gap
       window.scrollTo({ top: y, behavior: 'smooth' });
     }
   };
+  
+  const scrollToMarketPrediction = () => {
+    if (marketPredictionRef.current) {
+      const y = marketPredictionRef.current.getBoundingClientRect().top + window.scrollY - 80; // offset to show title
+      window.scrollTo({ top: y, behavior: 'smooth' });
+    }
+  };
   const [totalProperties, setTotalProperties] = useState<number | null>(null);
+  const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+
+  // Handle sorting
+  const handleSort = (key: string) => {
+    setSortConfig(prev => ({
+      key,
+      direction: prev.key === key && prev.direction === 'ascending' ? 'descending' : 'ascending'
+    }));
+  };
+
+  // Handle row click
+  const handleRowClick = (property: any) => {
+    setSelectedRowId(property.id || property.propertyNumber || null);
+  };
+
+  // Sort results based on sortConfig
+  const sortedResults = results ? [...results].sort((a, b) => {
+    const { key, direction } = sortConfig;
+    let aValue = a[key];
+    let bValue = b[key];
+
+    // Handle date sorting
+    if (key === 'date') {
+      aValue = new Date(aValue || 0).getTime();
+      bValue = new Date(bValue || 0).getTime();
+    }
+    // Handle price sorting
+    else if (key === 'price') {
+      aValue = parseFloat(aValue) || 0;
+      bValue = parseFloat(bValue) || 0;
+    }
+    // Handle string sorting
+    else {
+      aValue = String(aValue || '').toLowerCase();
+      bValue = String(bValue || '').toLowerCase();
+    }
+
+    if (aValue < bValue) return direction === 'ascending' ? -1 : 1;
+    if (aValue > bValue) return direction === 'ascending' ? 1 : -1;
+    return 0;
+  }) : null;
 
   // Scroll to chart/table after results are set and not loading
   useEffect(() => {
@@ -77,6 +132,7 @@ export default function Home() {
     setResults(null);
     setPagination({ page: 1, size: 10, has_more: false, after_key: null });
     setTotalProperties(null);
+    setSelectedRowId(null); // Clear selected row on new search
     try {
       const data = await fetchEnhancedProperties(searchInput.trim(), 1);
       if (data && data.results && data.results.length > 0) {
@@ -109,6 +165,11 @@ export default function Home() {
         ));
         setLocalPriceData(yearlyPrices);
       }
+
+      // Scroll to Market Prediction section after data is loaded
+      setTimeout(() => {
+        scrollToMarketPrediction();
+      }, 500); // Small delay to ensure DOM is updated
 
     } catch (err: any) {
       setError(err.message || 'Failed to fetch results.');
@@ -158,6 +219,15 @@ export default function Home() {
       })
       .finally(() => setHpiLoading(false));
   }, [searchTerm]);
+
+  // Scroll to Market Prediction when data is ready
+  useEffect(() => {
+    if (results && (localPriceData.length > 1 || hpiData.length > 1)) {
+      setTimeout(() => {
+        scrollToMarketPrediction();
+      }, 1000); // Delay to ensure Market Prediction section is rendered
+    }
+  }, [results, localPriceData, hpiData]);
 
   // Helper: aggregate average sale price per year for the current postcode
   function getAvgPricePerYear(soldPrices: any[]) {
@@ -406,8 +476,382 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Market Prediction Section - Moved to prominent position */}
+        {results && results.length > 0 && !error && (localPriceData.length > 1 || hpiData.length > 1) && (
+          <motion.div
+            ref={marketPredictionRef}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            className="my-8 w-full px-4 md:px-8"
+          >
+            {(() => {
+              // Calculate market prediction values
+              const localGrowth = localPriceData.length > 1 ? 
+                ((localPriceData[localPriceData.length - 1]?.avg || 0) - (localPriceData[0]?.avg || 0)) / (localPriceData[0]?.avg || 1) * 100 : 0;
+              const hpiGrowth = hpiPct || 0;
+              const recentLocalGrowth = localPriceData.length > 1 ? 
+                ((localPriceData[localPriceData.length - 1]?.avg || 0) - (localPriceData[localPriceData.length - 2]?.avg || 0)) / (localPriceData[localPriceData.length - 2]?.avg || 1) * 100 : 0;
+              
+              // Market state calculation
+              let marketState = 'neutral';
+              let stateColor = 'text-gray-600';
+              let stateBg = 'bg-gray-100';
+              
+              if (recentLocalGrowth > 2 && hpiGrowth > 0) {
+                marketState = 'seller';
+                stateColor = 'text-red-600';
+                stateBg = 'bg-red-100';
+              } else if (recentLocalGrowth < -2 || hpiGrowth < -5) {
+                marketState = 'buyer';
+                stateColor = 'text-green-600';
+                stateBg = 'bg-green-100';
+              }
+              
+              // Confidence calculation
+              const localDataPoints = localPriceData.length;
+              const hpiDataPoints = hpiData.length;
+              const confidence = Math.min(95, Math.max(30, 
+                (localDataPoints / 10) * 30 + 
+                (hpiDataPoints / 24) * 40 + 
+                25
+              ));
+              
+              // Recommendation calculation - More intelligent logic
+              let recommendation = 'Monitor';
+              let recColor = 'text-gray-600';
+              let recommendationReason = 'Market is balanced - consider timing';
+              
+              // Check if we're in a loss situation (negative overall growth)
+              const isInLoss = localGrowth < -10; // Significant loss threshold
+              const isRecentGrowth = recentLocalGrowth > 2;
+              const isRegionalGrowth = hpiGrowth > 1;
+              
+              if (isInLoss) {
+                // If we're in a significant loss, don't recommend selling
+                if (isRecentGrowth && isRegionalGrowth) {
+                  recommendation = 'Hold & Monitor Recovery';
+                  recColor = 'text-blue-600';
+                  recommendationReason = 'Market showing recovery signs - consider holding for better prices';
+                } else {
+                  recommendation = 'Hold Position';
+                  recColor = 'text-orange-600';
+                  recommendationReason = 'Current market conditions suggest holding to avoid selling at a loss';
+                }
+              } else if (isRecentGrowth && isRegionalGrowth && localGrowth > 5) {
+                // Only recommend selling if we have positive growth AND recent momentum
+                recommendation = 'Consider Selling';
+                recColor = 'text-red-600';
+                recommendationReason = 'Market conditions favor sellers with strong growth';
+              } else if (recentLocalGrowth < -3 || hpiGrowth < -5) {
+                recommendation = 'Good Buying Opportunity';
+                recColor = 'text-green-600';
+                recommendationReason = 'Market conditions favor buyers';
+              }
+              
+              // Volatility calculation
+              const volatility = Math.abs((hpiPct || 0) / 12);
+              const volatilityLevel = volatility < 1 ? 'Low' : volatility < 3 ? 'Medium' : 'High';
+              
+              return (
+                <div className="w-full bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-xl shadow-xl border-2 border-blue-200 p-6 mb-8 relative overflow-hidden">
+                  {/* Background Pattern */}
+                  <div className="absolute inset-0 opacity-5">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400 rounded-full -translate-y-16 translate-x-16"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-purple-400 rounded-full translate-y-12 -translate-x-12"></div>
+                  </div>
+                  
+                  {/* Header with Badge */}
+                  <div className="relative z-10 flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-blue-600 rounded-lg">
+                        <Target className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="text-2xl font-bold text-gray-900">Market Prediction</h3>
+                        <p className="text-sm text-gray-600">AI-powered market analysis for {searchTerm}</p>
+                      </div>
+                    </div>
+                    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-3 py-1 rounded-full text-xs font-semibold">
+                      LIVE ANALYSIS
+                    </div>
+                  </div>
+                  
+                  {/* Main Recommendation - Prominent Card */}
+                  <div className="relative z-10 mb-6">
+                    <div className={`bg-gradient-to-r ${recColor.includes('green') ? 'from-emerald-700 to-green-800' : recColor.includes('red') ? 'from-red-600 to-pink-700' : 'from-blue-600 to-purple-700'} rounded-xl p-6 shadow-lg`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-3">
+                            <span className="text-sm font-bold text-white bg-white bg-opacity-20 px-3 py-1 rounded-full">RECOMMENDATION</span>
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                          </div>
+                          <h4 className="text-3xl font-bold mb-3 text-white drop-shadow-sm">{recommendation}</h4>
+                          <p className="text-base text-white mb-4 font-medium">
+                            {recColor.includes('green') ? 'Market conditions favor buyers' : 
+                             recColor.includes('red') ? 'Market conditions favor sellers' : 
+                             'Market is balanced - consider timing'}
+                          </p>
+                          
+                          {/* Explanation for Good Buying Opportunity */}
+                          {recColor.includes('green') && (
+                            <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
+                              <div className="text-sm">
+                                <div className="font-bold mb-4 text-emerald-800 text-base">Why this is a good buying opportunity:</div>
+                                <ul className="space-y-3">
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-emerald-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-emerald-800">Local prices declining:</span>
+                                      <span className="text-gray-700 ml-2">Recent sales show {Math.abs(recentLocalGrowth).toFixed(1)}% decrease in local prices</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-emerald-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-emerald-800">Regional trend:</span>
+                                      <span className="text-gray-700 ml-2">HPI shows {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% regional movement</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-emerald-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-emerald-800">Market timing:</span>
+                                      <span className="text-gray-700 ml-2">Current conditions suggest potential for better purchase prices</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-emerald-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-emerald-800">Data confidence:</span>
+                                      <span className="text-gray-700 ml-2">Analysis based on {localPriceData.length} local sales and {hpiData.length} regional data points</span>
+                                    </div>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Explanation for Consider Selling */}
+                          {recColor.includes('red') && (
+                            <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
+                              <div className="text-sm">
+                                <div className="font-bold mb-4 text-red-800 text-base">Why you should consider selling:</div>
+                                <ul className="space-y-3">
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-red-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-red-800">Strong local growth:</span>
+                                      <span className="text-gray-700 ml-2">Recent sales show {recentLocalGrowth.toFixed(1)}% increase in local prices</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-red-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-red-800">Regional momentum:</span>
+                                      <span className="text-gray-700 ml-2">HPI shows {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% regional growth</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-red-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-red-800">Peak market conditions:</span>
+                                      <span className="text-gray-700 ml-2">Both local and regional trends indicate favorable selling conditions</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-red-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-red-800">Data confidence:</span>
+                                      <span className="text-gray-700 ml-2">Analysis based on {localPriceData.length} local sales and {hpiData.length} regional data points</span>
+                                    </div>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Explanation for Monitor/Neutral */}
+                          {!recColor.includes('green') && !recColor.includes('red') && (
+                            <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
+                              <div className="text-sm">
+                                <div className="font-bold mb-4 text-gray-800 text-base">Market analysis summary:</div>
+                                <ul className="space-y-3">
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-gray-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-gray-800">Local trend:</span>
+                                      <span className="text-gray-700 ml-2">Recent sales show {recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}% change in local prices</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-gray-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-gray-800">Regional trend:</span>
+                                      <span className="text-gray-700 ml-2">HPI shows {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% regional movement</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-gray-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-gray-800">Market balance:</span>
+                                      <span className="text-gray-700 ml-2">Conditions are relatively stable - consider timing for optimal results</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-gray-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-gray-800">Data confidence:</span>
+                                      <span className="text-gray-700 ml-2">Analysis based on {localPriceData.length} local sales and {hpiData.length} regional data points</span>
+                                    </div>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                                          <div className="text-right ml-6">
+                    <div className="bg-white bg-opacity-90 rounded-xl p-4 shadow-lg border border-white border-opacity-30">
+                      <div className="text-4xl font-bold text-gray-900 drop-shadow-sm">{Math.round(confidence)}%</div>
+                      <div className="text-sm text-gray-700 font-medium">Confidence</div>
+                    </div>
+                  </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Supporting Cards - Smaller Grid */}
+                  <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Market State Card */}
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                          <span className="text-sm font-semibold text-gray-700">Market State</span>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold ${stateColor} ${stateBg}`}>
+                          {marketState === 'seller' ? 'Seller\'s Market' : marketState === 'buyer' ? 'Buyer\'s Market' : 'Neutral Market'}
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Local Trend:</span>
+                          <span className={`font-medium ${recentLocalGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">HPI Trend:</span>
+                          <span className={`font-medium ${hpiPct > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Data Quality Card */}
+                    <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                          <span className="text-sm font-semibold text-gray-700">Data Quality</span>
+                        </div>
+                        <span className="text-xs font-bold text-purple-600">
+                          {Math.round(confidence)}% Reliable
+                        </span>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Local Data:</span>
+                          <span className="font-medium text-gray-900">{localPriceData.length} points</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">HPI Data:</span>
+                          <span className="font-medium text-gray-900">{hpiData.length} points</span>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-gray-600">Volatility:</span>
+                          <span className="font-medium text-gray-900">{volatilityLevel}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Market Analysis Details - Collapsible */}
+                  <div className="relative z-10 mt-4">
+                    <details className="group">
+                      <summary className="cursor-pointer flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <span className="text-sm font-semibold text-gray-700">📊 Detailed Market Analysis</span>
+                        <svg className="w-4 h-4 text-gray-500 group-open:rotate-180 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </summary>
+                      <div className="mt-3 p-4 bg-white rounded-lg border border-gray-200">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Local Price Trend:</span>
+                              <span className={`font-semibold ${localGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {localGrowth > 0 ? '+' : ''}{localGrowth.toFixed(1)}% over {localPriceData.length > 1 ? `${localPriceData[0]?.year}-${localPriceData[localPriceData.length - 1]?.year}` : 'N/A'}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">HPI Trend:</span>
+                              <span className={`font-semibold ${hpiPct > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% over {hpiStartYear}-{hpiEndYear}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Recent Momentum:</span>
+                              <span className={`font-semibold ${recentLocalGrowth > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}%
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Analysis Period:</span>
+                              <span className="font-semibold text-gray-900">Last 24 months</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Market Volatility:</span>
+                              <span className="font-semibold text-gray-900">{volatilityLevel}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600 font-medium">Data Freshness:</span>
+                              <span className="font-semibold text-green-600">Live</span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Trend Discrepancy Explanation */}
+                        {Math.abs(recentLocalGrowth - (hpiPct || 0)) > 2 && (
+                          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                            <div className="flex items-start gap-2">
+                              <div className="w-5 h-5 bg-amber-500 rounded-full flex-shrink-0 mt-0.5"></div>
+                              <div className="text-sm">
+                                <div className="font-semibold text-amber-800 mb-1">Why Local vs HPI Trends Differ</div>
+                                <div className="text-amber-700 space-y-1">
+                                  <div>• <strong>Local Trend ({recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}%)</strong>: Based on actual sales in your specific postcode area</div>
+                                  <div>• <strong>HPI Trend ({hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}%)</strong>: Regional average across the broader area</div>
+                                  <div>• This difference is normal and indicates <strong>market segmentation</strong> - your area may be experiencing different conditions than the broader region</div>
+                                  <div>• Consider both trends when making decisions, but prioritize local data for your specific area</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </details>
+                  </div>
+                </div>
+              );
+            })()}
+          </motion.div>
+        )}
+
         {/* Full-width Postcode Price Growth Section */}
-        {results && !isLoading && !error && (
+        {results && results.length > 0 && !isLoading && !error && (
           <motion.div
             ref={chartRef}
             key="results"
@@ -515,134 +959,20 @@ export default function Home() {
           </motion.div>
         )}
 
-                {/* Market Prediction Section */}
-        {results && (localPriceData.length > 1 || hpiData.length > 1) && (() => {
-          // Calculate market prediction values
-          const localGrowth = localPriceData.length > 1 ? 
-            ((localPriceData[localPriceData.length - 1]?.avg || 0) - (localPriceData[0]?.avg || 0)) / (localPriceData[0]?.avg || 1) * 100 : 0;
-          const hpiGrowth = hpiPct || 0;
-          const recentLocalGrowth = localPriceData.length > 1 ? 
-            ((localPriceData[localPriceData.length - 1]?.avg || 0) - (localPriceData[localPriceData.length - 2]?.avg || 0)) / (localPriceData[localPriceData.length - 2]?.avg || 1) * 100 : 0;
-          
-          // Market state calculation
-          let marketState = 'neutral';
-          let stateColor = 'text-gray-600';
-          let stateBg = 'bg-gray-100';
-          
-          if (recentLocalGrowth > 2 && hpiGrowth > 0) {
-            marketState = 'seller';
-            stateColor = 'text-red-600';
-            stateBg = 'bg-red-100';
-          } else if (recentLocalGrowth < -2 || hpiGrowth < -5) {
-            marketState = 'buyer';
-            stateColor = 'text-green-600';
-            stateBg = 'bg-green-100';
-          }
-          
-          // Confidence calculation
-          const localDataPoints = localPriceData.length;
-          const hpiDataPoints = hpiData.length;
-          const confidence = Math.min(95, Math.max(30, 
-            (localDataPoints / 10) * 30 + 
-            (hpiDataPoints / 24) * 40 + 
-            25
-          ));
-          
-          // Recommendation calculation
-          let recommendation = 'Monitor';
-          let recColor = 'text-gray-600';
-          
-          if (recentLocalGrowth > 3 && hpiGrowth > 2) {
-            recommendation = 'Consider Selling';
-            recColor = 'text-red-600';
-          } else if (recentLocalGrowth < -3 || hpiGrowth < -5) {
-            recommendation = 'Good Buying Opportunity';
-            recColor = 'text-green-600';
-          }
-          
-          // Volatility calculation
-          const volatility = Math.abs((hpiPct || 0) / 12);
-          const volatilityLevel = volatility < 1 ? 'Low' : volatility < 3 ? 'Medium' : 'High';
-          
-          return (
-            <div className="w-full bg-white rounded-xl shadow-lg p-6 mb-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <Target className="w-5 h-5 text-blue-600" />
-                Market Prediction
-              </h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {/* Market State Card */}
-                <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border border-blue-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-blue-700">Market State</span>
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${stateColor} ${stateBg}`}>
-                      {marketState === 'seller' ? 'Seller\'s Market' : marketState === 'buyer' ? 'Buyer\'s Market' : 'Neutral Market'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    Based on recent price trends and HPI data
-                  </p>
-                </div>
 
-                {/* Confidence Level Card */}
-                <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border border-purple-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-purple-700">Confidence</span>
-                    <span className="text-sm font-bold text-purple-700">
-                      {Math.round(confidence)}%
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    Based on data quality and consistency
-                  </p>
-                </div>
-
-                {/* Recommendation Card */}
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-4 border border-orange-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-orange-700">Recommendation</span>
-                    <span className={`text-sm font-semibold ${recColor}`}>
-                      {recommendation}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-600">
-                    Based on current market conditions
-                  </p>
-                </div>
-              </div>
-
-              {/* Market Analysis Details */}
-              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-                <h4 className="text-sm font-semibold text-gray-700 mb-2">Market Analysis Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-gray-600">
-                  <div>
-                    <p><strong>Local Price Trend:</strong> {localGrowth > 0 ? '+' : ''}{localGrowth.toFixed(1)}% over {localPriceData.length > 1 ? `${localPriceData[0]?.year}-${localPriceData[localPriceData.length - 1]?.year}` : 'N/A'}</p>
-                    <p><strong>HPI Trend:</strong> {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% over {hpiStartYear}-{hpiEndYear}</p>
-                    <p><strong>Recent Momentum:</strong> {recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}%</p>
-                  </div>
-                  <div>
-                    <p><strong>Data Quality:</strong> {localPriceData.length} local data points, {hpiData.length} HPI data points</p>
-                    <p><strong>Market Volatility:</strong> {volatilityLevel}</p>
-                    <p><strong>Timeframe:</strong> Last 24 months analysis</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
 
         {/* Main Content Container (centered) - Only show after search */}
         {results !== null && (
           <div className="relative max-w-screen-2xl w-[90vw] mx-auto">
             <GroupedSoldPricesTable
-              soldPrices={results}
+              soldPrices={sortedResults || []}
               totalProperties={totalProperties}
-              onRowClick={() => {}}
-              sortConfig={{ key: 'date', direction: 'descending' }}
-              onSort={() => {}}
+              onRowClick={handleRowClick}
+              sortConfig={sortConfig}
+              onSort={handleSort}
               isLoading={false}
-              selectedRowId={null}
+              selectedRowId={selectedRowId}
+              postcode={searchTerm}
               pagination={pagination}
               onPageChange={handlePageChange}
               className="w-full"

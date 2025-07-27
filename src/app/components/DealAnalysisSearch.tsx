@@ -225,13 +225,7 @@ export default function DealAnalysisSearch() {
 
 
 
-  const handleAddToPortfolio = (valuation: unknown) => {
-    showToast({
-      type: 'success',
-      title: 'Added to Portfolio',
-      message: 'Property has been added to your portfolio for tracking.',
-    });
-  };
+
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -390,7 +384,6 @@ export default function DealAnalysisSearch() {
             <MLValuationCard 
               postcode={formatPostcode(postcode.trim())} 
               houseNumber={houseNumber} 
-              onAddToPortfolio={handleAddToPortfolio}
             />
           )}
         </div>

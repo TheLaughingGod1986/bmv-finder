@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowUpDown, 
@@ -27,6 +27,9 @@ import { cn } from '../../lib/utils';
 import { SoldPrice } from '../../../types/sold-price';
 import BMVScoreBadge from './BMVScoreBadge';
 import { getEnhancedPriceIndicator, getPriceIndicatorLegend } from '@/utils/priceIndicator';
+import PriceIndicatorLegend from './PriceIndicatorLegend';
+import EnhancedPriceIndicatorLegend from './EnhancedPriceIndicatorLegend';
+import HpiDataCard from './HpiDataCard';
 
 interface GroupedSoldPricesTableProps {
   soldPrices: any[];
@@ -37,6 +40,7 @@ interface GroupedSoldPricesTableProps {
   isLoading: boolean;
   selectedRowId: string | null;
   className?: string;
+  postcode?: string;
   pagination: {
     page: number;
     size: number;
@@ -55,6 +59,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
   isLoading,
   selectedRowId,
   className,
+  postcode,
   pagination,
   onPageChange
 }) => {
@@ -119,7 +124,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     }).format(price);
   };
 
-  const getPriceIndicator = (price: number | null, allSales: any[]) => {
+  const [priceIndicators, setPriceIndicators] = useState<Record<string, any>>({});
+
+  const getPriceIndicator = (price: number | null, property: any) => {
     if (!price) return { 
       label: 'N/A', 
       color: 'gray', 
@@ -129,8 +136,46 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
       description: 'Insufficient data for price analysis'
     };
     
-    return getEnhancedPriceIndicator(price, allSales, new Date().getFullYear());
+    // Use cached indicator if available
+    const cacheKey = `${property.postcode}-${property.property_type}-${price}`;
+    if (priceIndicators[cacheKey]) {
+      return priceIndicators[cacheKey];
+    }
+    
+    // Fallback to basic indicator while loading
+    return getEnhancedPriceIndicator(price, [], new Date().getFullYear());
   };
+
+  // Fetch enhanced price indicators for all properties
+  useEffect(() => {
+    const fetchPriceIndicators = async () => {
+      if (!soldPrices || soldPrices.length === 0) return;
+      
+      const newIndicators: Record<string, any> = {};
+      
+      for (const property of soldPrices) {
+        if (!property.price || !property.postcode || !property.property_type) continue;
+        
+        try {
+          const response = await fetch(
+            `/api/enhanced-price-indicator?postcode=${encodeURIComponent(property.postcode)}&price=${property.price}&propertyType=${property.property_type}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const cacheKey = `${property.postcode}-${property.property_type}-${property.price}`;
+            newIndicators[cacheKey] = data.indicator;
+          }
+        } catch (error) {
+          console.error('Error fetching enhanced price indicator:', error);
+        }
+      }
+      
+      setPriceIndicators(newIndicators);
+    };
+    
+    fetchPriceIndicators();
+  }, [soldPrices]);
 
   const SortableHeader = ({ 
     column, 
@@ -247,57 +292,33 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
   return (
     <>
+      {/* HPI Data Card Section - Above Summary Cards */}
+      {postcode && (
+        <div className="w-full mb-6">
+          <HpiDataCard postcode={postcode} />
+        </div>
+      )}
+
       {/* Summary Cards Section */}
-      <div className="w-full flex flex-col md:flex-row gap-4 mb-4">
-        <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow p-4 flex flex-col items-center justify-center">
+      <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+        <div className="bg-white rounded-xl border border-gray-200 shadow p-4 flex flex-col items-center justify-center">
           <span className="text-xs text-gray-500 mb-1">Total Properties</span>
           <span className="text-2xl font-bold text-primary-700">{totalPropsValue}</span>
         </div>
-        <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow p-4 flex flex-col items-center justify-center">
+        <div className="bg-white rounded-xl border border-gray-200 shadow p-4 flex flex-col items-center justify-center">
           <span className="text-xs text-gray-500 mb-1">Sold This Year</span>
           <span className="text-2xl font-bold text-green-700">{soldThisYear}</span>
         </div>
-        <div className="flex-1 bg-white rounded-xl border border-gray-200 shadow p-4 flex flex-col items-center justify-center">
+        <div className="bg-white rounded-xl border border-gray-200 shadow p-4 flex flex-col items-center justify-center">
           <span className="text-xs text-gray-500 mb-1">Most Common Type</span>
           <span className="text-2xl font-bold text-blue-700">{typeLabels[mostCommonType] || mostCommonType}</span>
         </div>
       </div>
 
       <div className={cn("bg-white rounded-2xl shadow-lg overflow-x-auto border border-gray-100", className)}>
-        {/* Price Indicator Legend - Improved UX/UI */}
-        <div className="mb-6 w-full flex flex-col items-center">
-          <div className="w-full bg-blue-50 border border-blue-100 rounded-2xl shadow-md px-6 py-4 flex flex-col gap-2">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="font-semibold text-blue-900 text-base">How to Read Price Indicators</span>
-              <span className="relative group cursor-pointer">
-                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" className="inline-block text-blue-400"><circle cx="12" cy="12" r="10" fill="#e0e7ff"/><text x="12" y="16" textAnchor="middle" fontSize="13" fill="#2563eb" fontWeight="bold">i</text></svg>
-                <span className="absolute left-1/2 -translate-x-1/2 top-7 z-10 hidden group-hover:block bg-white border border-blue-200 rounded-lg shadow-lg px-4 py-2 text-xs text-blue-900 w-64 text-center">
-                  Price indicators compare each property’s price to the local median for similar properties, adjusted for inflation and type. Use them to spot deals or avoid overpaying.
-                </span>
-              </span>
-            </div>
-            <div className="text-blue-800 text-sm mb-2">
-              Each property is compared to the local median sale price for similar properties, adjusted for inflation. These indicators help you quickly spot underpriced or overpriced opportunities.
-            </div>
-            <div className="flex flex-wrap gap-3 items-center justify-center mt-2">
-              {/* Example indicators - replace with your actual indicator logic if needed */}
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                <span className="text-base">✔️</span> Fair Price
-              </span>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 border border-yellow-200">
-                <span className="text-base">⚠️</span> Slightly Overpriced
-              </span>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-                <span className="text-base">⛔</span> Overpriced
-              </span>
-              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-                <span className="text-base">💡</span> Great Deal
-              </span>
-            </div>
-            <div className="text-xs text-blue-700 mt-3 text-center">
-              Data source: UK Land Registry sales, 1995–present
-            </div>
-          </div>
+        {/* Enhanced Price Indicator Legend - Accordion Style */}
+        <div className="mb-6 w-full">
+          <EnhancedPriceIndicatorLegend />
         </div>
 
         {/* Property Type Filter Dropdown */}
@@ -398,15 +419,33 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                         <span className="text-base font-semibold text-text-primary leading-tight text-left">
                         {formatPrice(property.price)}
                         </span>
-                      {/* Price Indicator Badge */}
+                      {/* Price Indicator Badge with Enhanced Context */}
                       {(() => {
-                        const indicator = getPriceIndicator(Number(property.price), property.all_sales || []);
+                        const indicator = getPriceIndicator(Number(property.price), property);
+                        const saleDate = new Date(property.date);
+                        const yearsAgo = new Date().getFullYear() - saleDate.getFullYear();
+                        const isHistorical = yearsAgo > 2;
+                        
+                        const tooltipText = isHistorical 
+                          ? `${indicator.description}\n\n📅 Sold ${yearsAgo} years ago - this shows if it would be a good deal TODAY at that price.\n\n💡 Historical context: This might have been a great deal at the time!`
+                          : indicator.description;
+                        
                         return (
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${indicator.bgColor} ${indicator.textColor}`}
-                              style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}} title={indicator.description}>
-                            <span className="text-xs">{indicator.icon}</span>
-                            {indicator.label}
-                          </span>
+                          <div className="flex items-center gap-1">
+                            <span 
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-xs font-medium ${indicator.bgColor} ${indicator.textColor} cursor-help`}
+                              style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}} 
+                              title={tooltipText}
+                            >
+                              <span className="text-xs">{indicator.icon}</span>
+                              {indicator.label}
+                            </span>
+                            {isHistorical && (
+                              <span className="text-xs text-gray-500" title="Historical sale - see tooltip for context">
+                                📅
+                              </span>
+                            )}
+                          </div>
                         );
                       })()}
                       </div>
@@ -500,16 +539,34 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                       <p className="text-lg font-bold text-text-primary">
                         {formatPrice(property.price)}
                       </p>
-                      {/* Price Indicator Badge (Mobile) */}
+                      {/* Price Indicator Badge (Mobile) with Enhanced Context */}
                       {(() => {
-                        const indicator = getPriceIndicator(Number(property.price), property.all_sales || []);
+                        const indicator = getPriceIndicator(Number(property.price), property);
+                        const saleDate = new Date(property.date);
+                        const yearsAgo = new Date().getFullYear() - saleDate.getFullYear();
+                        const isHistorical = yearsAgo > 2;
+                        
+                        const tooltipText = isHistorical 
+                          ? `${indicator.description}\n\n📅 Sold ${yearsAgo} years ago - this shows if it would be a good deal TODAY at that price.\n\n💡 Historical context: This might have been a great deal at the time!`
+                          : indicator.description;
+                        
                         return (
                           <div className="flex justify-start mt-1">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${indicator.bgColor} ${indicator.textColor}`}
-                              style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}} title={indicator.description}>
-                            <span className="text-xs">{indicator.icon}</span>
-                            {indicator.label}
-                          </span>
+                            <div className="flex items-center gap-1">
+                              <span 
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${indicator.bgColor} ${indicator.textColor} cursor-help`}
+                                style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}} 
+                                title={tooltipText}
+                              >
+                                <span className="text-xs">{indicator.icon}</span>
+                                {indicator.label}
+                              </span>
+                              {isHistorical && (
+                                <span className="text-xs text-gray-500" title="Historical sale - see tooltip for context">
+                                  📅
+                                </span>
+                              )}
+                            </div>
                           </div>
                         );
                       })()}

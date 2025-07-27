@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './SimpleCard';
 import Button from './Button';
+import AddToPortfolioButton from './AddToPortfolioButton';
 import { 
   Brain, 
   TrendingUp, 
@@ -57,10 +58,9 @@ interface MLValuationResult {
 interface MLValuationCardProps {
   postcode: string;
   houseNumber: string;
-  onAddToPortfolio?: (valuation: MLValuationResult) => void;
 }
 
-export default function MLValuationCard({ postcode, houseNumber, onAddToPortfolio }: MLValuationCardProps) {
+export default function MLValuationCard({ postcode, houseNumber }: MLValuationCardProps) {
   const [valuation, setValuation] = useState<MLValuationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -194,15 +194,27 @@ export default function MLValuationCard({ postcode, houseNumber, onAddToPortfoli
                   </span>
                 </div>
 
-                {onAddToPortfolio && (
-                  <Button 
-                    onClick={() => onAddToPortfolio(valuation)}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    <Home className="w-4 h-4 mr-2" />
-                    Add to Portfolio
-                  </Button>
-                )}
+                <AddToPortfolioButton
+                  propertyData={{
+                    address: `${houseNumber} ${postcode}`,
+                    postcode: postcode,
+                    houseNumber: houseNumber,
+                    propertyType: 'Unknown',
+                    purchasePrice: valuation.currentValue * 0.85,
+                    currentValue: valuation.currentValue,
+                    purchaseDate: new Date().toISOString().split('T')[0],
+                    dealScore: Math.round(valuation.confidence * 100),
+                    dealRating: valuation.confidence > 0.8 ? 'Good' : valuation.confidence > 0.6 ? 'Fair' : 'Limited',
+                    bmvScore: Math.round(valuation.confidence * 100),
+                    notes: `Added from ML valuation. Confidence: ${Math.round(valuation.confidence * 100)}%`
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                  size="md"
+                  showIcon={true}
+                >
+                  <Home className="w-4 h-4 mr-2" />
+                  Add to Portfolio
+                </AddToPortfolioButton>
               </div>
             </div>
 

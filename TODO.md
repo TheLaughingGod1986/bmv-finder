@@ -243,6 +243,18 @@ The BMV Finder system is now **production-ready** with:
 - **🔄 Investment Calculator** - ROI, yield, and cash flow analysis
 - **🔄 Export Functionality** - PDF reports and data export
 
+### **📊 Enhanced Price Indicator System**
+- **🔄 Dual Indicator System** - Show both "Current Deal" (if bought today) and "Historical Deal" (was it good at the time) perspectives
+- **🔄 Investment Performance Indicator** - Track how properties would have performed as investments over time
+- **🔄 Time-Aware Analysis** - Contextual indicators that consider market conditions at the time of sale
+- **🔄 Comparative Performance Metrics** - Show property performance vs. market averages and inflation
+
+### **🔐 Authentication & User Management**
+- **🔄 Test Login System** - Implement test/demo login for quick access and demonstration purposes
+- **🔄 Apple Sign-In Integration** - Add Apple ID authentication for iOS users and enhanced security
+- **🔄 Social Login Options** - Google, Facebook, and other social media login alternatives
+- **🔄 Enhanced User Profiles** - Extended user profile management with preferences and settings
+
 ### **📊 Data Enhancements**
 - **🔄 Additional Data Sources** - Planning applications, local authority data
 - **🔄 Enhanced Market Data** - More granular regional statistics

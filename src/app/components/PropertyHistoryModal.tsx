@@ -5,6 +5,8 @@ import { SoldPrice } from '../../../types/sold-price';
 import { formatPrice } from '../../lib/utils';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
 import BMVScoreExplanation from './BMVScoreExplanation';
+import PriceIndicatorLegend from './PriceIndicatorLegend';
+import EnhancedPriceIndicatorLegend from './EnhancedPriceIndicatorLegend';
 import { X, Home, TrendingUp, MapPin, Calendar, PoundSterling, RefreshCw, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -494,21 +496,10 @@ export default function PropertyHistoryModal({
                   </div>
                 )}
 
-                {/* Price Indicator Legend */}
+                {/* Enhanced Price Indicator Legend */}
                 {recentSales.length > 0 && averagePrice !== null && (
-                  <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                    <div className="text-sm font-medium text-gray-700 mb-2">Price Indicators:</div>
-                    <div className="flex flex-wrap gap-3 text-xs">
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full" style={{ background: '#5DA271', color: '#fff' }}>
-                        <span>↓</span> Good Deal (5%+ below median)
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">
-                        <span>→</span> Fair Price (within 5% of median)
-                      </span>
-                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 text-red-800">
-                        <span>↑</span> Expensive (5%+ above median)
-                      </span>
-                    </div>
+                  <div className="mb-4">
+                    <EnhancedPriceIndicatorLegend variant="compact" />
                   </div>
                 )}
 

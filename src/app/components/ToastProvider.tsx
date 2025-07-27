@@ -37,7 +37,7 @@ const ToastIcon = ({ type }: { type: ToastType }) => {
     info: <Info className="h-5 w-5" />,
     warning: <AlertTriangle className="h-5 w-5" />,
   };
-  return icons[type];
+  return icons[type] || icons.info; // Fallback to info icon if type not found
 };
 
 const ToastItem = ({ toast, onClose }: { toast: Toast; onClose: (id: string) => void }) => {
@@ -72,7 +72,7 @@ const ToastItem = ({ toast, onClose }: { toast: Toast; onClose: (id: string) => 
     },
   };
 
-  const colorScheme = colors[toast.type];
+  const colorScheme = colors[toast.type] || colors.info; // Fallback to info if type not found
 
   return (
     <motion.div

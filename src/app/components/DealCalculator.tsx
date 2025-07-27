@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Button from './Button';
+import { useToast } from './ToastProvider';
+import { supabase } from '../../lib/supabaseClient';
 
 // Reusable input component
 interface InputFieldProps {
@@ -17,6 +19,7 @@ interface InputFieldProps {
 
 // Type for saved deals
 interface SavedDeal {
+  id?: string;
   address: string;
   purchasePrice: number;
   refurbCost: number;
@@ -30,6 +33,10 @@ interface SavedDeal {
   netYield: number;
   totalMonthlyCashFlow: number;
   date: string;
+  postcode?: string;
+  propertyType?: string;
+  notes?: string;
+  status?: 'active' | 'sold' | 'watching';
 }
 
 function InputField({ label, value, onChange, type = 'number', required = false, min, step, ...props }: InputFieldProps) {
@@ -61,6 +68,8 @@ function formatPercent(val: number): string {
 }
 
 export default function DealCalculator() {
+  const { showToast } = useToast();
+  
   // State for inputs
   const [address, setAddress] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
@@ -72,13 +81,9 @@ export default function DealCalculator() {
   const [ltvMode, setLtvMode] = useState<'ltv' | 'deposit'>('ltv');
   const [otherExpenses, setOtherExpenses] = useState('');
   const [showSaved, setShowSaved] = useState(false);
-  const [savedDeals, setSavedDeals] = useState<SavedDeal[]>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('dealCalculatorDeals');
-      return saved ? JSON.parse(saved) : [];
-    }
-    return [];
-  });
+  const [savedDeals, setSavedDeals] = useState<SavedDeal[]>([]);
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Derived/calculated values
   const p = Number(purchasePrice) || 0;
@@ -99,6 +104,57 @@ export default function DealCalculator() {
   const loanAmount = p * ltvVal;
   const initialInvestment = depositVal + refurb;
 
+  // Authentication and portfolio loading
+  useEffect(() => {
+    const getUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUser(data.user);
+    };
+    getUser();
+  }, []);
+
+  // Load saved deals from portfolio
+  useEffect(() => {
+    const loadSavedDeals = async () => {
+      if (!user) return;
+      
+      try {
+        const response = await fetch(`/api/portfolio/add?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.portfolio) {
+            // Convert portfolio properties to saved deals format
+            const deals = data.portfolio.map((property: any) => ({
+              id: property.id,
+              address: property.address,
+              purchasePrice: property.purchase_price,
+              refurbCost: 0, // Not stored in portfolio
+              monthlyRent: property.rental_income || 0,
+              interestRate: 0, // Not stored in portfolio
+              ltv: 0, // Not stored in portfolio
+              deposit: 0, // Not stored in portfolio
+              otherExpenses: 0, // Not stored in portfolio
+              roi: property.deal_score || 0,
+              grossYield: property.yield || 0,
+              netYield: property.yield || 0,
+              totalMonthlyCashFlow: property.rental_income || 0,
+              date: property.created_at,
+              postcode: property.postcode,
+              propertyType: property.property_type,
+              notes: property.notes,
+              status: property.status
+            }));
+            setSavedDeals(deals);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading saved deals:', error);
+      }
+    };
+
+    loadSavedDeals();
+  }, [user]);
+
   // Monthly mortgage payment (interest only)
   const monthlyInterest = loanAmount * rate / 12;
 
@@ -115,31 +171,105 @@ export default function DealCalculator() {
   // Validation
   const isValid = p > 0 && rent > 0 && rate > 0 && ltvVal > 0 && ltvVal <= 1 && address.trim().length > 0;
 
-  // Save deal
-  const handleSave = () => {
-    const deal = {
-      address,
-      purchasePrice: p,
-      refurbCost: refurb,
-      monthlyRent: rent,
-      interestRate: rate * 100,
-      ltv: ltvVal * 100,
-      deposit: depositVal,
-      otherExpenses: expenses,
-      roi,
-      grossYield,
-      netYield,
-      totalMonthlyCashFlow,
-      date: new Date().toISOString(),
-    };
-    const updated = [deal, ...savedDeals].slice(0, 10);
-    setSavedDeals(updated);
-    localStorage.setItem('dealCalculatorDeals', JSON.stringify(updated));
+  // Save deal to portfolio
+  const handleSave = async () => {
+    if (!user) {
+      showToast('Please sign in to save deals', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Extract postcode from address (simple extraction)
+      const postcodeMatch = address.match(/[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}/i);
+      const postcode = postcodeMatch ? postcodeMatch[0].toUpperCase() : '';
+      
+      // Extract house number from address
+      const houseNumberMatch = address.match(/^(\d+)/);
+      const houseNumber = houseNumberMatch ? houseNumberMatch[1] : '';
+
+      const dealData = {
+        address,
+        postcode,
+        houseNumber,
+        propertyType: 'Residential', // Default
+        purchasePrice: p,
+        currentValue: p, // Same as purchase price initially
+        purchaseDate: new Date().toISOString().split('T')[0],
+        dealScore: roi,
+        dealRating: roi > 10 ? 'Excellent' : roi > 5 ? 'Good' : 'Fair',
+        bmvScore: Math.round((roi / 15) * 100), // Convert ROI to BMV score
+        rentalIncome: rent,
+        yield: grossYield,
+        mortgageBalance: loanAmount,
+        notes: `Deal Calculator: ROI ${roi.toFixed(2)}%, Gross Yield ${grossYield.toFixed(2)}%, Net Yield ${netYield.toFixed(2)}%, Monthly Cash Flow ${formatCurrency(totalMonthlyCashFlow)}, Refurb Cost ${formatCurrency(refurb)}, Interest Rate ${(rate * 100).toFixed(2)}%, LTV ${(ltvVal * 100).toFixed(1)}%`,
+        status: 'active' as const,
+        userId: user.id
+      };
+
+      const response = await fetch('/api/portfolio/add', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dealData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        showToast('Deal saved to portfolio successfully!', 'success');
+        
+        // Reload saved deals
+        const dealsResponse = await fetch(`/api/portfolio/add?userId=${user.id}`);
+        if (dealsResponse.ok) {
+          const data = await dealsResponse.json();
+          if (data.success && data.portfolio) {
+            const deals = data.portfolio.map((property: any) => ({
+              id: property.id,
+              address: property.address,
+              purchasePrice: property.purchase_price,
+              refurbCost: 0,
+              monthlyRent: property.rental_income || 0,
+              interestRate: 0,
+              ltv: 0,
+              deposit: 0,
+              otherExpenses: 0,
+              roi: property.deal_score || 0,
+              grossYield: property.yield || 0,
+              netYield: property.yield || 0,
+              totalMonthlyCashFlow: property.rental_income || 0,
+              date: property.created_at,
+              postcode: property.postcode,
+              propertyType: property.property_type,
+              notes: property.notes,
+              status: property.status
+            }));
+            setSavedDeals(deals);
+          }
+        }
+      } else {
+        const error = await response.json();
+        showToast(error.error || 'Failed to save deal', 'error');
+      }
+    } catch (error) {
+      console.error('Error saving deal:', error);
+      showToast('Failed to save deal', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-lg border border-slate-200 p-6 md:p-10 mt-8 mb-12">
       <h2 className="text-2xl font-bold text-blue-800 mb-6 text-center">Deal Calculator</h2>
+      {!user && (
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+          <p className="text-yellow-800 text-sm">
+            💡 <strong>Sign in</strong> to save your deals to your portfolio and track them over time.
+          </p>
+        </div>
+      )}
       <form className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-beige rounded-3xl shadow-xl border border-taupe p-8" onSubmit={e => e.preventDefault()}>
         <InputField label="Property Address" value={address} onChange={setAddress} required type="text" maxLength={120} />
         <InputField label="Purchase Price" value={purchasePrice} onChange={val => { setPurchasePrice(val); if (ltvMode === 'ltv') setDeposit(''); }} required min={0} />
@@ -186,16 +316,16 @@ export default function DealCalculator() {
           type="button"
           className="px-7 py-3 rounded-2xl bg-primary text-beige font-bold border-2 border-gold lux-accent-gold shadow-md hover:bg-primary-light transition-colors disabled:opacity-50"
           onClick={handleSave}
-          disabled={!isValid}
+          disabled={!isValid || isLoading}
         >
-          Save Deal
+          {isLoading ? 'Saving...' : 'Add to Portfolio'}
         </Button>
         <Button
           type="button"
           className="px-7 py-3 rounded-2xl bg-taupe text-primary font-bold border-2 border-silver lux-accent-silver shadow-md hover:bg-gold hover:text-beige transition-colors"
           onClick={() => setShowSaved(true)}
         >
-          View Saved Deals
+          View Portfolio
         </Button>
       </div>
       {/* Saved Deals Modal */}
@@ -209,9 +339,17 @@ export default function DealCalculator() {
             >
               ×
             </button>
-            <h3 className="text-xl font-bold text-primary mb-4">Saved Deals</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold text-primary">Portfolio Properties</h3>
+              <a 
+                href="/portfolio-tracker" 
+                className="text-sm text-gold hover:text-primary font-medium transition-colors"
+              >
+                View Full Portfolio →
+              </a>
+            </div>
             {savedDeals.length === 0 ? (
-              <div className="text-taupe">No saved deals yet.</div>
+              <div className="text-taupe">No properties in portfolio yet. Save your first deal to get started!</div>
             ) : (
               <ul className="space-y-4 max-h-96 overflow-y-auto">
                 {savedDeals.map((deal, idx) => (
@@ -219,13 +357,19 @@ export default function DealCalculator() {
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div>
                         <div className="text-sm text-primary font-semibold">{deal.address}</div>
-                        <div className="text-sm text-taupe">Purchase: {formatCurrency(deal.purchasePrice)}, Refurb: {formatCurrency(deal.refurbCost)}, Rent: {formatCurrency(deal.monthlyRent)}</div>
-                        <div className="text-xs text-silver">Saved: {new Date(deal.date).toLocaleString()}</div>
+                        <div className="text-sm text-taupe">
+                          Purchase: {formatCurrency(deal.purchasePrice)}
+                          {deal.postcode && ` • ${deal.postcode}`}
+                          {deal.propertyType && ` • ${deal.propertyType}`}
+                        </div>
+                        <div className="text-xs text-silver">Added: {new Date(deal.date).toLocaleDateString()}</div>
+                        {deal.status && (
+                          <div className="text-xs text-gold font-medium capitalize">{deal.status}</div>
+                        )}
                       </div>
-                      <div className="flex gap-4">
+                      <div className="flex flex-col gap-1">
                         <span className="text-gold font-semibold">ROI: {formatPercent(deal.roi)}</span>
-                        <span className="text-silver font-semibold">Gross: {formatPercent(deal.grossYield)}</span>
-                        <span className="text-green font-semibold">Net: {formatPercent(deal.netYield)}</span>
+                        <span className="text-silver font-semibold">Yield: {formatPercent(deal.grossYield)}</span>
                         <span className="text-primary font-semibold">Cash Flow: {formatCurrency(deal.totalMonthlyCashFlow)}</span>
                       </div>
                     </div>

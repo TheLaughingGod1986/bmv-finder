@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowUpDown, 
@@ -25,6 +25,8 @@ import { SoldPrice } from '../../../types/sold-price';
 import BMVScoreBadge from './BMVScoreBadge';
 import { getEnhancedPriceIndicator, getPriceIndicatorLegend } from '@/utils/priceIndicator';
 import { adjustForInflation, getRecentAdjustedPrices } from '@/utils/inflationAdjustment';
+import PriceIndicatorLegend from './PriceIndicatorLegend';
+import EnhancedPriceIndicatorLegend from './EnhancedPriceIndicatorLegend';
 
 interface EnhancedSoldPricesTableProps {
   soldPrices: SoldPrice[];
@@ -106,8 +108,10 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
     }).format(price);
   };
 
-  // Enhanced price indicator using the new utility
-  const getPriceIndicator = (price: number | null) => {
+  const [priceIndicators, setPriceIndicators] = useState<Record<string, any>>({});
+
+  // Enhanced price indicator using the new API
+  const getPriceIndicator = (price: number | null, property: SoldPrice) => {
     if (!price) return { 
       label: 'N/A', 
       color: 'gray', 
@@ -117,12 +121,46 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
       description: 'Insufficient data for price analysis'
     };
     
-    // Find the sale year for this price
-    const saleData = soldPrices.find(sale => sale.price === price);
-    const saleYear = saleData ? new Date(saleData.dateOfTransfer).getFullYear() : new Date().getFullYear();
+    // Use cached indicator if available
+    const cacheKey = `${property.postcode}-${property.propertyType}-${price}`;
+    if (priceIndicators[cacheKey]) {
+      return priceIndicators[cacheKey];
+    }
     
-    return getEnhancedPriceIndicator(price, soldPrices, saleYear);
+    // Fallback to basic indicator while loading
+    return getEnhancedPriceIndicator(price, [], new Date().getFullYear());
   };
+
+  // Fetch enhanced price indicators for all properties
+  useEffect(() => {
+    const fetchPriceIndicators = async () => {
+      if (!soldPrices || soldPrices.length === 0) return;
+      
+      const newIndicators: Record<string, any> = {};
+      
+      for (const property of soldPrices) {
+        if (!property.price || !property.postcode || !property.propertyType) continue;
+        
+        try {
+          const response = await fetch(
+            `/api/enhanced-price-indicator?postcode=${encodeURIComponent(property.postcode)}&price=${property.price}&propertyType=${property.propertyType}`
+          );
+          
+          if (response.ok) {
+            const data = await response.json();
+            const cacheKey = `${property.postcode}-${property.propertyType}-${property.price}`;
+            newIndicators[cacheKey] = data.indicator;
+          }
+        } catch (error) {
+          console.error('Error fetching enhanced price indicator:', error);
+        }
+      }
+      
+      setPriceIndicators(newIndicators);
+    };
+    
+    fetchPriceIndicators();
+  }, [soldPrices]);
 
   // Get price indicator legend
   const priceIndicatorLegend = getPriceIndicatorLegend();
@@ -206,31 +244,10 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
         return null;
       })}
       
-      {/* Price Indicator Legend */}
+      {/* Enhanced Price Indicator Legend */}
       {soldPrices.length > 0 && hasEnoughData && (
-        <div className="mb-2 p-2 bg-gray-50 rounded-lg">
-          <div className="text-xs font-medium text-gray-700 mb-1">Price Indicators (Based on Last 24 Months Average):</div>
-          <div className="flex flex-wrap gap-2 text-xs">
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full" style={{ background: '#5DA271', color: '#fff' }}>
-                <span>↓</span> Excellent Deal (10%+ below 24-month average)
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-800">
-                <span>↓</span> Good Deal (5-10% below 24-month average)
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-                <span>→</span> Fair Price (within 5% of 24-month average)
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-100 text-orange-800">
-                <span>↑</span> Expensive (5-10% above 24-month average)
-              </span>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-100 text-red-800">
-                <span>↑</span> Overpriced (10%+ above 24-month average)
-            </span>
-          </div>
-          <div className="text-xs text-gray-600 mt-2 flex items-center gap-1">
-            <Clock className="w-3 h-3" />
-            Based on sales from the last 5 years, adjusted for inflation to current values
-          </div>
+        <div className="mb-4">
+          <EnhancedPriceIndicatorLegend variant="compact" />
         </div>
       )}
 
@@ -338,7 +355,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                     </div>
                     {/* Price Indicator Badge */}
                     {(() => {
-                      const indicator = getPriceIndicator(Number(property.price));
+                      const indicator = getPriceIndicator(Number(property.price), property);
                       return (
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-0.5 ${indicator.bgColor} ${indicator.textColor}`}
                           style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}}>
@@ -457,7 +474,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                     </p>
                     {/* Price Indicator Badge (Mobile) */}
                     {(() => {
-                      const indicator = getPriceIndicator(Number(property.price));
+                      const indicator = getPriceIndicator(Number(property.price), property);
                       return (
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mt-0.5 ${indicator.bgColor} ${indicator.textColor}`}
                           style={indicator.bgColor.startsWith('bg-[#') ? { background: '#5DA271', color: '#fff' } : {}}>
