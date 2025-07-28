@@ -9,6 +9,8 @@ import Testimonials from "../components/Testimonials";
 import PricingCard from "../components/PricingCard";
 import { Button } from "../components/ui";
 import { useToast } from "../components/ToastProvider";
+import { motion } from "framer-motion";
+import { Star } from "lucide-react";
 
 // Custom hook for user management
 function useClientUser() {
@@ -240,373 +242,308 @@ export default function PricingPage() {
       <Head>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(pricingJsonLd) }} />
       </Head>
-      <main className="max-w-5xl mx-auto mt-10 p-4 md:p-8 bg-white rounded-xl shadow-soft border border-neutral-200 relative">
-        {/* Trust Badges and Partner Logos */}
-        <TrustBadges />
-        <PartnerLogos />
-        {/* Sticky Mobile CTA Banner */}
-        {showStickyCTA && (
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-primary-700 shadow-soft z-50 md:hidden">
-            <div className="flex items-center justify-between p-4">
-              <div className="flex-1">
-                <p className="text-sm font-bold text-primary-700 leading-tight">Ready to upgrade?</p>
-                <p className="text-xs text-primary-600 mt-1 leading-tight">Get unlimited access to property insights</p>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <main>
+          {/* Hero Section */}
+          <section className="relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-10"></div>
+            <div className="relative max-w-screen-2xl w-[90vw] mx-auto pt-20 pb-16">
+              <div className="text-center">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="mb-6"
+                >
+                  <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
+                    <Star className="w-4 h-4 mr-2" />
+                    Choose Your Property Research Plan
+                  </span>
+                </motion.div>
+
+                <motion.h1
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1 }}
+                  className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+                >
+                  Find the Right Plan for Your
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                    Property Journey
+                  </span>
+                </motion.h1>
+
+                <motion.p
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.2 }}
+                  className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto"
+                >
+                  Choose the perfect plan to unlock powerful property insights, market analysis, and professional tools for your investment strategy.
+                </motion.p>
               </div>
-              <button
-                onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
-                className="ml-4 px-6 py-3 bg-primary-700 text-white rounded-lg font-bold text-sm hover:bg-primary-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 min-h-[44px] min-w-[120px]"
-                aria-label="View pricing plans"
-              >
-                View Plans
-              </button>
             </div>
-          </div>
-        )}
+          </section>
 
-        {/* Personalized Greeting */}
-        {user && (
-          <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-neutral-200 shadow-soft">
-            <h1 className="text-3xl md:text-4xl font-bold text-primary-700 mb-2 leading-tight">
-              Welcome back{userName ? `, ${userName}` : ''}!
-            </h1>
-            <p className="text-lg md:text-xl text-primary-600 font-medium leading-relaxed">
-              You&apos;re currently on the <span className="font-bold text-primary-700">{planName}</span> plan
-            </p>
-          </div>
-        )}
-        {/* Hero Section */}
-        <section className="mb-10 text-center">
-          <h1 className="text-4xl font-extrabold mb-4">Find the Right Plan for Your Property Journey</h1>
-          <p className="text-lg text-gray-600 mb-6">Compare features, see what&apos;s included, and choose the perfect plan for you. Upgrade anytime.</p>
-          <a href="#plans" className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-soft transition-colors text-lg">See Plans</a>
-        </section>
-
-        {/* Billing Interval Toggle */}
-        <section id="plans" className="mb-16">
-          <h2 className="text-3xl font-bold mb-8 text-center text-primary-700 leading-tight">Choose Your Plan</h2>
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex rounded-full bg-neutral-100 border-2 border-neutral-200 shadow-soft overflow-hidden">
-              <button
-                className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'month' ? 'bg-primary-700 text-white' : 'text-primary-700 hover:bg-neutral-200'}`}
-                onClick={() => setBillingInterval('month')}
-                aria-pressed={billingInterval === 'month'}
-              >
-                Monthly
-              </button>
-              <button
-                className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'year' ? 'bg-primary-700 text-white' : 'text-primary-700 hover:bg-neutral-200'}`}
-                onClick={() => setBillingInterval('year')}
-                aria-pressed={billingInterval === 'year'}
-              >
-                Yearly <span className="ml-2 text-xs font-bold text-yellow-500">(Save 2 months)</span>
-              </button>
-            </div>
-          </div>
-          <div className="flex flex-col lg:flex-row justify-center items-stretch gap-6 md:gap-8">
-            {plans.map((plan, idx) => (
-              <PricingCard
-                key={plan.title}
-                title={plan.title}
-                price={billingInterval === 'year' ? plan.priceYear : plan.price}
-                period={billingInterval === 'year' ? plan.periodYear : plan.period}
-                description={plan.description}
-                features={plan.features}
-                ctaText={plan.buttonText}
-                buttonText={plan.buttonText}
-                href={plan.href}
-                isPopular={plan.isPopular}
-                className={plan.className}
-                savings={billingInterval === 'year' ? plan.savings : null}
-              />
-            ))}
-          </div>
-          {/* Feature Comparison Table */}
-          <div className="overflow-x-auto mt-10">
-            <table className="min-w-full border rounded-xl overflow-hidden bg-white shadow-soft">
-              <thead>
-                <tr className="bg-neutral-100 text-primary-700">
-                  <th className="py-3 px-4 text-left font-semibold text-lg">Feature</th>
-                  <th className="py-3 px-4 font-semibold text-lg">Starter</th>
-                  <th className="py-3 px-4 font-semibold text-lg">Pro</th>
-                  <th className="py-3 px-4 font-semibold text-lg">Elite</th>
-                </tr>
-              </thead>
-              <tbody className="text-gray-800">
-                {/* Example features, update as needed */}
-                <tr className="border-t">
-                  <td className="py-3 px-4">Basic Search & Analytics</td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">Unlimited Lookups</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">Export Data (CSV)</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">Email Alerts & Notifications</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">Full Analytics Dashboard</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">PDF Reports</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">Bulk Analysis</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">CRM Export</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
-                </tr>
-                <tr className="border-t">
-                  <td className="py-3 px-4">Priority Support</td>
-                  <td className="text-center text-gray-400">—</td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                  <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-        {/* Testimonials Section */}
-        <Testimonials />
-
-        {/* FAQ Section */}
-        <section className="mb-16">
-          <h2 className="text-3xl font-bold mb-8 text-center text-primary-700 leading-tight">Frequently Asked Questions</h2>
-          <div className="max-w-4xl mx-auto space-y-6">
-            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
-                <span>How does billing work?</span>
-                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </summary>
-              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
-                <p>We offer both monthly and yearly billing. Yearly plans come with a discount. You can upgrade, downgrade, or cancel at any time. Changes take effect immediately, and we&apos;ll prorate any adjustments to your next billing cycle.</p>
-              </div>
-            </details>
-
-            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
-                <span>Can I upgrade or downgrade my plan?</span>
-                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </summary>
-              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
-                <p>Yes! You can upgrade or downgrade at any time. Upgrades take effect immediately with prorated billing. Downgrades take effect at your next billing cycle. You&apos;ll always keep access to your current plan until the change takes effect.</p>
-              </div>
-            </details>
-
-            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
-                <span>What happens if I cancel?</span>
-                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </summary>
-              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
-                <p>You can cancel anytime from your account settings. You&apos;ll keep access to your plan until the end of your current billing period. No hidden fees or penalties - we want you to be happy with our service.</p>
-              </div>
-            </details>
-
-            <details className="bg-white border-2 border-neutral-200 rounded-xl shadow-soft hover:shadow-md transition-shadow">
-              <summary className="px-6 py-5 cursor-pointer font-bold text-primary-700 hover:bg-neutral-100 transition-colors flex items-center justify-between">
-                <span>Is my data secure?</span>
-                <svg className="w-5 h-5 text-primary-blue transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-                </svg>
-              </summary>
-              <div className="px-6 pb-6 text-primary-600 leading-relaxed">
-                <p>Absolutely. We use bank-level security and encryption. All payments are processed securely through Stripe. Your data is protected and we never share your information with third parties.</p>
-              </div>
-            </details>
-          </div>
-
-          {/* Support Links */}
-          <div className="text-center mt-12">
-            <h3 className="text-xl font-bold text-primary-700 mb-4">Still have questions? We&apos;re here to help!</h3>
-            <div className="flex flex-col sm:flex-row justify-center gap-4">
-              <a 
-                href="/contact" 
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-primary-700 text-white rounded-lg font-bold text-base hover:bg-primary-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 min-h-[48px]"
-                aria-label="Contact our support team"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                </svg>
-                Contact Support
-              </a>
-              <a 
-                href="/help" 
-                className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-primary-700 text-primary-blue rounded-lg font-bold text-base hover:bg-primary-700 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 min-h-[48px]"
-                aria-label="Visit our help center"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Help Center
-              </a>
-            </div>
-          </div>
-        </section>
-
-        {/* Screenshots/Visuals */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-center">See It in Action</h2>
-          <div className="flex flex-wrap justify-center gap-6">
-            {/* Dashboard SVG */}
-            <div className="rounded-lg shadow-soft w-72 h-44 flex items-center justify-center bg-gray-100">
-              <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Dashboard illustration">
-                <rect x="8" y="20" width="80" height="56" rx="8" fill="#3A7CA5"/>
-                <rect x="16" y="28" width="24" height="32" rx="4" fill="#E5E5E5"/>
-                <rect x="44" y="28" width="36" height="12" rx="3" fill="#5DA271"/>
-                <rect x="44" y="44" width="36" height="16" rx="3" fill="#D4AF37"/>
-              </svg>
-            </div>
-            {/* PDF Report SVG */}
-            <div className="rounded-lg shadow-soft w-72 h-44 flex items-center justify-center bg-gray-100">
-              <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="PDF report illustration">
-                <rect x="20" y="16" width="56" height="64" rx="6" fill="#5DA271"/>
-                <rect x="28" y="28" width="40" height="8" rx="2" fill="#F5F5DC"/>
-                <rect x="28" y="40" width="40" height="4" rx="2" fill="#E5E5E5"/>
-                <rect x="28" y="48" width="24" height="4" rx="2" fill="#D4AF37"/>
-                <rect x="28" y="56" width="16" height="4" rx="2" fill="#C0C0C0"/>
-              </svg>
-            </div>
-            {/* Analytics SVG */}
-            <div className="rounded-lg shadow-soft w-72 h-44 flex items-center justify-center bg-gray-100">
-              <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Analytics illustration">
-                <rect x="16" y="64" width="12" height="16" rx="3" fill="#3A7CA5"/>
-                <rect x="36" y="48" width="12" height="32" rx="3" fill="#5DA271"/>
-                <rect x="56" y="36" width="12" height="44" rx="3" fill="#D4AF37"/>
-                <rect x="76" y="24" width="12" height="56" rx="3" fill="#C0C0C0"/>
-              </svg>
-            </div>
-          </div>
-        </section>
-
-        {/* Benefits & Trust Signals */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-6 text-center">Why Choose Us?</h2>
-          <div className="grid md:grid-cols-3 gap-8 text-center">
-            <div>
-              <span className="text-4xl">🚀</span>
-              <h3 className="font-semibold mt-2 mb-1">Fast & Reliable</h3>
-              <p className="text-gray-600">Instant access to the latest property data and analytics.</p>
-            </div>
-            <div>
-              <span className="text-4xl">🔒</span>
-              <h3 className="font-semibold mt-2 mb-1">Secure & Private</h3>
-              <p className="text-gray-600">Your data is protected with industry-leading security.</p>
-            </div>
-            <div>
-              <span className="text-4xl">💡</span>
-              <h3 className="font-semibold mt-2 mb-1">Expert Insights</h3>
-              <p className="text-gray-600">Get actionable insights and recommendations for every property.</p>
-            </div>
-          </div>
-        </section>
-
-        {/* Trust Badges Section */}
-        <section className="mb-12 flex flex-wrap justify-center gap-4 items-center">
-          <span className="flex items-center gap-2 bg-neutral-200 text-primary-700 px-4 py-3 rounded-full font-bold text-sm shadow-soft border border-neutral-200">
-            <svg className="w-5 h-5 text-primary-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-            </svg>
-            Trusted by 1,000+ investors
-          </span>
-          <span className="flex items-center gap-2 bg-neutral-200 text-primary-700 px-4 py-3 rounded-full font-bold text-sm shadow-soft border border-neutral-200">
-            <svg className="w-5 h-5 text-primary-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            Secure Payments by Stripe
-          </span>
-          <span className="flex items-center gap-2 bg-neutral-200 text-primary-700 px-4 py-3 rounded-full font-bold text-sm shadow-soft border border-neutral-200">
-            <svg className="w-5 h-5 text-primary-green" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            Data from UK Land Registry
-          </span>
-        </section>
-
-        {/* Partner/Press Logos */}
-        <section className="mb-12 text-center">
-          <h2 className="text-lg font-semibold text-primary-600 mb-6">As featured in</h2>
-          <div className="flex flex-wrap justify-center items-center gap-8 opacity-60">
-            <div className="h-8 w-24 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">Rightmove</div>
-            <div className="h-8 w-20 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">Zoopla</div>
-            <div className="h-8 w-16 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">BBC</div>
-            <div className="h-8 w-20 bg-neutral-200 rounded flex items-center justify-center text-primary-700 font-bold text-sm">Property Week</div>
-          </div>
-        </section>
-
-        {/* Testimonials */}
-        <section className="mb-12">
-          <h2 className="text-2xl font-bold mb-8 text-center text-primary-700">What our users say</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="bg-neutral-100 p-6 rounded-xl border border-neutral-200 shadow-soft">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-700 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">S</div>
-                <div>
-                  <p className="font-bold text-primary-700">Sarah M.</p>
-                  <p className="text-sm text-primary-600">Property Investor</p>
+          {/* Main Content Section */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Trust Badges and Partner Logos */}
+            <TrustBadges />
+            <PartnerLogos />
+            
+            {/* Sticky Mobile CTA Banner */}
+            {showStickyCTA && (
+              <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-primary-700 shadow-soft z-50 md:hidden">
+                <div className="flex items-center justify-between p-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-primary-700 leading-tight">Ready to upgrade?</p>
+                    <p className="text-xs text-primary-600 mt-1 leading-tight">Get unlimited access to property insights</p>
+                  </div>
+                  <button
+                    onClick={() => document.getElementById('plans')?.scrollIntoView({ behavior: 'smooth' })}
+                    className="ml-4 px-6 py-3 bg-primary-700 text-white rounded-lg font-bold text-sm hover:bg-primary-800 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 min-h-[44px] min-w-[120px]"
+                    aria-label="View pricing plans"
+                  >
+                    View Plans
+                  </button>
                 </div>
               </div>
-              <p className="text-primary-600 leading-relaxed">&ldquo;Found my dream investment property using their BMV scoring. Saved me hours of research!&rdquo;</p>
-            </div>
-            <div className="bg-neutral-100 p-6 rounded-xl border border-neutral-200 shadow-soft">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-primary-green rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">M</div>
-                <div>
-                  <p className="font-bold text-primary-700">Mike R.</p>
-                  <p className="text-sm text-primary-600">First-time Buyer</p>
-                </div>
-              </div>
-              <p className="text-primary-600 leading-relaxed">&ldquo;The property history feature helped me understand the market value perfectly.&rdquo;</p>
-            </div>
-            <div className="bg-neutral-100 p-6 rounded-xl border border-neutral-200 shadow-soft">
-              <div className="flex items-center mb-4">
-                <div className="w-12 h-12 bg-yellow-500 rounded-full flex items-center justify-center text-white font-bold text-lg mr-3">L</div>
-                <div>
-                  <p className="font-bold text-primary-700">Lisa K.</p>
-                  <p className="text-sm text-primary-600">Estate Agent</p>
-                </div>
-              </div>
-              <p className="text-primary-600 leading-relaxed">&ldquo;Professional tool that gives my clients the insights they need to make informed decisions.&rdquo;</p>
-            </div>
-          </div>
-        </section>
+            )}
 
-        {/* Sticky CTA */}
-        <div className="fixed bottom-6 left-0 right-0 flex justify-center z-40 pointer-events-none">
-          <a href="#plans" className="pointer-events-auto bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg shadow-soft transition-colors text-lg">Compare Plans</a>
-        </div>
-      </main>
+            {/* Personalized Greeting */}
+            {user && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="mb-8 text-center bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200 shadow-xl"
+              >
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2 leading-tight">
+                  Welcome back{userName ? `, ${userName}` : ''}!
+                </h2>
+                <p className="text-lg md:text-xl text-gray-700 font-medium leading-relaxed">
+                  You&apos;re currently on the <span className="font-bold text-blue-600">{planName}</span> plan
+                </p>
+              </motion.div>
+            )}
+
+            {/* Pricing Plans Section */}
+            <section id="plans" className="mb-16">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8"
+              >
+                <h2 className="text-3xl font-bold mb-8 text-center text-gray-900 leading-tight">Choose Your Plan</h2>
+                
+                {/* Billing Interval Toggle */}
+                <div className="flex justify-center mb-8">
+                  <div className="inline-flex rounded-full bg-gray-100 border-2 border-gray-200 shadow-lg overflow-hidden">
+                    <button
+                      className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'month' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                      onClick={() => setBillingInterval('month')}
+                      aria-pressed={billingInterval === 'month'}
+                    >
+                      Monthly
+                    </button>
+                    <button
+                      className={`px-6 py-2 font-semibold text-sm md:text-base focus:outline-none transition-colors ${billingInterval === 'year' ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-200'}`}
+                      onClick={() => setBillingInterval('year')}
+                      aria-pressed={billingInterval === 'year'}
+                    >
+                      Yearly <span className="ml-2 text-xs font-bold text-yellow-500">(Save 2 months)</span>
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Pricing Cards */}
+                <div className="flex flex-col lg:flex-row justify-center items-stretch gap-6 md:gap-8">
+                  {plans.map((plan, idx) => (
+                    <PricingCard
+                      key={plan.title}
+                      title={plan.title}
+                      price={billingInterval === 'year' ? plan.priceYear : plan.price}
+                      period={billingInterval === 'year' ? plan.periodYear : plan.period}
+                      description={plan.description}
+                      features={plan.features}
+                      ctaText={plan.buttonText}
+                      buttonText={plan.buttonText}
+                      href={plan.href}
+                      isPopular={plan.isPopular}
+                      className={plan.className}
+                      savings={billingInterval === 'year' ? plan.savings : null}
+                    />
+                  ))}
+                </div>
+                
+                {/* Feature Comparison Table */}
+                <div className="overflow-x-auto mt-10">
+                  <table className="min-w-full border rounded-xl overflow-hidden bg-white shadow-lg">
+                    <thead>
+                      <tr className="bg-gray-100 text-gray-900">
+                        <th className="py-3 px-4 text-left font-semibold text-lg">Feature</th>
+                        <th className="py-3 px-4 font-semibold text-lg">Starter</th>
+                        <th className="py-3 px-4 font-semibold text-lg">Pro</th>
+                        <th className="py-3 px-4 font-semibold text-lg">Elite</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-gray-800">
+                      <tr className="border-t">
+                        <td className="py-3 px-4">Basic Search & Analytics</td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">Unlimited Lookups</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">Export Data (CSV)</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">Email Alerts & Notifications</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">Full Analytics Dashboard</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">PDF Reports</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">Bulk Analysis</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">CRM Export</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-yellow-500 font-bold">✔️</span></td>
+                      </tr>
+                      <tr className="border-t">
+                        <td className="py-3 px-4">Priority Support</td>
+                        <td className="text-center text-gray-400">—</td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                        <td className="text-center"><span className="text-green-600 font-bold">✔️</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </motion.div>
+            </section>
+
+            {/* Testimonials Section */}
+            <section className="mb-16">
+              <Testimonials />
+            </section>
+
+            {/* FAQ Section */}
+            <section className="mb-16">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+                className="bg-white rounded-2xl shadow-xl border border-gray-200 p-8"
+              >
+                <h2 className="text-3xl font-bold mb-8 text-center text-gray-900 leading-tight">Frequently Asked Questions</h2>
+                <div className="max-w-4xl mx-auto space-y-6">
+                  <details className="bg-gray-50 border-2 border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
+                    <summary className="px-6 py-5 cursor-pointer font-bold text-gray-900 hover:bg-gray-100 transition-colors flex items-center justify-between">
+                      <span>How does billing work?</span>
+                      <svg className="w-5 h-5 text-blue-600 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+                    <div className="px-6 pb-6 text-gray-700 leading-relaxed">
+                      <p>We offer both monthly and yearly billing. Yearly plans come with a discount. You can upgrade, downgrade, or cancel at any time. Changes take effect immediately, and we&apos;ll prorate any adjustments to your next billing cycle.</p>
+                    </div>
+                  </details>
+
+                  <details className="bg-gray-50 border-2 border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
+                    <summary className="px-6 py-5 cursor-pointer font-bold text-gray-900 hover:bg-gray-100 transition-colors flex items-center justify-between">
+                      <span>Can I upgrade or downgrade my plan?</span>
+                      <svg className="w-5 h-5 text-blue-600 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+                    <div className="px-6 pb-6 text-gray-700 leading-relaxed">
+                      <p>Yes! You can upgrade or downgrade at any time. Upgrades take effect immediately with prorated billing. Downgrades take effect at your next billing cycle. You&apos;ll always keep access to your current plan until the change takes effect.</p>
+                    </div>
+                  </details>
+
+                  <details className="bg-gray-50 border-2 border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
+                    <summary className="px-6 py-5 cursor-pointer font-bold text-gray-900 hover:bg-gray-100 transition-colors flex items-center justify-between">
+                      <span>What happens if I cancel?</span>
+                      <svg className="w-5 h-5 text-blue-600 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+                    <div className="px-6 pb-6 text-gray-700 leading-relaxed">
+                      <p>You can cancel anytime from your account settings. You&apos;ll keep access to your plan until the end of your current billing period. No hidden fees or penalties - we want you to be happy with our service.</p>
+                    </div>
+                  </details>
+
+                  <details className="bg-gray-50 border-2 border-gray-200 rounded-xl shadow-lg hover:shadow-xl transition-shadow">
+                    <summary className="px-6 py-5 cursor-pointer font-bold text-gray-900 hover:bg-gray-100 transition-colors flex items-center justify-between">
+                      <span>Is my data secure?</span>
+                      <svg className="w-5 h-5 text-blue-600 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </summary>
+                    <div className="px-6 pb-6 text-gray-700 leading-relaxed">
+                      <p>Absolutely. We use bank-level security and encryption. All payments are processed securely through Stripe. Your data is protected and we never share your information with third parties.</p>
+                    </div>
+                  </details>
+                </div>
+
+                {/* Support Links */}
+                <div className="text-center mt-12">
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">Still have questions? We&apos;re here to help!</h3>
+                  <div className="flex flex-col sm:flex-row justify-center gap-4">
+                    <a 
+                      href="/contact" 
+                      className="inline-flex items-center justify-center gap-3 px-8 py-4 bg-blue-600 text-white rounded-lg font-bold text-base hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 min-h-[48px]"
+                      aria-label="Contact our support team"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                      </svg>
+                      Contact Support
+                    </a>
+                    <a 
+                      href="/help" 
+                      className="inline-flex items-center justify-center gap-3 px-8 py-4 border-2 border-blue-600 text-blue-600 rounded-lg font-bold text-base hover:bg-blue-600 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 min-h-[48px]"
+                      aria-label="Visit our help center"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Help Center
+                    </a>
+                  </div>
+                </div>
+              </motion.div>
+            </section>
+          </div>
+        </main>
+      </div>
     </>
   );
 } 

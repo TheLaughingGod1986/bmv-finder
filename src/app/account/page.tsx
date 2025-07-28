@@ -12,6 +12,7 @@ import { CalendarIcon, ArrowUpRightIcon } from '@heroicons/react/24/outline';
 import { useToast } from '../components/ToastProvider';
 import { getUserProfile } from '@/utils/getUserProfile';
 import { format } from 'date-fns';
+import { motion } from 'framer-motion';
 import { 
   ShieldCheckIcon, 
   InformationCircleIcon,
@@ -180,46 +181,66 @@ export default function AccountPage() {
   };
 
   return (
-    <main className="max-w-2xl mx-auto mt-10 p-4 md:p-8 bg-white rounded-xl shadow-soft border border-neutral-200">
-      <Toaster position="top-center" />
-      
-      {/* Personalized Greeting */}
-      {user && (
-        <div className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-neutral-200 shadow-soft">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary-blue-dark mb-2 leading-tight">
-            Hi{userName ? `, ${userName}` : ''}!
-          </h1>
-          <p className="text-lg md:text-xl text-primary-600 font-medium leading-relaxed">
-            You&apos;re currently on the <span className="font-bold text-primary-blue-dark">{planName}</span> plan
-          </p>
-        </div>
-      )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <motion.section
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="relative overflow-hidden"
+      >
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#3A7CA5]/20 to-[#2C6E91]/20"></div>
+        
+        <main className="max-w-2xl mx-auto pt-10 p-4 md:p-8 relative z-10">
+          <Toaster position="top-center" />
+          
+          {/* Personalized Greeting */}
+          {user && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#D2B48C] rounded-xl p-6 border border-[#D2B48C] shadow-soft"
+            >
+              <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-200 mb-2 leading-tight drop-shadow-lg">
+                Hi{userName ? `, ${userName}` : ''}!
+              </h1>
+              <p className="text-lg md:text-xl text-white font-medium leading-relaxed drop-shadow-md">
+                You&apos;re currently on the <span className="font-bold text-white">{planName}</span> plan
+              </p>
+            </motion.div>
+          )}
 
       {/* Usage Progress Section */}
       {derivedTier === 'free' && (
-        <section className="mb-8 bg-neutral-100 rounded-xl p-6 border border-neutral-200 shadow-soft">
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-8 bg-[#F5F5DC] rounded-xl p-6 border border-[#D2B48C] shadow-soft"
+        >
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-primary-blue-dark flex items-center gap-2">
+            <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
               <ChartBarIcon className="w-6 h-6" />
               Your Usage This Month
             </h2>
-            <span className="text-sm font-semibold text-primary-600">
+            <span className="text-sm font-semibold text-[#3A7CA5]">
               {usageData.lookupsUsed}/{usageData.lookupsLimit} lookups
             </span>
           </div>
           
           {/* Progress Bar */}
           <div className="mb-4">
-            <div className="w-full bg-neutral-200 rounded-full h-3">
+            <div className="w-full bg-[#E5E5E5] rounded-full h-3">
               <div 
                 className={`h-3 rounded-full transition-all duration-500 ${
                   usagePercentage >= 80 ? 'bg-red-500' : 
-                  usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-secondary-600'
+                  usagePercentage >= 60 ? 'bg-[#D4AF37]' : 'bg-[#5DA271]'
                 }`}
                 style={{ width: `${usagePercentage}%` }}
               />
             </div>
-            <div className="flex justify-between text-sm text-primary-600 mt-2">
+            <div className="flex justify-between text-sm text-[#3A7CA5] mt-2">
               <span>{usagePercentage}% used</span>
               {usagePercentage >= 80 && (
                 <span className="text-red-600 font-semibold">Almost at limit!</span>
@@ -229,13 +250,13 @@ export default function AccountPage() {
           
           {/* Usage Stats */}
           <div className="grid grid-cols-2 gap-4 text-sm">
-            <div className="bg-white bg-opacity-50 rounded-lg p-3 border border-neutral-200 shadow-soft">
-              <div className="font-semibold text-primary-blue-dark">{usageData.searchesThisMonth}</div>
-              <div className="text-primary-600">Searches this month</div>
+            <div className="bg-white bg-opacity-50 rounded-lg p-3 border border-[#D2B48C] shadow-soft">
+              <div className="font-semibold text-[#2C6E91]">{usageData.searchesThisMonth}</div>
+              <div className="text-[#3A7CA5]">Searches this month</div>
             </div>
-            <div className="bg-white bg-opacity-50 rounded-lg p-3 border border-neutral-200 shadow-soft">
-              <div className="font-semibold text-primary-blue-dark">{usageData.propertiesSaved}</div>
-              <div className="text-primary-600">Properties saved</div>
+            <div className="bg-white bg-opacity-50 rounded-lg p-3 border border-[#D2B48C] shadow-soft">
+              <div className="font-semibold text-[#2C6E91]">{usageData.propertiesSaved}</div>
+              <div className="text-[#3A7CA5]">Properties saved</div>
             </div>
           </div>
           
@@ -249,24 +270,29 @@ export default function AccountPage() {
                 </div>
                 <a
                   href="/account/upgrade"
-                  className="px-4 py-2 bg-white text-primary-blue-dark rounded-lg font-semibold hover:bg-gray-100 transition-colors"
+                  className="px-4 py-2 bg-white text-[#2C6E91] rounded-lg font-semibold hover:bg-gray-100 transition-colors"
                 >
                   Upgrade Now
                 </a>
               </div>
             </div>
           )}
-        </section>
+        </motion.section>
       )}
 
       {/* Achievements Section */}
-      <section className="mb-8">
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mb-8"
+      >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-primary-blue-dark flex items-center gap-2">
+          <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
             <TrophyIcon className="w-6 h-6" />
             Achievements
           </h2>
-          <span className="text-sm font-semibold text-primary-600">
+          <span className="text-sm font-semibold text-[#3A7CA5]">
             {earnedAchievements.length}/{totalAchievements} earned
           </span>
         </div>
@@ -277,19 +303,19 @@ export default function AccountPage() {
               key={achievement.id}
               className={`p-4 rounded-lg border-2 transition-all duration-300 ${
                 achievement.earned
-                  ? 'bg-gradient-to-br from-yellow-500 to-gray-400 border-yellow-500 text-white shadow-lg'
-                  : 'bg-neutral-100 border-neutral-200 text-primary-600 opacity-60'
+                  ? 'bg-gradient-to-br from-[#D4AF37] to-[#C0C0C0] border-[#D4AF37] text-white shadow-lg'
+                  : 'bg-[#F5F5DC] border-[#D2B48C] text-[#3A7CA5] opacity-60'
               }`}
             >
               <div className="text-center">
                 <div className="text-2xl mb-2">{achievement.icon}</div>
                 <h3 className={`font-bold text-sm mb-1 ${
-                  achievement.earned ? 'text-white' : 'text-primary-blue-dark'
+                  achievement.earned ? 'text-white' : 'text-[#2C6E91]'
                 }`}>
                   {achievement.name}
                 </h3>
                 <p className={`text-xs ${
-                  achievement.earned ? 'text-white text-opacity-90' : 'text-primary-600'
+                  achievement.earned ? 'text-white text-opacity-90' : 'text-[#3A7CA5]'
                 }`}>
                   {achievement.description}
                 </p>
@@ -304,24 +330,29 @@ export default function AccountPage() {
         </div>
         
         {/* Achievement Progress */}
-        <div className="mt-4 bg-neutral-100 rounded-lg p-4">
+        <div className="mt-4 bg-[#F5F5DC] rounded-lg p-4 border border-[#D2B48C]">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-primary-blue-dark">Achievement Progress</span>
-            <span className="text-sm text-primary-600">
+            <span className="text-sm font-semibold text-[#2C6E91]">Achievement Progress</span>
+            <span className="text-sm text-[#3A7CA5]">
               {Math.round((earnedAchievements.length / totalAchievements) * 100)}% complete
             </span>
           </div>
-          <div className="w-full bg-neutral-200 rounded-full h-2">
+          <div className="w-full bg-[#E5E5E5] rounded-full h-2">
             <div 
-              className="bg-gradient-to-r from-yellow-500 to-gray-400 h-2 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-[#D4AF37] to-[#C0C0C0] h-2 rounded-full transition-all duration-500"
               style={{ width: `${(earnedAchievements.length / totalAchievements) * 100}%` }}
             />
           </div>
         </div>
-      </section>
+      </motion.section>
 
       {/* Referral Rewards */}
-      <section className="mb-8 bg-gradient-to-r from-[#5DA271] to-[#3B755D] rounded-xl p-6 text-white">
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="mb-8 bg-gradient-to-r from-[#5DA271] to-[#3B755D] rounded-xl p-6 text-white shadow-soft"
+      >
         <div className="flex items-center gap-3 mb-4">
           <GiftIcon className="w-6 h-6" />
           <h2 className="text-xl font-bold">Refer Friends & Earn Rewards</h2>
@@ -330,42 +361,47 @@ export default function AccountPage() {
           Share BMV Finder with friends and earn exclusive rewards. Both you and your friends get benefits!
         </p>
         <div className="grid md:grid-cols-3 gap-4 mb-4">
-          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+          <div className="bg-white bg-opacity-10 rounded-lg p-3 border border-white/20">
             <div className="text-2xl mb-2">🎁</div>
             <h3 className="font-semibold mb-1">Free Month</h3>
             <p className="text-sm text-white text-opacity-80">Get 1 month free for each friend who upgrades</p>
           </div>
-          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+          <div className="bg-white bg-opacity-10 rounded-lg p-3 border border-white/20">
             <div className="text-2xl mb-2">⭐</div>
             <h3 className="font-semibold mb-1">Exclusive Features</h3>
             <p className="text-sm text-white text-opacity-80">Unlock premium features for referring 5+ friends</p>
           </div>
-          <div className="bg-white bg-opacity-10 rounded-lg p-3">
+          <div className="bg-white bg-opacity-10 rounded-lg p-3 border border-white/20">
             <div className="text-2xl mb-2">🏆</div>
             <h3 className="font-semibold mb-1">VIP Status</h3>
             <p className="text-sm text-white text-opacity-80">Become a VIP member with 10+ referrals</p>
           </div>
         </div>
-        <button className="bg-white text-primary-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+        <button className="bg-white text-[#2C6E91] px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors shadow-soft">
           Get Referral Link
         </button>
-      </section>
+      </motion.section>
 
       {/* Current Plan Card */}
       {subscriptionInfo && (
-        <section className={`rounded-2xl border-4 shadow-soft p-6 flex flex-col items-center mb-8 relative ${subscriptionInfo.tier !== 'free' ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-gray-50'}`}>
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+          className={`rounded-2xl border-4 shadow-soft p-6 flex flex-col items-center mb-8 relative ${subscriptionInfo.tier !== 'free' ? 'border-[#3A7CA5] bg-[#F5F5DC]' : 'border-[#D2B48C] bg-[#F5F5DC]'}`}
+        >
           {/* Recommended for you badge */}
           {user && derivedTier !== 'elite' && (
-            <span className="absolute top-4 left-4 bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
+            <span className="absolute top-4 left-4 bg-[#D4AF37] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Recommended for you</span>
           )}
-          <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
-          <div className="text-lg font-bold mb-1">Current Plan: {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)}</div>
-          <div className="mb-2 text-gray-600 text-center">{subscriptionInfo.tier === 'free' ? 'Basic access, limited features' : subscriptionInfo.tier === 'pro' ? 'Unlimited lookups, alerts, export, full data access' : 'All Pro features + PDF reports, bulk analysis, CRM export'}</div>
-          <div className="flex items-center gap-2 text-blue-700 font-bold text-lg mb-2">
+          <span className="absolute top-4 right-4 bg-[#3A7CA5] text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border-2 border-white">Current Plan</span>
+          <div className="text-lg font-bold mb-1 text-[#2C6E91]">Current Plan: {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)}</div>
+          <div className="mb-2 text-[#3B755D] text-center">{subscriptionInfo.tier === 'free' ? 'Basic access, limited features' : subscriptionInfo.tier === 'pro' ? 'Unlimited lookups, alerts, export, full data access' : 'All Pro features + PDF reports, bulk analysis, CRM export'}</div>
+          <div className="flex items-center gap-2 text-[#3A7CA5] font-bold text-lg mb-2">
             {subscriptionInfo.price && subscriptionInfo.billingInterval ? (
               <>
                 {subscriptionInfo.price}
-                <span className="text-base font-normal text-gray-600">/ {subscriptionInfo.billingInterval}</span>
+                <span className="text-base font-normal text-[#3B755D]">/ {subscriptionInfo.billingInterval}</span>
               </>
             ) : (
               <>{subscriptionInfo.tier === 'free' ? '£0' : ''}</>
@@ -373,8 +409,8 @@ export default function AccountPage() {
           </div>
           {/* Renewal/Expiration Date */}
           {subscriptionInfo.renewalDate && (
-            <div className="flex items-center gap-2 text-gray-700 mb-2">
-              <CalendarIcon className="h-5 w-5 text-blue-600" aria-hidden="true" />
+            <div className="flex items-center gap-2 text-[#2C6E91] mb-2">
+              <CalendarIcon className="h-5 w-5 text-[#3A7CA5]" aria-hidden="true" />
               <span>Renewal date: <strong>{subscriptionInfo.renewalDate}</strong></span>
             </div>
           )}
@@ -384,13 +420,18 @@ export default function AccountPage() {
               Your plan will change to Free on {subscriptionInfo.renewalDate}.
             </div>
           )}
-        </section>
+        </motion.section>
       )}
 
       {/* Primary CTA */}
-      <div className="flex flex-col md:flex-row gap-4 mb-6 justify-center items-center">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+        className="flex flex-col md:flex-row gap-4 mb-6 justify-center items-center"
+      >
         <Link href="/account/upgrade">
-          <span className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow transition-colors text-lg">
+          <span className="inline-block bg-[#3A7CA5] hover:bg-[#2C6E91] text-white font-semibold py-2 px-6 rounded-lg shadow-soft transition-colors text-lg">
             {derivedTier === 'free' ? 'Upgrade' : 'Change Plan'}
           </span>
         </Link>
@@ -399,43 +440,53 @@ export default function AccountPage() {
           <button
             onClick={handleManageSubscription}
             disabled={managingSubscription}
-            className={`inline-block font-semibold py-2 px-6 rounded-lg shadow transition-colors text-lg ${
+            className={`inline-block font-semibold py-2 px-6 rounded-lg shadow-soft transition-colors text-lg ${
               managingSubscription 
-                ? 'bg-gray-400 text-white cursor-not-allowed' 
-                : 'bg-gray-700 hover:bg-gray-900 text-white'
+                ? 'bg-[#E5E5E5] text-[#3B755D] cursor-not-allowed' 
+                : 'bg-[#2C6E91] hover:bg-[#3A7CA5] text-white'
             }`}
           >
             {managingSubscription ? 'Opening Portal...' : 'Manage Subscription'}
           </button>
         )}
-      </div>
+      </motion.div>
 
       {/* Upsell Section */}
       {derivedTier === 'free' && (
-        <section className="mb-8 bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
-          <h2 className="text-lg font-bold mb-2 flex items-center justify-center gap-2"><ArrowUpRightIcon className="h-5 w-5 text-blue-600" /> Why upgrade?</h2>
-          <ul className="text-gray-700 text-sm space-y-1 mb-2">
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="mb-8 bg-[#F5F5DC] border border-[#D2B48C] rounded-lg p-4 text-center shadow-soft"
+        >
+          <h2 className="text-lg font-bold mb-2 flex items-center justify-center gap-2 text-[#2C6E91]"><ArrowUpRightIcon className="h-5 w-5 text-[#3A7CA5]" /> Why upgrade?</h2>
+          <ul className="text-[#3B755D] text-sm space-y-1 mb-2">
             <li>Unlock unlimited lookups and full analytics</li>
             <li>Export data and receive alerts</li>
             <li>Access PDF reports and bulk analysis (Elite)</li>
           </ul>
           <Link href="/pricing">
-            <span className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg shadow transition-colors mt-2">See All Packages</span>
+            <span className="inline-block bg-[#3A7CA5] hover:bg-[#2C6E91] text-white font-semibold py-2 px-6 rounded-lg shadow-soft transition-colors mt-2">See All Packages</span>
           </Link>
-        </section>
+        </motion.section>
       )}
       {derivedTier === 'pro' && (
-        <section className="mb-8 bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-          <h2 className="text-lg font-bold mb-2 flex items-center justify-center gap-2"><ArrowUpRightIcon className="h-5 w-5 text-green-600" /> Unlock Elite Features</h2>
-          <ul className="text-gray-700 text-sm space-y-1 mb-2">
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="mb-8 bg-[#F5F5DC] border border-[#D2B48C] rounded-lg p-4 text-center shadow-soft"
+        >
+          <h2 className="text-lg font-bold mb-2 flex items-center justify-center gap-2 text-[#2C6E91]"><ArrowUpRightIcon className="h-5 w-5 text-[#5DA271]" /> Unlock Elite Features</h2>
+          <ul className="text-[#3B755D] text-sm space-y-1 mb-2">
             <li>PDF reports for every property</li>
             <li>Bulk analysis and CRM export</li>
             <li>Priority support</li>
           </ul>
           <Link href="/pricing">
-            <span className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg shadow transition-colors mt-2">See Elite Plan</span>
+            <span className="inline-block bg-[#5DA271] hover:bg-[#3B755D] text-white font-semibold py-2 px-6 rounded-lg shadow-soft transition-colors mt-2">See Elite Plan</span>
           </Link>
-        </section>
+        </motion.section>
       )}
 
       {/* Testimonial/Trust Badge */}
@@ -454,11 +505,13 @@ export default function AccountPage() {
 
       {/* Support/Help Link */}
       <div className="text-center mb-2">
-        <a href="mailto:support@yourdomain.com" className="text-blue-600 hover:underline font-semibold">Need help? Contact support</a>
+        <a href="mailto:support@yourdomain.com" className="text-[#3A7CA5] hover:underline font-semibold">Need help? Contact support</a>
       </div>
 
       {/* User Profile Section */}
       <UserProfile />
-    </main>
+        </main>
+      </motion.section>
+    </div>
   );
 } 

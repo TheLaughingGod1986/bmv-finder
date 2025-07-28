@@ -226,168 +226,199 @@ export default function MarketAnalysisPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="max-w-7xl mx-auto p-4">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Market Analysis Dashboard
-          </h1>
-          <p className="text-lg text-gray-600">
-            Comprehensive regional property market insights powered by HPI data
-          </p>
-        </motion.div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      <main>
+        {/* Hero Section */}
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-10"></div>
+          <div className="relative max-w-screen-2xl w-[90vw] mx-auto pt-20 pb-16">
+            <div className="text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mb-6"
+              >
+                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Regional Property Market Insights
+                </span>
+              </motion.div>
 
-        {/* Market Summary Cards */}
-        {summary && (
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+              >
+                Market Analysis
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                  Dashboard
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto"
+              >
+                Comprehensive regional property market insights powered by HPI data. Track trends, identify opportunities, and make informed investment decisions.
+              </motion.p>
+            </div>
+          </div>
+        </section>
+
+        {/* Main Content Section */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Market Summary Cards */}
+          {summary && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            >
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Total Regions</p>
+                    <p className="text-2xl font-bold text-gray-900">{summary.totalRegions}</p>
+                  </div>
+                  <Building className="w-8 h-8 text-blue-500" />
+                </div>
+              </div>
+
+              <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 ${
+                summary.averageGrowth > 0 ? 'border-green-500' : 
+                summary.averageGrowth < 0 ? 'border-red-500' : 'border-yellow-500'
+              }`}>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Average Growth</p>
+                    <p className={`text-2xl font-bold ${
+                      summary.averageGrowth > 0 ? 'text-green-600' : 
+                      summary.averageGrowth < 0 ? 'text-red-600' : 'text-yellow-600'
+                    }`}>
+                      {summary.averageGrowth > 0 ? '+' : ''}{summary.averageGrowth}%
+                    </p>
+                  </div>
+                  {summary.averageGrowth > 0 ? (
+                    <TrendingUp className="w-8 h-8 text-green-500" />
+                  ) : summary.averageGrowth < 0 ? (
+                    <TrendingDown className="w-8 h-8 text-red-500" />
+                  ) : (
+                    <Target className="w-8 h-8 text-yellow-500" />
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Market Sentiment</p>
+                    <p className="text-2xl font-bold text-gray-900 capitalize">{summary.marketSentiment}</p>
+                  </div>
+                  <Target className="w-8 h-8 text-purple-500" />
+                </div>
+              </div>
+
+              <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Overall Risk</p>
+                    <p className="text-2xl font-bold text-gray-900 capitalize">{summary.overallRisk}</p>
+                  </div>
+                  <AlertTriangle className="w-8 h-8 text-orange-500" />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Controls */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
+            className="bg-white rounded-xl shadow-lg p-6 mb-8"
           >
-            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-blue-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Regions</p>
-                  <p className="text-2xl font-bold text-gray-900">{summary.totalRegions}</p>
+            <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+              <div className="flex gap-4 flex-1">
+                <div className="flex-1 max-w-md">
+                  <MarketSearchBar 
+                    onSearchChange={handleSearchChange}
+                    placeholder="Search regions, cities, or postcodes..."
+                    initialValue={currentSearchTerm}
+                    timeframe={timeframe}
+                  />
                 </div>
-                <Building className="w-8 h-8 text-blue-500" />
-              </div>
-            </div>
 
-            <div className={`bg-white rounded-xl shadow-lg p-6 border-l-4 ${
-              summary.averageGrowth > 0 ? 'border-green-500' : 
-              summary.averageGrowth < 0 ? 'border-red-500' : 'border-yellow-500'
-            }`}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Average Growth</p>
-                  <p className={`text-2xl font-bold ${
-                    summary.averageGrowth > 0 ? 'text-green-600' : 
-                    summary.averageGrowth < 0 ? 'text-red-600' : 'text-yellow-600'
-                  }`}>
-                    {summary.averageGrowth > 0 ? '+' : ''}{summary.averageGrowth}%
-                  </p>
-                </div>
-                {summary.averageGrowth > 0 ? (
-                  <TrendingUp className="w-8 h-8 text-green-500" />
-                ) : summary.averageGrowth < 0 ? (
-                  <TrendingDown className="w-8 h-8 text-red-500" />
-                ) : (
-                  <Target className="w-8 h-8 text-yellow-500" />
-                )}
+                <select
+                  value={timeframe}
+                  onChange={(e) => setTimeframe(e.target.value as '1y' | '2y' | '5y')}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="1y">1 Year</option>
+                  <option value="2y">2 Years</option>
+                  <option value="5y">5 Years</option>
+                </select>
               </div>
-            </div>
 
-            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Market Sentiment</p>
-                  <p className="text-2xl font-bold text-gray-900 capitalize">{summary.marketSentiment}</p>
-                </div>
-                <Target className="w-8 h-8 text-purple-500" />
-              </div>
-            </div>
-
-            <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-orange-500">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Overall Risk</p>
-                  <p className="text-2xl font-bold text-gray-900 capitalize">{summary.overallRisk}</p>
-                </div>
-                <AlertTriangle className="w-8 h-8 text-orange-500" />
+              <div className="flex gap-2">
+                {(['overview', 'trends', 'opportunities', 'comparison'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    onClick={() => setViewMode(mode)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                      viewMode === mode
+                        ? 'bg-blue-500 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                  </button>
+                ))}
               </div>
             </div>
           </motion.div>
-        )}
 
-        {/* Controls */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-xl shadow-lg p-6 mb-8"
-        >
-          <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-            <div className="flex gap-4 flex-1">
-              <div className="flex-1 max-w-md">
-                <MarketSearchBar 
-                  onSearchChange={handleSearchChange}
-                  placeholder="Search regions, cities, or postcodes..."
-                  initialValue={currentSearchTerm}
+          {/* Content based on view mode */}
+          <motion.div
+            key={viewMode}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {viewMode === 'overview' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <RegionalTrendsChart 
+                  data={filteredData} 
                   timeframe={timeframe}
+                  autoSelectRegions={autoSelectedRegions}
                 />
+                <MarketInsightsCard data={filteredData} summary={summary} />
               </div>
+            )}
 
-              <select
-                value={timeframe}
-                onChange={(e) => setTimeframe(e.target.value as '1y' | '2y' | '5y')}
-                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="1y">1 Year</option>
-                <option value="2y">2 Years</option>
-                <option value="5y">5 Years</option>
-              </select>
-            </div>
+            {viewMode === 'trends' && (
+              <div className="space-y-8">
+                <RegionalTrendsChart data={filteredData} timeframe={timeframe} />
+                <MarketVolatilityMap data={filteredData} />
+              </div>
+            )}
 
-            <div className="flex gap-2">
-              {(['overview', 'trends', 'opportunities', 'comparison'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => setViewMode(mode)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                    viewMode === mode
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </motion.div>
+            {viewMode === 'opportunities' && (
+              <div className="space-y-8">
+                <TopPerformingRegions data={filteredData} />
+                <InvestmentOpportunities data={filteredData} />
+              </div>
+            )}
 
-        {/* Content based on view mode */}
-        <motion.div
-          key={viewMode}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {viewMode === 'overview' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <RegionalTrendsChart 
-                data={filteredData} 
-                timeframe={timeframe}
-                autoSelectRegions={autoSelectedRegions}
-              />
-              <MarketInsightsCard data={filteredData} summary={summary} />
-            </div>
-          )}
-
-          {viewMode === 'trends' && (
-            <div className="space-y-8">
-              <RegionalTrendsChart data={filteredData} timeframe={timeframe} />
-              <MarketVolatilityMap data={filteredData} />
-            </div>
-          )}
-
-          {viewMode === 'opportunities' && (
-            <div className="space-y-8">
-              <TopPerformingRegions data={filteredData} />
-              <InvestmentOpportunities data={filteredData} />
-            </div>
-          )}
-
-          {viewMode === 'comparison' && (
-            <MarketComparisonTable data={filteredData} />
-          )}
-        </motion.div>
-      </div>
+            {viewMode === 'comparison' && (
+              <MarketComparisonTable data={filteredData} />
+            )}
+          </motion.div>
+        </div>
+      </main>
     </div>
   );
 } 

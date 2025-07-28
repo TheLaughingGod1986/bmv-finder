@@ -6,6 +6,7 @@ import "./globals.css";
 import { ToastProvider } from './components/ToastProvider';
 import ClientNavigation from './components/ClientNavigation';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
+import ScrollToTop from './components/ScrollToTop';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -187,6 +188,7 @@ export default function RootLayout({
               {children}
             </ToastProvider>
           </main>
+          <ScrollToTop />
         </SupabaseUserProvider>
         <Analytics />
         <SpeedInsights />

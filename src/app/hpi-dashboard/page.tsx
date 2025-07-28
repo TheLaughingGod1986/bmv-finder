@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { BarChart3, HelpCircle, Info, MapPin, Calendar } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { format } from 'date-fns';
+import { motion } from 'framer-motion';
 
 const LineChart = dynamic(() => import('../components/ChartClientOnly').then(mod => mod.LineChart), { ssr: false });
 
@@ -90,21 +91,56 @@ export default function HpiDashboard() {
   const latest = Array.isArray(hpiData) && hpiData.length > 0 ? hpiData[0] : null;
 
   return (
-    <div className="min-h-screen bg-neutral-100">
-      {/* Header */}
-      <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
-        <div className="flex items-center justify-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-            <BarChart3 className="w-7 h-7 text-blue-600" />
-          </div>
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-0">House Price Index Dashboard</h1>
-        </div>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto mb-4">UK property market trends and analysis</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+      {/* Hero Section */}
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-10"></div>
+        <div className="relative max-w-screen-2xl w-[90vw] mx-auto pt-20 pb-16">
+          <div className="text-center">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-6"
+            >
+              <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Market Analysis
+              </span>
+            </motion.div>
 
-      <div className="max-w-7xl mx-auto p-6">
+            <motion.h1
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+            >
+              House Price Index
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                Dashboard
+              </span>
+            </motion.h1>
+
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto"
+            >
+              Track UK property market trends and analyze regional performance with comprehensive HPI data
+            </motion.p>
+          </div>
+        </div>
+      </section>
+
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Help Section */}
-        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 mb-8 shadow-soft"
+        >
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-blue-900 flex items-center gap-2">
               <HelpCircle className="w-5 h-5" />
@@ -112,7 +148,7 @@ export default function HpiDashboard() {
             </h2>
             <button
               onClick={() => setShowHelp(!showHelp)}
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
             >
               {showHelp ? 'Hide Details' : 'Show Details'}
             </button>
@@ -127,10 +163,15 @@ export default function HpiDashboard() {
               </ul>
             </div>
           )}
-        </div>
+        </motion.div>
 
         {/* Filters */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-6 flex flex-wrap gap-4 items-end">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="bg-white rounded-2xl shadow-soft p-6 mb-8 flex flex-wrap gap-4 items-end border border-blue-200"
+        >
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               <MapPin className="w-4 h-4 inline mr-2" />Select region
@@ -169,77 +210,92 @@ export default function HpiDashboard() {
               className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-400"
             />
           </div>
-        </div>
+        </motion.div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8"
+        >
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-soft p-6 border border-blue-200">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm font-medium text-gray-600">Current HPI</p>
-              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              <p className="text-sm font-medium text-blue-900">Current HPI</p>
+              <Info className="w-4 h-4 text-blue-600 cursor-help" />
             </div>
-            <p className="text-2xl font-bold text-gray-900">
+            <p className="text-2xl font-bold text-blue-900">
               {latest && typeof latest.index === 'number' ? latest.index.toFixed(1) : 'N/A'}
             </p>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-soft p-6 border border-blue-200">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm font-medium text-gray-600">YoY Growth</p>
-              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              <p className="text-sm font-medium text-blue-900">YoY Growth</p>
+              <Info className="w-4 h-4 text-blue-600 cursor-help" />
             </div>
             <p className="text-2xl font-bold text-green-600">
               {latest && typeof latest.yoyGrowth === 'number' ? `${latest.yoyGrowth.toFixed(1)}%` : 'N/A'}
             </p>
           </div>
-          <div className="bg-white rounded-2xl shadow-lg p-6">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl shadow-soft p-6 border border-blue-200">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm font-medium text-gray-600">MoM Growth</p>
-              <Info className="w-4 h-4 text-gray-400 cursor-help" />
+              <p className="text-sm font-medium text-blue-900">MoM Growth</p>
+              <Info className="w-4 h-4 text-blue-600 cursor-help" />
             </div>
             <p className="text-2xl font-bold text-blue-600">
               {latest && typeof latest.monthOverMonth === 'number' ? `${latest.monthOverMonth.toFixed(1)}%` : 'N/A'}
             </p>
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Chart */}
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">HPI Trend - {region}</h3>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="bg-white rounded-2xl shadow-soft p-6 mb-8 border border-blue-200"
+        >
+                      <h3 className="text-lg font-semibold text-blue-900 mb-4">HPI Trend - {region}</h3>
           <div className="min-h-[300px]">
-            {loading ? <div>Loading chart...</div> : <LineChart data={chartData} options={{ responsive: true, plugins: { legend: { position: 'top' }, title: { display: false } }, scales: { y: { beginAtZero: false } } }} />}
+                          {loading ? <div className="text-blue-600">Loading chart...</div> : <LineChart data={chartData} options={{ responsive: true, plugins: { legend: { position: 'top' }, title: { display: false } }, scales: { y: { beginAtZero: false } } }} />}
           </div>
-        </div>
+        </motion.div>
 
         {/* Regional HPI Table */}
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h3 className="text-lg font-semibold text-gray-900">Regional HPI Data</h3>
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+          className="bg-white rounded-2xl shadow-soft overflow-hidden border border-blue-200"
+        >
+                      <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
+              <h3 className="text-lg font-semibold text-blue-900">Regional HPI Data</h3>
           </div>
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+            <table className="min-w-full divide-y divide-[#E5E5E5]">
+              <thead className="bg-blue-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Region</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current Index</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">YoY Growth</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">MoM Growth</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">Region</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">Current Index</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">YoY Growth</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">MoM Growth</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-blue-900 uppercase tracking-wider">Last Updated</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {Array.isArray(hpiData) && hpiData.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.region}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{typeof item.index === 'number' ? item.index.toFixed(1) : 'N/A'}</td>
+                  <tr key={idx} className="hover:bg-blue-50/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-900">{item.region}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-900">{typeof item.index === 'number' ? item.index.toFixed(1) : 'N/A'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm"><span className="text-green-600">{typeof item.yoyGrowth === 'number' ? `${item.yoyGrowth.toFixed(1)}%` : 'N/A'}</span></td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm"><span className="text-blue-600">{typeof item.monthOverMonth === 'number' ? `${item.monthOverMonth.toFixed(1)}%` : 'N/A'}</span></td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{item.date ? formatMonthYear(item.date) : 'N/A'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{item.date ? formatMonthYear(item.date) : 'N/A'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
 
         {/* TODOs for further enhancements */}
         {/*
@@ -251,7 +307,15 @@ export default function HpiDashboard() {
           - Add more advanced chart options (comparison, bar, etc.)
         */}
 
-        {error && <div className="text-red-600 mt-4">{error}</div>}
+        {error && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-red-50 border border-red-200 rounded-xl p-4 mt-6 text-red-700"
+          >
+            {error}
+          </motion.div>
+        )}
       </div>
     </div>
   );
