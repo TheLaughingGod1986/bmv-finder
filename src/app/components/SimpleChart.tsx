@@ -1,6 +1,6 @@
 'use client';
 
-
+import FullScreenChart from './FullScreenChart';
 
 interface ChartDataPoint {
   label: string;
@@ -38,11 +38,12 @@ export default function SimpleChart({
   const range = maxValue - minValue;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="mb-4">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
-        {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
-      </div>
+    <FullScreenChart title={title} subtitle={subtitle}>
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="mb-4">
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
+        </div>
       
       <div className="relative" style={{ height }}>
         {/* Chart bars */}
@@ -89,7 +90,8 @@ export default function SimpleChart({
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </FullScreenChart>
   );
 }
 
@@ -115,11 +117,12 @@ export function SimpleLineChart({
   const range = maxValue - minValue;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <div className="mb-4">
-        <h3 className="font-semibold text-gray-900">{title}</h3>
-        {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
-      </div>
+    <FullScreenChart title={title} subtitle={subtitle}>
+      <div className="bg-white rounded-lg border border-gray-200 p-4">
+        <div className="mb-4">
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-sm text-gray-600">{subtitle}</p>}
+        </div>
       
       <div className="relative" style={{ height }}>
         {/* SVG for line chart */}
@@ -178,6 +181,7 @@ export function SimpleLineChart({
           ))}
         </div>
       </div>
-    </div>
+      </div>
+    </FullScreenChart>
   );
 } 

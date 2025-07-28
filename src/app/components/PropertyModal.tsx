@@ -173,7 +173,15 @@ export default function PropertyModal({ isOpen, onClose, property }: PropertyMod
                     <Building2 className="w-4 h-4 text-gray-400" />
                     <div>
                       <p className="text-sm text-gray-500">Tenure</p>
-                      <p className="font-medium">{property.durationLabel}</p>
+                      <p className="font-medium">
+                        {property.durationLabel && property.durationLabel !== 'Unknown' 
+                          ? property.durationLabel 
+                          : property.duration === 'F' 
+                            ? 'Freehold' 
+                            : property.duration === 'L' 
+                              ? 'Leasehold' 
+                              : 'Not specified'}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">

@@ -16,6 +16,7 @@ import AddressSearchInput from './components/AddressSearchInput';
 import GroupedSoldPricesTable from './components/GroupedSoldPricesTable';
 import { LineChart, BarChart } from './components/ChartClientOnly';
 import HpiDataCard from './components/HpiDataCard';
+import FullScreenChart from './components/FullScreenChart';
 
 // Add fetch utility for enhanced property search with pagination
 async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
@@ -921,7 +922,12 @@ export default function Home() {
                 <div className="mb-6 w-full" ref={chartRef}>
                   <div className="flex flex-col md:flex-row gap-6 w-full">
                     {/* Local Price Growth Chart + Summary */}
-                    <div className="flex-1 min-w-0 bg-gray-50 rounded-xl shadow-inner p-4 flex flex-col items-center justify-center">
+                    <FullScreenChart 
+                      title="Local Price Growth Chart"
+                      subtitle={`${searchTerm} - Average property prices over time`}
+                      className="flex-1 min-w-0"
+                    >
+                      <div className="bg-gray-50 rounded-xl shadow-inner p-4 flex flex-col items-center justify-center h-full">
                       {localPriceData.length > 1 ? (
                         <>
                           {(() => {
@@ -967,9 +973,15 @@ export default function Home() {
                           <span className="text-lg font-medium">No data available for this chart.</span>
                         </div>
                       )}
-                    </div>
+                      </div>
+                    </FullScreenChart>
                     {/* HPI Growth Chart + Summary */}
-                    <div className="flex-1 min-w-0 bg-gray-50 rounded-xl shadow-inner p-4 flex flex-col items-center justify-center">
+                    <FullScreenChart 
+                      title="HPI Growth Chart"
+                      subtitle={`${searchTerm} - House Price Index over time`}
+                      className="flex-1 min-w-0"
+                    >
+                      <div className="bg-gray-50 rounded-xl shadow-inner p-4 flex flex-col items-center justify-center h-full">
                       {hpiData.length > 1 && hpiPct !== null && hpiStartYear && hpiEndYear ? (
                         <>
                           <div className="mb-2 flex flex-col items-center justify-center gap-1">
@@ -1006,7 +1018,8 @@ export default function Home() {
                           <span className="text-lg font-medium">No data available for this chart.</span>
                         </div>
                       )}
-                    </div>
+                      </div>
+                    </FullScreenChart>
                   </div>
                 </div>
               )}

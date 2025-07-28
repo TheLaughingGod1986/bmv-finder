@@ -368,9 +368,17 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                   <td className="px-6 py-4">
                     <span className={cn(
                       "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                      property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                      property.duration === 'F' 
+                        ? "bg-green-100 text-green-800" 
+                        : property.duration === 'L' 
+                          ? "bg-blue-100 text-blue-800"
+                          : "bg-gray-100 text-gray-600"
                     )}>
-                      {property.duration === 'F' ? 'Freehold' : 'Leasehold'}
+                      {property.duration === 'F' 
+                        ? 'Freehold' 
+                        : property.duration === 'L' 
+                          ? 'Leasehold'
+                          : 'Not specified'}
                     </span>
                   </td>
                   <td className="px-6 py-4">
@@ -499,9 +507,17 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
                   </span>
                   <span className={cn(
                     "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium",
-                    property.duration === 'F' ? "bg-green-100 text-green-800" : "bg-blue-100 text-blue-800"
+                    property.duration === 'F' 
+                      ? "bg-green-100 text-green-800" 
+                      : property.duration === 'L' 
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-gray-100 text-gray-600"
                   )}>
-                    {property.duration === 'F' ? 'Freehold' : 'Leasehold'}
+                    {property.duration === 'F' 
+                      ? 'Freehold' 
+                      : property.duration === 'L' 
+                        ? 'Leasehold'
+                        : 'Not specified'}
                   </span>
                 </div>
 

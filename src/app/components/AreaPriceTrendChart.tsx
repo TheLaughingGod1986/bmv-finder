@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Line, Bar, Pie } from 'react-chartjs-2';
+import FullScreenChart from './FullScreenChart';
 import {
   Chart,
   CategoryScale,
@@ -126,9 +127,14 @@ export default function AreaPriceTrendChart({ labels, data, areaName, className 
   };
 
   return (
-    <div className={className}>
-      {/* Unified Header */}
-      <div className="flex items-center gap-3 mb-2">
+    <FullScreenChart 
+      title={`Average Sold Price Growth in ${formatAreaName(areaName)}`}
+      subtitle="Based on official UK Land Registry data"
+      className={className}
+    >
+      <div className="w-full">
+        {/* Unified Header */}
+        <div className="flex items-center gap-3 mb-2">
         <h3 className="text-lg md:text-xl font-semibold text-text-primary flex items-center">
           Average Sold Price Growth in {formatAreaName(areaName)}
           <button
@@ -231,7 +237,8 @@ export default function AreaPriceTrendChart({ labels, data, areaName, className 
         </svg>
         Source: UK Land Registry, updated daily
       </div>
-    </div>
+      </div>
+    </FullScreenChart>
   );
 }
 

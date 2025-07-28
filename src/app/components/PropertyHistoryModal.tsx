@@ -125,7 +125,8 @@ export default function PropertyHistoryModal({
   };
 
   const formatDuration = (duration: string) => {
-    return duration === 'F' ? 'Freehold' : 'Leasehold';
+    if (!duration) return 'Not specified';
+    return duration === 'F' ? 'Freehold' : duration === 'L' ? 'Leasehold' : 'Not specified';
   };
 
   const formatAddress = (sp: SoldPrice | null | undefined) => {
