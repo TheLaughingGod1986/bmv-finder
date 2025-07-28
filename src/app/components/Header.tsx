@@ -19,11 +19,37 @@ export default function Header({ className = '' }: HeaderProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Check if we already have cached data and it's less than 5 minutes old
+    if (typeof window === 'undefined') return; // SSR safety check
+    
+    const cachedData = sessionStorage.getItem('last-update-data');
+    const cachedTime = sessionStorage.getItem('last-update-time');
+    
+    if (cachedData && cachedTime) {
+      const timeDiff = Date.now() - parseInt(cachedTime);
+      if (timeDiff < 5 * 60 * 1000) { // 5 minutes
+        try {
+          setStats(JSON.parse(cachedData));
+          return;
+        } catch (e) {
+          // If parsing fails, continue with fresh fetch
+        }
+      }
+    }
+
+    // Only fetch if we don't have recent cached data
     fetch('/api/last-update')
       .then(res => res.json())
       .then(data => {
         if (data.error) setError(data.error);
-        else setStats(data);
+        else {
+          setStats(data);
+          // Cache the data for 5 minutes
+          if (typeof window !== 'undefined') {
+            sessionStorage.setItem('last-update-data', JSON.stringify(data));
+            sessionStorage.setItem('last-update-time', Date.now().toString());
+          }
+        }
       })
       .catch(err => setError(err.message));
   }, []);
