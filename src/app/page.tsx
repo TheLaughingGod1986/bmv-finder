@@ -13,6 +13,8 @@ import {
 import { useRouter } from 'next/navigation';
 import { useToast } from './components/ToastProvider';
 import AddressSearchInput from './components/AddressSearchInput';
+import MobileSearchBar from './components/MobileSearchBar';
+import MobileFeatures from './components/MobileFeatures';
 import GroupedSoldPricesTable from './components/GroupedSoldPricesTable';
 import { LineChart, BarChart } from './components/ChartClientOnly';
 import HpiDataCard from './components/HpiDataCard';
@@ -381,16 +383,28 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="max-w-2xl mx-auto mb-8"
               >
-                <AddressSearchInput
-                  value={searchTerm}
-                  onChange={setSearchTerm}
-                  onSearch={handleSearch}
-                  isLoading={isLoading}
-                  placeholder="Enter a postcode, address, or area to start..."
-                  showHistory={true}
-                  showSuggestions={false}
-                  className="w-full"
-                />
+                {/* Desktop Search */}
+                <div className="hidden md:block">
+                  <AddressSearchInput
+                    value={searchTerm}
+                    onChange={setSearchTerm}
+                    onSearch={handleSearch}
+                    isLoading={isLoading}
+                    placeholder="Enter a postcode, address, or area to start..."
+                    showHistory={true}
+                    showSuggestions={false}
+                    className="w-full"
+                  />
+                </div>
+                
+                {/* Mobile Search */}
+                <div className="md:hidden">
+                  <MobileSearchBar
+                    onSearch={handleSearch}
+                    isLoading={isLoading}
+                    placeholder="Enter a postcode, address, or area to start..."
+                  />
+                </div>
                 {/* Instant Results Table Below Search Bar */}
                 <AnimatePresence>
                   {isLoading && (
@@ -1139,6 +1153,9 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Mobile Features Section */}
+        <MobileFeatures />
 
         {/* Testimonials */}
         <section className="py-20 bg-white">

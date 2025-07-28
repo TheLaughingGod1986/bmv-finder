@@ -1,15 +1,15 @@
 {
-  "name": "Sold UK Property Prices",
-  "short_name": "Sold UK Property Prices",
-  "description": "Search and analyze UK sold property prices using Land Registry data",
+  "name": "BMV Finder - UK Property Investment Platform",
+  "short_name": "BMV Finder",
+  "description": "Professional property investment platform with BMV scoring, market analysis, and UK Land Registry data. Find below-market-value properties and make informed investment decisions.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#3A7CA5",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
-  "categories": ["business", "finance", "productivity"],
+  "categories": ["business", "finance", "productivity", "real-estate"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -22,6 +22,58 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-wide.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshot-narrow.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Search Properties",
+      "short_name": "Search",
+      "description": "Search for properties by address or postcode",
+      "url": "/search",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Portfolio Tracker",
+      "short_name": "Portfolio",
+      "description": "Track your property investments",
+      "url": "/portfolio-tracker",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Market Analysis",
+      "short_name": "Analysis",
+      "description": "View market trends and analysis",
+      "url": "/market-analysis",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 } 

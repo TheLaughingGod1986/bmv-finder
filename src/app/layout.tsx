@@ -7,6 +7,7 @@ import { ToastProvider } from './components/ToastProvider';
 import ClientNavigation from './components/ClientNavigation';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
 import ScrollToTop from './components/ScrollToTop';
+import PWAInstallPrompt from './components/PWAInstallPrompt';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -16,8 +17,8 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "BMV Finder | UK Property Investment Insights & Market Analysis",
-  description: "Professional property investment platform with BMV scoring, market analysis, and UK Land Registry data. Find below-market-value properties and make informed investment decisions.",
-  keywords: "BMV properties, below market value, property investment, UK property prices, land registry data, property analysis, investment opportunities, property market trends",
+  description: "Professional property investment platform with BMV scoring, market analysis, and UK Land Registry data. Find below-market-value properties and make informed investment decisions. Available as a web app for mobile and desktop.",
+  keywords: "BMV properties, below market value, property investment, UK property prices, land registry data, property analysis, investment opportunities, property market trends, property web app, mobile property search, real estate investment platform",
   authors: [{ name: "BMV Finder" }],
   creator: "BMV Finder",
   publisher: "BMV Finder",
@@ -31,8 +32,8 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: "BMV Finder | UK Property Investment Insights",
-    description: "Find below-market-value properties with professional analysis and BMV scoring. Access UK Land Registry data and make informed investment decisions.",
+    title: "BMV Finder | UK Property Investment Insights & Web App",
+    description: "Find below-market-value properties with professional analysis and BMV scoring. Access UK Land Registry data and make informed investment decisions. Install as a web app for mobile and desktop.",
     url: 'https://bmvfinder.com',
     siteName: 'BMV Finder',
     images: [
@@ -40,7 +41,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'BMV Finder - UK Property Investment Platform',
+        alt: 'BMV Finder - UK Property Investment Platform & Web App',
       },
     ],
     locale: 'en_GB',
@@ -48,8 +49,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BMV Finder | UK Property Investment Insights',
-    description: 'Find below-market-value properties with professional analysis and BMV scoring.',
+    title: 'BMV Finder | UK Property Investment Insights & Web App',
+    description: 'Find below-market-value properties with professional analysis and BMV scoring. Install as a web app for mobile and desktop.',
     images: ['/og-image.png'],
     creator: '@bmvfinder',
   },
@@ -66,6 +67,15 @@ export const metadata: Metadata = {
   },
   verification: {
     google: 'your-google-verification-code',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default',
+    'apple-mobile-web-app-title': 'BMV Finder',
+    'application-name': 'BMV Finder',
+    'msapplication-TileColor': '#3A7CA5',
+    'msapplication-tap-highlight': 'no',
   },
 };
 
@@ -189,9 +199,29 @@ export default function RootLayout({
             </ToastProvider>
           </main>
           <ScrollToTop />
+          <PWAInstallPrompt />
         </SupabaseUserProvider>
         <Analytics />
         <SpeedInsights />
+        
+        {/* Service Worker Registration */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );

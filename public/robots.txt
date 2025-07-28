@@ -1,0 +1,25 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://bmvfinder.com/sitemap.xml
+
+# Crawl-delay
+Crawl-delay: 1
+
+# Disallow admin and private areas
+Disallow: /admin/
+Disallow: /api/
+Disallow: /_next/
+Disallow: /private/
+
+# Allow important pages
+Allow: /search
+Allow: /advanced-deal-analysis
+Allow: /deal-calculator
+Allow: /market-analysis
+Allow: /hpi-dashboard
+Allow: /what-should-i-pay
+Allow: /portfolio-tracker
+Allow: /pricing
+Allow: /comprehensive-valuation 
