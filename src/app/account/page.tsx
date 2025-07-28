@@ -195,7 +195,7 @@ export default function AccountPage() {
           <Toaster position="top-center" />
           
           {/* Personalized Greeting */}
-          {user && (
+          {user ? (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -209,10 +209,34 @@ export default function AccountPage() {
                 You&apos;re currently on the <span className="font-bold text-white">{planName}</span> plan
               </p>
             </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#D2B48C] rounded-xl p-6 border border-[#D2B48C] shadow-soft"
+            >
+              <h1 className="text-3xl md:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-blue-200 mb-2 leading-tight drop-shadow-lg">
+                Welcome to BMV Finder!
+              </h1>
+              <p className="text-lg md:text-xl text-white font-medium leading-relaxed drop-shadow-md mb-4">
+                Demo Mode - Sign in to access your full account
+              </p>
+              <div className="bg-white bg-opacity-20 rounded-lg p-4 border border-white border-opacity-30">
+                <p className="text-white text-sm mb-3">
+                  <strong>Demo Features Available:</strong>
+                </p>
+                <ul className="text-white text-sm space-y-1">
+                  <li>• View sample usage data and achievements</li>
+                  <li>• Explore subscription plans and features</li>
+                  <li>• Test the interface and user experience</li>
+                </ul>
+              </div>
+            </motion.div>
           )}
 
       {/* Usage Progress Section */}
-      {derivedTier === 'free' && (
+      {(derivedTier === 'free' || !user) && (
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -222,7 +246,7 @@ export default function AccountPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-[#2C6E91] flex items-center gap-2">
               <ChartBarIcon className="w-6 h-6" />
-              Your Usage This Month
+              {user ? 'Your Usage This Month' : 'Sample Usage Data'}
             </h2>
             <span className="text-sm font-semibold text-[#3A7CA5]">
               {usageData.lookupsUsed}/{usageData.lookupsLimit} lookups

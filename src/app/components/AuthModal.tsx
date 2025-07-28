@@ -63,7 +63,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
     setError(null);
     
     if (!supabase) {
-      setError('Authentication service is not configured');
+      setError('Authentication service is not configured. Please contact support.');
       setIsLoading(false);
       return;
     }
@@ -77,7 +77,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
       });
       if (error) throw error;
     } catch (error: any) {
-      setError(error.message);
+      setError('Apple authentication is not configured. Please use email/password or contact support.');
     } finally {
       setIsLoading(false);
     }
@@ -88,7 +88,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
     setError(null);
     
     if (!supabase) {
-      setError('Authentication service is not configured');
+      setError('Authentication service is not configured. Please contact support.');
       setIsLoading(false);
       return;
     }
@@ -102,7 +102,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
       });
       if (error) throw error;
     } catch (error: any) {
-      setError(error.message);
+      setError('Google authentication is not configured. Please use email/password or contact support.');
     } finally {
       setIsLoading(false);
     }
@@ -143,9 +143,17 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
             <div className="p-6">
               {/* Social Login Buttons */}
               <div className="space-y-3 mb-6">
+                {!supabase && (
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                    <p className="text-yellow-800 text-sm">
+                      <strong>Demo Mode:</strong> Authentication is not configured. You can test the interface, but login features won't work.
+                    </p>
+                  </div>
+                )}
+                
                 <button
                   onClick={handleAppleLogin}
-                  disabled={isLoading}
+                  disabled={isLoading || !supabase}
                   className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Apple className="w-5 h-5" />
@@ -154,7 +162,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                 
                 <button
                   onClick={handleGoogleLogin}
-                  disabled={isLoading}
+                  disabled={isLoading || !supabase}
                   className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -250,7 +258,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
 
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || !supabase}
                   className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 px-4 rounded-lg hover:from-purple-600 hover:to-blue-600 focus:ring-2 focus:ring-blue-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (
@@ -258,6 +266,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                       {mode === 'login' ? 'Signing in...' : 'Creating account...'}
                     </div>
+                  ) : !supabase ? (
+                    'Authentication Not Available'
                   ) : (
                     mode === 'login' ? 'Sign In' : 'Create Account'
                   )}
