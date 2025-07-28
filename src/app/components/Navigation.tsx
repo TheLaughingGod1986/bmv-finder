@@ -25,6 +25,7 @@ import {
 import { cn } from '../../lib/utils';
 import { useUser, useSession } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
+import AuthModal from './AuthModal';
 
 interface UpdateStats {
   lastUpdate: string;
@@ -44,6 +45,8 @@ const navItems = [
 
 export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [stats, setStats] = useState<UpdateStats | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [formattedDate, setFormattedDate] = useState<string | null>(null);
@@ -172,12 +175,15 @@ export default function Navigation() {
                   )}
                 </Link>
               ) : (
-                <Link
-                  href="/account"
+                <button
+                  onClick={() => {
+                    setAuthMode('login');
+                    setIsAuthModalOpen(true);
+                  }}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 hover:border-gray-400 hover:text-gray-900 transition-all duration-300 text-sm h-10"
                 >
                   Login / Register
-                </Link>
+                </button>
               )}
             </div>
             
@@ -259,13 +265,16 @@ export default function Navigation() {
                       )}
                     </Link>
                   ) : (
-                    <Link
-                      href="/account"
-                      onClick={() => setIsMobileMenuOpen(false)}
+                    <button
+                      onClick={() => {
+                        setAuthMode('login');
+                        setIsAuthModalOpen(true);
+                        setIsMobileMenuOpen(false);
+                      }}
                       className="block w-full bg-white border-2 border-blue-600 text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-all duration-200 text-center touch-target"
                     >
                       Login / Register
-                    </Link>
+                    </button>
                   )}
                 </div>
               </div>
@@ -293,6 +302,13 @@ export default function Navigation() {
           </>
         )}
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        defaultMode={authMode}
+      />
     </>
   );
 } 

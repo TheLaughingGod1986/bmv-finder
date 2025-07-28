@@ -41,7 +41,7 @@ export default function ScrollToTop() {
           exit={{ opacity: 0, scale: 0.8, y: 20 }}
           transition={{ duration: 0.2, ease: 'easeOut' }}
           onClick={scrollToTop}
-          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-[#F5F5DC] to-[#D2B48C] hover:from-[#D2B48C] hover:to-[#F5F5DC] border border-[#D2B48C] text-[#2C6E91] p-3 rounded-full shadow-soft hover:shadow-lg transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-[#2C6E91] focus:ring-opacity-50"
+          className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-purple-600 hover:to-blue-600 border border-blue-500 text-white p-3 rounded-full shadow-soft hover:shadow-lg transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-opacity-50"
           aria-label="Scroll to top"
         >
           <ChevronUp className="w-6 h-6" />

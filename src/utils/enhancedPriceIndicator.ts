@@ -77,8 +77,8 @@ function getComparableProperties(
       // Match property type
       if (sale.propertyType !== targetPropertyType) return false;
       
-      // Match bedrooms if available
-      if (targetBedrooms && sale.bedrooms && sale.bedrooms !== targetBedrooms) return false;
+      // Match bedrooms if available (bedrooms data not available in current SoldPrice type)
+      // if (targetBedrooms && sale.bedrooms && sale.bedrooms !== targetBedrooms) return false;
       
       // Include sales from last 24 months for better coverage
       const saleDate = new Date(sale.dateOfTransfer);

@@ -174,7 +174,11 @@ export default function DealCalculator() {
   // Save deal to portfolio
   const handleSave = async () => {
     if (!user) {
-      showToast('Please sign in to save deals', 'error');
+      showToast({
+        type: 'error',
+        title: 'Authentication Required',
+        message: 'Please sign in to save deals'
+      });
       return;
     }
 
@@ -218,7 +222,11 @@ export default function DealCalculator() {
 
       if (response.ok) {
         const result = await response.json();
-        showToast('Deal saved to portfolio successfully!', 'success');
+        showToast({
+          type: 'success',
+          title: 'Success',
+          message: 'Deal saved to portfolio successfully!'
+        });
         
         // Reload saved deals
         const dealsResponse = await fetch(`/api/portfolio/add?userId=${user.id}`);
@@ -250,11 +258,19 @@ export default function DealCalculator() {
         }
       } else {
         const error = await response.json();
-        showToast(error.error || 'Failed to save deal', 'error');
+        showToast({
+          type: 'error',
+          title: 'Error',
+          message: error.error || 'Failed to save deal'
+        });
       }
     } catch (error) {
       console.error('Error saving deal:', error);
-      showToast('Failed to save deal', 'error');
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to save deal'
+      });
     } finally {
       setIsLoading(false);
     }
