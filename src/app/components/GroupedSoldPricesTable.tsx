@@ -182,35 +182,101 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     </button>
   );
 
-  const openHistoryModal = (property: any) => {
-    // Find all sales for this property (same address)
-    const propertyAddress = formatAddress(property);
-    const salesHistory = soldPrices.filter(sale => {
-      const saleAddress = formatAddress(sale);
-      return saleAddress === propertyAddress;
-    }).map(sale => ({
-      date: sale.date,
-      price: sale.price,
-      description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
-    }));
-
-    // If no sales history found, create a single entry from the current property
-    if (salesHistory.length === 0) {
-      salesHistory.push({
-        date: property.date,
-        price: property.price,
-        description: `${formatPropertyType(property.propertyType)} - ${property.postcode}`
-      });
-    }
-
-    setHistoryModal({ 
-      isOpen: true, 
-      property: {
-        ...property,
-        salesHistory: salesHistory
+  const openHistoryModal = async (property: any) => {
+    // Find all sales for this property using property number and postcode
+    const propertyNumber = property.paon || property.propertyNumber;
+    const propertyPostcode = property.postcode;
+    
+    try {
+      // Fetch complete sales history from API
+      const response = await fetch(`/api/property-sales-history?postcode=${encodeURIComponent(propertyPostcode)}&number=${encodeURIComponent(propertyNumber)}`);
+      const data = await response.json();
+      
+      let salesHistory = [];
+      
+      if (data.success && data.salesHistory.length > 0) {
+        // Use API data
+        salesHistory = data.salesHistory.map((sale: any) => ({
+          date: sale.date,
+          price: sale.price,
+          description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
+        }));
+      } else {
+        // Fallback to local data
+        salesHistory = soldPrices.filter(sale => {
+          const saleNumber = sale.paon || sale.propertyNumber;
+          const salePostcode = sale.postcode;
+          return saleNumber === propertyNumber && salePostcode === propertyPostcode;
+        }).map(sale => ({
+          date: sale.date,
+          price: sale.price,
+          description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
+        }));
       }
-    });
-    setActiveTab('history');
+
+      // If no sales history found, create a single entry from the current property
+      if (salesHistory.length === 0) {
+        salesHistory.push({
+          date: property.date,
+          price: property.price,
+          description: `${formatPropertyType(property.propertyType)} - ${property.postcode}`
+        });
+      }
+
+      // Sort by date (newest first)
+      salesHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      // Debug logging
+      console.log('Property History Debug:', {
+        propertyNumber,
+        propertyPostcode,
+        totalSalesInData: soldPrices.length,
+        foundSales: salesHistory.length,
+        salesHistory: salesHistory,
+        apiData: data.success ? 'Used API data' : 'Used local data'
+      });
+
+      setHistoryModal({ 
+        isOpen: true, 
+        property: {
+          ...property,
+          salesHistory: salesHistory
+        }
+      });
+      setActiveTab('history');
+    } catch (error) {
+      console.error('Error fetching property sales history:', error);
+      
+      // Fallback to local data on error
+      const salesHistory = soldPrices.filter(sale => {
+        const saleNumber = sale.paon || sale.propertyNumber;
+        const salePostcode = sale.postcode;
+        return saleNumber === propertyNumber && salePostcode === propertyPostcode;
+      }).map(sale => ({
+        date: sale.date,
+        price: sale.price,
+        description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
+      }));
+
+      if (salesHistory.length === 0) {
+        salesHistory.push({
+          date: property.date,
+          price: property.price,
+          description: `${formatPropertyType(property.propertyType)} - ${property.postcode}`
+        });
+      }
+
+      salesHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      setHistoryModal({ 
+        isOpen: true, 
+        property: {
+          ...property,
+          salesHistory: salesHistory
+        }
+      });
+      setActiveTab('history');
+    }
   };
 
   const closeHistoryModal = () => {
