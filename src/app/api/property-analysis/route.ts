@@ -144,7 +144,7 @@ export async function GET(req: NextRequest) {
       };
       
       const subjectSaleResp = await esClient.search({
-        index: 'properties',
+        index: 'properties-clean',
         body: {
           size: 1,
           sort: [{ date: { order: 'desc' } }],

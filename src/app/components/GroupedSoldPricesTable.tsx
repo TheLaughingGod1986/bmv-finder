@@ -60,13 +60,13 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
   const formatAddress = (property: any) => {
     if (!property) return '';
-    const parts = [property.propertyNumber, property.street, property.locality, property.town, property.county].filter(Boolean);
+    const parts = [property.paon, property.street, property.locality, property.town_city, property.county].filter(Boolean);
     return parts.join(', ');
   };
 
   const formatShortAddress = (property: any) => {
     if (!property) return '';
-    const parts = [property.propertyNumber, property.street].filter(Boolean);
+    const parts = [property.paon, property.street].filter(Boolean);
     return parts.join(' ');
   };
 
