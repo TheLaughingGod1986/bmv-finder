@@ -162,6 +162,55 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     );
   };
 
+  const getMarketTrend = (property: any) => {
+    if (!property) return null;
+    
+    const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
+    const indicator = priceIndicators[propertyKey];
+    
+    if (!indicator || !indicator.marketTrend) {
+      return (
+        <div className="text-xs text-gray-400">
+          Loading...
+        </div>
+      );
+    }
+    
+    const trend = indicator.marketTrend;
+    let trendText = '';
+    let trendColor = '';
+    let trendIcon = '';
+    
+    switch (trend) {
+      case 'rising':
+        trendText = 'Rising';
+        trendColor = 'text-green-600';
+        trendIcon = '↗';
+        break;
+      case 'falling':
+        trendText = 'Falling';
+        trendColor = 'text-red-600';
+        trendIcon = '↘';
+        break;
+      case 'stable':
+        trendText = 'Stable';
+        trendColor = 'text-gray-600';
+        trendIcon = '→';
+        break;
+      default:
+        trendText = 'Unknown';
+        trendColor = 'text-gray-400';
+        trendIcon = '?';
+    }
+    
+    return (
+      <div className={`text-sm font-medium ${trendColor} flex items-center gap-1`}>
+        <span>{trendIcon}</span>
+        <span>{trendText}</span>
+      </div>
+    );
+  };
+
   const getValueIndicator = (price: number | null, property: any) => {
     if (!price || !property) return null;
     
@@ -470,6 +519,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                 <th className="px-4 py-3 text-left">
                   <span className="text-xs font-medium text-[#2C6E91]">Value Indicator</span>
                 </th>
+                <th className="px-4 py-3 text-left">
+                  <span className="text-xs font-medium text-[#2C6E91]">Market Trend</span>
+                </th>
                 <th className="px-4 py-3 text-center">
                   <span className="text-xs font-medium text-[#2C6E91]">Actions</span>
                 </th>
@@ -520,6 +572,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   </td>
                   <td className="px-4 py-3">
                     {getValueIndicator(property.price, property)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {getMarketTrend(property)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button

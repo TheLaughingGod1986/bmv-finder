@@ -163,13 +163,33 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
                  </div>
                </div>
 
-                             {/* Tips */}
+                             {/* Market Trends */}
+               <div className="bg-blue-50 rounded-lg p-4">
+                 <h4 className="font-semibold text-blue-800 mb-2">📈 Market Trends</h4>
+                 <div className="text-sm text-blue-700 space-y-2">
+                   <div className="flex items-center gap-2">
+                     <span className="text-green-600 font-medium">↗ Rising</span>
+                     <span>Property values expected to increase - good for long-term investment</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <span className="text-gray-600 font-medium">→ Stable</span>
+                     <span>Property values expected to remain steady - predictable returns</span>
+                   </div>
+                   <div className="flex items-center gap-2">
+                     <span className="text-red-600 font-medium">↘ Falling</span>
+                     <span>Property values expected to decrease - consider timing carefully</span>
+                   </div>
+                 </div>
+               </div>
+
+               {/* Tips */}
                <div className="bg-yellow-50 rounded-lg p-4">
                  <h4 className="font-semibold text-yellow-800 mb-2">💡 Investment Tips</h4>
                  <ul className="text-sm text-yellow-700 space-y-1">
                    <li>• <strong>Green badges (7.0-10.0):</strong> Best investment opportunities</li>
                    <li>• <strong>Gray badges (4.0-6.9):</strong> Fair market value</li>
                    <li>• <strong>Red badges (1.0-3.9):</strong> Overpriced properties</li>
+                   <li>• <strong>Market trends</strong> help predict future value changes</li>
                    <li>• Higher deal scores don't guarantee profit - always do your own research</li>
                    <li>• Consider why a property is below market value (condition, location, etc.)</li>
                  </ul>
