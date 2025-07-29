@@ -741,7 +741,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                         <strong>Location Map:</strong> This map shows the approximate location of the property based on the address. Use it to explore the area, check proximity to amenities, and get a sense of the neighbourhood.
                       </div>
                     </div>
-                    <div className="w-full h-80 rounded-xl overflow-hidden border border-[#E5E5E5] shadow-soft">
+                    <div className="relative w-full h-80 rounded-xl overflow-hidden border border-[#E5E5E5] shadow-soft">
                       <iframe
                         title="Google Map"
                         width="100%"
@@ -750,8 +750,30 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                         loading="lazy"
                         allowFullScreen
                         referrerPolicy="no-referrer-when-downgrade"
-                        src={`https://www.google.com/maps?q=${encodeURIComponent(formatAddress(historyModal.property))}&output=embed`}
+                        src={`https://www.google.com/maps?q=${encodeURIComponent(historyModal.property?.postcode || '')}&output=embed&zoom=15`}
                       />
+                      {/* Postcode Area Overlay */}
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-lg border border-[#3A7CA5]/20">
+                        <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 bg-[#5DA271] rounded-full animate-pulse"></div>
+                          <span className="text-sm font-semibold text-[#2C6E91]">
+                            {historyModal.property?.postcode}
+                          </span>
+                        </div>
+                      </div>
+                      {/* Area Boundary Indicator */}
+                      <div className="absolute inset-0 pointer-events-none">
+                        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-[#5DA271] border-dashed rounded-full opacity-60 animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="mt-4 p-4 bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <MapPin className="w-4 h-4 text-[#3A7CA5]" />
+                        <span className="font-semibold text-[#2C6E91]">Postcode Area: {historyModal.property?.postcode}</span>
+                      </div>
+                      <p className="text-sm text-[#3B755D]">
+                        The map shows the approximate postcode boundary area. The property is located within this zone, and all sales data is filtered to this specific postcode area for accurate market analysis.
+                      </p>
                     </div>
                   </div>
                 )}
