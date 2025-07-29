@@ -74,6 +74,34 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
   const formatPropertyType = (type: string) => {
     if (!type) return 'Unknown';
+    
+    // Handle property type codes
+    const propertyTypeMap: { [key: string]: string } = {
+      'D': 'Detached',
+      'S': 'Semi-detached',
+      'T': 'Terraced',
+      'F': 'Flat',
+      'O': 'Other',
+      'detached': 'Detached',
+      'semi-detached': 'Semi-detached',
+      'terraced': 'Terraced',
+      'flat': 'Flat',
+      'other': 'Other'
+    };
+    
+    // Check if it's a code first
+    const upperType = type.toUpperCase();
+    if (propertyTypeMap[upperType]) {
+      return propertyTypeMap[upperType];
+    }
+    
+    // Check if it's a full name
+    const lowerType = type.toLowerCase();
+    if (propertyTypeMap[lowerType]) {
+      return propertyTypeMap[lowerType];
+    }
+    
+    // Fallback to basic formatting
     return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase().replace(/_/g, ' ');
   };
 
