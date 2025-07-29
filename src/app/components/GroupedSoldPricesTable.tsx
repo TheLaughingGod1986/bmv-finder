@@ -10,6 +10,8 @@ import {
   PoundSterling, 
   Home, 
   TrendingUp,
+  TrendingDown,
+  Minus,
   X,
   BarChart3,
   Info,
@@ -432,26 +434,29 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
               className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden"
             >
               {/* Header */}
-              <div className="flex items-center justify-between p-6 border-b border-[#E5E5E5]">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#3A7CA5] rounded-full flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-white" />
+              <div className="bg-gradient-to-r from-[#3A7CA5] via-[#2C6E91] to-[#5DA271] text-white p-8 relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent"></div>
+                <div className="relative flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-white/20 p-3 rounded-full backdrop-blur-sm shadow-lg">
+                      <Home className="w-8 h-8 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-3xl font-bold mb-2 drop-shadow-sm">Property History</h2>
+                      <p className="text-blue-100 text-lg font-medium">{formatAddress(historyModal.property)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-[#2C6E91]">Property History</h2>
-                    <p className="text-sm text-[#3B755D]">{formatAddress(historyModal.property)}</p>
-                  </div>
+                  <button
+                    onClick={closeHistoryModal}
+                    className="text-white hover:text-blue-200 transition-colors p-3 rounded-full hover:bg-white/10 backdrop-blur-sm"
+                  >
+                    <X className="w-6 h-6" />
+                  </button>
                 </div>
-                <button
-                  onClick={closeHistoryModal}
-                  className="p-2 hover:bg-[#F5F5DC] rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-[#2C6E91]" />
-                </button>
               </div>
 
               {/* Tabs */}
-              <div className="flex border-b border-[#E5E5E5]">
+              <div className="flex border-b border-[#E5E5E5] bg-gray-50">
                 {[
                   { id: 'history', label: 'History', icon: <BarChart3 className="w-4 h-4" /> },
                   { id: 'growth', label: 'Growth', icon: <TrendingUp className="w-4 h-4" /> },
@@ -462,10 +467,10 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as any)}
-                    className={`flex items-center gap-2 px-6 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
                       activeTab === tab.id
-                        ? 'border-[#3A7CA5] text-[#3A7CA5]'
-                        : 'border-transparent text-[#3B755D] hover:text-[#2C6E91]'
+                        ? 'border-[#3A7CA5] text-[#3A7CA5] bg-white shadow-sm'
+                        : 'border-transparent text-[#3B755D] hover:text-[#2C6E91] hover:bg-white/50'
                     }`}
                   >
                     {tab.icon}
@@ -484,13 +489,18 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                     
                     {/* Total Growth Summary */}
                     {historyModal.property?.salesHistory && historyModal.property.salesHistory.length > 1 && (
-                      <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+                      <div className="bg-gradient-to-r from-blue-50 via-green-50 to-emerald-50 border border-blue-200 rounded-xl p-6 shadow-soft">
                         <div className="flex items-center justify-between">
-                          <div>
-                            <h4 className="font-semibold text-[#2C6E91] mb-1">Total Growth Summary</h4>
-                            <p className="text-sm text-[#3B755D]">
-                              From {formatDate(historyModal.property.salesHistory[historyModal.property.salesHistory.length - 1].date)} to {formatDate(historyModal.property.salesHistory[0].date)}
-                            </p>
+                          <div className="flex items-center gap-3">
+                            <div className="bg-gradient-to-r from-blue-500 to-green-500 p-3 rounded-full shadow-md">
+                              <TrendingUp className="w-6 h-6 text-white" />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-[#2C6E91] text-lg mb-1">Total Growth Summary</h4>
+                              <p className="text-sm text-[#3B755D] font-medium">
+                                From {formatDate(historyModal.property.salesHistory[historyModal.property.salesHistory.length - 1].date)} to {formatDate(historyModal.property.salesHistory[0].date)}
+                              </p>
+                            </div>
                           </div>
                           <div className="text-right">
                             {(() => {
@@ -500,11 +510,11 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                               const totalGrowthPercentage = firstSale.price > 0 ? (totalGrowth / firstSale.price) * 100 : 0;
                               
                               return (
-                                <div className={`text-lg font-bold ${
+                                <div className={`text-2xl font-bold ${
                                   totalGrowthPercentage > 0 ? 'text-green-600' : totalGrowthPercentage < 0 ? 'text-red-600' : 'text-gray-600'
                                 }`}>
                                   {totalGrowthPercentage > 0 ? '+' : ''}{totalGrowthPercentage.toFixed(1)}%
-                                  <div className="text-sm font-normal text-[#3B755D]">
+                                  <div className="text-sm font-semibold text-[#3B755D] mt-1">
                                     {totalGrowth > 0 ? '+' : ''}{formatPrice(totalGrowth)}
                                   </div>
                                 </div>
@@ -526,31 +536,62 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                       }
                       
                       return (
-                        <div key={index} className="bg-white border border-[#E5E5E5] rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-3">
-                              <span className="text-lg font-bold text-[#2C6E91]">{formatPrice(sale.price)}</span>
+                        <motion.div 
+                          key={index} 
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="bg-gradient-to-r from-white to-gray-50 border border-[#E5E5E5] rounded-xl p-6 shadow-soft hover:shadow-md transition-all duration-300"
+                        >
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                              <div className="bg-gradient-to-r from-[#3A7CA5] to-[#2C6E91] p-3 rounded-full shadow-md">
+                                <Home className="w-5 h-5 text-white" />
+                              </div>
+                              <div>
+                                <div className="text-2xl font-bold text-[#2C6E91] mb-1">
+                                  {formatPrice(sale.price)}
+                                </div>
+                                <div className="text-sm text-[#3B755D] font-medium">
+                                  {sale.description || 'No additional details available'}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-semibold text-[#3B755D] mb-2">
+                                {formatDate(sale.date)}
+                              </div>
                               {growthPercentage !== null && (
-                                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                <div className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-bold shadow-sm ${
                                   growthPercentage > 0 
-                                    ? 'bg-green-100 text-green-800' 
+                                    ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border border-green-200' 
                                     : growthPercentage < 0 
-                                    ? 'bg-red-100 text-red-800' 
-                                    : 'bg-gray-100 text-gray-800'
+                                    ? 'bg-gradient-to-r from-red-100 to-pink-100 text-red-800 border border-red-200' 
+                                    : 'bg-gradient-to-r from-gray-100 to-slate-100 text-gray-800 border border-gray-200'
                                 }`}>
-                                  {growthPercentage > 0 ? '+' : ''}{growthPercentage.toFixed(1)}%
-                                  <span className="text-xs">
+                                  {growthPercentage > 0 ? (
+                                    <TrendingUp className="w-4 h-4" />
+                                  ) : growthPercentage < 0 ? (
+                                    <TrendingDown className="w-4 h-4" />
+                                  ) : (
+                                    <Minus className="w-4 h-4" />
+                                  )}
+                                  <span>{growthPercentage > 0 ? '+' : ''}{growthPercentage.toFixed(1)}%</span>
+                                  <span className="text-xs opacity-75">
                                     ({growthAmount > 0 ? '+' : ''}{formatPrice(growthAmount)})
                                   </span>
                                 </div>
                               )}
                             </div>
-                            <span className="text-sm text-[#3B755D]">{formatDate(sale.date)}</span>
                           </div>
-                          <div className="text-sm text-[#3B755D]">
-                            {sale.description || 'No additional details available'}
-                          </div>
-                        </div>
+                          
+                          {/* Timeline indicator */}
+                          {index < historyModal.property.salesHistory.length - 1 && (
+                            <div className="flex justify-center mt-4">
+                              <div className="w-0.5 h-6 bg-gradient-to-b from-[#3A7CA5] to-[#5DA271]"></div>
+                            </div>
+                          )}
+                        </motion.div>
                       );
                     })}
                   </div>
@@ -741,10 +782,13 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
                 {activeTab === 'map' && (
                   <div className="w-full max-w-2xl mx-auto px-2">
-                    <div className="bg-[#F5F5DC] border border-[#D2B48C] rounded-lg px-4 py-3 mb-4 text-[#2C6E91] text-sm">
-                      <strong>Location Map:</strong> This map shows the approximate location of the property based on the address. Use it to explore the area, check proximity to amenities, and get a sense of the neighbourhood.
+                    <div className="bg-gradient-to-r from-[#F5F5DC] to-[#D2B48C] border border-[#D2B48C] rounded-xl px-6 py-4 mb-6 text-[#2C6E91] text-sm shadow-soft">
+                      <div className="flex items-center gap-2">
+                        <Map className="w-5 h-5" />
+                        <strong>Location Map:</strong> This map shows the approximate location of the property based on the address. Use it to explore the area, check proximity to amenities, and get a sense of the neighbourhood.
+                      </div>
                     </div>
-                    <div className="w-full h-72 rounded-lg overflow-hidden border border-[#E5E5E5] shadow">
+                    <div className="w-full h-80 rounded-xl overflow-hidden border border-[#E5E5E5] shadow-soft">
                       <iframe
                         title="Google Map"
                         width="100%"
