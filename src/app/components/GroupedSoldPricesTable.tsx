@@ -119,7 +119,12 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     const indicator = priceIndicators[propertyKey];
     if (!indicator) return null;
 
+    // Add null checks for percentage
     const percentage = indicator.percentage;
+    if (percentage === undefined || percentage === null || isNaN(percentage)) {
+      return null;
+    }
+
     const isPositive = percentage > 0;
     
     return (
@@ -152,11 +157,17 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
         
         if (response.ok) {
           const data = await response.json();
+          console.log('🔍 Price indicators API response:', data);
           const indicatorsMap: { [key: string]: any } = {};
           data.forEach((indicator: any) => {
             // Map the indicator to the correct property key
             const propertyKey = indicator.propertyId;
-            indicatorsMap[propertyKey] = indicator;
+            console.log('🔍 Mapping indicator:', { propertyKey, indicator });
+            
+            // Only add to map if it has valid data (not an error)
+            if (indicator.percentage !== undefined && !indicator.error) {
+              indicatorsMap[propertyKey] = indicator;
+            }
           });
           setPriceIndicators(indicatorsMap);
         }
