@@ -19,7 +19,7 @@ import GroupedSoldPricesTable from './components/GroupedSoldPricesTable';
 import { LineChart, BarChart } from './components/ChartClientOnly';
 import HpiDataCard from './components/HpiDataCard';
 import FullScreenChart from './components/FullScreenChart';
-import GrowthOverYearsChart from './components/GrowthOverYearsChart';
+
 
 // Add fetch utility for enhanced property search with pagination
 async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
@@ -1048,24 +1048,7 @@ export default function Home() {
         {/* Main Content Container (centered) - Only show after search */}
         {results !== null && (
           <div className="relative max-w-screen-2xl w-[90vw] mx-auto">
-            {/* Growth Chart Section */}
-            {sortedResults && sortedResults.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="mb-8"
-              >
-                <div className="bg-white rounded-xl border border-gray-200 shadow-soft p-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
-                    Price Growth Trend - {searchTerm}
-                  </h3>
-                  <div className="w-full h-64">
-                    <GrowthOverYearsChart soldPrices={sortedResults} />
-                  </div>
-                </div>
-              </motion.div>
-            )}
+            
             
             <GroupedSoldPricesTable
               soldPrices={sortedResults || []}
