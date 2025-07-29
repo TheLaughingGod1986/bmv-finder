@@ -250,8 +250,8 @@ export async function POST(req: NextRequest) {
 
         results.push({
           propertyId: property.id || property.paon,
-          percentage: indicator.percentage,
-          category: indicator.category,
+          percentage: indicator.priceDifference * 100, // Convert to percentage
+          category: indicator.label,
           description: indicator.description,
           comparablesCount: comparables.length,
           hpiDataAvailable: hpiData.length > 0

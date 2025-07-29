@@ -144,16 +144,23 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     
     // Use guid, paon, or a combination as the key
     const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
+    console.log('🔍 Looking for indicator with key:', propertyKey);
+    console.log('🔍 Available indicators:', Object.keys(priceIndicators));
+    
     const indicator = priceIndicators[propertyKey];
+    console.log('🔍 Found indicator:', indicator);
+    
     if (!indicator) return null;
 
     // Add null checks for percentage
     const percentage = indicator.percentage;
     if (percentage === undefined || percentage === null || isNaN(percentage)) {
+      console.log('🔍 Invalid percentage:', percentage);
       return null;
     }
 
     const isPositive = percentage > 0;
+    console.log('🔍 Rendering indicator with percentage:', percentage, 'isPositive:', isPositive);
     
     return (
       <div className={`flex items-center gap-1 text-xs font-medium ${
@@ -195,8 +202,12 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
             // Only add to map if it has valid data (not an error)
             if (indicator.percentage !== undefined && !indicator.error) {
               indicatorsMap[propertyKey] = indicator;
+              console.log('🔍 Added to map:', propertyKey, indicator);
+            } else {
+              console.log('🔍 Skipped indicator due to error or missing percentage:', indicator);
             }
           });
+          console.log('🔍 Final indicators map:', indicatorsMap);
           setPriceIndicators(indicatorsMap);
         }
       } catch (error) {
