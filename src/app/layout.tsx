@@ -16,9 +16,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BMV Finder | UK Property Investment Insights & Market Analysis",
-  description: "Professional property investment platform with BMV scoring, market analysis, and UK Land Registry data. Find below-market-value properties and make informed investment decisions. Available as a web app for mobile and desktop.",
-  keywords: "BMV properties, below market value, property investment, UK property prices, land registry data, property analysis, investment opportunities, property market trends, property web app, mobile property search, real estate investment platform",
+  title: "BMV Finder | Find Below Market Value Properties in the UK",
+  description: "Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.",
+  keywords: "BMV properties, below market value, property investment, UK property prices, land registry data, property analysis, investment opportunities, property market trends, property web app, mobile property search, real estate investment platform, property research, house prices, property valuation",
   authors: [{ name: "BMV Finder" }],
   creator: "BMV Finder",
   publisher: "BMV Finder",
@@ -32,8 +32,8 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: "BMV Finder | UK Property Investment Insights & Web App",
-    description: "Find below-market-value properties with professional analysis and BMV scoring. Access UK Land Registry data and make informed investment decisions. Install as a web app for mobile and desktop.",
+    title: "BMV Finder | Find Below Market Value Properties in the UK",
+    description: "Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.",
     url: 'https://bmvfinder.com',
     siteName: 'BMV Finder',
     images: [
@@ -49,8 +49,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BMV Finder | UK Property Investment Insights & Web App',
-    description: 'Find below-market-value properties with professional analysis and BMV scoring. Install as a web app for mobile and desktop.',
+    title: 'BMV Finder | Find Below Market Value Properties in the UK',
+    description: 'Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales and AI-powered BMV analysis.',
     images: ['/og-image.png'],
     creator: '@bmvfinder',
   },

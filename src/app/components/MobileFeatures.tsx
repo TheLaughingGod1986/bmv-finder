@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, 
@@ -25,7 +25,8 @@ import {
   Eye,
   Smartphone,
   Monitor,
-  Download
+  Download,
+  AlertCircle
 } from 'lucide-react';
 
 const features = [
@@ -95,6 +96,59 @@ const mobileFeatures = [
 ];
 
 export default function MobileFeatures() {
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+  const [isInstalling, setIsInstalling] = useState(false);
+
+  useEffect(() => {
+    // Listen for the beforeinstallprompt event
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    // Listen for the appinstalled event
+    const handleAppInstalled = () => {
+      setShowInstallButton(false);
+      setDeferredPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    setIsInstalling(true);
+    
+    try {
+      // Show the install prompt
+      deferredPrompt.prompt();
+      
+      // Wait for the user to respond to the prompt
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+    } catch (error) {
+      console.error('Error installing PWA:', error);
+    } finally {
+      setIsInstalling(false);
+      setDeferredPrompt(null);
+      setShowInstallButton(false);
+    }
+  };
+
   return (
     <section className="py-16 px-4 bg-gradient-to-br from-gray-50 to-blue-50">
       <div className="max-w-6xl mx-auto">
@@ -186,10 +240,26 @@ export default function MobileFeatures() {
             viewport={{ once: true }}
             className="text-center mt-8"
           >
-            <button className="bg-white text-blue-600 font-semibold px-8 py-3 rounded-xl hover:bg-blue-50 transition-all duration-200 transform hover:scale-105 shadow-lg">
-              <Download className="w-5 h-5 inline mr-2" />
-              Install Web App
-            </button>
+            {showInstallButton ? (
+              <button 
+                onClick={handleInstallClick}
+                disabled={isInstalling}
+                className="bg-white text-blue-600 font-semibold px-8 py-3 rounded-xl hover:bg-blue-50 transition-all duration-200 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-5 h-5 inline mr-2" />
+                {isInstalling ? 'Installing...' : 'Install Web App'}
+              </button>
+            ) : (
+              <div className="text-center">
+                <p className="text-blue-100 text-sm mb-2">
+                  Use "Add to Home Screen" in your browser menu
+                </p>
+                <div className="flex items-center justify-center gap-2 text-blue-100 text-xs">
+                  <AlertCircle className="w-4 h-4" />
+                  <span>Native iOS & Android apps coming soon!</span>
+                </div>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       </div>

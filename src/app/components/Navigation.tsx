@@ -200,6 +200,7 @@ export default function Navigation() {
                 </Link>
               ) : (
                 <button
+                  data-testid="account-button"
                   onClick={() => {
                     setAuthMode('login');
                     setIsAuthModalOpen(true);
@@ -290,6 +291,7 @@ export default function Navigation() {
                     </Link>
                   ) : (
                     <button
+                      data-testid="account-button-mobile"
                       onClick={() => {
                         setAuthMode('login');
                         setIsAuthModalOpen(true);

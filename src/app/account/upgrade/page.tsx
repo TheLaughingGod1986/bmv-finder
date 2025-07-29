@@ -547,7 +547,7 @@ const UpgradePage = () => {
           )}
         </section>
       )}
-      <h1 className="text-3xl font-bold mb-6 text-center">Upgrade Your Account</h1>
+              <h1 className="text-3xl font-bold mb-8 text-center">Upgrade Your Account</h1>
       {profileLoading ? (
         <p className="text-center">Loading your profile...</p>
       ) : profileError ? (

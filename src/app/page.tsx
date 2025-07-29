@@ -8,9 +8,10 @@ import {
   TrendingUp, BarChart3, Calculator, Search, Home as HomeIcon, 
   Target, Award, Shield, Zap, Clock, Users, CheckCircle, 
   ArrowRight, Star, MapPin, PoundSterling, ChartBar, 
-  FileText, Building, Eye, ArrowUpRight
+  FileText, Building, Eye, ArrowUpRight, Lock
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@supabase/auth-helpers-react';
 import { useToast } from './components/ToastProvider';
 import AddressSearchInput from './components/AddressSearchInput';
 import MobileSearchBar from './components/MobileSearchBar';
@@ -20,6 +21,8 @@ import { LineChart, BarChart } from './components/ChartClientOnly';
 import HpiDataCard from './components/HpiDataCard';
 import FullScreenChart from './components/FullScreenChart';
 import PostcodeTrendIndicator from './components/PostcodeTrendIndicator';
+import SearchLimitWarning from './components/SearchLimitWarning';
+import SearchCounter from './components/SearchCounter';
 
 
 // Add fetch utility for enhanced property search with pagination
@@ -50,6 +53,12 @@ export default function Home() {
   });
   const { showToast } = useToast();
   const router = useRouter();
+  
+  // User authentication and search tracking
+  const user = useUser();
+  const [searchCount, setSearchCount] = useState(0);
+  const [showLimitWarning, setShowLimitWarning] = useState(false);
+  const SEARCH_LIMIT = 5; // Limit for non-logged-in users
   const [hpiData, setHpiData] = useState<any[]>([]);
   const [localPriceData, setLocalPriceData] = useState<any[]>([]);
   const [hpiLoading, setHpiLoading] = useState(false);
@@ -73,6 +82,19 @@ export default function Home() {
   };
   const [totalProperties, setTotalProperties] = useState<number | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+
+  // Load search count from localStorage on component mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !user) {
+      const storedCount = localStorage.getItem('anonymous_search_count');
+      const count = storedCount ? parseInt(storedCount, 10) : 0;
+      setSearchCount(count);
+      
+      if (count >= SEARCH_LIMIT) {
+        setShowLimitWarning(true);
+      }
+    }
+  }, [user, SEARCH_LIMIT]);
 
   // Handle sorting
   const handleSort = (key: string) => {
@@ -132,6 +154,17 @@ export default function Home() {
       });
       return;
     }
+
+    // Check search limit for non-logged-in users
+    if (!user && searchCount >= SEARCH_LIMIT) {
+      showToast({
+        type: 'error',
+        title: 'Search Limit Reached',
+        message: 'You have reached the limit of 5 searches. Please sign up to continue searching.',
+      });
+      setShowLimitWarning(true);
+      return;
+    }
     setIsLoading(true);
     setError('');
     setResults(null);
@@ -180,13 +213,29 @@ export default function Home() {
         scrollToMarketPrediction();
       }, 500); // Small delay to ensure DOM is updated
 
+      // Increment search count for non-logged-in users
+      if (!user) {
+        const newCount = searchCount + 1;
+        setSearchCount(newCount);
+        localStorage.setItem('anonymous_search_count', newCount.toString());
+        
+        // Show warning when approaching limit
+        if (newCount === SEARCH_LIMIT - 1) {
+          showToast({
+            type: 'warning',
+            title: 'Last Search',
+            message: 'This is your last free search. Sign up to continue searching.',
+          });
+        }
+      }
+
     } catch (err: any) {
       setError(err.message || 'Failed to fetch results.');
       setTotalProperties(null);
     } finally {
       setIsLoading(false);
     }
-  }, [showToast]);
+  }, [showToast, user, searchCount, SEARCH_LIMIT]);
 
   const handlePageChange = useCallback(async (page: number, after?: any) => {
     if (!searchTerm.trim()) return;
@@ -375,7 +424,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
               >
                 The UK's Most Powerful
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
@@ -387,7 +436,7 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto"
+                className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto"
               >
                 Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property decisions.
               </motion.p>
@@ -421,6 +470,14 @@ export default function Home() {
                     placeholder="Enter a postcode, address, area, or street name..."
                   />
                 </div>
+
+                {/* Search Limit Warning for Non-Logged-In Users */}
+                <SearchLimitWarning 
+                  user={user}
+                  searchCount={searchCount}
+                  showLimitWarning={showLimitWarning}
+                  SEARCH_LIMIT={SEARCH_LIMIT}
+                />
                 {/* Instant Results Table Below Search Bar */}
                 <AnimatePresence>
                   {isLoading && (
@@ -1132,6 +1189,12 @@ export default function Home() {
         {results !== null && (
           <div className="relative max-w-screen-2xl w-[90vw] mx-auto">
             
+            {/* Search Counter for Non-Logged-In Users */}
+            <SearchCounter 
+              user={user}
+              searchCount={searchCount}
+              SEARCH_LIMIT={SEARCH_LIMIT}
+            />
             
             <GroupedSoldPricesTable
               soldPrices={sortedResults || []}
@@ -1197,7 +1260,7 @@ export default function Home() {
                 transition={{ duration: 0.6 }}
                 viewport={{ once: true }}
               >
-                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-6">
+                <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8">
                   Why Property Professionals Choose Us
                 </h2>
                 <div className="space-y-4">
@@ -1210,7 +1273,20 @@ export default function Home() {
                 </div>
                 <div className="mt-8">
                   <button
-                    onClick={() => router.push('/account/upgrade')}
+                    onClick={() => {
+                      // Trigger the register popup by clicking the account button in navigation
+                      const accountButton = document.querySelector('[data-testid="account-button"]') as HTMLElement;
+                      const mobileAccountButton = document.querySelector('[data-testid="account-button-mobile"]') as HTMLElement;
+                      
+                      if (accountButton) {
+                        accountButton.click();
+                      } else if (mobileAccountButton) {
+                        mobileAccountButton.click();
+                      } else {
+                        // Fallback to navigation
+                        router.push('/account/upgrade');
+                      }
+                    }}
                     className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all duration-200"
                   >
                     Start Your Free Trial
@@ -1289,7 +1365,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-              className="text-3xl sm:text-4xl font-bold text-white mb-6"
+                              className="text-3xl sm:text-4xl font-bold text-white mb-8"
             >
               Ready to Transform Your Property Business?
             </motion.h2>
@@ -1310,7 +1386,20 @@ export default function Home() {
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
               <button
-                onClick={() => router.push('/account/upgrade')}
+                onClick={() => {
+                  // Trigger the register popup by clicking the account button in navigation
+                  const accountButton = document.querySelector('[data-testid="account-button"]') as HTMLElement;
+                  const mobileAccountButton = document.querySelector('[data-testid="account-button-mobile"]') as HTMLElement;
+                  
+                  if (accountButton) {
+                    accountButton.click();
+                  } else if (mobileAccountButton) {
+                    mobileAccountButton.click();
+                  } else {
+                    // Fallback to navigation
+                    router.push('/account/upgrade');
+                  }
+                }}
                 className="inline-flex items-center px-8 py-4 bg-white text-blue-600 font-semibold rounded-lg hover:bg-gray-100 transition-colors duration-200"
               >
                 Start Free Trial

@@ -279,7 +279,7 @@ export default function AccountPageNew() {
       <Section background="light">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold text-primary-blue-dark mb-4">Quick Actions</h2>
+            <h2 className="text-2xl font-bold text-primary-blue-dark mb-6">Quick Actions</h2>
             <p className="text-primary-green-dark">Access your most used features</p>
           </div>
           

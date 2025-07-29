@@ -265,7 +265,7 @@ export default function PricingPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.1 }}
-                  className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight"
+                  className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
                 >
                   Find the Right Plan for Your
                   <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
@@ -277,7 +277,7 @@ export default function PricingPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.2 }}
-                  className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto"
+                  className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto"
                 >
                   Choose the perfect plan to unlock powerful property insights, market analysis, and professional tools for your investment strategy.
                 </motion.p>
