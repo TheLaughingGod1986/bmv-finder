@@ -8,6 +8,7 @@ import ClientNavigation from './components/ClientNavigation';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
 import ScrollToTop from './components/ScrollToTop';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import { SearchLimitProvider } from './components/SearchLimitContext';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -188,18 +189,20 @@ export default function RootLayout({
           Skip to main content
         </a>
         <SupabaseUserProvider>
-          <ClientNavigation />
-          <main 
-            id="main-content" 
-            tabIndex={-1} 
-            className="min-h-screen bg-neutral-light relative"
-          >
-            <ToastProvider>
-              {children}
-            </ToastProvider>
-          </main>
-          <ScrollToTop />
-          <PWAInstallPrompt />
+          <SearchLimitProvider>
+            <ClientNavigation />
+            <main 
+              id="main-content" 
+              tabIndex={-1} 
+              className="min-h-screen bg-neutral-light relative"
+            >
+              <ToastProvider>
+                {children}
+              </ToastProvider>
+            </main>
+            <ScrollToTop />
+            <PWAInstallPrompt />
+          </SearchLimitProvider>
         </SupabaseUserProvider>
         <Analytics />
         <SpeedInsights />

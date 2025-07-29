@@ -21,8 +21,8 @@ import { LineChart, BarChart } from './components/ChartClientOnly';
 import HpiDataCard from './components/HpiDataCard';
 import FullScreenChart from './components/FullScreenChart';
 import PostcodeTrendIndicator from './components/PostcodeTrendIndicator';
-import SearchLimitWarning from './components/SearchLimitWarning';
-import SearchCounter from './components/SearchCounter';
+import SearchLimitManager from './components/SearchLimitManager';
+import { useSearchLimit } from './components/SearchLimitContext';
 
 
 // Add fetch utility for enhanced property search with pagination
@@ -54,11 +54,35 @@ export default function Home() {
   const { showToast } = useToast();
   const router = useRouter();
   
-  // User authentication and search tracking
+  // User authentication and search limits
   const user = useUser();
-  const [searchCount, setSearchCount] = useState(0);
-  const [showLimitWarning, setShowLimitWarning] = useState(false);
-  const SEARCH_LIMIT = 5; // Limit for non-logged-in users
+  
+  // Safely use search limit context
+  let searchLimitData = null;
+  try {
+    searchLimitData = useSearchLimit();
+  } catch (error) {
+    // Context not available yet, this is normal during SSR
+  }
+  
+  const canSearch = searchLimitData?.canSearch || (() => {
+    // If context not available, check localStorage directly
+    if (typeof window !== 'undefined' && !user) {
+      const storedCount = localStorage.getItem('anonymous_search_count');
+      const count = storedCount ? parseInt(storedCount, 10) : 0;
+      return count < 5; // SEARCH_LIMIT
+    }
+    return true; // Allow search for logged-in users or if context not available
+  });
+  const incrementSearchCount = searchLimitData?.incrementSearchCount || (() => {
+    // If context not available, increment localStorage directly
+    if (typeof window !== 'undefined' && !user) {
+      const storedCount = localStorage.getItem('anonymous_search_count');
+      const count = storedCount ? parseInt(storedCount, 10) : 0;
+      const newCount = count + 1;
+      localStorage.setItem('anonymous_search_count', newCount.toString());
+    }
+  });
   const [hpiData, setHpiData] = useState<any[]>([]);
   const [localPriceData, setLocalPriceData] = useState<any[]>([]);
   const [hpiLoading, setHpiLoading] = useState(false);
@@ -82,19 +106,9 @@ export default function Home() {
   };
   const [totalProperties, setTotalProperties] = useState<number | null>(null);
   const [selectedRowId, setSelectedRowId] = useState<string | null>(null);
+  const [lastToastTime, setLastToastTime] = useState<number>(0);
 
-  // Load search count from localStorage on component mount
-  useEffect(() => {
-    if (typeof window !== 'undefined' && !user) {
-      const storedCount = localStorage.getItem('anonymous_search_count');
-      const count = storedCount ? parseInt(storedCount, 10) : 0;
-      setSearchCount(count);
-      
-      if (count >= SEARCH_LIMIT) {
-        setShowLimitWarning(true);
-      }
-    }
-  }, [user, SEARCH_LIMIT]);
+
 
   // Handle sorting
   const handleSort = (key: string) => {
@@ -146,25 +160,40 @@ export default function Home() {
   }, [results, isLoading, error, pagination.page]);
 
   const handleSearch = useCallback(async (searchInput: string) => {
-    if (!searchInput.trim()) {
-      showToast({
-        type: 'warning',
-        title: 'Search Required',
-        message: 'Please enter a postcode, address, area, or street name to search.',
-      });
+    // Prevent multiple simultaneous searches
+    if (isLoading) {
       return;
     }
 
-    // Check search limit for non-logged-in users
-    if (!user && searchCount >= SEARCH_LIMIT) {
-      showToast({
-        type: 'error',
-        title: 'Search Limit Reached',
-        message: 'You have reached the limit of 5 searches. Please sign up to continue searching.',
-      });
-      setShowLimitWarning(true);
+    // Prevent duplicate toasts by checking if we recently showed one
+    const now = Date.now();
+    const timeSinceLastToast = now - lastToastTime;
+    
+    if (!searchInput.trim()) {
+      if (timeSinceLastToast > 2000) { // Only show toast if 2+ seconds have passed
+        setLastToastTime(now);
+        showToast({
+          type: 'warning',
+          title: 'Search Required',
+          message: 'Please enter a postcode, address, area, or street name to search.',
+        });
+      }
       return;
     }
+
+    // Check if user can search (logged in or under limit)
+    if (!canSearch()) {
+      if (timeSinceLastToast > 2000) { // Only show toast if 2+ seconds have passed
+        setLastToastTime(now);
+        showToast({
+          type: 'error',
+          title: 'Search Limit Reached',
+          message: 'You have reached the limit of 5 searches. Please sign up to continue searching.',
+        });
+      }
+      return;
+    }
+
     setIsLoading(true);
     setError('');
     setResults(null);
@@ -213,21 +242,8 @@ export default function Home() {
         scrollToMarketPrediction();
       }, 500); // Small delay to ensure DOM is updated
 
-      // Increment search count for non-logged-in users
-      if (!user) {
-        const newCount = searchCount + 1;
-        setSearchCount(newCount);
-        localStorage.setItem('anonymous_search_count', newCount.toString());
-        
-        // Show warning when approaching limit
-        if (newCount === SEARCH_LIMIT - 1) {
-          showToast({
-            type: 'warning',
-            title: 'Last Search',
-            message: 'This is your last free search. Sign up to continue searching.',
-          });
-        }
-      }
+      // Increment search count for non-logged-in users after successful search
+      incrementSearchCount();
 
     } catch (err: any) {
       setError(err.message || 'Failed to fetch results.');
@@ -235,7 +251,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, user, searchCount, SEARCH_LIMIT]);
+  }, [showToast, user, canSearch, incrementSearchCount, lastToastTime, isLoading]);
 
   const handlePageChange = useCallback(async (page: number, after?: any) => {
     if (!searchTerm.trim()) return;
@@ -472,12 +488,7 @@ export default function Home() {
                 </div>
 
                 {/* Search Limit Warning for Non-Logged-In Users */}
-                <SearchLimitWarning 
-                  user={user}
-                  searchCount={searchCount}
-                  showLimitWarning={showLimitWarning}
-                  SEARCH_LIMIT={SEARCH_LIMIT}
-                />
+                <SearchLimitManager />
                 {/* Instant Results Table Below Search Bar */}
                 <AnimatePresence>
                   {isLoading && (
@@ -1189,12 +1200,7 @@ export default function Home() {
         {results !== null && (
           <div className="relative max-w-screen-2xl w-[90vw] mx-auto">
             
-            {/* Search Counter for Non-Logged-In Users */}
-            <SearchCounter 
-              user={user}
-              searchCount={searchCount}
-              SEARCH_LIMIT={SEARCH_LIMIT}
-            />
+            {/* Search Counter is now handled by SearchLimitManager */}
             
             <GroupedSoldPricesTable
               soldPrices={sortedResults || []}

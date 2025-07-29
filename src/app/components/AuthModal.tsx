@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Mail, Lock, User, Apple, Eye, EyeOff } from 'lucide-react';
+import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
 interface AuthModalProps {
@@ -58,30 +58,31 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
     }
   };
 
-  const handleAppleLogin = async () => {
-    setIsLoading(true);
-    setError(null);
-    
-    if (!supabase) {
-      setError('Authentication service is not configured. Please contact support.');
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-        },
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      setError('Apple authentication is not configured. Please use email/password or contact support.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Apple authentication is not configured in Supabase project
+  // const handleAppleLogin = async () => {
+  //   setIsLoading(true);
+  //   setError(null);
+  //   
+  //   if (!supabase) {
+  //     setError('Authentication service is not configured. Please contact support.');
+  //     setIsLoading(false);
+  //     return;
+  //   }
+  //   
+  //   try {
+  //     const { error } = await supabase.auth.signInWithOAuth({
+  //       provider: 'apple',
+  //       options: {
+  //         redirectTo: `${window.location.origin}/auth/callback`,
+  //       },
+  //     });
+  //     if (error) throw error;
+  //   } catch (error: any) {
+  //     setError('Apple authentication is not configured. Please use email/password or contact support.');
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   const handleGoogleLogin = async () => {
     setIsLoading(true);
@@ -151,14 +152,15 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                   </div>
                 )}
                 
-                <button
+                {/* Apple authentication is not configured in Supabase project */}
+                {/* <button
                   onClick={handleAppleLogin}
                   disabled={isLoading || !supabase}
                   className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-black text-white rounded-lg font-medium hover:bg-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Apple className="w-5 h-5" />
                   Continue with Apple
-                </button>
+                </button> */}
                 
                 <button
                   onClick={handleGoogleLogin}
