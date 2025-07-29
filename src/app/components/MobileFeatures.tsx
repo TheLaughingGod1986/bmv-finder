@@ -168,7 +168,7 @@ export default function MobileFeatures() {
                 <div className={`w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm`}>
                   <feature.icon className="w-8 h-8 text-white" />
                 </div>
-                <h4 className="text-lg font-semibold mb-2">
+                <h4 className="text-lg font-semibold mb-2 text-white">
                   {feature.title}
                 </h4>
                 <p className="text-blue-100 text-sm">
