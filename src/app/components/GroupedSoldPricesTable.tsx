@@ -55,7 +55,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     isOpen: false,
     property: null
   });
-  const [activeTab, setActiveTab] = useState<'history' | 'growth' | 'info' | 'map'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'growth' | 'previous-sales' | 'info' | 'map'>('history');
   const [priceIndicators, setPriceIndicators] = useState<{ [key: string]: any }>({});
 
   const formatAddress = (property: any) => {
@@ -183,7 +183,33 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
   );
 
   const openHistoryModal = (property: any) => {
-    setHistoryModal({ isOpen: true, property });
+    // Find all sales for this property (same address)
+    const propertyAddress = formatAddress(property);
+    const salesHistory = soldPrices.filter(sale => {
+      const saleAddress = formatAddress(sale);
+      return saleAddress === propertyAddress;
+    }).map(sale => ({
+      date: sale.date,
+      price: sale.price,
+      description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
+    }));
+
+    // If no sales history found, create a single entry from the current property
+    if (salesHistory.length === 0) {
+      salesHistory.push({
+        date: property.date,
+        price: property.price,
+        description: `${formatPropertyType(property.propertyType)} - ${property.postcode}`
+      });
+    }
+
+    setHistoryModal({ 
+      isOpen: true, 
+      property: {
+        ...property,
+        salesHistory: salesHistory
+      }
+    });
     setActiveTab('history');
   };
 
@@ -363,6 +389,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                 {[
                   { id: 'history', label: 'History', icon: <BarChart3 className="w-4 h-4" /> },
                   { id: 'growth', label: 'Growth', icon: <TrendingUp className="w-4 h-4" /> },
+                  { id: 'previous-sales', label: 'Previous Sales', icon: <Calendar className="w-4 h-4" /> },
                   { id: 'info', label: 'Info', icon: <Info className="w-4 h-4" /> },
                   { id: 'map', label: 'Map', icon: <Map className="w-4 h-4" /> }
                 ].map((tab) => (
@@ -465,6 +492,52 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                         )}
                       </div>
                     </FullScreenChart>
+                  </div>
+                )}
+
+                {activeTab === 'previous-sales' && (
+                  <div className="space-y-4">
+                    <div className="bg-[#F5F5DC] border border-[#D2B48C] rounded-lg px-4 py-3 text-[#2C6E91] text-sm">
+                      <strong>Previous Sales:</strong> This shows all recent sales in this area. Use this data to understand market trends and compare property values.
+                    </div>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full text-sm border rounded-xl">
+                        <thead>
+                          <tr className="bg-[#F5F5DC] text-[#2C6E91]">
+                            <th className="px-4 py-2 text-left font-semibold">Address</th>
+                            <th className="px-4 py-2 text-left font-semibold">Type</th>
+                            <th className="px-4 py-2 text-left font-semibold">Date</th>
+                            <th className="px-4 py-2 text-left font-semibold">Price</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {soldPrices.slice(0, 10).map((sale, index) => (
+                            <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                              <td className="px-4 py-2 font-medium text-[#2C6E91]">
+                                {formatShortAddress(sale)}
+                                <div className="text-xs text-[#3B755D]">{sale.postcode}</div>
+                              </td>
+                              <td className="px-4 py-2">
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {formatPropertyType(sale.propertyType)}
+                                </span>
+                              </td>
+                              <td className="px-4 py-2 text-[#3B755D]">
+                                {formatDate(sale.date)}
+                              </td>
+                              <td className="px-4 py-2 font-semibold text-[#2C6E91]">
+                                {formatPrice(sale.price)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {soldPrices.length > 10 && (
+                      <div className="text-center text-sm text-[#3B755D]">
+                        Showing first 10 of {soldPrices.length} sales. Use the main table to see all results.
+                      </div>
+                    )}
                   </div>
                 )}
 
