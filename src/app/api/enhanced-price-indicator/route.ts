@@ -258,7 +258,9 @@ export async function POST(req: NextRequest) {
           // BMV information
           bmvCategory: indicator.bmvCategory,
           bmvLabel: indicator.bmvLabel,
-          bmvScore: indicator.bmvScore
+          bmvScore: indicator.bmvScore,
+          // Market trend information
+          marketTrend: indicator.marketTrend
         });
 
       } catch (error) {

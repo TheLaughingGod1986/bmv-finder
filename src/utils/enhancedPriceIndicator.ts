@@ -54,19 +54,52 @@ function adjustPriceForHpi(
 }
 
 /**
- * Determine market trend based on HPI data
+ * Determine market trend based on HPI data and recent sales patterns
  */
-function determineMarketTrend(hpiData: HpiData[]): 'rising' | 'falling' | 'stable' {
-  if (!hpiData || hpiData.length < 3) return 'stable';
+function determineMarketTrend(hpiData: HpiData[], recentSales?: SoldPrice[]): 'rising' | 'falling' | 'stable' {
+  let hpiTrend: 'rising' | 'falling' | 'stable' = 'stable';
+  let salesTrend: 'rising' | 'falling' | 'stable' = 'stable';
   
-  // Get last 3 months of data
-  const recentData = hpiData.slice(0, 3);
-  const changes = recentData.map(h => h.change || 0);
-  const avgChange = changes.reduce((sum, change) => sum + change, 0) / changes.length;
+  // Analyze HPI data if available
+  if (hpiData && hpiData.length >= 3) {
+    const recentData = hpiData.slice(0, 3);
+    const changes = recentData.map(h => h.change || 0);
+    const avgChange = changes.reduce((sum, change) => sum + change, 0) / changes.length;
+    
+    if (avgChange > 0.5) hpiTrend = 'rising';
+    else if (avgChange < -0.5) hpiTrend = 'falling';
+  }
   
-  if (avgChange > 0.5) return 'rising';
-  if (avgChange < -0.5) return 'falling';
-  return 'stable';
+  // Analyze recent sales patterns if available
+  if (recentSales && recentSales.length >= 5) {
+    // Sort by date and get last 6 months of sales
+    const sortedSales = recentSales
+      .sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime())
+      .slice(0, 6);
+    
+    if (sortedSales.length >= 3) {
+      const prices = sortedSales.map(s => s.price);
+      const midPoint = Math.floor(prices.length / 2);
+      const recentPrices = prices.slice(0, midPoint);
+      const olderPrices = prices.slice(midPoint);
+      
+      const recentAvg = recentPrices.reduce((sum, price) => sum + price, 0) / recentPrices.length;
+      const olderAvg = olderPrices.reduce((sum, price) => sum + price, 0) / olderPrices.length;
+      
+      const priceChange = (recentAvg - olderAvg) / olderAvg;
+      
+      if (priceChange > 0.02) salesTrend = 'rising'; // 2% increase
+      else if (priceChange < -0.02) salesTrend = 'falling'; // 2% decrease
+    }
+  }
+  
+  // Combine HPI and sales trends
+  if (hpiTrend === salesTrend) return hpiTrend;
+  if (hpiTrend === 'stable') return salesTrend;
+  if (salesTrend === 'stable') return hpiTrend;
+  
+  // If trends conflict, use HPI as primary indicator
+  return hpiTrend;
 }
 
 /**
@@ -170,6 +203,70 @@ function calculateBMVScore(
 }
 
 /**
+ * Generate comprehensive market analysis insights
+ */
+function generateMarketAnalysis(
+  currentPrice: number,
+  averagePrice: number,
+  comparables: SoldPrice[],
+  marketTrend: 'rising' | 'falling' | 'stable',
+  hpiData?: HpiData[]
+): string[] {
+  const analysis: string[] = [];
+  
+  // Price comparison analysis
+  const priceDiff = ((currentPrice - averagePrice) / averagePrice) * 100;
+  if (priceDiff < -10) {
+    analysis.push(`Property priced ${Math.abs(priceDiff).toFixed(1)}% below market average`);
+  } else if (priceDiff > 10) {
+    analysis.push(`Property priced ${priceDiff.toFixed(1)}% above market average`);
+  } else {
+    analysis.push(`Property priced close to market average (${priceDiff > 0 ? '+' : ''}${priceDiff.toFixed(1)}%)`);
+  }
+  
+  // Market trend analysis
+  if (marketTrend === 'rising') {
+    analysis.push('Market showing upward trend - values expected to increase');
+  } else if (marketTrend === 'falling') {
+    analysis.push('Market showing downward trend - values may decrease');
+  } else {
+    analysis.push('Market showing stable trend - values expected to remain steady');
+  }
+  
+  // Data confidence analysis
+  if (comparables.length >= 10) {
+    analysis.push(`High confidence analysis based on ${comparables.length} recent sales`);
+  } else if (comparables.length >= 5) {
+    analysis.push(`Good confidence analysis based on ${comparables.length} recent sales`);
+  } else {
+    analysis.push(`Limited data - analysis based on ${comparables.length} recent sales`);
+  }
+  
+  // HPI adjustment analysis
+  if (hpiData && hpiData.length > 0) {
+    analysis.push('Analysis includes HPI adjustments for market inflation');
+  }
+  
+  // Recent sales velocity
+  const recentSales = comparables.filter(sale => {
+    const saleDate = new Date(sale.dateOfTransfer);
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    return saleDate >= sixMonthsAgo;
+  });
+  
+  if (recentSales.length >= 5) {
+    analysis.push('High sales activity in the area (good liquidity)');
+  } else if (recentSales.length >= 2) {
+    analysis.push('Moderate sales activity in the area');
+  } else {
+    analysis.push('Low sales activity in the area (limited liquidity)');
+  }
+  
+  return analysis;
+}
+
+/**
  * Calculate weighted average price with more weight to recent sales
  */
 function calculateWeightedAverage(prices: number[], dates: string[]): number {
@@ -243,7 +340,7 @@ export function getOptimizedPriceIndicator(
   const averagePrice = calculateWeightedAverage(prices, dates);
   
   // Determine market trend
-  const marketTrend = determineMarketTrend(hpiData || []);
+  const marketTrend = determineMarketTrend(hpiData || [], soldPrices);
   
   // Calculate price difference
   const priceDifference = (price - averagePrice) / averagePrice;
@@ -274,6 +371,9 @@ export function getOptimizedPriceIndicator(
   
   // Calculate BMV score (Below Market Value)
   const bmvScore = calculateBMVScore(price, averagePrice, comparables.length, marketTrend, hpiData);
+  
+  // Generate market analysis insights
+  const analysis = generateMarketAnalysis(price, averagePrice, comparables, marketTrend, hpiData);
   
   // Determine BMV category based on score
   let bmvCategory: 'above' | 'below' | 'neutral';
@@ -313,7 +413,6 @@ export function getOptimizedPriceIndicator(
   let textColor: string;
   let icon: string;
   let description: string;
-  let analysis: string[] = [];
   
   if (priceDifference <= excellentThreshold) {
     label = 'Excellent Deal';
@@ -322,13 +421,7 @@ export function getOptimizedPriceIndicator(
     textColor = 'text-white';
     icon = '💡';
     description = `${Math.abs(priceDifference * 100).toFixed(1)}% below market average`;
-    analysis = [
-      `Property is ${Math.abs(priceDifference * 100).toFixed(1)}% below the weighted market average`,
-      `Based on ${comparables.length} recent comparable sales`,
-      marketTrend === 'rising' ? 'Market is rising - excellent timing for purchase' : 
-      marketTrend === 'falling' ? 'Market is falling - consider if this represents true value' : 
-      'Market is stable - this represents genuine value'
-    ];
+
   } else if (priceDifference <= goodThreshold) {
     label = 'Good Deal';
     color = 'green';
@@ -336,11 +429,7 @@ export function getOptimizedPriceIndicator(
     textColor = 'text-green-800';
     icon = '↓';
     description = `${Math.abs(priceDifference * 100).toFixed(1)}% below market average`;
-    analysis = [
-      `Property is ${Math.abs(priceDifference * 100).toFixed(1)}% below the weighted market average`,
-      `Based on ${comparables.length} recent comparable sales`,
-      'Represents good value compared to recent market activity'
-    ];
+
   } else if (priceDifference >= overpricedThreshold) {
     label = 'Overpriced';
     color = 'red';
@@ -361,11 +450,7 @@ export function getOptimizedPriceIndicator(
     textColor = 'text-orange-800';
     icon = '⚠️';
     description = `${(priceDifference * 100).toFixed(1)}% above market average`;
-    analysis = [
-      `Property is ${(priceDifference * 100).toFixed(1)}% above the weighted market average`,
-      `Based on ${comparables.length} recent comparable sales`,
-      'Consider whether premium features justify the higher price'
-    ];
+
   } else {
     label = 'Fair Price';
     color = 'yellow';
@@ -373,22 +458,10 @@ export function getOptimizedPriceIndicator(
     textColor = 'text-yellow-800';
     icon = '→';
     description = `Within ${Math.abs(priceDifference * 100).toFixed(1)}% of market average`;
-    analysis = [
-      `Property is within ${Math.abs(priceDifference * 100).toFixed(1)}% of the weighted market average`,
-      `Based on ${comparables.length} recent comparable sales`,
-      'Priced appropriately for current market conditions'
-    ];
+
   }
   
-  // Add HPI adjustment info
-  if (hpiData && hpiData.length > 0) {
-    analysis.push('Prices adjusted for House Price Index changes');
-  }
-  
-  // Add confidence info
-  if (confidence === 'low') {
-    analysis.push('Limited comparable data - consider expanding search area');
-  }
+
   
   return {
     label,
