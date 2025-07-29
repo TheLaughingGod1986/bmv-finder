@@ -39,7 +39,7 @@ const features = [
     icon: TrendingUp,
     title: "BMV Analysis",
     description: "AI-powered below market value scoring for investment opportunities",
-    color: "from-green-500 to-green-600"
+    color: "from-blue-600 to-indigo-600"
   },
   {
     icon: BarChart3,
