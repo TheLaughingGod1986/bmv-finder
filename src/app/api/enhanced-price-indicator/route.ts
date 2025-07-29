@@ -192,4 +192,86 @@ async function fetchComparableProperties(
     console.error('Error fetching comparable properties:', error);
     return [];
   }
-} 
+}
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { properties } = body;
+
+    if (!properties || !Array.isArray(properties)) {
+      return NextResponse.json({ 
+        error: 'Missing or invalid properties array' 
+      }, { status: 400 });
+    }
+
+    const results = [];
+
+    for (const property of properties) {
+      try {
+        const { postcode, propertyType, price, bedrooms } = property;
+        
+        if (!postcode || !propertyType || !price) {
+          results.push({
+            propertyId: property.id || property.paon,
+            error: 'Missing required parameters'
+          });
+          continue;
+        }
+
+        const priceNum = parseFloat(price);
+        const bedroomsNum = bedrooms ? parseInt(bedrooms) : undefined;
+
+        if (isNaN(priceNum)) {
+          results.push({
+            propertyId: property.id || property.paon,
+            error: 'Invalid price'
+          });
+          continue;
+        }
+
+        // Map postcode to region for HPI data
+        const region = getRegionFromPostcode(postcode);
+
+        // Fetch HPI data for the region
+        const hpiData = await fetchHpiData(region);
+
+        // Fetch comparable properties
+        const comparables = await fetchComparableProperties(postcode, propertyType, bedroomsNum);
+
+        // Get enhanced price indicator
+        const indicator = getOptimizedPriceIndicator(
+          priceNum,
+          comparables,
+          propertyType,
+          bedroomsNum,
+          hpiData
+        );
+
+        results.push({
+          propertyId: property.id || property.paon,
+          percentage: indicator.percentage,
+          category: indicator.category,
+          description: indicator.description,
+          comparablesCount: comparables.length,
+          hpiDataAvailable: hpiData.length > 0
+        });
+
+      } catch (error) {
+        console.error('Error processing property:', property, error);
+        results.push({
+          propertyId: property.id || property.paon,
+          error: 'Failed to process property'
+        });
+      }
+    }
+
+    return NextResponse.json(results);
+
+  } catch (error) {
+    console.error('Enhanced price indicator batch error:', error);
+    return NextResponse.json({ 
+      error: 'Failed to calculate enhanced price indicators' 
+    }, { status: 500 });
+  }
+}
