@@ -481,17 +481,78 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                     <div className="bg-[#F5F5DC] border border-[#D2B48C] rounded-lg px-4 py-3 text-[#2C6E91] text-sm">
                       <strong>Sale History:</strong> This shows all recorded sales for this property. Use this data to understand price trends and market performance over time.
                     </div>
-                    {historyModal.property?.salesHistory?.map((sale: any, index: number) => (
-                      <div key={index} className="bg-white border border-[#E5E5E5] rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-lg font-bold text-[#2C6E91]">{formatPrice(sale.price)}</span>
-                          <span className="text-sm text-[#3B755D]">{formatDate(sale.date)}</span>
-                        </div>
-                        <div className="text-sm text-[#3B755D]">
-                          {sale.description || 'No additional details available'}
+                    
+                    {/* Total Growth Summary */}
+                    {historyModal.property?.salesHistory && historyModal.property.salesHistory.length > 1 && (
+                      <div className="bg-gradient-to-r from-blue-50 to-green-50 border border-blue-200 rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold text-[#2C6E91] mb-1">Total Growth Summary</h4>
+                            <p className="text-sm text-[#3B755D]">
+                              From {formatDate(historyModal.property.salesHistory[historyModal.property.salesHistory.length - 1].date)} to {formatDate(historyModal.property.salesHistory[0].date)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            {(() => {
+                              const firstSale = historyModal.property.salesHistory[historyModal.property.salesHistory.length - 1];
+                              const lastSale = historyModal.property.salesHistory[0];
+                              const totalGrowth = lastSale.price - firstSale.price;
+                              const totalGrowthPercentage = firstSale.price > 0 ? (totalGrowth / firstSale.price) * 100 : 0;
+                              
+                              return (
+                                <div className={`text-lg font-bold ${
+                                  totalGrowthPercentage > 0 ? 'text-green-600' : totalGrowthPercentage < 0 ? 'text-red-600' : 'text-gray-600'
+                                }`}>
+                                  {totalGrowthPercentage > 0 ? '+' : ''}{totalGrowthPercentage.toFixed(1)}%
+                                  <div className="text-sm font-normal text-[#3B755D]">
+                                    {totalGrowth > 0 ? '+' : ''}{formatPrice(totalGrowth)}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    )}
+                    {historyModal.property?.salesHistory?.map((sale: any, index: number) => {
+                      // Calculate growth percentage compared to previous sale
+                      let growthPercentage = null;
+                      let growthAmount = null;
+                      
+                      if (index < historyModal.property.salesHistory.length - 1) {
+                        const previousSale = historyModal.property.salesHistory[index + 1]; // Next in array is previous chronologically
+                        growthAmount = sale.price - previousSale.price;
+                        growthPercentage = previousSale.price > 0 ? (growthAmount / previousSale.price) * 100 : 0;
+                      }
+                      
+                      return (
+                        <div key={index} className="bg-white border border-[#E5E5E5] rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-3">
+                              <span className="text-lg font-bold text-[#2C6E91]">{formatPrice(sale.price)}</span>
+                              {growthPercentage !== null && (
+                                <div className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
+                                  growthPercentage > 0 
+                                    ? 'bg-green-100 text-green-800' 
+                                    : growthPercentage < 0 
+                                    ? 'bg-red-100 text-red-800' 
+                                    : 'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {growthPercentage > 0 ? '+' : ''}{growthPercentage.toFixed(1)}%
+                                  <span className="text-xs">
+                                    ({growthAmount > 0 ? '+' : ''}{formatPrice(growthAmount)})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <span className="text-sm text-[#3B755D]">{formatDate(sale.date)}</span>
+                          </div>
+                          <div className="text-sm text-[#3B755D]">
+                            {sale.description || 'No additional details available'}
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
 
