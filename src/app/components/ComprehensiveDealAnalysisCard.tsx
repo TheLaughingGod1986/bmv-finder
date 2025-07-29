@@ -464,7 +464,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
               propertyData={{
                 address: valuationData.property.address,
                 postcode: valuationData.property.postcode,
-                houseNumber: houseNumber,
+                houseNumber: houseNumber || valuationData.property.address?.split(' ')[0] || '',
                 propertyType: valuationData.property.propertyType,
                 bedrooms: valuationData.property.bedrooms,
                 floorArea: valuationData.property.floorArea,

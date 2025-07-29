@@ -177,29 +177,29 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
             </div>
 
             {/* Market Trend Indicator */}
-            <div className="mt-4 p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg">
+            <div className="mt-4 p-4 bg-[#F5F5DC] border border-[#E5E5E5] rounded-xl shadow-soft">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-white" />
-                  <span className="text-sm font-medium text-white drop-shadow-sm">Market Trend</span>
+                  <TrendingUp className="h-4 w-4 text-[#5DA271]" />
+                  <span className="text-sm font-medium text-[#2C6E91]">Market Trend</span>
                 </div>
                 <div className="flex items-center gap-1">
-                  <span className="text-xs text-white drop-shadow-sm">Rising</span>
+                  <span className="text-xs text-[#3B755D]">Rising</span>
                   <div className="w-2 h-2 bg-[#5DA271] rounded-full animate-pulse"></div>
                 </div>
               </div>
-              <div className="text-xs text-white drop-shadow-sm">
+              <div className="text-xs text-[#3B755D]">
                 Property values in this area have increased by an average of 
-                <span className="font-semibold"> {estimatedValue ? ((estimatedValue - (comparables[comparables.length - 1]?.price || 0)) / (comparables[comparables.length - 1]?.price || 1) * 100).toFixed(1) : 'N/A'}% </span>
+                <span className="font-semibold text-[#2C6E91]"> {estimatedValue ? ((estimatedValue - (comparables[comparables.length - 1]?.price || 0)) / (comparables[comparables.length - 1]?.price || 1) * 100).toFixed(1) : 'N/A'}% </span>
                 since the oldest comparable sale
               </div>
             </div>
 
             {/* Add to Portfolio Button */}
-            <div className="mt-4 p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg">
+            <div className="mt-4 p-4 bg-[#F5F5DC] border border-[#E5E5E5] rounded-xl shadow-soft">
               <div className="text-center">
-                <h4 className="text-sm font-semibold text-white mb-2 drop-shadow-sm">Track This Property</h4>
-                <p className="text-xs text-white/90 mb-4 drop-shadow-sm">
+                <h4 className="text-sm font-semibold text-[#2C6E91] mb-2">Track This Property</h4>
+                <p className="text-xs text-[#3B755D] mb-4">
                   Add to your portfolio to track value changes, growth, and performance over time
                 </p>
                 <AddToPortfolioButton
@@ -217,7 +217,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                     bmvScore: confidence === 'high' ? 80 : confidence === 'medium' ? 60 : 40,
                     notes: `Added from deal analysis. Confidence: ${confidence}, Comparables: ${comparables.length}`
                   }}
-                  className="bg-white/20 hover:bg-white/30 text-white px-6 py-2 rounded-lg font-medium transition-colors border border-white/30 backdrop-blur-sm"
+                  className="bg-[#5DA271] hover:bg-[#3B755D] text-white px-6 py-2 rounded-lg font-medium transition-colors border border-[#3B755D] shadow-soft"
                   size="md"
                   showIcon={true}
                 >
@@ -258,29 +258,29 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
             </div>
 
             {/* Value Confidence Explanation */}
-            <div className="mt-4 p-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl shadow-lg">
+            <div className="mt-4 p-4 bg-[#F5F5DC] border border-[#E5E5E5] rounded-xl shadow-soft">
               <div className="flex items-start gap-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center border border-white/30">
+                <div className="flex-shrink-0 w-8 h-8 bg-[#5DA271] rounded-full flex items-center justify-center border border-[#3B755D]">
                   <Target className="h-4 w-4 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-white mb-3 drop-shadow-sm">Why this value is accurate</h4>
+                  <h4 className="font-semibold text-[#2C6E91] mb-3">Why this value is accurate</h4>
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-sm text-white drop-shadow-sm">
-                      <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                    <div className="flex items-center gap-2 text-sm text-[#3B755D]">
+                      <div className="w-2 h-2 bg-[#5DA271] rounded-full flex-shrink-0"></div>
                       <span><strong>{comparables.length}</strong> recent comparable sales</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-white drop-shadow-sm">
-                      <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                    <div className="flex items-center gap-2 text-sm text-[#3B755D]">
+                      <div className="w-2 h-2 bg-[#5DA271] rounded-full flex-shrink-0"></div>
                       <span>Official Land Registry data</span>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-white drop-shadow-sm">
-                      <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                    <div className="flex items-center gap-2 text-sm text-[#3B755D]">
+                      <div className="w-2 h-2 bg-[#5DA271] rounded-full flex-shrink-0"></div>
                       <span>Property type & location factors</span>
                     </div>
                     {comparables.length > 0 && (
-                      <div className="flex items-center gap-2 text-sm text-white drop-shadow-sm">
-                        <div className="w-2 h-2 bg-white rounded-full flex-shrink-0"></div>
+                      <div className="flex items-center gap-2 text-sm text-[#3B755D]">
+                        <div className="w-2 h-2 bg-[#5DA271] rounded-full flex-shrink-0"></div>
                         <span>Most recent: <strong>{formatDate(comparables[0]?.date || '')}</strong></span>
                       </div>
                     )}
@@ -290,8 +290,8 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
             </div>
 
             {/* Recent Comparable Sales */}
-            <div className="mt-4 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20 shadow-lg">
-              <div className="text-sm font-medium text-white mb-3 drop-shadow-sm">Recent Comparable Sales</div>
+            <div className="mt-4 bg-[#F5F5DC] rounded-xl p-4 border border-[#E5E5E5] shadow-soft">
+              <div className="text-sm font-medium text-[#2C6E91] mb-3">Recent Comparable Sales</div>
               <div className="space-y-2">
                 {comparables.slice(0, 3).map((sale, index) => {
                   const prevSale = comparables[index + 1];
@@ -301,14 +301,14 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                   const isDecrease = priceChange < 0;
 
                   return (
-                    <div key={index} className="flex items-center justify-between text-xs p-2 bg-white/10 rounded-lg border border-white/20">
-                      <span className="text-white/90 drop-shadow-sm">{formatDate(sale.date)}</span>
-                      <span className="font-medium text-white drop-shadow-sm">£{sale.price.toLocaleString()}</span>
+                    <div key={index} className="flex items-center justify-between text-xs p-2 bg-white rounded-lg border border-[#E5E5E5] shadow-sm">
+                      <span className="text-[#3B755D]">{formatDate(sale.date)}</span>
+                      <span className="font-medium text-[#2C6E91]">£{sale.price.toLocaleString()}</span>
                       {percentageChange !== null && (
-                        <span className={`text-xs px-2 py-1 rounded backdrop-blur-sm border ${
-                          isIncrease ? 'bg-green-500/20 text-green-200 border-green-300/30' :
-                          isDecrease ? 'bg-red-500/20 text-red-200 border-red-300/30' :
-                          'bg-white/20 text-white border-white/30'
+                        <span className={`text-xs px-2 py-1 rounded border ${
+                          isIncrease ? 'bg-green-100 text-green-700 border-green-300' :
+                          isDecrease ? 'bg-red-100 text-red-700 border-red-300' :
+                          'bg-gray-100 text-gray-700 border-gray-300'
                         }`}>
                           {isIncrease ? '↗' : isDecrease ? '↘' : '→'} {Math.abs(parseFloat(percentageChange))}%
                         </span>

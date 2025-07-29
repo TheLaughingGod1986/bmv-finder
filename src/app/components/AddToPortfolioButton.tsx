@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Home, Plus, Check, AlertCircle } from 'lucide-react';
 import { useToast } from './ToastProvider';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -43,8 +43,38 @@ export default function AddToPortfolioButton({
 }: AddToPortfolioButtonProps) {
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
+  const [checking, setChecking] = useState(true);
   const { showToast } = useToast();
   const user = useUser();
+
+  // Check if property is already in portfolio when component loads
+  useEffect(() => {
+    const checkIfInPortfolio = async () => {
+      if (!user) {
+        setChecking(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/portfolio?userId=${user.id}`);
+        if (response.ok) {
+          const data = await response.json();
+          const isInPortfolio = data.portfolio?.some((property: any) => 
+            property.address === propertyData.address &&
+            property.postcode === propertyData.postcode &&
+            property.house_number === propertyData.houseNumber
+          );
+          setAdded(isInPortfolio);
+        }
+      } catch (error) {
+        console.error('Error checking portfolio:', error);
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    checkIfInPortfolio();
+  }, [user, propertyData.address, propertyData.postcode, propertyData.houseNumber]);
 
   const handleAddToPortfolio = async () => {
     if (!user) {
@@ -83,11 +113,6 @@ export default function AddToPortfolioButton({
           title: 'Property Added',
           message: `${propertyData.address} has been added to your portfolio successfully!`
         });
-
-        // Reset added state after 3 seconds
-        setTimeout(() => {
-          setAdded(false);
-        }, 3000);
       } else {
         if (response.status === 409) {
           showToast({
@@ -111,11 +136,20 @@ export default function AddToPortfolioButton({
   };
 
   const getButtonContent = () => {
+    if (checking) {
+      return (
+        <>
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
+          Checking...
+        </>
+      );
+    }
+
     if (added) {
       return (
         <>
           <Check className="h-4 w-4" />
-          Added to Portfolio
+          In Portfolio
         </>
       );
     }
@@ -152,7 +186,9 @@ export default function AddToPortfolioButton({
       ghost: 'text-primary-700 hover:bg-primary-50 focus:ring-primary-500'
     };
 
-    const stateClasses = added 
+    const stateClasses = checking
+      ? 'bg-gray-400 text-white cursor-not-allowed shadow-soft'
+      : added 
       ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-soft'
       : loading
       ? 'bg-gray-400 text-white cursor-not-allowed shadow-soft'
@@ -164,7 +200,7 @@ export default function AddToPortfolioButton({
   return (
     <button
       onClick={handleAddToPortfolio}
-      disabled={loading || added}
+      disabled={loading || added || checking}
       className={getButtonClasses()}
       type="button"
     >

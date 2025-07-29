@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Button from './Button';
 import { useToast } from './ToastProvider';
 import { supabase } from '../../lib/supabaseClient';
+import DealCalculatorAddressInput from './DealCalculatorAddressInput';
 
 // Reusable input component
 interface InputFieldProps {
@@ -71,6 +72,7 @@ export default function DealCalculator() {
   const { showToast } = useToast();
   
   // State for inputs
+  const [postcode, setPostcode] = useState('');
   const [address, setAddress] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [refurbCost, setRefurbCost] = useState('');
@@ -182,12 +184,21 @@ export default function DealCalculator() {
       return;
     }
 
+    // Validate required fields
+    if (!postcode.trim() || !address.trim()) {
+      showToast({
+        type: 'error',
+        title: 'Missing Information',
+        message: 'Please enter both postcode and property address'
+      });
+      return;
+    }
+
     setIsLoading(true);
     
     try {
-      // Extract postcode from address (simple extraction)
-      const postcodeMatch = address.match(/[A-Z]{1,2}[0-9][A-Z0-9]?\s*[0-9][A-Z]{2}/i);
-      const postcode = postcodeMatch ? postcodeMatch[0].toUpperCase() : '';
+      // Use the dedicated postcode field
+      const postcodeValue = postcode.trim().toUpperCase();
       
       // Extract house number from address
       const houseNumberMatch = address.match(/^(\d+)/);
@@ -195,7 +206,7 @@ export default function DealCalculator() {
 
       const dealData = {
         address,
-        postcode,
+        postcode: postcodeValue,
         houseNumber,
         propertyType: 'Residential', // Default
         purchasePrice: p,
@@ -287,7 +298,18 @@ export default function DealCalculator() {
         </div>
       )}
       <form className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-beige rounded-3xl shadow-xl border border-taupe p-8" onSubmit={e => e.preventDefault()}>
-        <InputField label="Property Address" value={address} onChange={setAddress} required type="text" maxLength={120} />
+        <DealCalculatorAddressInput
+          postcode={postcode}
+          onPostcodeChange={setPostcode}
+          address={address}
+          onAddressChange={setAddress}
+          onAddressSelect={(selectedAddress) => {
+            // Optionally auto-fill some fields based on selected address
+            console.log('Selected address:', selectedAddress);
+          }}
+          required
+          className="md:col-span-2"
+        />
         <InputField label="Purchase Price" value={purchasePrice} onChange={val => { setPurchasePrice(val); if (ltvMode === 'ltv') setDeposit(''); }} required min={0} />
         <InputField label="Refurbishment Costs" value={refurbCost} onChange={setRefurbCost} min={0} />
         <InputField label="Monthly Rent" value={monthlyRent} onChange={setMonthlyRent} required min={0} />

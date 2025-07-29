@@ -13,7 +13,7 @@ interface PortfolioProperty {
   currentValue: number;
   purchaseDate: string;
   propertyType: string;
-  bmvScore: number;
+  bmvScore: number | null;
   notes?: string;
   status: 'active' | 'sold' | 'watching';
 }
@@ -171,7 +171,8 @@ export default function PortfolioTrackerPage() {
     return ((totalCurrent - totalPurchase) / totalPurchase) * 100;
   };
 
-  const getBMVScoreColor = (score: number) => {
+  const getBMVScoreColor = (score: number | null | undefined) => {
+    if (!score || isNaN(score)) return 'text-gray-600 bg-gray-100';
     if (score >= 80) return 'text-green-600 bg-green-100';
     if (score >= 65) return 'text-blue-600 bg-blue-100';
     if (score >= 50) return 'text-yellow-600 bg-yellow-100';
@@ -357,7 +358,7 @@ export default function PortfolioTrackerPage() {
                 </div>
                 <p className="text-2xl font-bold text-indigo-600">
                   {portfolioProperties.length > 0 
-                    ? Math.round(portfolioProperties.reduce((sum, p) => sum + p.bmvScore, 0) / portfolioProperties.length)
+                    ? Math.round(portfolioProperties.reduce((sum, p) => sum + (p.bmvScore || 0), 0) / portfolioProperties.length)
                     : 0
                   }
                 </p>
@@ -508,7 +509,7 @@ export default function PortfolioTrackerPage() {
                             </div>
                             <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
                               <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">BMV Score</p>
-                              <p className="font-semibold text-blue-600">{property.bmvScore}/100</p>
+                              <p className="font-semibold text-blue-600">{property.bmvScore ? `${property.bmvScore}/100` : 'N/A'}</p>
                             </div>
                           </div>
                         </div>
