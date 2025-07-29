@@ -437,12 +437,7 @@ export function getOptimizedPriceIndicator(
     textColor = 'text-red-800';
     icon = '↑';
     description = `${(priceDifference * 100).toFixed(1)}% above market average`;
-    analysis = [
-      `Property is ${(priceDifference * 100).toFixed(1)}% above the weighted market average`,
-      `Based on ${comparables.length} recent comparable sales`,
-      marketTrend === 'falling' ? 'Market is falling - consider waiting for better prices' : 
-      'Significantly overpriced compared to recent sales'
-    ];
+
   } else if (priceDifference >= expensiveThreshold) {
     label = 'Expensive';
     color = 'orange';

@@ -519,9 +519,6 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                 <th className="px-4 py-3 text-left">
                   <span className="text-xs font-medium text-[#2C6E91]">Value Indicator</span>
                 </th>
-                <th className="px-4 py-3 text-left">
-                  <span className="text-xs font-medium text-[#2C6E91]">Market Trend</span>
-                </th>
                 <th className="px-4 py-3 text-center">
                   <span className="text-xs font-medium text-[#2C6E91]">Actions</span>
                 </th>
@@ -572,9 +569,6 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   </td>
                   <td className="px-4 py-3">
                     {getValueIndicator(property.price, property)}
-                  </td>
-                  <td className="px-4 py-3">
-                    {getMarketTrend(property)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button

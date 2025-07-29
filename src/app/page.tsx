@@ -19,6 +19,7 @@ import GroupedSoldPricesTable from './components/GroupedSoldPricesTable';
 import { LineChart, BarChart } from './components/ChartClientOnly';
 import HpiDataCard from './components/HpiDataCard';
 import FullScreenChart from './components/FullScreenChart';
+import PostcodeTrendIndicator from './components/PostcodeTrendIndicator';
 
 
 // Add fetch utility for enhanced property search with pagination
@@ -790,6 +791,16 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
+                  </div>
+                  
+                  {/* Postcode Trend Indicator */}
+                  <div className="relative z-10 mb-6">
+                    <PostcodeTrendIndicator
+                      postcode={searchTerm}
+                      marketTrend={marketState === 'buyer' ? 'falling' : marketState === 'seller' ? 'rising' : 'stable'}
+                      hpiData={hpiData}
+                      recentSales={localPriceData}
+                    />
                   </div>
                   
                   {/* Supporting Cards - Smaller Grid */}
