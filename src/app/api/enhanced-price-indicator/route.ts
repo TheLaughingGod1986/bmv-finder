@@ -254,7 +254,11 @@ export async function POST(req: NextRequest) {
           category: indicator.label,
           description: indicator.description,
           comparablesCount: comparables.length,
-          hpiDataAvailable: hpiData.length > 0
+          hpiDataAvailable: hpiData.length > 0,
+          // BMV information
+          bmvCategory: indicator.bmvCategory,
+          bmvLabel: indicator.bmvLabel,
+          bmvScore: indicator.bmvScore
         });
 
       } catch (error) {

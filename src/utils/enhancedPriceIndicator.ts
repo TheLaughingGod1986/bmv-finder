@@ -14,6 +14,14 @@ export interface EnhancedPriceIndicator {
   averagePrice: number;
   priceDifference: number;
   analysis: string[];
+  // BMV information
+  bmvCategory: 'above' | 'below' | 'neutral';
+  bmvLabel: string;
+  bmvColor: string;
+  bmvBgColor: string;
+  bmvTextColor: string;
+  bmvIcon: string;
+  bmvScore: number;
 }
 
 export interface HpiData {
@@ -102,6 +110,63 @@ function getComparableProperties(
     })
     .sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime())
     .slice(0, 10); // Take top 10 most recent
+}
+
+/**
+ * Calculate BMV score (Below Market Value) - 1-10 scale
+ * Higher score = better deal, lower score = overpriced
+ */
+function calculateBMVScore(
+  currentPrice: number,
+  marketAverage: number,
+  comparablesCount: number,
+  marketTrend: 'rising' | 'falling' | 'stable',
+  hpiData?: HpiData[]
+): number {
+  if (comparablesCount === 0) return 5; // Neutral if no comparables
+  
+  // Base score from price comparison (50% weight)
+  const priceRatio = currentPrice / marketAverage;
+  let baseScore = 10;
+  
+  if (priceRatio <= 0.85) baseScore = 10; // 15%+ below market
+  else if (priceRatio <= 0.90) baseScore = 9; // 10-15% below
+  else if (priceRatio <= 0.95) baseScore = 8; // 5-10% below
+  else if (priceRatio <= 1.00) baseScore = 7; // 0-5% below
+  else if (priceRatio <= 1.05) baseScore = 6; // 0-5% above
+  else if (priceRatio <= 1.10) baseScore = 5; // 5-10% above
+  else if (priceRatio <= 1.15) baseScore = 4; // 10-15% above
+  else if (priceRatio <= 1.20) baseScore = 3; // 15-20% above
+  else baseScore = 2; // 20%+ above
+  
+  // Comparables confidence bonus (20% weight)
+  let confidenceBonus = 0;
+  if (comparablesCount >= 10) confidenceBonus = 2;
+  else if (comparablesCount >= 5) confidenceBonus = 1;
+  else if (comparablesCount >= 3) confidenceBonus = 0.5;
+  
+  // Market trend adjustment (20% weight)
+  let trendAdjustment = 0;
+  if (marketTrend === 'falling') {
+    // In falling market, being below average is less impressive
+    trendAdjustment = -0.5;
+  } else if (marketTrend === 'rising') {
+    // In rising market, being below average is more impressive
+    trendAdjustment = 0.5;
+  }
+  
+  // HPI adjustment bonus (10% weight)
+  let hpiBonus = 0;
+  if (hpiData && hpiData.length > 0) {
+    hpiBonus = 0.5; // Bonus for using HPI-adjusted data
+  }
+  
+  // Calculate final score
+  const finalScore = Math.max(1, Math.min(10, 
+    (baseScore * 0.5) + (confidenceBonus * 0.2) + (trendAdjustment * 0.2) + (hpiBonus * 0.1)
+  ));
+  
+  return Math.round(finalScore * 10) / 10; // Round to 1 decimal place
 }
 
 /**
@@ -207,7 +272,41 @@ export function getOptimizedPriceIndicator(
     overpricedThreshold = 0.08;
   }
   
-  // Determine indicator
+  // Calculate BMV score (Below Market Value)
+  const bmvScore = calculateBMVScore(price, averagePrice, comparables.length, marketTrend, hpiData);
+  
+  // Determine BMV category based on score
+  let bmvCategory: 'above' | 'below' | 'neutral';
+  let bmvLabel: string;
+  let bmvColor: string;
+  let bmvBgColor: string;
+  let bmvTextColor: string;
+  let bmvIcon: string;
+  
+  if (bmvScore >= 7) {
+    bmvCategory = 'below';
+    bmvLabel = 'Below Market Value';
+    bmvColor = 'green';
+    bmvBgColor = 'bg-green-100';
+    bmvTextColor = 'text-green-800';
+    bmvIcon = '↓';
+  } else if (bmvScore <= 3) {
+    bmvCategory = 'above';
+    bmvLabel = 'Above Market Value';
+    bmvColor = 'red';
+    bmvBgColor = 'bg-red-100';
+    bmvTextColor = 'text-red-800';
+    bmvIcon = '↑';
+  } else {
+    bmvCategory = 'neutral';
+    bmvLabel = 'Market Value';
+    bmvColor = 'gray';
+    bmvBgColor = 'bg-gray-100';
+    bmvTextColor = 'text-gray-800';
+    bmvIcon = '→';
+  }
+  
+  // Determine detailed indicator
   let label: string;
   let color: string;
   let bgColor: string;
@@ -304,7 +403,15 @@ export function getOptimizedPriceIndicator(
     comparablesCount: comparables.length,
     averagePrice: Math.round(averagePrice),
     priceDifference,
-    analysis
+    analysis,
+    // BMV information
+    bmvCategory,
+    bmvLabel,
+    bmvColor,
+    bmvBgColor,
+    bmvTextColor,
+    bmvIcon,
+    bmvScore
   };
 }
 

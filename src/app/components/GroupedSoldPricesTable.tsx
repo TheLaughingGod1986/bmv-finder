@@ -162,12 +162,40 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     const isPositive = percentage > 0;
     console.log('🔍 Rendering indicator with percentage:', percentage, 'isPositive:', isPositive);
     
+    // BMV badge
+    const bmvCategory = indicator.bmvCategory;
+    const bmvScore = indicator.bmvScore;
+    
+    let bmvBadge = null;
+    if (bmvCategory && bmvScore !== undefined) {
+      let badgeColor = 'bg-gray-100 text-gray-800';
+      let badgeIcon = '→';
+      
+      if (bmvCategory === 'below') {
+        badgeColor = 'bg-green-100 text-green-800';
+        badgeIcon = '↓';
+      } else if (bmvCategory === 'above') {
+        badgeColor = 'bg-red-100 text-red-800';
+        badgeIcon = '↑';
+      }
+      
+      bmvBadge = (
+        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${badgeColor}`}>
+          <span>{badgeIcon}</span>
+          <span>{bmvScore.toFixed(1)}</span>
+        </div>
+      );
+    }
+    
     return (
-      <div className={`flex items-center gap-1 text-xs font-medium ${
-        isPositive ? 'text-[#5DA271]' : 'text-red-500'
-      }`}>
-        <span>{isPositive ? '+' : ''}{percentage.toFixed(1)}%</span>
-        <TrendingUp className={`w-3 h-3 ${isPositive ? '' : 'rotate-180'}`} />
+      <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-1 text-xs font-medium ${
+          isPositive ? 'text-[#5DA271]' : 'text-red-500'
+        }`}>
+          <span>{isPositive ? '+' : ''}{percentage.toFixed(1)}%</span>
+          <TrendingUp className={`w-3 h-3 ${isPositive ? '' : 'rotate-180'}`} />
+        </div>
+        {bmvBadge}
       </div>
     );
   };
