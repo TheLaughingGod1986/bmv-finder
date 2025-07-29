@@ -17,10 +17,12 @@ import {
   Info,
   Map,
   Download,
-  Eye
+  Eye,
+  Plus
 } from 'lucide-react';
 import ValueIndicatorExplanation from './BMVExplanationAccordion';
 import FullScreenChart from './FullScreenChart';
+import AddToPortfolioButton from './AddToPortfolioButton';
 
 interface GroupedSoldPricesTableProps {
   soldPrices: any[];
@@ -497,7 +499,8 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
       <ValueIndicatorExplanation className="mb-4" />
       
       <div className={`bg-white rounded-xl border border-[#D2B48C] shadow-soft overflow-hidden ${className}`}>
-        <div className="overflow-x-auto">
+        {/* Desktop Table View */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full">
             <thead className="bg-[#F5F5DC] border-b border-[#D2B48C]">
               <tr>
@@ -520,7 +523,10 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   <span className="text-xs font-medium text-[#2C6E91]">Value Indicator</span>
                 </th>
                 <th className="px-4 py-3 text-center">
-                  <span className="text-xs font-medium text-[#2C6E91]">Actions</span>
+                  <span className="text-xs font-medium text-[#2C6E91]">View</span>
+                </th>
+                <th className="px-4 py-3 text-center">
+                  <span className="text-xs font-medium text-[#2C6E91]">Add to Portfolio</span>
                 </th>
               </tr>
             </thead>
@@ -582,10 +588,125 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                       View
                     </button>
                   </td>
+                  <td className="px-4 py-3 text-center">
+                    <AddToPortfolioButton
+                      propertyData={{
+                        address: formatShortAddress(property),
+                        postcode: property.postcode,
+                        houseNumber: property.paon || '',
+                        propertyType: formatPropertyType(property.property_type || property.propertyType),
+                        bedrooms: property.bedrooms,
+                        purchasePrice: property.price,
+                        currentValue: property.price,
+                        purchaseDate: property.date,
+                        dealScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
+                        dealRating: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.category || 'Fair',
+                        bmvScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
+                        notes: `Added from search results. Value Indicator: ${priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 'N/A'}%`
+                      }}
+                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-white bg-[#5DA271] hover:bg-[#3B755D] rounded-lg transition-colors"
+                      size="sm"
+                      showIcon={false}
+                    >
+                      <Plus className="w-3 h-3" />
+                      Add
+                    </AddToPortfolioButton>
+                  </td>
                 </motion.tr>
               ))}
             </tbody>
           </table>
+        </div>
+
+        {/* Mobile Card View */}
+        <div className="md:hidden space-y-4 p-4">
+          {soldPrices.map((property, index) => (
+            <motion.div
+              key={`mobile-${property.id || index}`}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="bg-white border border-[#E5E5E5] rounded-xl p-4 shadow-soft hover:shadow-md transition-all duration-300"
+              onClick={() => onRowClick(property)}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3 flex-1">
+                  {getPropertyTypeIcon(property.propertyType)}
+                  <div className="flex-1">
+                    <div className="font-semibold text-[#2C6E91] text-base">
+                      {formatShortAddress(property)}
+                    </div>
+                    <div className="text-sm text-[#3B755D]">
+                      {property.postcode}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="font-bold text-[#2C6E91] text-lg">
+                    {formatPrice(property.price)}
+                  </div>
+                  <div className="text-xs text-[#3B755D]">
+                    {formatDate(property.date)}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="text-center p-2 bg-[#F5F5DC] rounded-lg">
+                  <div className="text-xs text-[#3B755D] font-medium">Type</div>
+                  <div className="text-sm font-semibold text-[#2C6E91]">
+                    {formatPropertyType(property.property_type || property.propertyType)}
+                  </div>
+                </div>
+                <div className="text-center p-2 bg-[#F5F5DC] rounded-lg">
+                  <div className="text-xs text-[#3B755D] font-medium">Sales</div>
+                  <div className="text-sm font-semibold text-[#2C6E91]">
+                    {getSalesCount(property)}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  {getValueIndicator(property.price, property)}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openHistoryModal(property);
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-[#2C6E91] bg-[#F5F5DC] hover:bg-[#D2B48C] rounded-lg transition-colors"
+                  >
+                    <Eye className="w-3 h-3" />
+                    View
+                  </button>
+                  <AddToPortfolioButton
+                    propertyData={{
+                      address: formatShortAddress(property),
+                      postcode: property.postcode,
+                      houseNumber: property.paon || '',
+                      propertyType: formatPropertyType(property.property_type || property.propertyType),
+                      bedrooms: property.bedrooms,
+                      purchasePrice: property.price,
+                      currentValue: property.price,
+                      purchaseDate: property.date,
+                      dealScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
+                      dealRating: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.category || 'Fair',
+                      bmvScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
+                      notes: `Added from search results. Value Indicator: ${priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 'N/A'}%`
+                    }}
+                    className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-[#5DA271] hover:bg-[#3B755D] rounded-lg transition-colors"
+                    size="sm"
+                    showIcon={false}
+                  >
+                    <Plus className="w-3 h-3" />
+                    Add
+                  </AddToPortfolioButton>
+                </div>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
         {/* Pagination */}
@@ -596,14 +717,22 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => onPageChange(pagination.page - 1)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onPageChange(pagination.page - 1);
+                }}
                 disabled={pagination.page <= 1}
                 className="px-3 py-1 text-sm font-medium text-[#2C6E91] bg-white border border-[#D2B48C] rounded-lg hover:bg-[#F5F5DC] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Previous
               </button>
               <button
-                onClick={() => onPageChange(pagination.page + 1, pagination.after_key)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onPageChange(pagination.page + 1, pagination.after_key);
+                }}
                 disabled={!pagination.has_more}
                 className="px-3 py-1 text-sm font-medium text-[#2C6E91] bg-white border border-[#D2B48C] rounded-lg hover:bg-[#F5F5DC] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >

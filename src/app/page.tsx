@@ -114,21 +114,21 @@ export default function Home() {
     return 0;
   }) : null;
 
-  // Scroll to chart/table after results are set and not loading
+  // Scroll to chart/table after results are set and not loading (only on initial search, not pagination)
   useEffect(() => {
-    if (results && !isLoading && !error) {
+    if (results && !isLoading && !error && pagination.page === 1) {
       setTimeout(() => {
         scrollToChart();
       }, 100);
     }
-  }, [results, isLoading, error]);
+  }, [results, isLoading, error, pagination.page]);
 
   const handleSearch = useCallback(async (searchInput: string) => {
     if (!searchInput.trim()) {
       showToast({
         type: 'warning',
         title: 'Search Required',
-        message: 'Please enter a postcode, address, or area to search.',
+        message: 'Please enter a postcode, address, area, or street name to search.',
       });
       return;
     }
@@ -150,24 +150,28 @@ export default function Home() {
         setTotalProperties(0);
       }
 
-      // Fetch HPI data for the current postcode
-      try {
-        const hpiResponse = await fetch(`/api/hpi/postcode?postcode=${encodeURIComponent(searchInput)}`);
-        if (hpiResponse.ok) {
-          const hpiResult = await hpiResponse.json();
-          if (hpiResult.results && hpiResult.results.length > 0) {
-            setHpiData(hpiResult.results);
+      // Fetch HPI data only if the search term looks like a postcode
+      const postcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i;
+      if (postcodePattern.test(searchInput.trim())) {
+        try {
+          const hpiResponse = await fetch(`/api/hpi/postcode?postcode=${encodeURIComponent(searchInput)}`);
+          if (hpiResponse.ok) {
+            const hpiResult = await hpiResponse.json();
+            if (hpiResult.results && hpiResult.results.length > 0) {
+              setHpiData(hpiResult.results);
+            }
           }
+        } catch (error) {
+          console.error('Error fetching HPI data:', error);
         }
-      } catch (error) {
-        console.error('Error fetching HPI data:', error);
+      } else {
+        // Clear HPI data for non-postcode searches
+        setHpiData([]);
       }
 
-      // Fetch local price data for comparison
+      // Fetch local price data for comparison - use all results since they're already filtered by search term
       if (data && data.results && data.results.length > 0) {
-        const yearlyPrices = getAvgPricePerYear(data.results.filter(r => 
-          r.postcode && r.postcode.replace(/\s/g, '').toUpperCase() === searchInput.replace(/\s/g, '').toUpperCase()
-        ));
+        const yearlyPrices = getAvgPricePerYear(data.results);
         setLocalPriceData(yearlyPrices);
       }
 
@@ -203,9 +207,19 @@ export default function Home() {
     }
   }, [searchTerm]);
 
-  // Fetch HPI data for the current postcode
+  // Fetch HPI data only if the search term looks like a postcode
   useEffect(() => {
-    if (!searchTerm || !/^[A-Z0-9 ]{4,8}$/i.test(searchTerm)) return;
+    if (!searchTerm || searchTerm.trim().length < 2) return;
+    
+    const postcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i;
+    if (!postcodePattern.test(searchTerm.trim())) {
+      // Clear HPI data for non-postcode searches
+      setHpiData([]);
+      setHpiError(null);
+      setHpiLoading(false);
+      return;
+    }
+    
     setHpiLoading(true);
     setHpiError(null);
     fetch(`/api/hpi/postcode?postcode=${encodeURIComponent(searchTerm)}`)
@@ -225,14 +239,14 @@ export default function Home() {
       .finally(() => setHpiLoading(false));
   }, [searchTerm]);
 
-  // Scroll to Market Prediction when data is ready
+  // Scroll to Market Prediction when data is ready (only on initial search, not pagination)
   useEffect(() => {
-    if (results && (localPriceData.length > 1 || hpiData.length > 1)) {
+    if (results && (localPriceData.length > 1 || hpiData.length > 1) && pagination.page === 1) {
       setTimeout(() => {
         scrollToMarketPrediction();
       }, 1000); // Delay to ensure Market Prediction section is rendered
     }
-  }, [results, localPriceData, hpiData]);
+  }, [results, localPriceData, hpiData, pagination.page]);
 
   // Helper: aggregate average sale price per year for the current postcode
   function getAvgPricePerYear(soldPrices: any[]) {
@@ -392,7 +406,7 @@ export default function Home() {
                     onChange={setSearchTerm}
                     onSearch={handleSearch}
                     isLoading={isLoading}
-                    placeholder="Enter a postcode, address, or area to start..."
+                    placeholder="Enter a postcode, address, area, or street name..."
                     showHistory={true}
                     showSuggestions={false}
                     className="w-full"
@@ -404,7 +418,7 @@ export default function Home() {
                   <MobileSearchBar
                     onSearch={handleSearch}
                     isLoading={isLoading}
-                    placeholder="Enter a postcode, address, or area to start..."
+                    placeholder="Enter a postcode, address, area, or street name..."
                   />
                 </div>
                 {/* Instant Results Table Below Search Bar */}
@@ -524,15 +538,18 @@ export default function Home() {
                 25
               ));
               
-              // Recommendation calculation - More intelligent logic
+              // Recommendation calculation - More intelligent logic that considers long-term vs short-term
               let recommendation = 'Monitor';
               let recColor = 'text-gray-600';
               let recommendationReason = 'Market is balanced - consider timing';
+              let recommendationType = 'timing'; // 'timing', 'investment', 'holding'
               
               // Check if we're in a loss situation (negative overall growth)
               const isInLoss = localGrowth < -10; // Significant loss threshold
               const isRecentGrowth = recentLocalGrowth > 2;
               const isRegionalGrowth = hpiGrowth > 1;
+              const isStrongGrowth = localGrowth > 15; // Very strong growth
+              const isModerateGrowth = localGrowth > 5 && localGrowth <= 15; // Moderate growth
               
               if (isInLoss) {
                 // If we're in a significant loss, don't recommend selling
@@ -540,20 +557,36 @@ export default function Home() {
                   recommendation = 'Hold & Monitor Recovery';
                   recColor = 'text-blue-600';
                   recommendationReason = 'Market showing recovery signs - consider holding for better prices';
+                  recommendationType = 'holding';
                 } else {
                   recommendation = 'Hold Position';
                   recColor = 'text-orange-600';
                   recommendationReason = 'Current market conditions suggest holding to avoid selling at a loss';
+                  recommendationType = 'holding';
                 }
-              } else if (isRecentGrowth && isRegionalGrowth && localGrowth > 5) {
-                // Only recommend selling if we have positive growth AND recent momentum
-                recommendation = 'Consider Selling';
+              } else if (isStrongGrowth && isRecentGrowth && isRegionalGrowth) {
+                // Very strong growth - consider short-term selling opportunity
+                recommendation = 'Consider Short-Term Sale';
                 recColor = 'text-red-600';
-                recommendationReason = 'Market conditions favor sellers with strong growth';
+                recommendationReason = 'Peak market conditions - maximize current value';
+                recommendationType = 'timing';
+              } else if (isModerateGrowth && isRecentGrowth && isRegionalGrowth) {
+                // Moderate growth - good for long-term holding
+                recommendation = 'Hold for Long-Term Growth';
+                recColor = 'text-blue-600';
+                recommendationReason = 'Strong growth potential - consider long-term investment';
+                recommendationType = 'investment';
               } else if (recentLocalGrowth < -3 || hpiGrowth < -5) {
                 recommendation = 'Good Buying Opportunity';
                 recColor = 'text-green-600';
                 recommendationReason = 'Market conditions favor buyers';
+                recommendationType = 'timing';
+              } else if (localGrowth > 0 && localGrowth <= 5) {
+                // Stable positive growth
+                recommendation = 'Hold for Steady Growth';
+                recColor = 'text-blue-600';
+                recommendationReason = 'Stable market with positive growth potential';
+                recommendationType = 'investment';
               }
               
               // Update market state based on recommendation logic
@@ -670,16 +703,16 @@ export default function Home() {
                             </div>
                           )}
 
-                          {/* Explanation for Consider Selling */}
-                          {recColor.includes('red') && (
+                          {/* Explanation for Short-Term Sale */}
+                          {recColor.includes('red') && recommendationType === 'timing' && (
                             <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
                               <div className="text-sm">
-                                <div className="font-bold mb-4 text-red-800 text-base">Why you should consider selling:</div>
+                                <div className="font-bold mb-4 text-red-800 text-base">Why consider a short-term sale:</div>
                                 <ul className="space-y-3">
                                   <li className="flex items-start gap-3">
                                     <span className="text-red-600 font-bold text-lg mt-0.5">•</span>
                                     <div>
-                                      <span className="font-bold text-red-800">Strong local growth:</span>
+                                      <span className="font-bold text-red-800">Peak market value:</span>
                                       <span className="text-gray-700 ml-2">Recent sales show {recentLocalGrowth.toFixed(1)}% increase in local prices</span>
                                     </div>
                                   </li>
@@ -693,15 +726,54 @@ export default function Home() {
                                   <li className="flex items-start gap-3">
                                     <span className="text-red-600 font-bold text-lg mt-0.5">•</span>
                                     <div>
-                                      <span className="font-bold text-red-800">Peak market conditions:</span>
-                                      <span className="text-gray-700 ml-2">Both local and regional trends indicate favorable selling conditions</span>
+                                      <span className="font-bold text-red-800">Market timing:</span>
+                                      <span className="text-gray-700 ml-2">Current conditions may represent peak value - consider maximizing returns</span>
                                     </div>
                                   </li>
                                   <li className="flex items-start gap-3">
                                     <span className="text-red-600 font-bold text-lg mt-0.5">•</span>
                                     <div>
-                                      <span className="font-bold text-red-800">Data confidence:</span>
-                                      <span className="text-gray-700 ml-2">Analysis based on {localPriceData.length} local sales and {hpiData.length} regional data points</span>
+                                      <span className="font-bold text-red-800">Long-term outlook:</span>
+                                      <span className="text-gray-700 ml-2">While short-term sale may be optimal, long-term growth potential remains strong</span>
+                                    </div>
+                                  </li>
+                                </ul>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Explanation for Long-Term Investment */}
+                          {recColor.includes('blue') && recommendationType === 'investment' && (
+                            <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
+                              <div className="text-sm">
+                                <div className="font-bold mb-4 text-blue-800 text-base">Why hold for long-term growth:</div>
+                                <ul className="space-y-3">
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-blue-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-blue-800">Strong growth potential:</span>
+                                      <span className="text-gray-700 ml-2">Overall growth shows {localGrowth.toFixed(1)}% with positive momentum</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-blue-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-blue-800">Recent trends:</span>
+                                      <span className="text-gray-700 ml-2">Recent sales show {recentLocalGrowth > 0 ? '+' : ''}{recentLocalGrowth.toFixed(1)}% {recentLocalGrowth > 0 ? 'increase' : 'decrease'} in local prices</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-blue-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-blue-800">Regional outlook:</span>
+                                      <span className="text-gray-700 ml-2">HPI shows {hpiPct > 0 ? '+' : ''}{hpiPct?.toFixed(1)}% regional movement</span>
+                                    </div>
+                                  </li>
+                                  <li className="flex items-start gap-3">
+                                    <span className="text-blue-600 font-bold text-lg mt-0.5">•</span>
+                                    <div>
+                                      <span className="font-bold text-blue-800">Long-term strategy:</span>
+                                      <span className="text-gray-700 ml-2">Market conditions support continued growth - ideal for long-term investment</span>
                                     </div>
                                   </li>
                                 </ul>
@@ -710,7 +782,7 @@ export default function Home() {
                           )}
 
                           {/* Explanation for Hold Position */}
-                          {(recColor.includes('orange') || recColor.includes('blue')) && (
+                          {(recColor.includes('orange') || (recColor.includes('blue') && recommendationType === 'holding')) && (
                             <div className="bg-white bg-opacity-95 rounded-xl p-5 mt-4 shadow-inner border border-white border-opacity-50">
                               <div className="text-sm">
                                 <div className={`font-bold mb-4 ${recColor.includes('blue') ? 'text-blue-800' : 'text-orange-800'} text-base`}>

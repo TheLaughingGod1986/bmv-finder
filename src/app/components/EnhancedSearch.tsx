@@ -150,11 +150,18 @@ const EnhancedSearch: React.FC<EnhancedSearchProps> = ({
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let input = e.target.value || '';
-    // If it looks like a postcode (starts with a letter and contains a digit), format it
-    if (/^[A-Za-z]{1,2}\s*\d/.test(input)) {
+    
+    // Only format as postcode if it matches a more specific postcode pattern
+    // This prevents formatting area names like "LON DON" as postcodes
+    const postcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i;
+    const partialPostcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]?$/i;
+    
+    if (postcodePattern.test(input) || partialPostcodePattern.test(input)) {
+      // Only format if it's actually a postcode pattern
       input = formatPostcode(input);
       onChange(input.toUpperCase());
     } else {
+      // For areas, addresses, etc., just pass through as-is
       onChange(input);
     }
   };
