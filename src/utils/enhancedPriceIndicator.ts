@@ -309,7 +309,14 @@ export function getOptimizedPriceIndicator(
       comparablesCount: 0,
       averagePrice: 0,
       priceDifference: 0,
-      analysis: ['No comparable sales data available']
+      analysis: ['No comparable sales data available'],
+      bmvCategory: 'neutral',
+      bmvLabel: 'N/A',
+      bmvColor: 'gray',
+      bmvBgColor: 'bg-gray-100',
+      bmvTextColor: 'text-gray-600',
+      bmvIcon: '',
+      bmvScore: 0
     };
   }
 
@@ -330,7 +337,14 @@ export function getOptimizedPriceIndicator(
       comparablesCount: 0,
       averagePrice: 0,
       priceDifference: 0,
-      analysis: ['No similar properties sold recently in this area']
+      analysis: ['No similar properties sold recently in this area'],
+      bmvCategory: 'neutral',
+      bmvLabel: 'N/A',
+      bmvColor: 'gray',
+      bmvBgColor: 'bg-gray-100',
+      bmvTextColor: 'text-gray-600',
+      bmvIcon: '',
+      bmvScore: 0
     };
   }
 
