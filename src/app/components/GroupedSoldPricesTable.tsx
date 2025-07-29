@@ -19,7 +19,7 @@ import {
   Download,
   Eye
 } from 'lucide-react';
-import BMVExplanationAccordion from './BMVExplanationAccordion';
+import ValueIndicatorExplanation from './BMVExplanationAccordion';
 import FullScreenChart from './FullScreenChart';
 
 interface GroupedSoldPricesTableProps {
@@ -389,8 +389,8 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
   return (
     <>
-      {/* BMV Explanation Accordion */}
-      <BMVExplanationAccordion className="mb-4" />
+      {/* Value Indicator Explanation */}
+      <ValueIndicatorExplanation className="mb-4" />
       
       <div className={`bg-white rounded-xl border border-[#D2B48C] shadow-soft overflow-hidden ${className}`}>
         <div className="overflow-x-auto">

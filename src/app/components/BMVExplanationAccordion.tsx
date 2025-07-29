@@ -75,7 +75,7 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
       >
         <div className="flex items-center gap-2">
           <Info className="w-5 h-5 text-[#3A7CA5]" />
-          <span className="font-medium text-gray-900">Understanding BMV Badges & Scoring</span>
+          <span className="font-medium text-gray-900">Understanding Value Indicators & Deal Scores</span>
         </div>
         {isOpen ? (
           <ChevronUp className="w-5 h-5 text-gray-500" />
@@ -96,18 +96,18 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
             <div className="px-4 pb-4 space-y-6">
                              {/* Overview */}
                <div className="bg-blue-50 rounded-lg p-4">
-                 <h4 className="font-semibold text-[#3A7CA5] mb-2">What are BMV Badges?</h4>
+                 <h4 className="font-semibold text-[#3A7CA5] mb-2">What are Value Indicators?</h4>
                  <p className="text-sm text-gray-700">
-                   BMV (Below Market Value) badges show a single score from 1-10 that indicates how good 
-                   a deal each property represents. Higher scores (7-10) mean better investment opportunities, 
-                   while lower scores (1-3) indicate overpriced properties. This compares against current 
-                   market value, not historical prices.
+                   Value indicators show a single score from 1-10 that indicates how good a deal each property 
+                   represents. Higher scores (7-10) mean better investment opportunities, while lower scores 
+                   (1-3) indicate overpriced properties. This compares against current market value, 
+                   not historical prices.
                  </p>
                </div>
 
-              {/* BMV Categories */}
-              <div>
-                <h4 className="font-semibold text-gray-900 mb-3">BMV Categories</h4>
+                             {/* Value Categories */}
+               <div>
+                 <h4 className="font-semibold text-gray-900 mb-3">Value Categories</h4>
                 <div className="space-y-3">
                   {bmvCategories.map((category) => (
                     <div key={category.category} className="flex items-start gap-3 p-3 rounded-lg border">
@@ -159,7 +159,7 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
                    <p>• 10% below market = High base score (8-9)</p>
                    <p>• 5 comparable sales = Good confidence bonus</p>
                    <p>• Rising market = Positive trend adjustment</p>
-                   <p>• <strong>Final Score: 8.5</strong> (Green badge with ↓ icon)</p>
+                   <p>• <strong>Final Deal Score: 8.5</strong> (Green badge with ↓ icon)</p>
                  </div>
                </div>
 
@@ -170,7 +170,7 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
                    <li>• <strong>Green badges (7.0-10.0):</strong> Best investment opportunities</li>
                    <li>• <strong>Gray badges (4.0-6.9):</strong> Fair market value</li>
                    <li>• <strong>Red badges (1.0-3.9):</strong> Overpriced properties</li>
-                   <li>• Higher scores don't guarantee profit - always do your own research</li>
+                   <li>• Higher deal scores don't guarantee profit - always do your own research</li>
                    <li>• Consider why a property is below market value (condition, location, etc.)</li>
                  </ul>
                </div>
