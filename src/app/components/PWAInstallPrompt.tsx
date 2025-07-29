@@ -79,20 +79,26 @@ export default function PWAInstallPrompt() {
     setDeferredPrompt(null);
   };
 
+  const [isDismissed, setIsDismissed] = useState(false);
+
+  useEffect(() => {
+    // Check if dismissed in this session
+    if (typeof window !== 'undefined') {
+      const dismissed = sessionStorage.getItem('pwa-prompt-dismissed') === 'true';
+      setIsDismissed(dismissed);
+    }
+  }, []);
+
   const handleDismiss = () => {
     setShowPrompt(false);
+    setIsDismissed(true);
     // Don't show again for this session
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('pwa-prompt-dismissed', 'true');
     }
   };
 
-  // Don't show if dismissed in this session
-  if (typeof window !== 'undefined' && sessionStorage.getItem('pwa-prompt-dismissed') === 'true') {
-    return null;
-  }
-
-  if (isInstalled || !showPrompt) {
+  if (isInstalled || !showPrompt || isDismissed) {
     return null;
   }
 
