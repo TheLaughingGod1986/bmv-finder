@@ -60,6 +60,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
   });
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'growth' | 'map'>('info');
   const [priceIndicators, setPriceIndicators] = useState<{ [key: string]: any }>({});
+  const [salesCounts, setSalesCounts] = useState<{ [key: string]: number }>({});
 
   const formatAddress = (property: any) => {
     if (!property) return '';
@@ -138,6 +139,27 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(price);
+  };
+
+  const getSalesCount = (property: any) => {
+    if (!property) return null;
+    
+    const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
+    const count = salesCounts[propertyKey];
+    
+    if (count === undefined) {
+      return (
+        <div className="text-xs text-gray-400">
+          Loading...
+        </div>
+      );
+    }
+    
+    return (
+      <div className="text-sm font-medium text-[#2C6E91]">
+        {count} sale{count !== 1 ? 's' : ''}
+      </div>
+    );
   };
 
   const getValueIndicator = (price: number | null, property: any) => {
@@ -229,6 +251,39 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
     if (soldPrices.length > 0) {
       fetchPriceIndicators();
+    }
+  }, [soldPrices]);
+
+  // Fetch sales counts for all properties
+  useEffect(() => {
+    const fetchSalesCounts = async () => {
+      const countsMap: { [key: string]: number } = {};
+      
+      for (const property of soldPrices) {
+        const propertyNumber = property.paon || property.propertyNumber;
+        const propertyPostcode = property.postcode;
+        const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
+        
+        try {
+          const response = await fetch(`/api/property-sales-history?postcode=${encodeURIComponent(propertyPostcode)}&number=${encodeURIComponent(propertyNumber)}`);
+          const data = await response.json();
+          
+          if (data.success && data.salesHistory) {
+            countsMap[propertyKey] = data.salesHistory.length;
+          } else {
+            countsMap[propertyKey] = 1; // At least the current sale
+          }
+        } catch (error) {
+          console.error('Error fetching sales count for property:', propertyKey, error);
+          countsMap[propertyKey] = 1; // Default to 1 if error
+        }
+      }
+      
+      setSalesCounts(countsMap);
+    };
+
+    if (soldPrices.length > 0) {
+      fetchSalesCounts();
     }
   }, [soldPrices]);
 
@@ -412,6 +467,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                 <th className="px-4 py-3 text-left">
                   <span className="text-xs font-medium text-[#2C6E91]">Value Indicator</span>
                 </th>
+                <th className="px-4 py-3 text-left">
+                  <span className="text-xs font-medium text-[#2C6E91]">Sales Count</span>
+                </th>
                 <th className="px-4 py-3 text-center">
                   <span className="text-xs font-medium text-[#2C6E91]">Actions</span>
                 </th>
@@ -459,6 +517,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   </td>
                   <td className="px-4 py-3">
                     {getValueIndicator(property.price, property)}
+                  </td>
+                  <td className="px-4 py-3">
+                    {getSalesCount(property)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
