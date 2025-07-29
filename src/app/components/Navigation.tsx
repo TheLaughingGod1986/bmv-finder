@@ -61,18 +61,18 @@ export default function Navigation() {
     setMounted(true);
   }, []);
 
-  // Debug user authentication state
-  useEffect(() => {
-    if (mounted) {
-      console.log('Navigation: User auth state:', { 
-        user: !!user, 
-        userId: user?.id, 
-        session: !!session,
-        sessionUser: session?.user?.id,
-        tier 
-      });
-    }
-  }, [user, session, tier, mounted]);
+  // Debug user authentication state (commented out for production)
+  // useEffect(() => {
+  //   if (mounted) {
+  //     console.log('Navigation: User auth state:', { 
+  //       user: !!user, 
+  //       userId: user?.id, 
+  //       session: !!session,
+  //       sessionUser: session?.user?.id,
+  //       tier 
+  //     });
+  //   }
+  // }, [user, session, tier, mounted]);
 
 
 

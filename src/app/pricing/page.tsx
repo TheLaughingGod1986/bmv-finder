@@ -64,9 +64,10 @@ function getStripePriceIds() {
   const PRO_MONTHLY_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID;
   const PDF_REPORT_PRICE_ID = process.env.NEXT_PUBLIC_STRIPE_PDF_REPORT_PRICE_ID;
 
-if (!PRO_YEARLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
-    console.warn('One or more Stripe Price IDs are missing from your environment variables.');
-  }
+// Note: Stripe Price IDs are optional for development
+// if (!PRO_YEARLY_PRICE_ID || !ELITE_YEARLY_PRICE_ID || !ELITE_MONTHLY_PRICE_ID || !PRO_MONTHLY_PRICE_ID || !PDF_REPORT_PRICE_ID) {
+//   console.warn('One or more Stripe Price IDs are missing from your environment variables.');
+// }
 
   return {
     PRO_YEARLY_PRICE_ID,
