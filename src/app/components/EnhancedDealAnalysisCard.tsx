@@ -21,6 +21,11 @@ interface SubjectProperty {
   propertyNumber?: string;
   propertyType?: string;
   bedrooms?: number;
+  lastSale?: {
+    price: number;
+    date: string;
+    propertyType: string;
+  } | null;
 }
 
 interface Props {
@@ -106,7 +111,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
               {subject?.fullAddress || subject?.address || 'Property'}
             </CardTitle>
             {subject?.propertyNumber && (
-              <div className="text-sm text-gray-600 mt-1">
+              <div className="text-sm text-gray-700 mt-1 font-medium">
                 Property Number: {subject.propertyNumber}
               </div>
             )}
@@ -115,10 +120,10 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                 {confidenceIcons[confidence]}
                 <span className="ml-1">{confidenceLabels[confidence]} Confidence</span>
               </Badge>
-              <div className="text-xs text-gray-600">
+              <div className="text-xs text-gray-700 font-medium">
                 {confidenceDescriptions[confidence]}
               </div>
-              {usedBedroomFilter && <span className="text-xs text-gray-500">(Matched by bedrooms)</span>}
+              {usedBedroomFilter && <span className="text-xs text-gray-600 font-medium">(Matched by bedrooms)</span>}
             </div>
           </div>
         </div>
@@ -149,17 +154,23 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                 <div className="text-center p-4 bg-white/15 backdrop-blur-sm rounded-xl border border-white/30 shadow-lg">
                   <div className="text-xs text-white mb-2 font-medium drop-shadow-sm">Change from Last Sale</div>
                   <div className={`text-lg font-bold drop-shadow-sm ${
-                    estimatedValue && estimatedValue > (comparables[0]?.price || 0) ? 'text-[#5DA271]' : 'text-red-200'
+                    estimatedValue && subject?.lastSale && estimatedValue > subject.lastSale.price ? 'text-[#5DA271]' : 'text-red-200'
                   }`}>
-                    {estimatedValue && estimatedValue > (comparables[0]?.price || 0) ? '+' : ''}£{estimatedValue ? (estimatedValue - (comparables[0]?.price || 0)).toLocaleString() : 'N/A'}
+                    {estimatedValue && subject?.lastSale ? 
+                      `${estimatedValue > subject.lastSale.price ? '+' : ''}£${(estimatedValue - subject.lastSale.price).toLocaleString()}` : 
+                      'N/A'
+                    }
                   </div>
                 </div>
                 <div className="text-center p-4 bg-white/15 backdrop-blur-sm rounded-xl border border-white/30 shadow-lg">
                   <div className="text-xs text-white mb-2 font-medium drop-shadow-sm">Change %</div>
                   <div className={`text-lg font-bold drop-shadow-sm ${
-                    estimatedValue && estimatedValue > (comparables[0]?.price || 0) ? 'text-[#5DA271]' : 'text-red-200'
+                    estimatedValue && subject?.lastSale && estimatedValue > subject.lastSale.price ? 'text-[#5DA271]' : 'text-red-200'
                   }`}>
-                    {estimatedValue && estimatedValue > (comparables[0]?.price || 0) ? '+' : ''}{estimatedValue ? ((estimatedValue - (comparables[0]?.price || 0)) / (comparables[0]?.price || 1) * 100).toFixed(1) : 'N/A'}%
+                    {estimatedValue && subject?.lastSale ? 
+                      `${estimatedValue > subject.lastSale.price ? '+' : ''}${((estimatedValue - subject.lastSale.price) / subject.lastSale.price * 100).toFixed(1)}%` : 
+                      'N/A'
+                    }
                   </div>
                 </div>
               </div>
@@ -416,7 +427,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                 <div className="w-2 h-2 bg-gray-600 rounded-full mt-2 flex-shrink-0"></div>
                 <div>
                   <div className="font-medium text-gray-900 text-sm">Comparable Sales Analysis</div>
-                  <div className="text-xs text-gray-600">Find properties with similar characteristics that sold recently</div>
+                  <div className="text-xs text-gray-700 font-medium">Find properties with similar characteristics that sold recently</div>
                 </div>
               </div>
             </div>
@@ -425,7 +436,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                 <div className="w-2 h-2 bg-gray-600 rounded-full mt-2 flex-shrink-0"></div>
                 <div>
                   <div className="font-medium text-gray-900 text-sm">Market Adjustment</div>
-                  <div className="text-xs text-gray-600">Adjust for market changes since comparable sales occurred</div>
+                  <div className="text-xs text-gray-700 font-medium">Adjust for market changes since comparable sales occurred</div>
                 </div>
               </div>
             </div>
@@ -434,7 +445,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                 <div className="w-2 h-2 bg-gray-600 rounded-full mt-2 flex-shrink-0"></div>
                 <div>
                   <div className="font-medium text-gray-900 text-sm">Property-Specific Factors</div>
-                  <div className="text-xs text-gray-600">Consider unique features, condition, and location advantages</div>
+                  <div className="text-xs text-gray-700 font-medium">Consider unique features, condition, and location advantages</div>
                 </div>
               </div>
             </div>
@@ -443,7 +454,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                 <div className="w-2 h-2 bg-gray-600 rounded-full mt-2 flex-shrink-0"></div>
                 <div>
                   <div className="font-medium text-gray-900 text-sm">Data Quality</div>
-                  <div className="text-xs text-gray-600">All data from official Land Registry records</div>
+                  <div className="text-xs text-gray-700 font-medium">All data from official Land Registry records</div>
                 </div>
               </div>
             </div>

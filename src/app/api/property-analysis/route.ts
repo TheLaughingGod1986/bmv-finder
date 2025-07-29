@@ -131,6 +131,40 @@ export async function GET(req: NextRequest) {
       usedBedroomFilter 
     });
 
+    // Find subject property's sale history
+    let subjectLastSale = null;
+    try {
+      const subjectSaleQuery = {
+        bool: {
+          must: [
+            { match_phrase: { postcode: normalizedPostcode } },
+            { match: { paon: number } },
+          ],
+        },
+      };
+      
+      const subjectSaleResp = await esClient.search({
+        index: 'properties',
+        body: {
+          size: 1,
+          sort: [{ date: { order: 'desc' } }],
+          query: subjectSaleQuery,
+        },
+      });
+      
+      if (subjectSaleResp.hits.hits.length > 0) {
+        const sale = subjectSaleResp.hits.hits[0]._source as any;
+        subjectLastSale = {
+          price: sale.price,
+          date: sale.date,
+          propertyType: sale.property_type
+        };
+        console.log('🔍 Subject property last sale found:', subjectLastSale);
+      }
+    } catch (error) {
+      console.log('🔍 Could not find subject property sale history:', error);
+    }
+
     // Create subject object with requested details
     const subjectProperty = {
       address: `${number} ${normalizedPostcode}`,
@@ -139,6 +173,7 @@ export async function GET(req: NextRequest) {
       propertyNumber: number,
       propertyType: propertyType || 'Unknown',
       bedrooms: bedroomCount || null,
+      lastSale: subjectLastSale,
     };
 
     return NextResponse.json({
