@@ -57,13 +57,8 @@ export default function Home() {
   // User authentication and search limits
   const user = useUser();
   
-  // Safely use search limit context
-  let searchLimitData = null;
-  try {
-    searchLimitData = useSearchLimit();
-  } catch (error) {
-    // Context not available yet, this is normal during SSR
-  }
+  // Always call the hook at the top level
+  const searchLimitData = useSearchLimit();
   
   const canSearch = searchLimitData?.canSearch || (() => {
     // If context not available, check localStorage directly
@@ -442,7 +437,7 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
               >
-                The UK's Most Powerful
+                The UK&apos;s Most Powerful
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                   Property Research Platform
                 </span>
@@ -1352,7 +1347,7 @@ export default function Home() {
                       <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
                     ))}
                   </div>
-                  <p className="text-gray-700 mb-6 italic">"{testimonial.content}"</p>
+                  <p className="text-gray-700 mb-6 italic">&quot;{testimonial.content}&quot;</p>
                   <div>
                     <div className="font-semibold text-gray-900">{testimonial.name}</div>
                     <div className="text-sm text-gray-600">{testimonial.role}</div>

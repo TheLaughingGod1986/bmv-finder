@@ -8,30 +8,18 @@ import { useSearchLimit } from './SearchLimitContext';
 
 export default function SearchLimitManager() {
   const [isClient, setIsClient] = useState(false);
-  const [contextAvailable, setContextAvailable] = useState(false);
   const router = useRouter();
+  
+  // Always call the hook at the top level
+  const searchLimitData = useSearchLimit();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
 
-  // Safely try to use the context
-  let searchLimitData = null;
-  try {
-    searchLimitData = useSearchLimit();
-    if (!contextAvailable) {
-      setContextAvailable(true);
-    }
-  } catch (error) {
-    // Context not available yet, this is normal during SSR
-    if (contextAvailable) {
-      setContextAvailable(false);
-    }
-  }
-
   // Always render the container to prevent hydration issues
   // but only show content when client-side and context is available
-  if (!isClient || !contextAvailable || !searchLimitData) {
+  if (!isClient || !searchLimitData) {
     return <div className="mt-4 text-center" />; // Empty container to maintain layout
   }
 
@@ -67,7 +55,7 @@ export default function SearchLimitManager() {
             </h3>
           </div>
           <p className="text-orange-700 text-sm mb-3">
-            You've used all {SEARCH_LIMIT} free searches. Sign up for a free account to get unlimited searches and continue researching properties.
+            You&apos;ve used all {SEARCH_LIMIT} free searches. Sign up for a free account to get unlimited searches and continue researching properties.
           </p>
           <button
             onClick={() => {

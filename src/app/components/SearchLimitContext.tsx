@@ -44,7 +44,7 @@ export function SearchLimitProvider({ children }: { children: ReactNode }) {
   };
 
   const canSearch = () => {
-    return user || searchCount < SEARCH_LIMIT;
+    return !!user || searchCount < SEARCH_LIMIT;
   };
 
   const value = {

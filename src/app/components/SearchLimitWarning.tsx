@@ -63,7 +63,7 @@ export default function SearchLimitWarning({
             </h3>
           </div>
           <p className="text-orange-700 text-sm mb-3">
-            You've used all {SEARCH_LIMIT} free searches. Sign up for a free account to get unlimited searches and continue researching properties.
+            You&apos;ve used all {SEARCH_LIMIT} free searches. Sign up for a free account to get unlimited searches and continue researching properties.
           </p>
           <button
             onClick={() => {
