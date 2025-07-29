@@ -114,7 +114,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
   const getPriceIndicator = (price: number | null, property: any) => {
     if (!price || !property) return null;
     
-    const indicator = priceIndicators[property.id];
+    // Use guid, paon, or a combination as the key
+    const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
+    const indicator = priceIndicators[propertyKey];
     if (!indicator) return null;
 
     const percentage = indicator.percentage;
@@ -133,17 +135,28 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
   useEffect(() => {
     const fetchPriceIndicators = async () => {
       try {
+        // Prepare properties with correct field mapping
+        const propertiesForApi = soldPrices.map(property => ({
+          id: property.guid || property.paon || `${property.paon}-${property.postcode}`,
+          postcode: property.postcode,
+          propertyType: property.property_type || property.propertyType,
+          price: property.price,
+          bedrooms: property.epc_bedrooms || property.bedrooms
+        }));
+
         const response = await fetch('/api/enhanced-price-indicator', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ properties: soldPrices })
+          body: JSON.stringify({ properties: propertiesForApi })
         });
         
         if (response.ok) {
           const data = await response.json();
           const indicatorsMap: { [key: string]: any } = {};
           data.forEach((indicator: any) => {
-            indicatorsMap[indicator.propertyId] = indicator;
+            // Map the indicator to the correct property key
+            const propertyKey = indicator.propertyId;
+            indicatorsMap[propertyKey] = indicator;
           });
           setPriceIndicators(indicatorsMap);
         }
@@ -363,7 +376,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   </td>
                   <td className="px-4 py-3">
                     <span className="text-sm text-[#2C6E91]">
-                      {formatPropertyType(property.propertyType)}
+                      {formatPropertyType(property.property_type || property.propertyType)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
