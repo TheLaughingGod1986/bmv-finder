@@ -57,7 +57,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     isOpen: false,
     property: null
   });
-  const [activeTab, setActiveTab] = useState<'history' | 'growth' | 'info' | 'map'>('history');
+  const [activeTab, setActiveTab] = useState<'info' | 'history' | 'growth' | 'map'>('info');
   const [priceIndicators, setPriceIndicators] = useState<{ [key: string]: any }>({});
 
   const formatAddress = (property: any) => {
@@ -245,7 +245,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
           salesHistory: salesHistory
         }
       });
-      setActiveTab('history');
+      setActiveTab('info');
     } catch (error) {
       console.error('Error fetching property sales history:', error);
       
@@ -277,7 +277,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
           salesHistory: salesHistory
         }
       });
-      setActiveTab('history');
+      setActiveTab('info');
     }
   };
 
@@ -458,9 +458,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
               {/* Tabs */}
               <div className="flex border-b border-[#E5E5E5] bg-gray-50">
                 {[
+                  { id: 'info', label: 'Info', icon: <Info className="w-4 h-4" /> },
                   { id: 'history', label: 'History', icon: <BarChart3 className="w-4 h-4" /> },
                   { id: 'growth', label: 'Growth', icon: <TrendingUp className="w-4 h-4" /> },
-                  { id: 'info', label: 'Info', icon: <Info className="w-4 h-4" /> },
                   { id: 'map', label: 'Map', icon: <Map className="w-4 h-4" /> }
                 ].map((tab) => (
                   <button
