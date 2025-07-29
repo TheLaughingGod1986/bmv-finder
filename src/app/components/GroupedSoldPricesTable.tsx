@@ -2,13 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ChevronUp, 
-  ChevronDown, 
-  MapPin, 
-  Calendar, 
-  PoundSterling, 
-  Home, 
+import {
+  ChevronUp,
+  ChevronDown,
+  MapPin,
+  Calendar,
+  PoundSterling,
+  Home,
   TrendingUp,
   TrendingDown,
   Minus,
@@ -19,6 +19,7 @@ import {
   Download,
   Eye
 } from 'lucide-react';
+import BMVExplanationAccordion from './BMVExplanationAccordion';
 import FullScreenChart from './FullScreenChart';
 
 interface GroupedSoldPricesTableProps {
@@ -405,6 +406,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
   return (
     <>
+      {/* BMV Explanation Accordion */}
+      <BMVExplanationAccordion className="mb-4" />
+      
       <div className={`bg-white rounded-xl border border-[#D2B48C] shadow-soft overflow-hidden ${className}`}>
         <div className="overflow-x-auto">
           <table className="w-full">
