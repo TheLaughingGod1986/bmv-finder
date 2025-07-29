@@ -140,7 +140,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     }).format(price);
   };
 
-  const getPriceIndicator = (price: number | null, property: any) => {
+  const getValueIndicator = (price: number | null, property: any) => {
     if (!price || !property) return null;
     
     // Use guid, paon, or a combination as the key
@@ -409,6 +409,9 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                 <th className="px-4 py-3 text-left">
                   <SortableHeader column="price" label="Price" icon={<PoundSterling className="w-3 h-3" />} />
                 </th>
+                <th className="px-4 py-3 text-left">
+                  <span className="text-xs font-medium text-[#2C6E91]">Value Indicator</span>
+                </th>
                 <th className="px-4 py-3 text-center">
                   <span className="text-xs font-medium text-[#2C6E91]">Actions</span>
                 </th>
@@ -450,12 +453,12 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-[#2C6E91]">
-                        {formatPrice(property.price)}
-                      </span>
-                      {getPriceIndicator(property.price, property)}
-                    </div>
+                    <span className="font-semibold text-[#2C6E91]">
+                      {formatPrice(property.price)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    {getValueIndicator(property.price, property)}
                   </td>
                   <td className="px-4 py-3 text-center">
                     <button
