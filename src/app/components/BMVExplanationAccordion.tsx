@@ -94,15 +94,16 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
             className="overflow-hidden"
           >
             <div className="px-4 pb-4 space-y-6">
-              {/* Overview */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="font-semibold text-[#3A7CA5] mb-2">What are BMV Badges?</h4>
-                <p className="text-sm text-gray-700">
-                  BMV (Below Market Value) badges help you quickly identify investment opportunities. 
-                  Each property gets a score from 1-10 based on how it compares to current market value, 
-                  not historical prices. This prevents false "good deals" from inflation over time.
-                </p>
-              </div>
+                             {/* Overview */}
+               <div className="bg-blue-50 rounded-lg p-4">
+                 <h4 className="font-semibold text-[#3A7CA5] mb-2">What are BMV Badges?</h4>
+                 <p className="text-sm text-gray-700">
+                   BMV (Below Market Value) badges show a single score from 1-10 that indicates how good 
+                   a deal each property represents. Higher scores (7-10) mean better investment opportunities, 
+                   while lower scores (1-3) indicate overpriced properties. This compares against current 
+                   market value, not historical prices.
+                 </p>
+               </div>
 
               {/* BMV Categories */}
               <div>
@@ -150,28 +151,29 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
                 </div>
               </div>
 
-              {/* Example */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <h4 className="font-semibold text-green-800 mb-2">Example</h4>
-                <div className="text-sm text-green-700 space-y-1">
-                  <p>• A property priced at £200,000 when similar properties sell for £220,000</p>
-                  <p>• 10% below market = High base score (8-9)</p>
-                  <p>• 5 comparable sales = Good confidence bonus</p>
-                  <p>• Rising market = Positive trend adjustment</p>
-                  <p>• <strong>Final Score: 8.5 (Below Market Value)</strong></p>
-                </div>
-              </div>
+                             {/* Example */}
+               <div className="bg-green-50 rounded-lg p-4">
+                 <h4 className="font-semibold text-green-800 mb-2">Example</h4>
+                 <div className="text-sm text-green-700 space-y-1">
+                   <p>• A property priced at £200,000 when similar properties sell for £220,000</p>
+                   <p>• 10% below market = High base score (8-9)</p>
+                   <p>• 5 comparable sales = Good confidence bonus</p>
+                   <p>• Rising market = Positive trend adjustment</p>
+                   <p>• <strong>Final Score: 8.5</strong> (Green badge with ↓ icon)</p>
+                 </div>
+               </div>
 
-              {/* Tips */}
-              <div className="bg-yellow-50 rounded-lg p-4">
-                <h4 className="font-semibold text-yellow-800 mb-2">💡 Investment Tips</h4>
-                <ul className="text-sm text-yellow-700 space-y-1">
-                  <li>• Focus on properties with scores 7.0+ for best investment opportunities</li>
-                  <li>• Higher scores don't guarantee profit - always do your own research</li>
-                  <li>• Consider why a property is below market value (condition, location, etc.)</li>
-                  <li>• Market trends affect the value of "below market" deals</li>
-                </ul>
-              </div>
+                             {/* Tips */}
+               <div className="bg-yellow-50 rounded-lg p-4">
+                 <h4 className="font-semibold text-yellow-800 mb-2">💡 Investment Tips</h4>
+                 <ul className="text-sm text-yellow-700 space-y-1">
+                   <li>• <strong>Green badges (7.0-10.0):</strong> Best investment opportunities</li>
+                   <li>• <strong>Gray badges (4.0-6.9):</strong> Fair market value</li>
+                   <li>• <strong>Red badges (1.0-3.9):</strong> Overpriced properties</li>
+                   <li>• Higher scores don't guarantee profit - always do your own research</li>
+                   <li>• Consider why a property is below market value (condition, location, etc.)</li>
+                 </ul>
+               </div>
             </div>
           </motion.div>
         )}
