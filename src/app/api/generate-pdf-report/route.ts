@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import puppeteer from 'puppeteer';
 import { createClient } from '@supabase/supabase-js';
 
 // Force dynamic rendering to prevent build-time issues
@@ -46,35 +45,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'No property data found' }, { status: 400 });
     }
 
-    // Generate PDF content
-    const pdfContent = generatePDFContent(propertyData);
+    // Generate HTML content for the report
+    const htmlContent = generatePDFContent(propertyData);
     
-    // Generate PDF using Puppeteer
-    const browser = await puppeteer.launch({ 
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
-    await page.setContent(pdfContent, { waitUntil: 'networkidle0' });
-    
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
-      }
-    });
-
-    await browser.close();
-
-    // Return the PDF as a download
-    return new NextResponse(pdf, {
+    // Return the HTML content that can be converted to PDF on the client side
+    return new NextResponse(htmlContent, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="property-valuation-report-${Date.now()}.pdf"`,
+        'Content-Type': 'text/html',
+        'Content-Disposition': `attachment; filename="property-valuation-report-${Date.now()}.html"`,
         'Cache-Control': 'no-cache'
       }
     });
@@ -115,35 +93,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate PDF content
-    const pdfContent = generatePDFContent(propertyData);
+    // Generate HTML content for the report
+    const htmlContent = generatePDFContent(propertyData);
     
-    // Generate PDF using Puppeteer
-    const browser = await puppeteer.launch({ 
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
-    });
-    const page = await browser.newPage();
-    await page.setContent(pdfContent, { waitUntil: 'networkidle0' });
-    
-    const pdf = await page.pdf({
-      format: 'A4',
-      printBackground: true,
-      margin: {
-        top: '20mm',
-        right: '20mm',
-        bottom: '20mm',
-        left: '20mm'
-      }
-    });
-
-    await browser.close();
-
-    // Return the PDF as a download
-    return new NextResponse(pdf, {
+    // Return the HTML content that can be converted to PDF on the client side
+    return new NextResponse(htmlContent, {
       headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="property-valuation-report-${Date.now()}.pdf"`,
+        'Content-Type': 'text/html',
+        'Content-Disposition': `attachment; filename="property-valuation-report-${Date.now()}.html"`,
         'Cache-Control': 'no-cache'
       }
     });

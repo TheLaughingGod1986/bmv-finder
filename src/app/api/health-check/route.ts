@@ -83,6 +83,11 @@ export async function GET(request: NextRequest) {
           error: 'Redis module not available',
         };
       }
+    } else {
+      healthStatus.cache = {
+        status: 'not configured',
+        error: 'Redis URL not provided',
+      };
     }
 
     // Memory usage
