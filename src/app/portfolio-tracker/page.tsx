@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2, CheckCircle, Edit, DollarSign, Percent } from 'lucide-react';
+import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2, CheckCircle, Edit, DollarSign, Percent, Clock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
 import PropertyEditModal from '../components/PropertyEditModal';
@@ -430,7 +430,7 @@ export default function PortfolioTrackerPage() {
         
         // Clean up the street name and make it title case
         const cleanStreet = streetName
-          .replace(/\b(STREET|ROAD|AVENUE|LANE|DRIVE|CLOSE|WAY|CRESCENT|GARDENS|PLACE|COURT|MEWS|WALK|TERRACE|SQUARE|HILL|PARK|VIEW|RISE|GROVE|CHASE|MEADOW|WOOD|FIELD|BANK|BROOK|DALE|LEA|MOOR|RIDGE|VALE|BANK|BRIDGE|CROSS|END|GATE|HALL|HEATH|HOUSE|MILL|MOUNT|PARK|POND|RIDGE|SPRING|STONE|TOWER|WELL|WOOD)\b/gi, (match) => {
+          .replace(/\b(STREET|ROAD|AVENUE|LANE|DRIVE|CLOSE|WAY|CRESCENT|GARDENS|PLACE|COURT|MEWS|WALK|TERRACE|SQUARE|HILL|PARK|VIEW|RISE|GROVE|CHASE|MEADOW|WOOD|FIELD|BANK|BROOK|DALE|LEA|MOOR|RIDGE|VALE|BANK|BRIDGE|CROSS|END|GATE|HALL|HEATH|HOUSE|MILL|MOUNT|PARK|POND|RIDGE|SPRING|STONE|TOWER|WELL)\b/gi, (match) => {
             return match.charAt(0) + match.slice(1).toLowerCase();
           });
         
@@ -877,45 +877,48 @@ export default function PortfolioTrackerPage() {
                 transition={{ delay: 0.1 }}
                 className="lg:col-span-2 bg-white rounded-2xl shadow-soft p-8 border border-gray-100"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Portfolio Overview</h2>
-                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Portfolio Overview</h2>
+                    <p className="text-sm text-gray-500 mt-1">Your property investment summary</p>
+                  </div>
+                  <div className="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span>Active</span>
+                    <span className="text-sm font-medium text-green-700">Active</span>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
-                  <div className="text-center">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+                  <div className="text-center p-4 bg-blue-50 rounded-xl">
                     <p className="text-3xl font-bold text-blue-600 mb-1">{portfolioStats.totalProperties}</p>
-                    <p className="text-sm text-gray-600">Properties</p>
+                    <p className="text-sm text-gray-600 font-medium">Properties</p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-4 bg-green-50 rounded-xl">
                     <p className="text-3xl font-bold text-green-600 mb-1">{formatPrice(portfolioStats.totalValue)}</p>
-                    <p className="text-sm text-gray-600">Total Value</p>
+                    <p className="text-sm text-gray-600 font-medium">Total Value</p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-4 bg-orange-50 rounded-xl">
                     <p className={`text-3xl font-bold mb-1 ${getTotalGrowth() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {typeof getTotalGrowth() === 'number' && !isNaN(getTotalGrowth()) ? getTotalGrowth().toFixed(1) : 'N/A'}%
                     </p>
-                    <p className="text-sm text-gray-600">Growth</p>
+                    <p className="text-sm text-gray-600 font-medium">Growth</p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-4 bg-purple-50 rounded-xl">
                     <p className="text-3xl font-bold text-purple-600 mb-1">
                       {portfolioProperties.length > 0 
                         ? Math.round(portfolioProperties.reduce((sum, p) => sum + (p.bmvScore || 0), 0) / portfolioProperties.length)
                         : 0
                       }
                     </p>
-                    <p className="text-sm text-gray-600">Avg BMV</p>
+                    <p className="text-sm text-gray-600 font-medium">Avg BMV</p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-4 bg-indigo-50 rounded-xl">
                     <p className="text-3xl font-bold text-indigo-600 mb-1">{formatPrice(getTotalEquity())}</p>
-                    <p className="text-sm text-gray-600">Total Equity</p>
+                    <p className="text-sm text-gray-600 font-medium">Total Equity</p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center p-4 bg-gray-50 rounded-xl">
                     <p className="text-3xl font-bold text-gray-700 mb-1">{formatPrice(getTotalPurchasePrice())}</p>
-                    <p className="text-sm text-gray-600">Total Invested</p>
+                    <p className="text-sm text-gray-600 font-medium">Total Invested</p>
                   </div>
                 </div>
               </motion.div>
@@ -927,29 +930,49 @@ export default function PortfolioTrackerPage() {
                 transition={{ delay: 0.2 }}
                 className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-soft p-8 border border-blue-100"
               >
-                <h3 className="text-xl font-bold text-gray-900 mb-6">Income Summary</h3>
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-gray-900">Income Summary</h3>
+                    <p className="text-sm text-gray-500 mt-1">Annual returns breakdown</p>
+                  </div>
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                  </div>
+                </div>
                 
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Rental Income</span>
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-gray-700 font-medium">Rental Income</span>
+                    </div>
                     <span className="font-semibold text-green-600">{formatPrice(getTotalRentalIncome())}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-600">Value Appreciation</span>
+                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${getTotalValueIncrease() >= 0 ? 'bg-blue-500' : 'bg-red-500'}`}></div>
+                      <span className="text-gray-700 font-medium">Value Appreciation</span>
+                    </div>
                     <span className={`font-semibold ${getTotalValueIncrease() >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
                       {formatPrice(getTotalValueIncrease())}
                     </span>
                   </div>
                   <div className="border-t border-gray-200 pt-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
                       <span className="font-semibold text-gray-900">Total Income</span>
                       <span className={`text-lg font-bold ${getTotalIncome() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {formatPrice(getTotalIncome())}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 mt-1">
-                      <div>Rental: {formatPrice(getTotalRentalIncome())}</div>
-                      <div>Growth: {formatPrice(getTotalValueIncrease())}</div>
+                    <div className="text-xs text-gray-500 mt-2 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Rental:</span>
+                        <span>{formatPrice(getTotalRentalIncome())}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Growth:</span>
+                        <span>{formatPrice(getTotalValueIncrease())}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -966,22 +989,24 @@ export default function PortfolioTrackerPage() {
               transition={{ delay: 0.3 }}
               className="bg-white rounded-2xl shadow-soft p-6 mb-8 border border-gray-100"
             >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
                 {/* Filters */}
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Status:</span>
+                <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
+                      <Filter className="w-4 h-4 text-gray-600" />
+                    </div>
+                    <span className="text-sm font-semibold text-gray-700">Filter by Status:</span>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex gap-2">
                     {(['all', 'active', 'sold', 'watching'] as const).map(status => (
                       <button
                         key={status}
                         onClick={() => handleFilterChange(status)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                        className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                           filterStatus === status
-                            ? 'bg-blue-600 text-white shadow-sm'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                            ? 'bg-blue-500 text-white shadow-lg transform scale-105'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
                         }`}
                       >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -991,24 +1016,24 @@ export default function PortfolioTrackerPage() {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-3">
                   <button 
                     onClick={handleAddProperty}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                    className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl transform hover:scale-105"
                   >
                     <Plus className="w-4 h-4" />
                     Add Property
                   </button>
                   <button 
                     onClick={handleExport}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex items-center gap-2 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium hover:shadow-md"
                   >
                     <BarChart3 className="w-4 h-4" />
                     Export
                   </button>
                   <button 
                     onClick={() => window.location.href = '/portfolio-tracker/statements'}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                    className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
                   >
                     <Calendar className="w-4 h-4" />
                     Statements
@@ -1088,97 +1113,120 @@ export default function PortfolioTrackerPage() {
                       className="bg-white rounded-2xl shadow-soft p-6 hover:shadow-lg transition-all duration-200 border border-gray-100"
                     >
                       {/* Property Header */}
-                      <div className="flex items-start justify-between mb-6">
+                      <div className="flex items-start justify-between mb-8">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl flex items-center justify-center">
-                            <Home className="w-6 h-6 text-blue-600" />
+                          <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center shadow-sm">
+                            <Home className="w-7 h-7 text-blue-600" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-1">{formatAddress(enhancedProperty.address)}</h3>
-                            <p className="text-sm text-gray-500 flex items-center gap-1 mb-2">
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">{formatAddress(enhancedProperty.address)}</h3>
+                            <p className="text-sm text-gray-500 flex items-center gap-2 mb-3">
                               <MapPin className="w-4 h-4" />
                               {enhancedProperty.postcode}
                             </p>
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <span>Purchased {formatDate(enhancedProperty.purchaseDate)}</span>
-                              <span>•</span>
-                              <span>Owned {calculateOwnershipDuration(enhancedProperty.purchaseDate)}</span>
+                            <div className="flex items-center gap-6 text-xs text-gray-500">
+                              <div className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                <span>Purchased {formatDate(enhancedProperty.purchaseDate)}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                <span>Owned {calculateOwnershipDuration(enhancedProperty.purchaseDate)}</span>
+                              </div>
                               {enhancedProperty.rentStartDate && (
-                                <>
-                                  <span>•</span>
+                                <div className="flex items-center gap-1">
+                                  <TrendingUp className="w-3 h-3" />
                                   <span>Renting {calculateRentDuration(enhancedProperty.rentStartDate)}</span>
-                                </>
+                                </div>
                               )}
                             </div>
                           </div>
                         </div>
                         
                         {/* Status Badge */}
-                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(enhancedProperty.status)}`}>
+                        <div className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${getStatusColor(enhancedProperty.status)}`}>
                           {enhancedProperty.status.charAt(0).toUpperCase() + enhancedProperty.status.slice(1)}
                         </div>
                       </div>
 
                       {/* Key Metrics */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <div className="text-center p-4 bg-gray-50 rounded-xl">
-                          <p className="text-2xl font-bold text-gray-900 mb-1">{formatPrice(enhancedProperty.currentValue)}</p>
-                          <p className="text-xs text-gray-500">Current Value</p>
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200 shadow-sm">
+                          <p className="text-3xl font-bold text-gray-900 mb-2">{formatPrice(enhancedProperty.currentValue)}</p>
+                          <p className="text-sm text-gray-600 font-medium">Current Value</p>
                         </div>
-                        <div className="text-center p-4 bg-gray-50 rounded-xl">
-                          <p className={`text-2xl font-bold mb-1 ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl border border-green-200 shadow-sm">
+                          <p className={`text-3xl font-bold mb-2 ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {growth >= 0 ? '+' : ''}{typeof growth === 'number' && !isNaN(growth) ? growth.toFixed(1) : 'N/A'}%
                           </p>
-                          <p className="text-xs text-gray-500">Growth</p>
+                          <p className="text-sm text-gray-600 font-medium">Growth</p>
                         </div>
-                        <div className="text-center p-4 bg-gray-50 rounded-xl">
-                          <p className="text-2xl font-bold text-blue-600 mb-1">
+                        <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200 shadow-sm">
+                          <p className="text-3xl font-bold text-blue-600 mb-2">
                             {enhancedProperty.yield ? `${enhancedProperty.yield.toFixed(1)}%` : 'N/A'}
                           </p>
-                          <p className="text-xs text-gray-500">Yield</p>
+                          <p className="text-sm text-gray-600 font-medium">Yield</p>
                         </div>
-                        <div className="text-center p-4 bg-gray-50 rounded-xl">
-                          <p className="text-2xl font-bold text-purple-600 mb-1">
+                        <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200 shadow-sm">
+                          <p className="text-3xl font-bold text-purple-600 mb-2">
                             {enhancedProperty.bmvScore ? `${enhancedProperty.bmvScore}/100` : 'N/A'}
                           </p>
-                          <p className="text-xs text-gray-500">BMV Score</p>
+                          <p className="text-sm text-gray-600 font-medium">BMV Score</p>
                         </div>
                       </div>
 
-                                             {/* Financial Summary */}
-                       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
-                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                          <span className="text-sm text-gray-600">Monthly Rent</span>
+                                                                   {/* Financial Summary */}
+                      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
+                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="text-sm text-gray-700 font-medium">Monthly Rent</span>
+                          </div>
                           <span className="font-semibold text-green-600">
                             {enhancedProperty.monthlyRent ? formatPrice(enhancedProperty.monthlyRent) : 'N/A'}
                           </span>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                          <span className="text-sm text-gray-600">Monthly Profit</span>
+                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span className="text-sm text-gray-700 font-medium">Monthly Profit</span>
+                          </div>
                           <span className={`font-semibold ${enhancedProperty.monthlyProfit && enhancedProperty.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {enhancedProperty.monthlyProfit ? formatPrice(enhancedProperty.monthlyProfit) : 'N/A'}
                           </span>
                         </div>
-                                                 <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
-                           <span className="text-sm text-gray-600">Equity</span>
-                           <span className="font-semibold text-purple-600">
-                             {enhancedProperty.equity ? formatPrice(enhancedProperty.equity) : 'N/A'}
-                           </span>
-                         </div>
-                         <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
-                           <span className="text-sm text-gray-600">Total Income</span>
-                           <span className="font-semibold text-indigo-600">
-                             {formatPrice(getPropertyTotalIncome(enhancedProperty))}
-                           </span>
-                         </div>
-                         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                           <span className="text-sm text-gray-600">Purchase Price</span>
-                           <span className="font-semibold text-gray-700">
-                             {formatPrice(enhancedProperty.purchasePrice)}
-                           </span>
-                         </div>
-                        <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
-                          <span className="text-sm text-gray-600">Rent Started</span>
+                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                            <span className="text-sm text-gray-700 font-medium">Equity</span>
+                          </div>
+                          <span className="font-semibold text-purple-600">
+                            {enhancedProperty.equity ? formatPrice(enhancedProperty.equity) : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                            <span className="text-sm text-gray-700 font-medium">Total Income</span>
+                          </div>
+                          <span className="font-semibold text-indigo-600">
+                            {formatPrice(getPropertyTotalIncome(enhancedProperty))}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
+                            <span className="text-sm text-gray-700 font-medium">Purchase Price</span>
+                          </div>
+                          <span className="font-semibold text-gray-700">
+                            {formatPrice(enhancedProperty.purchasePrice)}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 shadow-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                            <span className="text-sm text-gray-700 font-medium">Rent Started</span>
+                          </div>
                           <span className="font-semibold text-orange-600">
                             {enhancedProperty.rentStartDate ? formatDate(enhancedProperty.rentStartDate) : 'Not set'}
                           </span>
@@ -1186,24 +1234,24 @@ export default function PortfolioTrackerPage() {
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex justify-end gap-2">
+                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                         <button
                           onClick={() => handleEditProperty(enhancedProperty)}
-                          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 text-sm font-semibold rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <Edit className="w-4 h-4" />
                           Edit
                         </button>
                         <button
                           onClick={() => handleSoldProperty(enhancedProperty.id, enhancedProperty.address)}
-                          className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-lg hover:bg-green-100 transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-green-100 text-green-700 text-sm font-semibold rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Mark Sold
                         </button>
                         <button
                           onClick={() => handleRemoveProperty(enhancedProperty.id, enhancedProperty.address)}
-                          className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 text-sm font-semibold rounded-xl hover:from-red-100 hover:to-red-200 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <Trash2 className="w-4 h-4" />
                           Remove
