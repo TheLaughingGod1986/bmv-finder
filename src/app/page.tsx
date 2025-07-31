@@ -57,7 +57,7 @@ export default function Home() {
   // User authentication and search limits
   const user = useUser();
   
-  // Always call the hook at the top level
+  // Use search limit context with fallback
   const searchLimitData = useSearchLimit();
   
   const canSearch = searchLimitData?.canSearch || (() => {
@@ -69,6 +69,7 @@ export default function Home() {
     }
     return true; // Allow search for logged-in users or if context not available
   });
+  
   const incrementSearchCount = searchLimitData?.incrementSearchCount || (() => {
     // If context not available, increment localStorage directly
     if (typeof window !== 'undefined' && !user) {

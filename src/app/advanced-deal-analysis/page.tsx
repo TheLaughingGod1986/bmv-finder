@@ -39,8 +39,8 @@ interface DealAnalysisData {
 }
 
 export default function AdvancedDealAnalysisPage() {
-  const [postcode, setPostcode] = useState('');
-  const [houseNumber, setHouseNumber] = useState('');
+  const [inputValue, setInputValue] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState<{postcode: string, number: string, street?: string} | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [dealAnalysis, setDealAnalysis] = useState<DealAnalysisData | null>(null);
@@ -54,7 +54,7 @@ export default function AdvancedDealAnalysisPage() {
       showToast({
         type: 'error',
         title: 'Missing Information',
-        message: 'Please enter both postcode and house number.',
+        message: 'Please select a complete address from the dropdown.',
       });
       return;
     }
@@ -102,7 +102,9 @@ export default function AdvancedDealAnalysisPage() {
   };
 
   const handleSearch = async () => {
-    await performSearch(postcode, houseNumber);
+    if (selectedAddress) {
+      await performSearch(selectedAddress.postcode, selectedAddress.number);
+    }
   };
 
 
@@ -187,30 +189,28 @@ export default function AdvancedDealAnalysisPage() {
                   <div>
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Search for a Property</label>
                     <AddressSearchInput
-                      value={postcode}
-                      onChange={setPostcode}
+                      value={inputValue}
+                      onChange={(query) => {
+                        setInputValue(query);
+                        setSelectedAddress(null);
+                      }}
                       onAddressSelect={(address) => {
-                        setPostcode(address.postcode);
-                        setHouseNumber(address.number);
-                        // Auto-trigger search when address is selected with the new values
+                        setSelectedAddress({
+                          postcode: address.postcode,
+                          number: address.number,
+                          street: address.street
+                        });
+                        // Use the full address display instead of just number and postcode
+                        setInputValue(`${address.number} ${address.street}`);
+                        // Auto-trigger search when address is selected
                         setTimeout(() => {
-                          // Use the address values directly instead of relying on state
                           const formattedPostcode = formatPostcode(address.postcode.trim());
                           if (formattedPostcode && address.number.trim()) {
                             performSearch(formattedPostcode, address.number.trim());
                           }
                         }, 100);
                       }}
-                      onSearch={(query) => {
-                        setPostcode(query);
-                        // Auto-trigger search if both fields are filled
-                        if (houseNumber.trim() && query.trim()) {
-                          setTimeout(() => {
-                            performSearch(query, houseNumber);
-                          }, 300);
-                        }
-                      }}
-                      placeholder="Start typing a postcode or address..."
+                      placeholder="Enter a postcode to see available addresses..."
                       showHistory={true}
                       showSuggestions={true}
                       debounceMs={300}
@@ -218,27 +218,7 @@ export default function AdvancedDealAnalysisPage() {
                       className=""
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-700">House Number/Name</label>
-                    <Input
-                      placeholder="e.g., 10 or The Cottage"
-                      value={houseNumber}
-                      onChange={(e) => {
-                        const newValue = e.target.value;
-                        setHouseNumber(newValue);
-                        
-                        // Auto-trigger search when house number is entered and postcode exists
-                        if (newValue.trim() && postcode.trim()) {
-                          // Small delay to allow the state to update
-                          setTimeout(() => {
-                            performSearch(postcode, newValue);
-                          }, 300);
-                        }
-                      }}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                      className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    />
-                  </div>
+
                 </div>
               </div>
             </motion.div>
@@ -285,7 +265,7 @@ export default function AdvancedDealAnalysisPage() {
                   {[
                     { number: '21', postcode: 'NE5 2PR', description: 'Fourstones, Newcastle' },
                     { number: '16', postcode: 'NE5 4PR', description: 'Lowbiggin, Newcastle' },
-                    { number: '10', postcode: 'SW1A 1AA', description: 'Downing Street, London' },
+                    { number: '25', postcode: 'NE17 7JH', description: 'Newcastle upon Tyne' },
                   ].map((property, index) => (
                     <Card key={index} className="border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer bg-gray-50 hover:bg-white">
                       <CardContent className="p-6">
@@ -296,8 +276,10 @@ export default function AdvancedDealAnalysisPage() {
                         <p className="text-gray-600 mb-4">{property.description}</p>
                         <Button
                           onClick={() => {
-                            setHouseNumber(property.number);
-                            setPostcode(property.postcode);
+                            setSelectedAddress({
+                              postcode: property.postcode,
+                              number: property.number
+                            });
                             performSearch(property.postcode, property.number);
                           }}
                           className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2"

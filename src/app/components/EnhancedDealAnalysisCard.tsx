@@ -79,6 +79,54 @@ function formatDate(dateString: string) {
   });
 }
 
+// Helper functions for deal scoring
+function calculateDealScore(subject: SubjectProperty | null, confidence: string, comparablesCount: number): number {
+  let score = 50; // Base score
+  
+  // Factor in confidence level
+  if (confidence === 'high') score += 20;
+  else if (confidence === 'medium') score += 10;
+  
+  // Factor in number of comparables
+  if (comparablesCount >= 5) score += 15;
+  else if (comparablesCount >= 3) score += 10;
+  else if (comparablesCount >= 1) score += 5;
+  
+  // Factor in property type
+  if (subject?.propertyType === 'Terraced') score += 10;
+  if (subject?.propertyType === 'Semi-Detached') score += 5;
+  
+  // Factor in bedrooms
+  if (subject?.bedrooms === 2) score += 10;
+  if (subject?.bedrooms === 3) score += 15;
+  if (subject?.bedrooms === 4) score += 5;
+  
+  return Math.min(100, Math.max(0, score));
+}
+
+function getDealRating(score: number): string {
+  if (score >= 80) return 'Excellent';
+  if (score >= 70) return 'Very Good';
+  if (score >= 60) return 'Good';
+  if (score >= 50) return 'Average';
+  if (score >= 40) return 'Below Average';
+  return 'Poor';
+}
+
+function calculateBMVScore(subject: SubjectProperty | null, estimatedValue: number): number {
+  if (!subject?.lastSale) return 50; // Default if no last sale data
+  
+  const lastSalePrice = subject.lastSale.price;
+  const currentValue = estimatedValue;
+  
+  if (currentValue < lastSalePrice * 0.9) return 90; // 10% below last sale
+  if (currentValue < lastSalePrice * 0.95) return 75; // 5% below last sale
+  if (currentValue < lastSalePrice) return 60; // Below last sale
+  if (currentValue < lastSalePrice * 1.05) return 40; // Up to 5% above
+  if (currentValue < lastSalePrice * 1.1) return 20; // Up to 10% above
+  return 0; // More than 10% above
+}
+
 export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, comparables, usedBedroomFilter, subject, loading = false }: Props) {
 
   if (loading) {
@@ -110,11 +158,6 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
               <Home className="h-6 w-6" />
               {subject?.fullAddress || subject?.address || 'Property'}
             </CardTitle>
-            {subject?.propertyNumber && (
-              <div className="text-sm text-gray-700 mt-1 font-medium">
-                Property Number: {subject.propertyNumber}
-              </div>
-            )}
             <div className="flex items-center gap-2 mt-2">
               <Badge className={confidenceColors[confidence]}>
                 {confidenceIcons[confidence]}
@@ -202,28 +245,22 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                 <p className="text-xs text-[#3B755D] mb-4">
                   Add to your portfolio to track value changes, growth, and performance over time
                 </p>
-                <AddToPortfolioButton
-                  propertyData={{
-                    address: subject?.fullAddress || subject?.address || `${subject?.propertyNumber} ${subject?.postcode}`,
-                    postcode: subject?.postcode || '',
-                    houseNumber: subject?.propertyNumber || '',
-                    propertyType: subject?.propertyType || '',
-                    bedrooms: subject?.bedrooms,
-                    purchasePrice: comparables[0]?.price || estimatedValue || 0,
-                    currentValue: estimatedValue || 0,
-                    purchaseDate: comparables[0]?.date || new Date().toISOString().split('T')[0],
-                    dealScore: confidence === 'high' ? 85 : confidence === 'medium' ? 65 : 45,
-                    dealRating: confidence === 'high' ? 'Good' : confidence === 'medium' ? 'Fair' : 'Limited',
-                    bmvScore: confidence === 'high' ? 80 : confidence === 'medium' ? 60 : 40,
-                    notes: `Added from deal analysis. Confidence: ${confidence}, Comparables: ${comparables.length}`
-                  }}
-                  className="bg-[#5DA271] hover:bg-[#3B755D] text-white px-6 py-2 rounded-lg font-medium transition-colors border border-[#3B755D] shadow-soft"
-                  size="md"
-                  showIcon={true}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add to Portfolio
-                </AddToPortfolioButton>
+                {subject && estimatedValue && estimatedValue > 0 && (
+                  <AddToPortfolioButton
+                    propertyData={{
+                      address: subject.fullAddress || subject.address || '',
+                      postcode: subject.postcode || '',
+                      houseNumber: subject.propertyNumber || '',
+                      propertyType: subject.propertyType || '',
+                      bedrooms: subject.bedrooms,
+                      estimatedValue: estimatedValue,
+                      dealScore: calculateDealScore(subject, confidence, comparables.length),
+                      dealRating: getDealRating(calculateDealScore(subject, confidence, comparables.length)),
+                      bmvScore: calculateBMVScore(subject, estimatedValue)
+                    }}
+                    className="w-full"
+                  />
+                )}
               </div>
             </div>
           </div>

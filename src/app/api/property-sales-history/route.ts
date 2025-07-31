@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('🔍 Fetching sales history for:', { postcode, number });
+    // Fetching sales history logging removed
 
     // Search for all sales for this specific property
     const response = await esClient.search({

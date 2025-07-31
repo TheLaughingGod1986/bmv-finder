@@ -66,8 +66,34 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
   const formatAddress = (property: any) => {
     if (!property) return '';
-    const parts = [property.paon, property.street, property.locality, property.town_city, property.county].filter(Boolean);
-    return parts.join(', ');
+    
+    // Debug logging removed for cleaner console
+    
+    // Try to use the full address if available
+    if (property.address) {
+      return property.address;
+    }
+    
+    // Try alternative field names that might contain the full address
+    if (property.fullAddress) {
+      return property.fullAddress;
+    }
+    
+    // Fallback to building from individual parts
+    const parts = [
+      property.paon, 
+      property.street, 
+      property.locality, 
+      property.town_city, 
+      property.county
+    ].filter(Boolean);
+    
+    if (parts.length > 0) {
+      return parts.join(', ');
+    }
+    
+    // If no address parts found, return a basic format
+    return `${property.paon || ''} ${property.street || ''} ${property.postcode || ''}`.trim();
   };
 
   const formatShortAddress = (property: any) => {
@@ -257,17 +283,68 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     );
   };
 
+  // Helper functions for deal scoring
+  const calculateDealScore = (property: any): number => {
+    let score = 50; // Base score
+    
+    // Factor in property type (terraced/semi-detached typically better deals)
+    if (property.propertyType === 'T' || property.propertyType === 'Terraced') score += 10;
+    if (property.propertyType === 'S' || property.propertyType === 'Semi-Detached') score += 5;
+    
+    // Factor in bedrooms (2-3 bedrooms often have better yields)
+    if (property.bedrooms === 2) score += 10;
+    if (property.bedrooms === 3) score += 15;
+    if (property.bedrooms === 4) score += 5;
+    
+    // Factor in price (lower prices often better deals)
+    const price = property.price || property.pricePaid || 0;
+    if (price < 100000) score += 15;
+    else if (price < 200000) score += 10;
+    else if (price < 300000) score += 5;
+    
+    // Factor in recent sales activity
+    if (property.salesCount && property.salesCount > 2) score += 10;
+    
+    return Math.min(100, Math.max(0, score));
+  };
+
+  const getDealRating = (score: number): string => {
+    if (score >= 80) return 'Excellent';
+    if (score >= 70) return 'Very Good';
+    if (score >= 60) return 'Good';
+    if (score >= 50) return 'Average';
+    if (score >= 40) return 'Below Average';
+    return 'Poor';
+  };
+
+  const calculateBMVScore = (property: any): number => {
+    // BMV (Below Market Value) score based on recent sales vs current price
+    const currentPrice = property.price || property.pricePaid || 0;
+    const lastSalePrice = property.lastSalePrice || currentPrice;
+    
+    if (currentPrice < lastSalePrice * 0.9) return 90; // 10% below last sale
+    if (currentPrice < lastSalePrice * 0.95) return 75; // 5% below last sale
+    if (currentPrice < lastSalePrice) return 60; // Below last sale
+    if (currentPrice < lastSalePrice * 1.05) return 40; // Up to 5% above
+    if (currentPrice < lastSalePrice * 1.1) return 20; // Up to 10% above
+    return 0; // More than 10% above
+  };
+
   useEffect(() => {
     const fetchPriceIndicators = async () => {
       try {
         // Prepare properties with correct field mapping
-        const propertiesForApi = soldPrices.map(property => ({
-          id: property.guid || property.paon || `${property.paon}-${property.postcode}`,
-          postcode: property.postcode,
-          propertyType: property.property_type || property.propertyType,
-          price: property.price,
-          bedrooms: property.epc_bedrooms || property.bedrooms
-        }));
+        const propertiesForApi = soldPrices.map(property => {
+          const bedrooms = (property.epc_bedrooms && property.epc_bedrooms > 0 ? Math.round(property.epc_bedrooms) : undefined) || (property.bedrooms && property.bedrooms > 0 ? Math.round(property.bedrooms) : undefined);
+          console.log('DEBUG: Sending property to API:', { paon: property.paon, postcode: property.postcode, epc_bedrooms: property.epc_bedrooms, bedrooms: property.bedrooms, final_bedrooms: bedrooms });
+          return {
+            id: property.guid || property.paon || `${property.paon}-${property.postcode}`,
+            postcode: property.postcode,
+            propertyType: property.property_type || property.propertyType,
+            price: property.price,
+            bedrooms
+          };
+        });
 
         const response = await fetch('/api/enhanced-price-indicator', {
           method: 'POST',
@@ -525,9 +602,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                 <th className="px-4 py-3 text-center">
                   <span className="text-xs font-medium text-[#2C6E91]">View</span>
                 </th>
-                <th className="px-4 py-3 text-center">
-                  <span className="text-xs font-medium text-[#2C6E91]">Add to Portfolio</span>
-                </th>
+
               </tr>
             </thead>
             <tbody>
@@ -547,7 +622,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                       {getPropertyTypeIcon(property.propertyType)}
                       <div>
                         <div className="font-medium text-[#2C6E91] text-sm">
-                          {formatShortAddress(property)}
+                          {formatAddress(property)}
                         </div>
                         <div className="text-xs text-[#3B755D]">
                           {property.postcode}
@@ -588,30 +663,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                       View
                     </button>
                   </td>
-                  <td className="px-4 py-3 text-center">
-                    <AddToPortfolioButton
-                      propertyData={{
-                        address: formatShortAddress(property),
-                        postcode: property.postcode,
-                        houseNumber: property.paon || '',
-                        propertyType: formatPropertyType(property.property_type || property.propertyType),
-                        bedrooms: property.bedrooms,
-                        purchasePrice: property.price,
-                        currentValue: property.price,
-                        purchaseDate: property.date,
-                        dealScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
-                        dealRating: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.category || 'Fair',
-                        bmvScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
-                        notes: `Added from search results. Value Indicator: ${priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 'N/A'}%`
-                      }}
-                      className="inline-flex items-center gap-1 px-3 py-1 text-xs font-medium text-white bg-[#5DA271] hover:bg-[#3B755D] rounded-lg transition-colors"
-                      size="sm"
-                      showIcon={false}
-                    >
-                      <Plus className="w-3 h-3" />
-                      Add
-                    </AddToPortfolioButton>
-                  </td>
+
                 </motion.tr>
               ))}
             </tbody>
@@ -634,7 +686,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   {getPropertyTypeIcon(property.propertyType)}
                   <div className="flex-1">
                     <div className="font-semibold text-[#2C6E91] text-base">
-                      {formatShortAddress(property)}
+                      {formatAddress(property)}
                     </div>
                     <div className="text-sm text-[#3B755D]">
                       {property.postcode}
@@ -683,26 +735,18 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                   </button>
                   <AddToPortfolioButton
                     propertyData={{
-                      address: formatShortAddress(property),
-                      postcode: property.postcode,
+                      address: formatAddress(property),
+                      postcode: property.postcode || '',
                       houseNumber: property.paon || '',
-                      propertyType: formatPropertyType(property.property_type || property.propertyType),
-                      bedrooms: property.bedrooms,
-                      purchasePrice: property.price,
-                      currentValue: property.price,
-                      purchaseDate: property.date,
-                      dealScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
-                      dealRating: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.category || 'Fair',
-                      bmvScore: priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 50,
-                      notes: `Added from search results. Value Indicator: ${priceIndicators[property.guid || property.paon || `${property.paon}-${property.postcode}`]?.percentage || 'N/A'}%`
+                      propertyType: property.propertyType || property.propertyTypeLabel || '',
+                      bedrooms: property.bedrooms ? Math.round(property.bedrooms) : undefined,
+                      estimatedValue: property.price || property.pricePaid || 0,
+                      dealScore: calculateDealScore(property),
+                      dealRating: getDealRating(calculateDealScore(property)),
+                      bmvScore: calculateBMVScore(property)
                     }}
-                    className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-[#5DA271] hover:bg-[#3B755D] rounded-lg transition-colors"
-                    size="sm"
-                    showIcon={false}
-                  >
-                    <Plus className="w-3 h-3" />
-                    Add
-                  </AddToPortfolioButton>
+                    className="inline-flex items-center gap-1 px-3 py-2 text-xs font-medium text-[#2C6E91] bg-[#F5F5DC] hover:bg-[#D2B48C] rounded-lg transition-colors"
+                  />
                 </div>
               </div>
             </motion.div>

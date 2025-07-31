@@ -51,8 +51,7 @@ interface DealAnalysisData {
 }
 
 export default function DealAnalysisSearch() {
-  const [postcode, setPostcode] = useState('');
-  const [houseNumber, setHouseNumber] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState<{postcode: string, number: string, street?: string} | null>(null);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [dealAnalysis, setDealAnalysis] = useState<DealAnalysisData | null>(null);
   const [nextGenValuation, setNextGenValuation] = useState<any>(null);
@@ -65,12 +64,21 @@ export default function DealAnalysisSearch() {
   const { history, saveToHistory } = usePostcodeHistory();
 
   const handleSearch = async () => {
-    const formattedPostcode = formatPostcode(postcode.trim());
-    if (!formattedPostcode || !houseNumber.trim()) {
+    if (!selectedAddress) {
       showToast({
         type: 'error',
         title: 'Missing Information',
-        message: 'Please enter both postcode and house number.',
+        message: 'Please select a complete address from the dropdown.',
+      });
+      return;
+    }
+    
+    const formattedPostcode = formatPostcode(selectedAddress.postcode.trim());
+    if (!formattedPostcode || !selectedAddress.number.trim()) {
+      showToast({
+        type: 'error',
+        title: 'Missing Information',
+        message: 'Please select a complete address from the dropdown.',
       });
       return;
     }
@@ -80,7 +88,7 @@ export default function DealAnalysisSearch() {
     
     try {
       // First, get basic search results
-      const searchResponse = await fetch(`/api/search?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber)}`);
+      const searchResponse = await fetch(`/api/search?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(selectedAddress.number)}`);
       
       if (!searchResponse.ok) {
         throw new Error('Search failed');
@@ -114,12 +122,13 @@ export default function DealAnalysisSearch() {
   };
 
   const handleDealAnalysis = async () => {
-    const formattedPostcode = formatPostcode(postcode.trim());
-    if (!formattedPostcode || !houseNumber.trim()) return;
+    if (!selectedAddress) return;
+    const formattedPostcode = formatPostcode(selectedAddress.postcode.trim());
+    if (!formattedPostcode || !selectedAddress.number.trim()) return;
 
     setAnalysisLoading(true);
     try {
-      const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber)}`);
+      const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(selectedAddress.number)}`);
       
       if (!response.ok) {
         throw new Error('Analysis failed');
@@ -160,12 +169,13 @@ export default function DealAnalysisSearch() {
   };
 
   const handleNextGenValuation = async () => {
-    const formattedPostcode = formatPostcode(postcode.trim());
-    if (!formattedPostcode || !houseNumber.trim()) return;
+    if (!selectedAddress) return;
+    const formattedPostcode = formatPostcode(selectedAddress.postcode.trim());
+    if (!formattedPostcode || !selectedAddress.number.trim()) return;
 
     setValuationLoading(true);
     try {
-      const response = await fetch(`/api/next-gen-valuation?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber)}`);
+      const response = await fetch(`/api/next-gen-valuation?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(selectedAddress.number)}`);
       
       if (!response.ok) {
         throw new Error('Valuation failed');
@@ -192,12 +202,13 @@ export default function DealAnalysisSearch() {
   };
 
   const handleMLValuation = async () => {
-    const formattedPostcode = formatPostcode(postcode.trim());
-    if (!formattedPostcode || !houseNumber.trim()) return;
+    if (!selectedAddress) return;
+    const formattedPostcode = formatPostcode(selectedAddress.postcode.trim());
+    if (!formattedPostcode || !selectedAddress.number.trim()) return;
 
     setValuationLoading(true);
     try {
-      const response = await fetch(`/api/ml-valuation?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumber)}`);
+      const response = await fetch(`/api/ml-valuation?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(selectedAddress.number)}`);
       
       if (!response.ok) {
         throw new Error('ML Valuation failed');
@@ -254,7 +265,7 @@ export default function DealAnalysisSearch() {
             Property Deal Analysis
           </CardTitle>
           <p className="text-sm text-gray-600">
-            Enter a house number and postcode to get comprehensive deal analysis including HPI data, sold prices, and property details.
+            Enter a postcode to see available addresses and get comprehensive deal analysis including HPI data, sold prices, and property details.
           </p>
         </CardHeader>
         <CardContent>
@@ -262,22 +273,18 @@ export default function DealAnalysisSearch() {
             <div>
               <label className="block text-sm font-medium mb-2 text-gray-700">Search for a Property</label>
               <AddressSearchInput
-                value={postcode}
-                onChange={setPostcode}
+                value={selectedAddress ? `${selectedAddress.number} ${selectedAddress.street || selectedAddress.postcode}` : ''}
+                onChange={() => {}} // Read-only display
                 onAddressSelect={(address) => {
-                  setPostcode(address.postcode);
-                  setHouseNumber(address.number);
+                  setSelectedAddress({
+                    postcode: address.postcode,
+                    number: address.number,
+                    street: address.street
+                  });
                   // Auto-trigger search when address is selected
                   setTimeout(() => handleSearch(), 100);
                 }}
-                onSearch={(query) => {
-                  setPostcode(query);
-                  // Auto-trigger search if both fields are filled
-                  if (houseNumber.trim()) {
-                    handleSearch();
-                  }
-                }}
-                placeholder="Start typing a postcode or address..."
+                placeholder="Enter a postcode to see available addresses..."
                 showHistory={true}
                 showSuggestions={true}
                 debounceMs={300}
@@ -285,36 +292,24 @@ export default function DealAnalysisSearch() {
                 className=""
               />
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium mb-2 text-gray-700">House Number/Name</label>
-                <Input
-                  placeholder="e.g., 10 or The Cottage"
-                  value={houseNumber}
-                  onChange={(e) => setHouseNumber(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                  className="border-gray-300 focus:border-primary-500 focus:ring-primary-500"
-                />
-              </div>
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleSearch} 
-                  disabled={loading}
-                  className="w-full bg-primary-600 hover:bg-primary-700 text-white px-8 py-2"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Analyzing...
-                    </>
-                  ) : (
-                    <>
-                      <Search className="h-4 w-4 mr-2" />
-                      Analyze Deal
-                    </>
-                  )}
-                </Button>
-              </div>
+            <div className="flex justify-center">
+              <Button 
+                onClick={handleSearch} 
+                disabled={loading || !selectedAddress}
+                className="bg-primary-600 hover:bg-primary-700 text-white px-8 py-2"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <Search className="h-4 w-4 mr-2" />
+                    Analyze Deal
+                  </>
+                )}
+              </Button>
             </div>
           </div>
         </CardContent>

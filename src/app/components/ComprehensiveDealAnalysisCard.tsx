@@ -31,7 +31,7 @@ import {
   Store,
   Trees
 } from 'lucide-react';
-import AddToPortfolioButton, { extractPropertyDataFromValuation } from './AddToPortfolioButton';
+import AddToPortfolioButton from './AddToPortfolioButton';
 import MissingDataCard from './MissingDataCard';
 import { useToast } from '@/hooks/useToast';
 
@@ -464,30 +464,16 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
               propertyData={{
                 address: valuationData.property.address,
                 postcode: valuationData.property.postcode,
-                houseNumber: houseNumber || valuationData.property.address?.split(' ')[0] || '',
+                houseNumber: houseNumber,
                 propertyType: valuationData.property.propertyType,
                 bedrooms: valuationData.property.bedrooms,
-                floorArea: valuationData.property.floorArea,
-                epcRating: valuationData.property.epcRating,
-                constructionYear: undefined,
-                purchasePrice: valuationData.property.lastSoldPrice || valuationData.summary.finalValue * 0.85,
-                currentValue: valuationData.summary.finalValue,
-                purchaseDate: valuationData.property.lastSoldDate || new Date().toISOString().split('T')[0],
+                estimatedValue: valuationData.summary.finalValue,
                 dealScore: Math.round(valuationData.summary.confidence * 100),
                 dealRating: getDealRating(valuationData.summary.confidence),
-                bmvScore: Math.round(valuationData.summary.confidence * 100),
-                rentalIncome: valuationData.methods.incomeApproach?.breakdown?.grossRent * 12,
-                yield: valuationData.methods.incomeApproach?.breakdown?.capRate,
-                mortgageBalance: 0,
-                notes: `Added from comprehensive valuation. Confidence: ${Math.round(valuationData.summary.confidence * 100)}%`
+                bmvScore: Math.round(valuationData.summary.confidence * 100)
               }}
-              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 py-4 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
-              size="lg"
-              showIcon={true}
-            >
-              <Home className="w-5 h-5 mr-2" />
-              Add to Portfolio
-            </AddToPortfolioButton>
+              className="w-full"
+            />
             
             <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-gray-500">
               <div className="flex items-center justify-center gap-1">
@@ -1187,7 +1173,7 @@ function ManualAddToPortfolioForm({ postcode, houseNumber }: { postcode: string;
         postcode,
         houseNumber,
         propertyType,
-        bedrooms: bedrooms ? parseInt(bedrooms) : undefined,
+        bedrooms: bedrooms && parseInt(bedrooms) > 0 ? Math.round(parseFloat(bedrooms)) : undefined,
         purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
         purchaseDate,
         currentValue: purchasePrice ? parseFloat(purchasePrice) : undefined,

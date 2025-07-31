@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, MapPin, Clock, X, Loader2, Home, Building } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -13,6 +14,9 @@ interface AddressSuggestion {
   number: string;
   street: string;
   display: string;
+  locality?: string;
+  town_city?: string;
+  county?: string;
 }
 
 interface AddressSearchInputProps {
@@ -56,8 +60,10 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [focused, setFocused] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
-  const [addresses, setAddresses] = useState<AddressSuggestion[]>([]);
+  const [addresses, setAddresses] = useState<(AddressSuggestion | string)[]>([]);
   const [searching, setSearching] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+
   const inputRef = useRef<HTMLInputElement>(null);
   const [isPostcode, setIsPostcode] = useState(false);
   const [isValidPostcode, setIsValidPostcode] = useState(true);
@@ -93,6 +99,7 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
             setAddresses(data.addresses);
           }
         } catch (e) {
+          console.error('Error fetching address suggestions:', e);
           setSuggestions([]);
           setAddresses([]);
         } finally {
@@ -154,17 +161,27 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
     inputRef.current?.blur();
   };
 
-  const handleAddressClick = (address: AddressSuggestion) => {
-    if (onAddressSelect) {
-      onAddressSelect(address);
-    } else {
-      // Fallback: just set the full address as the value
-      onChange(address.display);
+  const handleAddressClick = (address: AddressSuggestion | string) => {
+    if (typeof address === 'string') {
+      // Handle old string format
+      onChange(address);
       if (onSearch) {
-        onSearch(address.display);
+        onSearch(address);
       }
+      saveToHistory(address);
+    } else {
+      // Handle new object format
+      if (onAddressSelect) {
+        onAddressSelect(address);
+      } else {
+        // Fallback: just set the full address as the value
+        onChange(address.display);
+        if (onSearch) {
+          onSearch(address.display);
+        }
+      }
+      saveToHistory(address.postcode);
     }
-    saveToHistory(address.postcode);
     setShowDropdown(false);
     inputRef.current?.blur();
   };
@@ -182,6 +199,15 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
   const handleFocus = () => {
     setFocused(true);
     setShowDropdown(true);
+    // Calculate dropdown position
+    if (inputRef.current) {
+      const rect = inputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width
+      });
+    }
   };
 
   const handleBlur = () => {
@@ -193,7 +219,10 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
         onChange(formatted);
       }
     }
-    setTimeout(() => setShowDropdown(false), 200);
+    // Only hide dropdown if there are no addresses to show
+    if (addresses.length === 0 && suggestions.length === 0 && (!showHistory || history.length === 0)) {
+      setShowDropdown(false);
+    }
   };
 
   const handleClear = () => {
@@ -219,7 +248,9 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
     }
   };
 
-  const shouldShowDropdown = showDropdown && (focused || suggestions.length > 0 || addresses.length > 0 || (showHistory && history.length > 0));
+  const shouldShowDropdown = showDropdown && (suggestions.length > 0 || addresses.length > 0 || (showHistory && history.length > 0));
+  
+  // Dropdown visibility logic
 
   return (
     <div className={cn("relative w-full", className)}>
@@ -269,15 +300,22 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
         </div>
 
         {/* Dropdown with History, Suggestions, and Addresses */}
-        <AnimatePresence>
-          {shouldShowDropdown && (
+        {shouldShowDropdown && typeof window !== 'undefined' && createPortal(
+          <AnimatePresence>
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.2 }}
-              className="absolute top-full left-0 right-0 z-50 mt-2 bg-white rounded-xl border border-gray-200 shadow-large max-h-96 overflow-y-auto"
+              className="fixed z-[9999] bg-white rounded-xl border border-gray-200 shadow-lg max-h-96 overflow-y-auto"
+              style={{
+                top: `${dropdownPosition.top}px`,
+                left: `${dropdownPosition.left}px`,
+                width: `${dropdownPosition.width}px`
+              }}
             >
+              {/* Dropdown content starts here */}
+
               {/* Search History */}
               {history.length > 0 && showHistory && (
                 <div className="p-4 border-b border-gray-100">
@@ -305,7 +343,7 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
                 <div className="p-4 border-b border-gray-100">
                   <h3 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
                     <Home className="w-4 h-4" />
-                    Addresses
+                    {typeof addresses[0] === 'string' ? 'Addresses' : 'Properties'}
                   </h3>
                   <div className="space-y-2">
                     {addresses.slice(0, 8).map((address, index) => (
@@ -316,12 +354,25 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
                       >
                         <Building className="w-4 h-4 text-text-tertiary flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <div className="text-sm text-text-primary font-medium truncate">
-                            {address.number} {address.street}
-                          </div>
-                          <div className="text-xs text-text-tertiary truncate">
-                            {address.postcode}
-                          </div>
+                          {typeof address === 'string' ? (
+                            // Handle old string format
+                            <div className="text-sm text-text-primary font-medium truncate">
+                              {address}
+                            </div>
+                          ) : (
+                            // Handle new object format with full address
+                            <>
+                              <div className="text-sm text-text-primary font-medium truncate">
+                                {address.number} {address.street}
+                              </div>
+                              <div className="text-xs text-text-tertiary truncate">
+                                {address.locality && `${address.locality}, `}
+                                {address.town_city && `${address.town_city}, `}
+                                {address.county && `${address.county}, `}
+                                {address.postcode}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </button>
                     ))}
@@ -359,8 +410,8 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
                 </div>
               )}
             </motion.div>
-          )}
-        </AnimatePresence>
+          </AnimatePresence>
+        , document.body)}
       </form>
 
       {/* Postcode Validation */}

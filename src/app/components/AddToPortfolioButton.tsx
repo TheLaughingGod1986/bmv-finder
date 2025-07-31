@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Home, Plus, Check, AlertCircle } from 'lucide-react';
-import { useToast } from './ToastProvider';
-import { useUser } from '@supabase/auth-helpers-react';
+import { Plus, Check, Loader2 } from 'lucide-react';
+import { useToast } from '@/hooks/useToast';
+import { supabase } from '@/lib/supabaseClient';
 
 interface AddToPortfolioButtonProps {
   propertyData: {
@@ -12,252 +12,172 @@ interface AddToPortfolioButtonProps {
     houseNumber: string;
     propertyType: string;
     bedrooms?: number;
-    floorArea?: number;
-    epcRating?: string;
-    constructionYear?: string;
-    purchasePrice: number;
-    currentValue: number;
-    purchaseDate: string;
-    dealScore: number;
-    dealRating: string;
-    bmvScore: number;
-    rentalIncome?: number;
-    yield?: number;
-    mortgageBalance?: number;
-    notes?: string;
+    estimatedValue: number;
+    dealScore?: number;
+    dealRating?: string;
+    bmvScore?: number;
   };
   className?: string;
-  variant?: 'default' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
-  showIcon?: boolean;
-  children?: React.ReactNode;
 }
 
-export default function AddToPortfolioButton({
-  propertyData,
-  className = '',
-  variant = 'default',
-  size = 'md',
-  showIcon = true,
-  children
-}: AddToPortfolioButtonProps) {
+export default function AddToPortfolioButton({ propertyData, className = '' }: AddToPortfolioButtonProps) {
   const [loading, setLoading] = useState(false);
-  const [added, setAdded] = useState(false);
-  const [checking, setChecking] = useState(true);
-  const { showToast } = useToast();
-  const user = useUser();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isInPortfolio, setIsInPortfolio] = useState(false);
+  const [checkingPortfolio, setCheckingPortfolio] = useState(true);
+  const { success, error } = useToast();
 
-  // Check if property is already in portfolio when component loads
   useEffect(() => {
-    const checkIfInPortfolio = async () => {
-      if (!user) {
-        setChecking(false);
+    const checkAuth = async () => {
+      if (!supabase) return;
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsLoggedIn(!!session);
+      
+      if (session) {
+        await checkIfInPortfolio(session.access_token);
+      } else {
+        setCheckingPortfolio(false);
+      }
+    };
+    
+    checkAuth();
+  }, [propertyData.address, propertyData.postcode, propertyData.houseNumber]);
+
+  const checkIfInPortfolio = async (token: string) => {
+    try {
+      const response = await fetch('/api/portfolio', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const portfolio = await response.json();
+        const isAlreadyTracked = portfolio.some((property: any) => 
+          property.address === propertyData.address &&
+          property.postcode === propertyData.postcode &&
+          property.house_number === propertyData.houseNumber
+        );
+        setIsInPortfolio(isAlreadyTracked);
+      }
+    } catch (err) {
+      console.error('Error checking portfolio:', err);
+    } finally {
+      setCheckingPortfolio(false);
+    }
+  };
+
+  const handleAddToPortfolio = async () => {
+    setLoading(true);
+    try {
+      // Debug: Log the incoming property data
+      console.log('Property data received:', propertyData);
+
+      const portfolioData = {
+        address: propertyData.address || '',
+        postcode: propertyData.postcode || '',
+        house_number: propertyData.houseNumber || '',
+        property_type: propertyData.propertyType || '',
+        bedrooms: propertyData.bedrooms ? Math.round(propertyData.bedrooms) : undefined,
+        purchase_price: propertyData.estimatedValue * 0.9, // Assume 10% below market value
+        current_value: propertyData.estimatedValue,
+        purchase_date: new Date().toISOString().split('T')[0], // Today's date
+        deal_score: propertyData.dealScore !== undefined ? propertyData.dealScore : 0,
+        deal_rating: propertyData.dealRating || 'Good',
+        bmv_score: propertyData.bmvScore !== undefined ? propertyData.bmvScore : 0,
+        equity: propertyData.estimatedValue * 0.25, // Assume 25% equity
+        notes: 'Added from property analysis'
+      };
+
+      // Debug: Log the portfolio data being sent
+      console.log('Portfolio data being sent:', portfolioData);
+
+      // Get the current session token
+      if (!supabase) {
+        error('Supabase client not available');
+        return;
+      }
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        error('Please log in to add properties to your portfolio');
         return;
       }
 
-      try {
-        const response = await fetch(`/api/portfolio?userId=${user.id}`);
-        if (response.ok) {
-          const data = await response.json();
-          const isInPortfolio = data.portfolio?.some((property: any) => 
-            property.address === propertyData.address &&
-            property.postcode === propertyData.postcode &&
-            property.house_number === propertyData.houseNumber
-          );
-          setAdded(isInPortfolio);
-        }
-      } catch (error) {
-        console.error('Error checking portfolio:', error);
-      } finally {
-        setChecking(false);
-      }
-    };
-
-    checkIfInPortfolio();
-  }, [user, propertyData.address, propertyData.postcode, propertyData.houseNumber]);
-
-  const handleAddToPortfolio = async () => {
-    if (!user) {
-      showToast({
-        type: 'error',
-        title: 'Authentication Required',
-        message: 'Please sign in to add properties to your portfolio.'
-      });
-      return;
-    }
-
-    if (loading) {
-      return;
-    }
-
-    setLoading(true);
-    
-    try {
       const response = await fetch('/api/portfolio/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({
-          ...propertyData,
-          userId: user.id
-        })
+        body: JSON.stringify(portfolioData),
       });
-
-      const data = await response.json();
 
       if (response.ok) {
-        setAdded(true);
-        showToast({
-          type: 'success',
-          title: 'Property Added',
-          message: `${propertyData.address} has been added to your portfolio successfully!`
-        });
+        success('Property added to your portfolio!');
+        setIsInPortfolio(true);
       } else {
-        if (response.status === 409) {
-          showToast({
-            type: 'warning',
-            title: 'Already in Portfolio',
-            message: 'This property is already in your portfolio.'
-          });
-        } else {
-          throw new Error(data.error || 'Failed to add to portfolio');
-        }
+        const data = await response.json();
+        console.error('API Error Response:', data);
+        error(data.error || data.details || 'Failed to add property to portfolio');
       }
     } catch (err) {
-      showToast({
-        type: 'error',
-        title: 'Error',
-        message: err instanceof Error ? err.message : 'Failed to add property to portfolio'
-      });
+      console.error('Error adding to portfolio:', err);
+      error('Failed to add property to portfolio');
     } finally {
       setLoading(false);
     }
   };
 
-  const getButtonContent = () => {
-    if (checking) {
-      return (
-        <>
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-          Checking...
-        </>
-      );
-    }
-
-    if (added) {
-      return (
-        <>
-          <Check className="h-4 w-4" />
-          In Portfolio
-        </>
-      );
-    }
-
-    if (loading) {
-      return (
-        <>
-          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current" />
-          Adding...
-        </>
-      );
-    }
-
-    return children || (
-      <>
-        {showIcon && <Plus className="h-4 w-4" />}
-        Add to Portfolio
-      </>
+  if (!isLoggedIn) {
+    return (
+      <button
+        onClick={() => error('Please log in to add properties to your portfolio')}
+        className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed ${className}`}
+      >
+        <Plus className="w-4 h-4" />
+        Log in to Track
+      </button>
     );
-  };
+  }
 
-  const getButtonClasses = () => {
-    const baseClasses = 'inline-flex items-center justify-center gap-2 font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed touch-target';
-    
-    const sizeClasses = {
-      sm: 'px-3 py-1.5 text-sm rounded-md',
-      md: 'px-4 py-2 text-sm rounded-lg',
-      lg: 'px-6 py-3 text-base rounded-lg'
-    };
+  if (checkingPortfolio) {
+    return (
+      <button
+        disabled
+        className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-300 text-gray-600 rounded-lg font-semibold cursor-not-allowed ${className}`}
+      >
+        <Loader2 className="w-4 h-4 animate-spin" />
+        Checking...
+      </button>
+    );
+  }
 
-    const variantClasses = {
-      default: 'bg-primary-700 text-white hover:bg-primary-800 focus:ring-primary-500 shadow-soft',
-      outline: 'border border-primary-300 text-primary-700 bg-white hover:bg-primary-50 focus:ring-primary-500',
-      ghost: 'text-primary-700 hover:bg-primary-50 focus:ring-primary-500'
-    };
-
-    const stateClasses = checking
-      ? 'bg-gray-400 text-white cursor-not-allowed shadow-soft'
-      : added 
-      ? 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500 shadow-soft'
-      : loading
-      ? 'bg-gray-400 text-white cursor-not-allowed shadow-soft'
-      : variantClasses[variant];
-
-    return `${baseClasses} ${sizeClasses[size]} ${stateClasses} ${className}`;
-  };
+  if (isInPortfolio) {
+    return (
+      <button
+        disabled
+        className={`inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 border border-green-300 rounded-lg font-semibold cursor-not-allowed ${className}`}
+      >
+        <Check className="w-4 h-4" />
+        In Portfolio
+      </button>
+    );
+  }
 
   return (
     <button
       onClick={handleAddToPortfolio}
-      disabled={loading || added || checking}
-      className={getButtonClasses()}
-      type="button"
+      disabled={loading}
+      className={`inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg font-semibold hover:from-purple-600 hover:to-blue-600 focus:ring-2 focus:ring-blue-600 transition-all duration-200 shadow-soft disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
     >
-      {getButtonContent()}
+      {loading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <Plus className="w-4 h-4" />
+      )}
+      {loading ? 'Adding...' : 'Track This Property'}
     </button>
   );
-}
-
-// Helper function to extract property data from comprehensive valuation
-export function extractPropertyDataFromValuation(valuationData: { property: { address: string; postcode: string; propertyType: string; bedrooms?: number; floorArea?: number; epcRating?: string; lastSoldPrice?: number; lastSoldDate?: string; houseNumber?: string; street?: string; constructionYear?: string }; summary: { finalValue: number; confidence?: number }; methods: { salesComparison: { value: number }; incomeApproach?: { breakdown?: { annualRentalIncome?: number; yield?: number } } } }) {
-  if (!valuationData || !valuationData.property) {
-    return null;
-  }
-
-  const { property, methods, summary } = valuationData;
-
-  // Calculate rental income from income approach
-  const rentalIncome = methods?.incomeApproach?.breakdown?.annualRentalIncome || 0;
-  const rentalYield = methods?.incomeApproach?.breakdown?.yield || 0;
-
-  // Calculate deal score from summary confidence
-  const dealScore = summary?.confidence || 0;
-  const dealRating = getDealRating(dealScore);
-
-  // Calculate BMV score (simplified - in real app, you'd have a more sophisticated calculation)
-  const bmvScore = Math.min(100, Math.max(0, 
-    (dealScore * 0.4) + 
-    (rentalYield * 5) + 
-    ((summary?.finalValue / property?.lastSoldPrice || 1) * 20)
-  ));
-
-  return {
-    address: property.address || `${property.houseNumber} ${property.street}`,
-    postcode: property.postcode,
-    houseNumber: property.houseNumber || property.address?.split(' ')[0] || '',
-    propertyType: property.propertyType,
-    bedrooms: property.bedrooms,
-    floorArea: property.floorArea,
-    epcRating: property.epcRating,
-    constructionYear: property.constructionYear,
-    purchasePrice: property.lastSoldPrice || summary?.finalValue * 0.85,
-    currentValue: summary?.finalValue,
-    purchaseDate: property.lastSoldDate || new Date().toISOString().split('T')[0],
-    dealScore: Math.round(dealScore),
-    dealRating,
-    bmvScore: Math.round(bmvScore),
-    rentalIncome: Math.round(rentalIncome),
-    yield: Math.round(rentalYield * 100) / 100,
-    mortgageBalance: 0, // User can edit this later
-    notes: `Added from valuation analysis. Deal Score: ${dealScore}, BMV Score: ${Math.round(bmvScore)}`
-  };
-}
-
-function getDealRating(score: number): string {
-  if (score >= 80) return 'Excellent';
-  if (score >= 70) return 'Good';
-  if (score >= 60) return 'Fair';
-  if (score >= 50) return 'Poor';
-  return 'Very Poor';
 } 

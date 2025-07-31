@@ -136,7 +136,7 @@ async function fetchComparableProperties(
   bedrooms?: number
 ): Promise<any[]> {
   try {
-    console.log('🔍 Fetching comparables for:', { postcode, propertyType, bedrooms });
+    // Fetching comparables logging removed
     
     const must: any[] = [
       { match_phrase: { postcode: postcode } },
@@ -148,7 +148,7 @@ async function fetchComparableProperties(
       must.push({ match: { epc_bedrooms: bedrooms } });
     }
 
-    console.log('🔍 Elasticsearch query:', JSON.stringify({ bool: { must } }, null, 2));
+    // Elasticsearch query logging removed
 
     const result = await esClient.search({
       index: 'properties-enhanced',
@@ -161,7 +161,7 @@ async function fetchComparableProperties(
       ]
     });
 
-    console.log('🔍 Elasticsearch response hits:', result.hits.hits.length);
+    // Elasticsearch response hits logging removed
 
     const hits = result.hits.hits;
     let properties = hits.map((hit: any) => {
@@ -174,7 +174,7 @@ async function fetchComparableProperties(
       };
     });
 
-    console.log('🔍 Properties before date filter:', properties.length);
+    // Properties before date filter logging removed
 
     // Filter to last 24 months (more inclusive)
     const twoYearsAgo = new Date();
@@ -185,7 +185,7 @@ async function fetchComparableProperties(
       return saleDate >= twoYearsAgo && property.price > 0;
     });
 
-    console.log('🔍 Properties after date filter:', properties.length);
+    // Properties after date filter logging removed
 
     return properties.slice(0, 10); // Return top 10 most recent
   } catch (error) {

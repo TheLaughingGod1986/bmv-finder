@@ -4,26 +4,51 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useSearchLimit } from './SearchLimitContext';
+import { useUser } from '@supabase/auth-helpers-react';
 
 export default function SearchLimitManager() {
   const [isClient, setIsClient] = useState(false);
+  const [searchCount, setSearchCount] = useState(0);
+  const [isLimitReached, setIsLimitReached] = useState(false);
   const router = useRouter();
   
-  // Always call the hook at the top level
-  const searchLimitData = useSearchLimit();
+  const SEARCH_LIMIT = 5;
+  
+  // Safely use useUser with error handling
+  let user = null;
+  try {
+    user = useUser();
+  } catch (error) {
+    console.warn('useUser not available:', error);
+  }
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    
+    // Only load search count for anonymous users
+    if (!user) {
+      try {
+        if (typeof window !== 'undefined') {
+          const storedCount = localStorage.getItem('anonymous_search_count');
+          const count = storedCount ? parseInt(storedCount, 10) : 0;
+          setSearchCount(count);
+          setIsLimitReached(count >= SEARCH_LIMIT);
+        }
+      } catch (error) {
+        console.warn('Error loading search count:', error);
+      }
+    } else {
+      // Reset for logged-in users
+      setSearchCount(0);
+      setIsLimitReached(false);
+    }
+  }, [user]);
 
   // Always render the container to prevent hydration issues
-  // but only show content when client-side and context is available
-  if (!isClient || !searchLimitData) {
+  // but only show content when client-side and user is anonymous
+  if (!isClient || user) {
     return <div className="mt-4 text-center" />; // Empty container to maintain layout
   }
-
-  const { searchCount, isLimitReached, SEARCH_LIMIT } = searchLimitData;
 
   return (
     <div className="mt-4 text-center">

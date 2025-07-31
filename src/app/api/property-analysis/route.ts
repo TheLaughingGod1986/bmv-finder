@@ -15,20 +15,48 @@ function formatComparable(hit: any) {
     date: hit._source.date || hit._source.dateOfTransfer || null,
     propertyType: hit._source.propertyType || hit._source.propertyTypeLabel || '',
     bedrooms: hit._source.bedrooms || null,
+    paon: hit._source.paon || '', // Add house number for deduplication
   };
+}
+
+// Function to deduplicate comparables by property address, keeping only the most recent sale
+function deduplicateComparables(comparables: any[]) {
+  const propertyMap = new Map();
+  
+  comparables.forEach(comparable => {
+    // Create a unique key based on house number and postcode
+    const key = `${comparable.paon}_${comparable.postcode}`;
+    
+    if (!propertyMap.has(key) || new Date(comparable.date) > new Date(propertyMap.get(key).date)) {
+      propertyMap.set(key, comparable);
+    }
+  });
+  
+  // Return deduplicated array, sorted by date (most recent first)
+  return Array.from(propertyMap.values())
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const postcode = searchParams.get('postcode');
-  const number = searchParams.get('number');
+  let number = searchParams.get('number');
 
   if (!postcode || !number) {
     return NextResponse.json({ success: false, error: 'Missing postcode or number' }, { status: 400 });
   }
 
+  // Clean the number parameter - it might be corrupted with postcode data
+  // Extract just the house number part (before any postcode)
+  const cleanNumber = number.split(' ')[0]; // Take only the first part before any space
+  
+  // Validate that we have a valid house number
+  if (!cleanNumber || cleanNumber.trim() === '') {
+    return NextResponse.json({ success: false, error: 'Invalid house number' }, { status: 400 });
+  }
+  
   const normalizedPostcode = normalizePostcode(postcode);
-  console.log('🔍 Property Analysis Debug:', { postcode, normalizedPostcode, number });
+  // Debug logging reduced for cleaner console
 
   // Step 1: Find 3-5 most recent comparable sales in the same postcode
   let comparables: any[] = [];
@@ -42,11 +70,11 @@ export async function GET(req: NextRequest) {
       bool: {
         must: [
           { match_phrase: { postcode: normalizedPostcode } },
-          { match: { paon: number } },
+          { match: { paon: cleanNumber } },
         ],
       },
     };
-    console.log('🔍 Subject property query:', JSON.stringify(subjectQuery, null, 2));
+    // Subject property query logging removed
     
     const subjectResp = await esClient.search({
       index: 'properties-enhanced',
@@ -56,23 +84,24 @@ export async function GET(req: NextRequest) {
       },
     });
     
-    console.log('🔍 Subject property response hits:', subjectResp.hits.hits.length);
+    // Subject property response logging removed
     
     const subject = subjectResp.hits.hits[0]?._source;
     const subjectAny = subject as any;
     let bedroomCount = subjectAny?.epc_bedrooms;
     let propertyType = subjectAny?.property_type_label;
     
-    console.log('🔍 Subject property found:', { 
-      found: !!subject, 
-      bedroomCount, 
-      propertyType,
-      address: subjectAny?.full_address 
-    });
+    // Subject property found logging removed
 
     // Step 2: Find comparables (same postcode, ideally same bedrooms/property type)
+    // Calculate date 2 years ago for recent sales only
+    const twoYearsAgo = new Date();
+    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    const twoYearsAgoStr = twoYearsAgo.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    
     let must: any[] = [
       { match_phrase: { postcode: normalizedPostcode } },
+      { range: { date: { gte: twoYearsAgoStr } } }, // Only sales from last 2 years
     ];
     if (bedroomCount) {
       must.push({ match: { bedrooms: bedroomCount } });
@@ -83,7 +112,7 @@ export async function GET(req: NextRequest) {
     }
     
     const comparableQuery = { bool: { must } };
-    console.log('🔍 Comparable search query:', JSON.stringify(comparableQuery, null, 2));
+    // Comparable search query logging removed
     
     let resp = await esClient.search({
       index: 'properties-enhanced',
@@ -94,12 +123,12 @@ export async function GET(req: NextRequest) {
       },
     });
     
-    console.log('🔍 Comparable search response hits:', resp.hits.hits.length);
+    // Comparable search response hits logging removed
     comparables = resp.hits.hits.map(formatComparable);
 
     // If not enough comparables, relax bedroom/propertyType filter
     if (comparables.length < 3) {
-      console.log('🔍 Not enough comparables, relaxing filters...');
+      // Not enough comparables logging removed
       must = [ { match_phrase: { postcode: normalizedPostcode } } ];
       resp = await esClient.search({
         index: 'properties-enhanced',
@@ -111,8 +140,11 @@ export async function GET(req: NextRequest) {
       });
       comparables = resp.hits.hits.map(formatComparable);
       usedBedroomFilter = false;
-      console.log('🔍 Relaxed search response hits:', resp.hits.hits.length);
+      // Relaxed search response hits logging removed
     }
+
+    // Deduplicate comparables to show only the most recent sale per property
+    comparables = deduplicateComparables(comparables);
 
     // Calculate average price
     const prices = comparables.map(c => c.price).filter(p => typeof p === 'number');
@@ -138,7 +170,7 @@ export async function GET(req: NextRequest) {
         bool: {
           must: [
             { match_phrase: { postcode: normalizedPostcode } },
-            { match: { paon: number } },
+            { match: { paon: cleanNumber } },
           ],
         },
       };
@@ -166,11 +198,15 @@ export async function GET(req: NextRequest) {
     }
 
     // Create subject object with requested details
+    // Use the full address from the subject property response if available
+    const subjectAddress = subjectAny?.address || subjectAny?.fullAddress;
+    const streetName = subjectAny?.street || subjectAny?.street_name;
+    
     const subjectProperty = {
-      address: `${number} ${normalizedPostcode}`,
-      fullAddress: `${number}, ${normalizedPostcode}`,
+      address: subjectAddress || `${cleanNumber} ${normalizedPostcode}`,
+      fullAddress: subjectAddress || (streetName ? `${cleanNumber} ${streetName}, ${normalizedPostcode}` : `${cleanNumber}, ${normalizedPostcode}`),
       postcode: normalizedPostcode,
-      propertyNumber: number,
+      propertyNumber: cleanNumber,
       propertyType: propertyType || 'Unknown',
       bedrooms: bedroomCount || null,
       lastSale: subjectLastSale,

@@ -18,28 +18,48 @@ const SEARCH_LIMIT = 5;
 export function SearchLimitProvider({ children }: { children: ReactNode }) {
   const [searchCount, setSearchCount] = useState(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
-  const user = useUser();
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Safely use useUser with error handling
+  let user = null;
+  try {
+    user = useUser();
+  } catch (error) {
+    console.warn('useUser not available:', error);
+  }
 
   // Load search count from localStorage on mount
   useEffect(() => {
-    if (typeof window !== 'undefined' && !user) {
-      const storedCount = localStorage.getItem('anonymous_search_count');
-      const count = storedCount ? parseInt(storedCount, 10) : 0;
-      setSearchCount(count);
-      setIsLimitReached(count >= SEARCH_LIMIT);
-    } else if (user) {
-      // Reset for logged-in users
-      setSearchCount(0);
-      setIsLimitReached(false);
+    try {
+      if (typeof window !== 'undefined' && !user) {
+        const storedCount = localStorage.getItem('anonymous_search_count');
+        const count = storedCount ? parseInt(storedCount, 10) : 0;
+        setSearchCount(count);
+        setIsLimitReached(count >= SEARCH_LIMIT);
+      } else if (user) {
+        // Reset for logged-in users
+        setSearchCount(0);
+        setIsLimitReached(false);
+      }
+    } catch (error) {
+      console.warn('Error loading search count:', error);
+    } finally {
+      setIsLoading(false);
     }
   }, [user]);
 
   const incrementSearchCount = () => {
-    if (!user) {
-      const newCount = searchCount + 1;
-      setSearchCount(newCount);
-      localStorage.setItem('anonymous_search_count', newCount.toString());
-      setIsLimitReached(newCount >= SEARCH_LIMIT);
+    try {
+      if (!user) {
+        const newCount = searchCount + 1;
+        setSearchCount(newCount);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('anonymous_search_count', newCount.toString());
+        }
+        setIsLimitReached(newCount >= SEARCH_LIMIT);
+      }
+    } catch (error) {
+      console.warn('Error incrementing search count:', error);
     }
   };
 
@@ -55,7 +75,10 @@ export function SearchLimitProvider({ children }: { children: ReactNode }) {
     SEARCH_LIMIT
   };
 
-
+  // Show loading state while initializing
+  if (isLoading) {
+    return <>{children}</>;
+  }
 
   return (
     <SearchLimitContext.Provider value={value}>
@@ -67,7 +90,15 @@ export function SearchLimitProvider({ children }: { children: ReactNode }) {
 export function useSearchLimit() {
   const context = useContext(SearchLimitContext);
   if (context === undefined) {
-    throw new Error('useSearchLimit must be used within a SearchLimitProvider');
+    // Return a default context instead of throwing an error
+    console.warn('useSearchLimit must be used within a SearchLimitProvider, returning default values');
+    return {
+      searchCount: 0,
+      isLimitReached: false,
+      incrementSearchCount: () => {},
+      canSearch: () => true,
+      SEARCH_LIMIT: 5
+    };
   }
   return context;
 } 

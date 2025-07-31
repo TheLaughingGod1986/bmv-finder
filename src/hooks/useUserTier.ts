@@ -8,6 +8,7 @@ export function useUserTier(userId: string | null | undefined) {
   useEffect(() => {
     async function fetchUserTier() {
       if (!userId || !supabase) {
+        setTier('free');
         setLoading(false);
         return;
       }
@@ -20,9 +21,17 @@ export function useUserTier(userId: string | null | undefined) {
           .eq('id', userId)
           .single();
         
-        setTier(data?.tier ?? 'free');
+        if (error) {
+          // Only log critical errors, not expected "no rows" errors
+          if (error.code !== 'PGRST116') {
+            console.warn('Error fetching user tier:', error);
+          }
+          setTier('free');
+        } else {
+          setTier(data?.tier ?? 'free');
+        }
       } catch (error) {
-        console.error('Error fetching user tier:', error);
+        console.warn('Error fetching user tier:', error);
         setTier('free');
       } finally {
         setLoading(false);
@@ -30,7 +39,7 @@ export function useUserTier(userId: string | null | undefined) {
     }
 
     fetchUserTier();
-  }, [userId, supabase]);
+  }, [userId]);
 
   return { tier, loading };
 } 
