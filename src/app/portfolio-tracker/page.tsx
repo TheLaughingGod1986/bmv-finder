@@ -749,7 +749,7 @@ export default function PortfolioTrackerPage() {
   // Show loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-neutral-100 font-sans">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
         <main className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="text-center mb-10 max-w-3xl mx-auto pt-10">
             <div className="flex items-center justify-center gap-3 mb-4">
@@ -836,11 +836,23 @@ export default function PortfolioTrackerPage() {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-green-50 border border-green-200 rounded-xl shadow-soft p-4"
+                className="fixed inset-0 bg-gradient-to-b from-purple-100 to-white z-50 flex items-center justify-center"
               >
-                <div className="flex items-center gap-3">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
-                  <span className="text-green-700 font-medium">Updating property values and calculating BMV scores...</span>
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-2xl border border-purple-200 max-w-md mx-4">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Processing Your Portfolio</h3>
+                    <p className="text-gray-600 text-sm">
+                      Updating property values and calculating BMV scores...
+                    </p>
+                    <div className="mt-4 flex justify-center">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                        <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
