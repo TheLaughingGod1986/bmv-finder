@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2, CheckCircle, Edit, DollarSign, Percent, Clock } from 'lucide-react';
+import { Home, TrendingUp, PoundSterling, Calendar, Plus, Filter, BarChart3, Target, MapPin, Trash2, CheckCircle, Edit, DollarSign, Percent, Clock, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../../lib/supabaseClient';
 import PropertyEditModal from '../components/PropertyEditModal';
@@ -152,23 +152,32 @@ export default function PortfolioTrackerPage() {
             
 
             
-            // Update the property with current value, purchase price, BMV score, full address, and default deposit
+            // Calculate missing financial data including rental income
+            const enhancedProperty = calculateMissingData({
+              ...property,
+              currentValue: data.estimatedValue,
+              purchasePrice: purchasePrice,
+              bmvScore: bmvScore,
+              propertyType: data.propertyType || property.propertyType,
+              address: data.subject?.address || property.address
+            });
+            
+            // Update the property with all calculated data
             const updateData: any = { 
               current_value: data.estimatedValue,
               purchase_price: purchasePrice,
               bmv_score: bmvScore,
-              property_type: data.propertyType || property.propertyType
+              property_type: data.propertyType || property.propertyType,
+              monthly_rent: enhancedProperty.monthlyRent,
+              rent_start_date: enhancedProperty.rentStartDate,
+              monthly_mortgage_payment: enhancedProperty.monthlyMortgagePayment,
+              monthly_expenses: enhancedProperty.monthlyExpenses,
+              deposit_amount: enhancedProperty.depositAmount
             };
-            
-            // Set default deposit to 25% if not already set
-            if (!property.depositAmount && purchasePrice > 0) {
-              updateData.deposit_amount = Math.round(purchasePrice * 0.25);
-            }
             
             // Always update address to full address if available from API
             if (data.subject?.address && data.subject.address !== property.address) {
               updateData.address = data.subject.address;
-              // Updating address for property
             }
             
             const { error: updateError } = await supabase
@@ -178,13 +187,12 @@ export default function PortfolioTrackerPage() {
 
             if (!updateError) {
               updatedProperties[i] = {
-                ...property,
+                ...enhancedProperty,
                 currentValue: data.estimatedValue,
                 purchasePrice: purchasePrice,
                 bmvScore: bmvScore,
                 propertyType: data.propertyType || property.propertyType,
-                address: data.subject?.address || property.address,
-                depositAmount: updateData.deposit_amount || property.depositAmount
+                address: data.subject?.address || property.address
               };
             }
           }
@@ -518,10 +526,12 @@ export default function PortfolioTrackerPage() {
     }
   };
 
-  const getTotalRentalIncome = () => {
+  const getPortfolioTotalRentalIncome = () => {
     const activeProperties = portfolioProperties.filter(p => p.status === 'active');
+    
     return activeProperties.reduce((sum, property) => {
       const monthlyRent = property.monthlyRent || 0;
+      
       if (!monthlyRent) return sum;
       
       // If rent start date is available, calculate from that date
@@ -549,7 +559,7 @@ export default function PortfolioTrackerPage() {
   };
 
   const getTotalIncome = () => {
-    return getTotalRentalIncome() + getTotalValueIncrease();
+    return getPortfolioTotalRentalIncome() + getTotalValueIncrease();
   };
 
   // Calculate total income for a specific property
@@ -557,6 +567,56 @@ export default function PortfolioTrackerPage() {
     const rentalIncome = property.monthlyRent ? property.monthlyRent * 12 : 0;
     const valueIncrease = property.currentValue - property.purchasePrice;
     return rentalIncome + valueIncrease;
+  };
+
+  // Calculate total rental income over entire ownership period for a specific property
+  const getPropertyTotalRentalIncome = (property: PortfolioProperty) => {
+    if (!property.purchaseDate || !property.monthlyRent) return 0;
+    
+    const purchaseDate = new Date(property.purchaseDate);
+    const currentDate = new Date();
+    const monthsOwned = (currentDate.getFullYear() - purchaseDate.getFullYear()) * 12 + 
+                       (currentDate.getMonth() - purchaseDate.getMonth());
+    
+    // If rent started later than purchase, calculate from rent start date
+    if (property.rentStartDate) {
+      const rentStartDate = new Date(property.rentStartDate);
+      const monthsRented = (currentDate.getFullYear() - rentStartDate.getFullYear()) * 12 + 
+                          (currentDate.getMonth() - rentStartDate.getMonth());
+      return Math.max(0, monthsRented) * property.monthlyRent;
+    }
+    
+    return Math.max(0, monthsOwned) * property.monthlyRent;
+  };
+
+  // Calculate total expenses over entire ownership period
+  const getTotalExpensesOverOwnership = (property: PortfolioProperty) => {
+    if (!property.purchaseDate) return 0;
+    
+    const purchaseDate = new Date(property.purchaseDate);
+    const currentDate = new Date();
+    const monthsOwned = (currentDate.getFullYear() - purchaseDate.getFullYear()) * 12 + 
+                       (currentDate.getMonth() - purchaseDate.getMonth());
+    
+    const monthlyExpenses = (property.monthlyMortgagePayment || 0) + (property.monthlyExpenses || 0);
+    return Math.max(0, monthsOwned) * monthlyExpenses;
+  };
+
+  // Calculate total profit over entire ownership period
+  const getTotalProfitOverOwnership = (property: PortfolioProperty) => {
+    const totalRentalIncome = getPropertyTotalRentalIncome(property);
+    const totalValueGrowth = property.currentValue - property.purchasePrice;
+    const totalExpenses = getTotalExpensesOverOwnership(property);
+    
+    return totalRentalIncome + totalValueGrowth - totalExpenses;
+  };
+
+  // Calculate total ROI (Return on Investment) - Value increase + Total rental income
+  const getTotalROI = (property: PortfolioProperty) => {
+    const valueIncrease = property.currentValue - property.purchasePrice;
+    const totalRentalIncome = getPropertyTotalRentalIncome(property);
+    
+    return valueIncrease + totalRentalIncome;
   };
 
   // Calculate total equity across portfolio
@@ -989,7 +1049,7 @@ export default function PortfolioTrackerPage() {
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="text-gray-700 font-medium">Rental Income</span>
                     </div>
-                    <span className="font-semibold text-green-600">{formatPrice(getTotalRentalIncome())}</span>
+                    <span className="font-semibold text-green-600">{formatPrice(getPortfolioTotalRentalIncome())}</span>
                   </div>
                   <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
                     <div className="flex items-center gap-3">
@@ -1010,7 +1070,7 @@ export default function PortfolioTrackerPage() {
                     <div className="text-xs text-gray-500 mt-3 space-y-2">
                       <div className="flex justify-between">
                         <span>Rental:</span>
-                        <span>{formatPrice(getTotalRentalIncome())}</span>
+                        <span>{formatPrice(getPortfolioTotalRentalIncome())}</span>
                       </div>
                       <div className="flex justify-between">
                         <span>Growth:</span>
@@ -1068,6 +1128,13 @@ export default function PortfolioTrackerPage() {
                   >
                     <BarChart3 className="w-4 h-4" />
                     Export
+                  </button>
+                  <button 
+                    onClick={() => populateMissingData(true)}
+                    className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl hover:from-green-600 hover:to-green-700 transition-all duration-200 font-semibold shadow-lg hover:shadow-xl"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Update Data
                   </button>
                   <button 
                     onClick={() => window.location.href = '/portfolio-tracker/statements'}
@@ -1336,33 +1403,113 @@ export default function PortfolioTrackerPage() {
                           </div>
                         </div>
 
-                        {/* Total Income Calculation */}
-                        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 p-6">
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-4 h-4 bg-indigo-500 rounded-full"></div>
-                            <h4 className="text-lg font-semibold text-gray-900">Total Annual Income</h4>
-                            <span className="text-2xl font-bold text-indigo-600 ml-auto">
-                              {formatPrice(getPropertyTotalIncome(enhancedProperty))}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                            <div className="bg-white rounded-lg p-3 border border-indigo-200">
-                              <div className="text-gray-600 mb-1">Annual Rental Income</div>
-                              <div className="font-semibold text-green-600">{formatPrice((enhancedProperty.monthlyRent || 0) * 12)}</div>
-                            </div>
-                            <div className="bg-white rounded-lg p-3 border border-indigo-200">
-                              <div className="text-gray-600 mb-1">Value Appreciation</div>
-                              <div className={`font-semibold ${enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-indigo-200">
-                            <strong>Formula:</strong> Annual Rent + Value Growth = {formatPrice((enhancedProperty.monthlyRent || 0) * 12)} + {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} = {formatPrice(getPropertyTotalIncome(enhancedProperty))}
-                          </div>
-                        </div>
+                                                 {/* Total Income Calculation */}
+                         <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 p-6">
+                           <div className="flex items-center gap-3 mb-4">
+                             <div className="w-4 h-4 bg-indigo-500 rounded-full"></div>
+                             <h4 className="text-lg font-semibold text-gray-900">Total Annual Income</h4>
+                             <span className="text-2xl font-bold text-indigo-600 ml-auto">
+                               {formatPrice(getPropertyTotalIncome(enhancedProperty))}
+                             </span>
+                           </div>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                             <div className="bg-white rounded-lg p-3 border border-indigo-200">
+                               <div className="text-gray-600 mb-1">Annual Rental Income</div>
+                               <div className="font-semibold text-green-600">{formatPrice((enhancedProperty.monthlyRent || 0) * 12)}</div>
+                             </div>
+                             <div className="bg-white rounded-lg p-3 border border-indigo-200">
+                               <div className="text-gray-600 mb-1">Annual Value Appreciation</div>
+                               <div className={`font-semibold ${enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                 {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)}
+                               </div>
+                             </div>
+                           </div>
+                           <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-indigo-200">
+                             <strong>Formula:</strong> Annual Rent + Annual Value Growth = {formatPrice((enhancedProperty.monthlyRent || 0) * 12)} + {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} = {formatPrice(getPropertyTotalIncome(enhancedProperty))}
+                           </div>
+                         </div>
 
-                        {/* Property Details */}
+                         {/* Total Profit Over Entire Ownership */}
+                         <div className="bg-gradient-to-r from-amber-50 to-amber-100 rounded-xl border border-amber-200 p-6">
+                           <div className="flex items-center gap-3 mb-4">
+                             <div className="w-4 h-4 bg-amber-500 rounded-full"></div>
+                             <h4 className="text-lg font-semibold text-gray-900">Total Profit Over Entire Ownership</h4>
+                             <span className="text-2xl font-bold text-amber-600 ml-auto">
+                               {formatPrice(getTotalProfitOverOwnership(enhancedProperty))}
+                             </span>
+                           </div>
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                             <div className="bg-white rounded-lg p-3 border border-amber-200">
+                               <div className="text-gray-600 mb-1">Total Rental Income</div>
+                               <div className="font-semibold text-green-600">{formatPrice(getPropertyTotalRentalIncome(enhancedProperty))}</div>
+                               <div className="text-xs text-gray-500">
+                                 Since {enhancedProperty.purchaseDate ? formatDate(enhancedProperty.purchaseDate) : 'purchase'}
+                               </div>
+                             </div>
+                             <div className="bg-white rounded-lg p-3 border border-amber-200">
+                               <div className="text-gray-600 mb-1">Total Value Growth</div>
+                               <div className={`font-semibold ${enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                 {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)}
+                               </div>
+                               <div className="text-xs text-gray-500">
+                                 {calculateOwnershipDuration(enhancedProperty.purchaseDate)} of ownership
+                               </div>
+                             </div>
+                             <div className="bg-white rounded-lg p-3 border border-amber-200">
+                               <div className="text-gray-600 mb-1">Total Expenses</div>
+                               <div className="font-semibold text-red-600">-{formatPrice(getTotalExpensesOverOwnership(enhancedProperty))}</div>
+                               <div className="text-xs text-gray-500">
+                                 Mortgage + running costs
+                               </div>
+                             </div>
+                           </div>
+                           <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-amber-200">
+                             <strong>Formula:</strong> Total Rent + Total Value Growth - Total Expenses = {formatPrice(getPropertyTotalRentalIncome(enhancedProperty))} + {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} - {formatPrice(getTotalExpensesOverOwnership(enhancedProperty))} = {formatPrice(getTotalProfitOverOwnership(enhancedProperty))}
+                           </div>
+                                                  </div>
+
+                         {/* Total ROI Breakdown */}
+                         <div className="bg-gradient-to-r from-teal-50 to-teal-100 rounded-xl border border-teal-200 p-6">
+                           <div className="flex items-center gap-3 mb-4">
+                             <div className="w-4 h-4 bg-teal-500 rounded-full"></div>
+                             <h4 className="text-lg font-semibold text-gray-900">Total ROI Breakdown</h4>
+                             <span className="text-2xl font-bold text-teal-600 ml-auto">
+                               {formatPrice(getTotalROI(enhancedProperty))}
+                             </span>
+                           </div>
+                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                             <div className="bg-white rounded-lg p-3 border border-teal-200">
+                               <div className="text-gray-600 mb-1">Bought For</div>
+                               <div className="font-semibold text-gray-900">{formatPrice(enhancedProperty.purchasePrice)}</div>
+                               <div className="text-xs text-gray-500">
+                                 Purchase price
+                               </div>
+                             </div>
+                             <div className="bg-white rounded-lg p-3 border border-teal-200">
+                               <div className="text-gray-600 mb-1">Value Increase</div>
+                               <div className={`font-semibold ${enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                 {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)}
+                               </div>
+                               <div className="text-xs text-gray-500">
+                                 Property appreciation
+                               </div>
+                             </div>
+                             <div className="bg-white rounded-lg p-3 border border-teal-200">
+                               <div className="text-gray-600 mb-1">Total Rental Profit</div>
+                               <div className="font-semibold text-green-600">{formatPrice(getPropertyTotalRentalIncome(enhancedProperty))}</div>
+                               <div className="text-xs text-gray-500">
+                                 All rent collected
+                               </div>
+                             </div>
+                           </div>
+                           <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-teal-200">
+                             <strong>ROI Formula:</strong> Value Increase + Total Rental Profit = {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} + {formatPrice(getPropertyTotalRentalIncome(enhancedProperty))} = {formatPrice(getTotalROI(enhancedProperty))}
+                             <br />
+                             <strong>ROI Percentage:</strong> {((getTotalROI(enhancedProperty) / enhancedProperty.purchasePrice) * 100).toFixed(1)}% of purchase price
+                           </div>
+                         </div>
+
+                         {/* Property Details */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-4">
                             <div className="flex items-center gap-2 mb-2">
