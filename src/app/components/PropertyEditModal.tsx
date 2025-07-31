@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Save, Calculator, Home, DollarSign, FileText, Percent, Calendar } from 'lucide-react';
+import { X, Save, Calculator, Home, PoundSterling, FileText, Percent, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
 interface PropertyEditModalProps {
@@ -38,9 +38,9 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     totalIncome: 0,
   });
 
-  // Update form data when property changes
+  // Update form data when modal opens with a new property
   useEffect(() => {
-    if (property) {
+    if (property && isOpen) {
       setFormData({
         monthlyRent: property.monthlyRent || 0,
         rentStartDate: property.rentStartDate || '',
@@ -55,7 +55,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         propertyNotes: property.propertyNotes || '',
       });
     }
-  }, [property]);
+  }, [property?.id, isOpen]); // Only update when property ID changes or modal opens
 
   // Calculate derived values when form data changes
   useEffect(() => {
@@ -155,6 +155,8 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         property_notes: formData.propertyNotes || '',
         yield: calculatedValues.yield || 0,
         equity: calculatedValues.equity || 0,
+        equity_percentage: calculatedValues.equityPercentage || 0,
+        monthly_profit: calculatedValues.monthlyProfit || 0,
         rental_income: (formData.monthlyRent || 0) * 12, // Also update annual rental income
       };
       
@@ -268,7 +270,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
               {/* Rental Income Section */}
               <div className="space-y-4">
                 <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-green-600" />
+                  <PoundSterling className="w-5 h-5 text-green-600" />
                   Rental Income
                 </h4>
                 

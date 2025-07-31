@@ -103,6 +103,19 @@ export async function GET(req: NextRequest) {
       { match_phrase: { postcode: normalizedPostcode } },
       { range: { date: { gte: twoYearsAgoStr } } }, // Only sales from last 2 years
     ];
+    
+    // Exclude the subject property from comparables
+    let must_not: any[] = [
+      { 
+        bool: {
+          must: [
+            { match: { paon: cleanNumber } },
+            { match_phrase: { postcode: normalizedPostcode } }
+          ]
+        }
+      }
+    ];
+    
     if (bedroomCount) {
       must.push({ match: { bedrooms: bedroomCount } });
       usedBedroomFilter = true;
@@ -111,7 +124,7 @@ export async function GET(req: NextRequest) {
       must.push({ match: { propertyType } });
     }
     
-    const comparableQuery = { bool: { must } };
+    const comparableQuery = { bool: { must, must_not } };
     // Comparable search query logging removed
     
     let resp = await esClient.search({
@@ -135,7 +148,21 @@ export async function GET(req: NextRequest) {
         body: {
           size: 5,
           sort: [{ date: { order: 'desc' } }],
-          query: { bool: { must } },
+          query: { 
+            bool: { 
+              must,
+              must_not: [
+                { 
+                  bool: {
+                    must: [
+                      { match: { paon: cleanNumber } },
+                      { match_phrase: { postcode: normalizedPostcode } }
+                    ]
+                  }
+                }
+              ]
+            } 
+          },
         },
       });
       comparables = resp.hits.hits.map(formatComparable);

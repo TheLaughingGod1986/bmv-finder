@@ -414,6 +414,11 @@ export default function PortfolioTrackerPage() {
       return '16 Lowbiggin';
     }
     
+    // Special case for "3 NE17 7JH" - convert to "3 William Street"
+    if (address === '3 NE17 7JH' || address.includes('3') && address.includes('NE17 7JH')) {
+      return '3 William Street';
+    }
+    
     // If it's already a short format, return as is
     if (!address.includes(',')) return address;
     
@@ -446,6 +451,7 @@ export default function PortfolioTrackerPage() {
         const postcodeToStreet: { [key: string]: string } = {
           'NE5 4PR': 'Lowbiggin',
           'NE5 2PR': 'Fourstone',
+          'NE17 7JH': 'William Street',
           // Add more mappings as needed
         };
         
@@ -808,68 +814,70 @@ export default function PortfolioTrackerPage() {
         </div>
       </section>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8">
 
-        {/* Data Loading Indicator */}
-        {user && isDataLoading && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-xl border border-gray-200 shadow-soft p-6 mb-8"
-          >
-            <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-              <span className="text-gray-700 font-medium">Loading your portfolio data...</span>
-            </div>
-          </motion.div>
-        )}
+        {/* Status Indicators */}
+        {user && (
+          <div className="space-y-4 mb-8">
+            {isDataLoading && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-xl border border-gray-200 shadow-soft p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  <span className="text-gray-700 font-medium">Loading your portfolio data...</span>
+                </div>
+              </motion.div>
+            )}
 
-        {/* Data Population Indicator */}
-        {user && isPopulatingData && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-green-50 border border-green-200 rounded-xl shadow-soft p-6 mb-8"
-          >
-            <div className="flex items-center gap-3">
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
-              <span className="text-green-700 font-medium">Updating property values and calculating BMV scores...</span>
-            </div>
-          </motion.div>
-        )}
+            {isPopulatingData && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-green-50 border border-green-200 rounded-xl shadow-soft p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-green-600"></div>
+                  <span className="text-green-700 font-medium">Updating property values and calculating BMV scores...</span>
+                </div>
+              </motion.div>
+            )}
 
-        {/* Error State */}
-        {user && dataError && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-red-50 border border-red-200 rounded-xl p-6 mb-8 shadow-soft"
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-bold">!</span>
-              </div>
-              <div className="flex-1">
-                <span className="text-red-800 font-medium">{dataError}</span>
-                <button
-                  onClick={() => {
-                    setDataError(null);
-                    setIsDataLoading(true);
-                    loadPortfolioData();
-                  }}
-                  className="ml-3 text-red-600 hover:text-red-800 underline text-sm"
-                >
-                  Try again
-                </button>
-              </div>
-            </div>
-          </motion.div>
+            {dataError && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-red-50 border border-red-200 rounded-xl p-4 shadow-soft"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-5 h-5 bg-red-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">!</span>
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-red-800 font-medium">{dataError}</span>
+                    <button
+                      onClick={() => {
+                        setDataError(null);
+                        setIsDataLoading(true);
+                        loadPortfolioData();
+                      }}
+                      className="ml-3 text-red-600 hover:text-red-800 underline text-sm"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
         )}
 
         {user && (
-          <div className="mt-6">
-            {/* Portfolio Overview - Clean Design */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          <div className="space-y-8">
+            {/* Portfolio Overview Section */}
+            <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Main Portfolio Stats */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -888,37 +896,60 @@ export default function PortfolioTrackerPage() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-                  <div className="text-center p-4 bg-blue-50 rounded-xl">
-                    <p className="text-3xl font-bold text-blue-600 mb-1">{portfolioStats.totalProperties}</p>
-                    <p className="text-sm text-gray-600 font-medium">Properties</p>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                      <span className="text-gray-700 font-medium">Properties</span>
+                    </div>
+                    <span className="text-2xl font-bold text-blue-600">{portfolioStats.totalProperties}</span>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-xl">
-                    <p className="text-3xl font-bold text-green-600 mb-1">{formatPrice(portfolioStats.totalValue)}</p>
-                    <p className="text-sm text-gray-600 font-medium">Total Value</p>
+                  
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                      <span className="text-gray-700 font-medium">Total Value</span>
+                    </div>
+                    <span className="text-2xl font-bold text-green-600">{formatPrice(portfolioStats.totalValue)}</span>
                   </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-xl">
-                    <p className={`text-3xl font-bold mb-1 ${getTotalGrowth() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-3 h-3 rounded-full ${getTotalGrowth() >= 0 ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="text-gray-700 font-medium">Growth</span>
+                    </div>
+                    <span className={`text-2xl font-bold ${getTotalGrowth() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {typeof getTotalGrowth() === 'number' && !isNaN(getTotalGrowth()) ? getTotalGrowth().toFixed(1) : 'N/A'}%
-                    </p>
-                    <p className="text-sm text-gray-600 font-medium">Growth</p>
+                    </span>
                   </div>
-                  <div className="text-center p-4 bg-purple-50 rounded-xl">
-                    <p className="text-3xl font-bold text-purple-600 mb-1">
+                  
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
+                      <span className="text-gray-700 font-medium">Average BMV Score</span>
+                    </div>
+                    <span className="text-2xl font-bold text-purple-600">
                       {portfolioProperties.length > 0 
                         ? Math.round(portfolioProperties.reduce((sum, p) => sum + (p.bmvScore || 0), 0) / portfolioProperties.length)
                         : 0
-                      }
-                    </p>
-                    <p className="text-sm text-gray-600 font-medium">Avg BMV</p>
+                      }/100
+                    </span>
                   </div>
-                  <div className="text-center p-4 bg-indigo-50 rounded-xl">
-                    <p className="text-3xl font-bold text-indigo-600 mb-1">{formatPrice(getTotalEquity())}</p>
-                    <p className="text-sm text-gray-600 font-medium">Total Equity</p>
+                  
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                      <span className="text-gray-700 font-medium">Total Equity</span>
+                    </div>
+                    <span className="text-2xl font-bold text-indigo-600">{formatPrice(getTotalEquity())}</span>
                   </div>
-                  <div className="text-center p-4 bg-gray-50 rounded-xl">
-                    <p className="text-3xl font-bold text-gray-700 mb-1">{formatPrice(getTotalPurchasePrice())}</p>
-                    <p className="text-sm text-gray-600 font-medium">Total Invested</p>
+                  
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200">
+                    <div className="flex items-center gap-3">
+                      <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                      <span className="text-gray-700 font-medium">Total Invested</span>
+                    </div>
+                    <span className="text-2xl font-bold text-gray-700">{formatPrice(getTotalPurchasePrice())}</span>
                   </div>
                 </div>
               </motion.div>
@@ -928,27 +959,27 @@ export default function PortfolioTrackerPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-soft p-8 border border-blue-100"
+                className="bg-white rounded-2xl shadow-soft p-8 border border-gray-100"
               >
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-8">
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">Income Summary</h3>
                     <p className="text-sm text-gray-500 mt-1">Annual returns breakdown</p>
                   </div>
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-blue-600" />
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-blue-600" />
                   </div>
                 </div>
                 
-                <div className="space-y-6">
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100">
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200">
                     <div className="flex items-center gap-3">
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                       <span className="text-gray-700 font-medium">Rental Income</span>
                     </div>
                     <span className="font-semibold text-green-600">{formatPrice(getTotalRentalIncome())}</span>
                   </div>
-                  <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-100">
+                  <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200">
                     <div className="flex items-center gap-3">
                       <div className={`w-3 h-3 rounded-full ${getTotalValueIncrease() >= 0 ? 'bg-blue-500' : 'bg-red-500'}`}></div>
                       <span className="text-gray-700 font-medium">Value Appreciation</span>
@@ -958,13 +989,13 @@ export default function PortfolioTrackerPage() {
                     </span>
                   </div>
                   <div className="border-t border-gray-200 pt-4">
-                    <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                    <div className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
                       <span className="font-semibold text-gray-900">Total Income</span>
                       <span className={`text-lg font-bold ${getTotalIncome() >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {formatPrice(getTotalIncome())}
                       </span>
                     </div>
-                    <div className="text-xs text-gray-500 mt-2 space-y-1">
+                    <div className="text-xs text-gray-500 mt-3 space-y-2">
                       <div className="flex justify-between">
                         <span>Rental:</span>
                         <span>{formatPrice(getTotalRentalIncome())}</span>
@@ -977,26 +1008,21 @@ export default function PortfolioTrackerPage() {
                   </div>
                 </div>
               </motion.div>
-            </div>
+            </section>
 
-            {/* Income Breakdown */}
-
-
-            {/* Controls Bar */}
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="bg-white rounded-2xl shadow-soft p-6 mb-8 border border-gray-100"
-            >
-              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            {/* Controls Section */}
+            <section className="bg-white rounded-2xl shadow-soft p-8 border border-gray-100">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
                 {/* Filters */}
-                <div className="flex items-center gap-6">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-6">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      <Filter className="w-4 h-4 text-gray-600" />
+                    <div className="w-10 h-10 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center">
+                      <Filter className="w-5 h-5 text-gray-600" />
                     </div>
-                    <span className="text-sm font-semibold text-gray-700">Filter by Status:</span>
+                    <div>
+                      <span className="text-sm font-semibold text-gray-700">Filter by Status</span>
+                      <p className="text-xs text-gray-500">View specific property types</p>
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     {(['all', 'active', 'sold', 'watching'] as const).map(status => (
@@ -1005,7 +1031,7 @@ export default function PortfolioTrackerPage() {
                         onClick={() => handleFilterChange(status)}
                         className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
                           filterStatus === status
-                            ? 'bg-blue-500 text-white shadow-lg transform scale-105'
+                            ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg transform scale-105'
                             : 'bg-gray-100 text-gray-600 hover:bg-gray-200 hover:shadow-md'
                         }`}
                       >
@@ -1040,10 +1066,10 @@ export default function PortfolioTrackerPage() {
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </section>
 
             {/* Properties List */}
-            <div className="space-y-4">
+            <section className="space-y-6">
               {isDataLoading ? (
                 <div className="text-center py-16">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -1110,32 +1136,32 @@ export default function PortfolioTrackerPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 + index * 0.05 }}
-                      className="bg-white rounded-2xl shadow-soft p-6 hover:shadow-lg transition-all duration-200 border border-gray-100"
+                      className="bg-white rounded-2xl shadow-soft p-8 hover:shadow-lg transition-all duration-200 border border-gray-100"
                     >
                       {/* Property Header */}
                       <div className="flex items-start justify-between mb-8">
-                        <div className="flex items-center gap-4">
-                          <div className="w-14 h-14 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center shadow-sm">
-                            <Home className="w-7 h-7 text-blue-600" />
+                        <div className="flex items-center gap-6">
+                          <div className="w-16 h-16 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center shadow-sm">
+                            <Home className="w-8 h-8 text-blue-600" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-gray-900 mb-2">{formatAddress(enhancedProperty.address)}</h3>
-                            <p className="text-sm text-gray-500 flex items-center gap-2 mb-3">
+                            <h3 className="text-2xl font-bold text-gray-900 mb-3">{formatAddress(enhancedProperty.address)}</h3>
+                            <p className="text-sm text-gray-500 flex items-center gap-2 mb-4">
                               <MapPin className="w-4 h-4" />
                               {enhancedProperty.postcode}
                             </p>
-                            <div className="flex items-center gap-6 text-xs text-gray-500">
-                              <div className="flex items-center gap-1">
-                                <Calendar className="w-3 h-3" />
+                            <div className="flex items-center gap-8 text-sm text-gray-500">
+                              <div className="flex items-center gap-2">
+                                <Calendar className="w-4 h-4" />
                                 <span>Purchased {formatDate(enhancedProperty.purchaseDate)}</span>
                               </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
+                              <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4" />
                                 <span>Owned {calculateOwnershipDuration(enhancedProperty.purchaseDate)}</span>
                               </div>
                               {enhancedProperty.rentStartDate && (
-                                <div className="flex items-center gap-1">
-                                  <TrendingUp className="w-3 h-3" />
+                                <div className="flex items-center gap-2">
+                                  <TrendingUp className="w-4 h-4" />
                                   <span>Renting {calculateRentDuration(enhancedProperty.rentStartDate)}</span>
                                 </div>
                               )}
@@ -1144,114 +1170,235 @@ export default function PortfolioTrackerPage() {
                         </div>
                         
                         {/* Status Badge */}
-                        <div className={`px-4 py-2 rounded-full text-sm font-semibold shadow-sm ${getStatusColor(enhancedProperty.status)}`}>
+                        <div className={`px-6 py-3 rounded-full text-sm font-semibold shadow-sm ${getStatusColor(enhancedProperty.status)}`}>
                           {enhancedProperty.status.charAt(0).toUpperCase() + enhancedProperty.status.slice(1)}
                         </div>
                       </div>
 
                       {/* Key Metrics */}
                       <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        <div className="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200 shadow-sm">
-                          <p className="text-3xl font-bold text-gray-900 mb-2">{formatPrice(enhancedProperty.currentValue)}</p>
+                        <div className="text-center p-8 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl border border-gray-200 shadow-sm">
+                          <p className="text-3xl font-bold text-gray-900 mb-3">{formatPrice(enhancedProperty.currentValue)}</p>
                           <p className="text-sm text-gray-600 font-medium">Current Value</p>
                         </div>
-                        <div className="text-center p-6 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl border border-green-200 shadow-sm">
-                          <p className={`text-3xl font-bold mb-2 ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <div className="text-center p-8 bg-gradient-to-br from-green-50 to-green-100 rounded-2xl border border-green-200 shadow-sm">
+                          <p className={`text-3xl font-bold mb-3 ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             {growth >= 0 ? '+' : ''}{typeof growth === 'number' && !isNaN(growth) ? growth.toFixed(1) : 'N/A'}%
                           </p>
                           <p className="text-sm text-gray-600 font-medium">Growth</p>
                         </div>
-                        <div className="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200 shadow-sm">
-                          <p className="text-3xl font-bold text-blue-600 mb-2">
+                        <div className="text-center p-8 bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl border border-blue-200 shadow-sm">
+                          <p className="text-3xl font-bold text-blue-600 mb-3">
                             {enhancedProperty.yield ? `${enhancedProperty.yield.toFixed(1)}%` : 'N/A'}
                           </p>
                           <p className="text-sm text-gray-600 font-medium">Yield</p>
                         </div>
-                        <div className="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200 shadow-sm">
-                          <p className="text-3xl font-bold text-purple-600 mb-2">
+                        <div className="text-center p-8 bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl border border-purple-200 shadow-sm">
+                          <p className="text-3xl font-bold text-purple-600 mb-3">
                             {enhancedProperty.bmvScore ? `${enhancedProperty.bmvScore}/100` : 'N/A'}
                           </p>
                           <p className="text-sm text-gray-600 font-medium">BMV Score</p>
                         </div>
                       </div>
 
-                                                                   {/* Financial Summary */}
-                      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-8">
-                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200 shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700 font-medium">Monthly Rent</span>
+                                                                   {/* Financial Breakdown - Educational Design */}
+                      <div className="space-y-6 mb-8">
+                        {/* Equity Calculation */}
+                        <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200 p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-4 h-4 bg-purple-500 rounded-full"></div>
+                            <h4 className="text-lg font-semibold text-gray-900">Equity Calculation</h4>
+                            <span className="text-2xl font-bold text-purple-600 ml-auto">
+                              {enhancedProperty.equity ? formatPrice(enhancedProperty.equity) : 'N/A'}
+                            </span>
                           </div>
-                          <span className="font-semibold text-green-600">
-                            {enhancedProperty.monthlyRent ? formatPrice(enhancedProperty.monthlyRent) : 'N/A'}
-                          </span>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div className="bg-white rounded-lg p-3 border border-purple-200">
+                              <div className="text-gray-600 mb-1">Purchase Price</div>
+                              <div className="font-semibold text-gray-900">{formatPrice(enhancedProperty.purchasePrice)}</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-purple-200">
+                              <div className="text-gray-600 mb-1">Current Value</div>
+                              <div className="font-semibold text-gray-900">{formatPrice(enhancedProperty.currentValue)}</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-purple-200">
+                              <div className="text-gray-600 mb-1">Deposit Amount</div>
+                              <div className="font-semibold text-gray-900">{formatPrice(enhancedProperty.depositAmount || 0)}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-purple-200">
+                            <strong>Formula:</strong> (Current Value - Purchase Price) + Deposit = {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} + {formatPrice(enhancedProperty.depositAmount || 0)} = {formatPrice(enhancedProperty.equity || 0)}
+                            <br />
+                            <strong>Breakdown:</strong> Your deposit of {formatPrice(enhancedProperty.depositAmount || 0)} + Value change of {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} = Total equity of {formatPrice(enhancedProperty.equity || 0)}
+                            <br />
+                            <strong>Current Position:</strong> Your original {Math.round(((enhancedProperty.depositAmount || 0) / (enhancedProperty.purchasePrice || 1)) * 100)}% deposit now represents {Math.round(((enhancedProperty.equity || 0) / (enhancedProperty.currentValue || 1)) * 100)}% of your property's current value
+                            <br />
+                            <strong>Property Value Change:</strong> {enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? '+' : ''}{formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} ({enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? '+' : ''}{Math.round(((enhancedProperty.currentValue - enhancedProperty.purchasePrice) / (enhancedProperty.purchasePrice || 1)) * 100)}%)
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700 font-medium">Monthly Profit</span>
+
+                        {/* Equity Growth Analysis */}
+                        <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-xl border border-emerald-200 p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-4 h-4 bg-emerald-500 rounded-full"></div>
+                            <h4 className="text-lg font-semibold text-gray-900">Equity Growth Analysis</h4>
                           </div>
-                          <span className={`font-semibold ${enhancedProperty.monthlyProfit && enhancedProperty.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {enhancedProperty.monthlyProfit ? formatPrice(enhancedProperty.monthlyProfit) : 'N/A'}
-                          </span>
+                          
+                          {/* Property Value Change - Prominent Display */}
+                          <div className="mb-6 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-2 border-green-300 shadow-lg">
+                            <div className="text-center">
+                              <div className="text-lg font-semibold text-gray-700 mb-3">💰 Property Value Change</div>
+                              <div className={`text-4xl font-bold mb-2 ${enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? '+' : ''}{formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)}
+                              </div>
+                              <div className={`text-2xl font-semibold ${enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                ({enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? '+' : ''}{Math.round(((enhancedProperty.currentValue - enhancedProperty.purchasePrice) / (enhancedProperty.purchasePrice || 1)) * 100)}%)
+                              </div>
+                              <div className="mt-3 text-sm text-gray-600 bg-white rounded-lg p-2 border border-green-200">
+                                {enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? '📈 Your property has gained value!' : '📉 Your property has decreased in value'}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Current Equity - Prominent Display */}
+                          <div className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 border-2 border-blue-300 shadow-lg">
+                            <div className="text-center mb-4">
+                              <div className="text-lg font-semibold text-gray-700 mb-3">🏠 Your Current Equity</div>
+                              <div className="text-4xl font-bold text-blue-600 mb-2">
+                                {formatPrice(enhancedProperty.equity || 0)}
+                              </div>
+                              <div className="text-xl font-semibold text-blue-600">
+                                {Math.round(((enhancedProperty.equity || 0) / (enhancedProperty.currentValue || 1)) * 100)}% of property value
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                              <div className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                                <div className="text-gray-600 mb-2 font-medium">💳 Original Deposit</div>
+                                <div className="text-xl font-bold text-gray-900 mb-1">{formatPrice(enhancedProperty.depositAmount || 0)}</div>
+                                <div className="text-sm text-gray-500">
+                                  {Math.round(((enhancedProperty.depositAmount || 0) / (enhancedProperty.purchasePrice || 1)) * 100)}% of purchase price
+                                </div>
+                              </div>
+                              <div className="bg-white rounded-lg p-4 border border-blue-200 shadow-sm">
+                                <div className="text-gray-600 mb-2 font-medium">📈 Value Growth</div>
+                                <div className="text-xl font-bold text-green-600 mb-1">
+                                  {formatPrice((enhancedProperty.equity || 0) - (enhancedProperty.depositAmount || 0))}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  From property appreciation
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-emerald-200">
+                            <strong>Growth:</strong> Your equity has grown from {Math.round(((enhancedProperty.depositAmount || 0) / (enhancedProperty.purchasePrice || 1)) * 100)}% to {Math.round(((enhancedProperty.equity || 0) / (enhancedProperty.currentValue || 1)) * 100)}% of property value - a {Math.round((((enhancedProperty.equity || 0) / (enhancedProperty.currentValue || 1)) / ((enhancedProperty.depositAmount || 0) / (enhancedProperty.purchasePrice || 1)) - 1) * 100)}% increase in your ownership stake!
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-purple-50 to-purple-100 rounded-xl border border-purple-200 shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700 font-medium">Equity</span>
+
+                        {/* Monthly Profit Calculation */}
+                        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl border border-blue-200 p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+                            <h4 className="text-lg font-semibold text-gray-900">Monthly Profit Calculation</h4>
+                            <span className={`text-2xl font-bold ml-auto ${enhancedProperty.monthlyProfit && enhancedProperty.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                              {enhancedProperty.monthlyProfit ? formatPrice(enhancedProperty.monthlyProfit) : 'N/A'}
+                            </span>
                           </div>
-                          <span className="font-semibold text-purple-600">
-                            {enhancedProperty.equity ? formatPrice(enhancedProperty.equity) : 'N/A'}
-                          </span>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                              <div className="text-gray-600 mb-1">Monthly Rent</div>
+                              <div className="font-semibold text-green-600">{formatPrice(enhancedProperty.monthlyRent || 0)}</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                              <div className="text-gray-600 mb-1">Mortgage Payment</div>
+                              <div className="font-semibold text-red-600">-{formatPrice(enhancedProperty.monthlyMortgagePayment || 0)}</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-blue-200">
+                              <div className="text-gray-600 mb-1">Expenses</div>
+                              <div className="font-semibold text-red-600">-{formatPrice(enhancedProperty.monthlyExpenses || 0)}</div>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-blue-200">
+                            <strong>Formula:</strong> Rent - Mortgage - Expenses = {formatPrice(enhancedProperty.monthlyRent || 0)} - {formatPrice(enhancedProperty.monthlyMortgagePayment || 0)} - {formatPrice(enhancedProperty.monthlyExpenses || 0)} = {formatPrice(enhancedProperty.monthlyProfit || 0)}
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700 font-medium">Total Income</span>
+
+                        {/* Total Income Calculation */}
+                        <div className="bg-gradient-to-r from-indigo-50 to-indigo-100 rounded-xl border border-indigo-200 p-6">
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-4 h-4 bg-indigo-500 rounded-full"></div>
+                            <h4 className="text-lg font-semibold text-gray-900">Total Annual Income</h4>
+                            <span className="text-2xl font-bold text-indigo-600 ml-auto">
+                              {formatPrice(getPropertyTotalIncome(enhancedProperty))}
+                            </span>
                           </div>
-                          <span className="font-semibold text-indigo-600">
-                            {formatPrice(getPropertyTotalIncome(enhancedProperty))}
-                          </span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                            <div className="bg-white rounded-lg p-3 border border-indigo-200">
+                              <div className="text-gray-600 mb-1">Annual Rental Income</div>
+                              <div className="font-semibold text-green-600">{formatPrice((enhancedProperty.monthlyRent || 0) * 12)}</div>
+                            </div>
+                            <div className="bg-white rounded-lg p-3 border border-indigo-200">
+                              <div className="text-gray-600 mb-1">Value Appreciation</div>
+                              <div className={`font-semibold ${enhancedProperty.currentValue - enhancedProperty.purchasePrice >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="mt-3 text-xs text-gray-600 bg-white rounded-lg p-2 border border-indigo-200">
+                            <strong>Formula:</strong> Annual Rent + Value Growth = {formatPrice((enhancedProperty.monthlyRent || 0) * 12)} + {formatPrice(enhancedProperty.currentValue - enhancedProperty.purchasePrice)} = {formatPrice(getPropertyTotalIncome(enhancedProperty))}
+                          </div>
                         </div>
-                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700 font-medium">Purchase Price</span>
+
+                        {/* Property Details */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl border border-gray-200 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-3 h-3 bg-gray-500 rounded-full"></div>
+                              <span className="text-sm font-medium text-gray-700">Purchase Price</span>
+                            </div>
+                            <div className="text-lg font-bold text-gray-900">{formatPrice(enhancedProperty.purchasePrice)}</div>
                           </div>
-                          <span className="font-semibold text-gray-700">
-                            {formatPrice(enhancedProperty.purchasePrice)}
-                          </span>
-                        </div>
-                        <div className="flex justify-between items-center p-4 bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 shadow-sm">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                            <span className="text-sm text-gray-700 font-medium">Rent Started</span>
+                          <div className="bg-gradient-to-r from-orange-50 to-orange-100 rounded-xl border border-orange-200 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-3 h-3 bg-orange-500 rounded-full"></div>
+                              <span className="text-sm font-medium text-gray-700">Rent Started</span>
+                            </div>
+                            <div className="text-lg font-bold text-orange-600">
+                              {enhancedProperty.rentStartDate ? formatDate(enhancedProperty.rentStartDate) : 'Not set'}
+                            </div>
                           </div>
-                          <span className="font-semibold text-orange-600">
-                            {enhancedProperty.rentStartDate ? formatDate(enhancedProperty.rentStartDate) : 'Not set'}
-                          </span>
+                          <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-xl border border-green-200 p-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                              <span className="text-sm font-medium text-gray-700">Annual Yield</span>
+                            </div>
+                            <div className="text-lg font-bold text-green-600">
+                              {enhancedProperty.yield ? `${enhancedProperty.yield.toFixed(1)}%` : 'N/A'}
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                      <div className="flex justify-end gap-4 pt-6 border-t border-gray-100">
                         <button
                           onClick={() => handleEditProperty(enhancedProperty)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 text-sm font-semibold rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 text-sm font-semibold rounded-xl hover:from-blue-100 hover:to-blue-200 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <Edit className="w-4 h-4" />
                           Edit
                         </button>
                         <button
                           onClick={() => handleSoldProperty(enhancedProperty.id, enhancedProperty.address)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-green-100 text-green-700 text-sm font-semibold rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-50 to-green-100 text-green-700 text-sm font-semibold rounded-xl hover:from-green-100 hover:to-green-200 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <CheckCircle className="w-4 h-4" />
                           Mark Sold
                         </button>
                         <button
                           onClick={() => handleRemoveProperty(enhancedProperty.id, enhancedProperty.address)}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-red-50 to-red-100 text-red-700 text-sm font-semibold rounded-xl hover:from-red-100 hover:to-red-200 transition-all duration-200 shadow-sm hover:shadow-md"
+                          className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-50 to-red-100 text-red-700 text-sm font-semibold rounded-xl hover:from-red-100 hover:to-red-200 transition-all duration-200 shadow-sm hover:shadow-md"
                         >
                           <Trash2 className="w-4 h-4" />
                           Remove
@@ -1261,7 +1408,7 @@ export default function PortfolioTrackerPage() {
                   );
                 })
               )}
-            </div>
+            </section>
           </div>
         )}
 
