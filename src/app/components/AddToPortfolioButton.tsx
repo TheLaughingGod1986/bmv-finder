@@ -71,8 +71,12 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
   const handleAddToPortfolio = async () => {
     setLoading(true);
     try {
-      // Debug: Log the incoming property data
-      console.log('Property data received:', propertyData);
+      // Property data received
+
+      // Calculate rent start date (1 month after purchase date)
+      const purchaseDate = new Date();
+      const rentStartDate = new Date(purchaseDate);
+      rentStartDate.setMonth(rentStartDate.getMonth() + 1);
 
       const portfolioData = {
         address: propertyData.address || '',
@@ -82,7 +86,8 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
         bedrooms: propertyData.bedrooms ? Math.round(propertyData.bedrooms) : undefined,
         purchase_price: propertyData.estimatedValue * 0.9, // Assume 10% below market value
         current_value: propertyData.estimatedValue,
-        purchase_date: new Date().toISOString().split('T')[0], // Today's date
+        purchase_date: purchaseDate.toISOString().split('T')[0], // Today's date
+        rent_start_date: rentStartDate.toISOString().split('T')[0], // 1 month after purchase
         deal_score: propertyData.dealScore !== undefined ? propertyData.dealScore : 0,
         deal_rating: propertyData.dealRating || 'Good',
         bmv_score: propertyData.bmvScore !== undefined ? propertyData.bmvScore : 0,
@@ -90,8 +95,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
         notes: 'Added from property analysis'
       };
 
-      // Debug: Log the portfolio data being sent
-      console.log('Portfolio data being sent:', portfolioData);
+      // Portfolio data being sent
 
       // Get the current session token
       if (!supabase) {
@@ -119,7 +123,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
         setIsInPortfolio(true);
       } else {
         const data = await response.json();
-        console.error('API Error Response:', data);
+        // API Error Response logged
         error(data.error || data.details || 'Failed to add property to portfolio');
       }
     } catch (err) {

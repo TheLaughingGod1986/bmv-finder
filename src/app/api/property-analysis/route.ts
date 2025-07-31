@@ -156,12 +156,7 @@ export async function GET(req: NextRequest) {
     else if (comparables.length > 0) confidence = 'medium';
     else confidence = 'low';
 
-    console.log('🔍 Final result:', { 
-      estimatedValue: avgPrice, 
-      confidence, 
-      comparablesCount: comparables.length,
-      usedBedroomFilter 
-    });
+    // Final result calculated
 
     // Find subject property's sale history
     let subjectLastSale = null;
@@ -191,10 +186,10 @@ export async function GET(req: NextRequest) {
           date: sale.date,
           propertyType: sale.property_type
         };
-        console.log('🔍 Subject property last sale found:', subjectLastSale);
+        // Subject property last sale found
       }
     } catch (error) {
-      console.log('🔍 Could not find subject property sale history:', error);
+      // Could not find subject property sale history
     }
 
     // Create subject object with requested details

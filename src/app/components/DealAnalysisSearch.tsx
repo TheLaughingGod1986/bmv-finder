@@ -377,8 +377,8 @@ export default function DealAnalysisSearch() {
 
           {showMLValuation && (
             <MLValuationCard 
-              postcode={formatPostcode(postcode.trim())} 
-              houseNumber={houseNumber} 
+              postcode={formatPostcode(selectedAddress.postcode.trim())} 
+              houseNumber={selectedAddress.number} 
             />
           )}
         </div>

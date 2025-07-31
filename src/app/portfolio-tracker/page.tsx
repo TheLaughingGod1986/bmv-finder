@@ -20,6 +20,7 @@ interface PortfolioProperty {
   
   // Financial details
   monthlyRent?: number;
+  rentStartDate?: string; // When rent started being collected
   mortgageBalance?: number;
   mortgageType?: 'repayment' | 'interest_only';
   mortgageRate?: number;
@@ -167,7 +168,7 @@ export default function PortfolioTrackerPage() {
             // Always update address to full address if available from API
             if (data.subject?.address && data.subject.address !== property.address) {
               updateData.address = data.subject.address;
-              console.log(`Updating address for ${property.address} to: ${data.subject.address}`);
+              // Updating address for property
             }
             
             const { error: updateError } = await supabase
@@ -265,7 +266,7 @@ export default function PortfolioTrackerPage() {
     if (portfolioProperties.length > 0 && !hasInitialized.current) {
       hasInitialized.current = true;
       // Update data immediately on first load to ensure fresh values
-      console.log('Auto-populating data for', portfolioProperties.length, 'properties');
+      // Auto-populating data for properties
       populateMissingData(true);
     }
   }, [portfolioProperties, populateMissingData]);
@@ -286,12 +287,12 @@ export default function PortfolioTrackerPage() {
   // Event handlers
   const handleAddProperty = useCallback(() => {
     // Add new property functionality
-    console.log('Add property clicked');
+    // Add property clicked
   }, []);
 
   const handleExport = useCallback(() => {
     // Export portfolio functionality
-    console.log('Export clicked');
+    // Export clicked
   }, []);
 
   const handleFilterChange = useCallback((status: 'all' | 'active' | 'sold' | 'watching') => {
@@ -352,6 +353,33 @@ export default function PortfolioTrackerPage() {
       const purchase = new Date(purchaseDate);
       const now = new Date();
       const diffTime = Math.abs(now.getTime() - purchase.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays < 30) {
+        return `${diffDays} days`;
+      } else if (diffDays < 365) {
+        const months = Math.floor(diffDays / 30);
+        return `${months} month${months !== 1 ? 's' : ''}`;
+      } else {
+        const years = Math.floor(diffDays / 365);
+        const remainingMonths = Math.floor((diffDays % 365) / 30);
+        if (remainingMonths === 0) {
+          return `${years} year${years !== 1 ? 's' : ''}`;
+        } else {
+          return `${years} year${years !== 1 ? 's' : ''}, ${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`;
+        }
+      }
+    } catch (error) {
+      return 'N/A';
+    }
+  };
+
+  const calculateRentDuration = (rentStartDate: string) => {
+    if (!rentStartDate) return 'Not set';
+    try {
+      const rentStart = new Date(rentStartDate);
+      const now = new Date();
+      const diffTime = Math.abs(now.getTime() - rentStart.getTime());
       const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
       
       if (diffDays < 30) {
@@ -487,8 +515,23 @@ export default function PortfolioTrackerPage() {
   const getTotalRentalIncome = () => {
     const activeProperties = portfolioProperties.filter(p => p.status === 'active');
     return activeProperties.reduce((sum, property) => {
-      return sum + (property.monthlyRent || 0);
-    }, 0) * 12; // Annual rental income
+      const monthlyRent = property.monthlyRent || 0;
+      if (!monthlyRent) return sum;
+      
+      // If rent start date is available, calculate from that date
+      if (property.rentStartDate) {
+        const rentStart = new Date(property.rentStartDate);
+        const now = new Date();
+        const monthsSinceRentStart = Math.max(0, 
+          (now.getFullYear() - rentStart.getFullYear()) * 12 + 
+          (now.getMonth() - rentStart.getMonth())
+        );
+        return sum + (monthlyRent * monthsSinceRentStart);
+      }
+      
+      // Fallback to annual calculation if no rent start date
+      return sum + (monthlyRent * 12);
+    }, 0);
   };
 
   const getTotalValueIncrease = () => {
@@ -501,6 +544,29 @@ export default function PortfolioTrackerPage() {
 
   const getTotalIncome = () => {
     return getTotalRentalIncome() + getTotalValueIncrease();
+  };
+
+  // Calculate total income for a specific property
+  const getPropertyTotalIncome = (property: PortfolioProperty) => {
+    const rentalIncome = property.monthlyRent ? property.monthlyRent * 12 : 0;
+    const valueIncrease = property.currentValue - property.purchasePrice;
+    return rentalIncome + valueIncrease;
+  };
+
+  // Calculate total equity across portfolio
+  const getTotalEquity = () => {
+    return portfolioProperties.reduce((sum, property) => {
+      const depositAmount = property.depositAmount || (property.purchasePrice * 0.25);
+      const valueGrowth = property.currentValue - property.purchasePrice;
+      return sum + depositAmount + valueGrowth;
+    }, 0);
+  };
+
+  // Calculate total purchase price across portfolio
+  const getTotalPurchasePrice = () => {
+    return portfolioProperties.reduce((sum, property) => {
+      return sum + property.purchasePrice;
+    }, 0);
   };
 
   // Fetch latest sale date for a property
@@ -543,7 +609,7 @@ export default function PortfolioTrackerPage() {
     
     // Update the portfolio properties with new purchase dates
     // Note: In a real implementation, you'd also update the database
-    console.log('Updated purchase dates:', updatedProperties);
+            // Updated purchase dates
   };
 
   const getBMVScoreColor = (score: number | null | undefined) => {
@@ -587,10 +653,32 @@ export default function PortfolioTrackerPage() {
       }
     }
     
-    // Calculate equity percentage
-    if (enhanced.equity && enhanced.currentValue && enhanced.currentValue > 0) {
-      enhanced.equityPercentage = (enhanced.equity / enhanced.currentValue) * 100;
+    // Set rent start date if not already set
+    if (!enhanced.rentStartDate && enhanced.purchaseDate) {
+      // For sample properties, set realistic rent start dates
+      if (enhanced.address.includes('16 Lowbiggin') || (enhanced.address.includes('16') && enhanced.postcode === 'NE5 4PR')) {
+        enhanced.rentStartDate = '2024-07-01'; // Started renting 3 days after purchase
+      } else if (enhanced.address.includes('21 Fourstone') || (enhanced.address.includes('21') && enhanced.postcode === 'NE5 2PR')) {
+        enhanced.rentStartDate = '2024-03-01'; // Started renting 2 days after purchase
+      } else {
+        // For other properties, assume rent started 1 month after purchase
+        const purchaseDate = new Date(enhanced.purchaseDate);
+        purchaseDate.setMonth(purchaseDate.getMonth() + 1);
+        enhanced.rentStartDate = purchaseDate.toISOString().split('T')[0];
+      }
     }
+    
+             // Calculate equity (deposit + growth)
+         if (enhanced.purchasePrice && enhanced.currentValue) {
+           const depositAmount = enhanced.depositAmount || (enhanced.purchasePrice * 0.25); // Default 25% deposit
+           const valueGrowth = enhanced.currentValue - enhanced.purchasePrice;
+           enhanced.equity = depositAmount + valueGrowth;
+           
+           // Calculate equity percentage
+           if (enhanced.currentValue > 0) {
+             enhanced.equityPercentage = (enhanced.equity / enhanced.currentValue) * 100;
+           }
+         }
     
     // Calculate yield if we have monthly rent
     if (enhanced.monthlyRent && enhanced.currentValue && enhanced.currentValue > 0) {
@@ -797,7 +885,7 @@ export default function PortfolioTrackerPage() {
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-2 md:grid-cols-6 gap-6">
                   <div className="text-center">
                     <p className="text-3xl font-bold text-blue-600 mb-1">{portfolioStats.totalProperties}</p>
                     <p className="text-sm text-gray-600">Properties</p>
@@ -820,6 +908,14 @@ export default function PortfolioTrackerPage() {
                       }
                     </p>
                     <p className="text-sm text-gray-600">Avg BMV</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-indigo-600 mb-1">{formatPrice(getTotalEquity())}</p>
+                    <p className="text-sm text-gray-600">Total Equity</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-3xl font-bold text-gray-700 mb-1">{formatPrice(getTotalPurchasePrice())}</p>
+                    <p className="text-sm text-gray-600">Total Invested</p>
                   </div>
                 </div>
               </motion.div>
@@ -851,95 +947,41 @@ export default function PortfolioTrackerPage() {
                         {formatPrice(getTotalIncome())}
                       </span>
                     </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      <div>Rental: {formatPrice(getTotalRentalIncome())}</div>
+                      <div>Growth: {formatPrice(getTotalValueIncrease())}</div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
             </div>
 
             {/* Income Breakdown */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.9 }}
-              className="bg-white rounded-xl shadow-soft p-6 mb-8 border border-gray-200"
-            >
-              <div className="flex items-center gap-3 mb-6">
-                <BarChart3 className="w-6 h-6 text-teal-600" />
-                <h3 className="text-xl font-semibold text-gray-900">Income Breakdown</h3>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-emerald-700">Rental Income</span>
-                    <PoundSterling className="w-4 h-4 text-emerald-600" />
-                  </div>
-                  <p className="text-2xl font-bold text-emerald-700">{formatPrice(getTotalRentalIncome())}</p>
-                  <p className="text-xs text-emerald-600 mt-1">
-                    {portfolioProperties.filter(p => p.status === 'active').length} properties
-                  </p>
-                </div>
-                
-                <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-amber-700">Value Appreciation</span>
-                    <TrendingUp className="w-4 h-4 text-amber-600" />
-                  </div>
-                  <p className={`text-2xl font-bold ${getTotalValueIncrease() >= 0 ? 'text-amber-700' : 'text-red-600'}`}>
-                    {formatPrice(getTotalValueIncrease())}
-                  </p>
-                  <p className="text-xs text-amber-600 mt-1">
-                    {getTotalGrowth().toFixed(1)}% portfolio growth
-                  </p>
-                </div>
-                
-                <div className="bg-teal-50 rounded-lg p-4 border border-teal-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium text-teal-700">Total Income</span>
-                    <BarChart3 className="w-4 h-4 text-teal-600" />
-                  </div>
-                  <p className={`text-2xl font-bold ${getTotalIncome() >= 0 ? 'text-teal-700' : 'text-red-600'}`}>
-                    {formatPrice(getTotalIncome())}
-                  </p>
-                  <p className="text-xs text-teal-600 mt-1">
-                    Combined annual return
-                  </p>
-                </div>
-              </div>
-              
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="flex items-center justify-between text-sm text-gray-600">
-                  <span>Income Composition:</span>
-                  <span>
-                    {getTotalIncome() > 0 ? 
-                      `${Math.round((getTotalRentalIncome() / getTotalIncome()) * 100)}% Rental, ${Math.round((getTotalValueIncrease() / getTotalIncome()) * 100)}% Appreciation` : 
-                      'N/A'
-                    }
-                  </span>
-                </div>
-              </div>
-            </motion.div>
 
-            {/* Filters */}
+
+            {/* Controls Bar */}
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="bg-white rounded-xl shadow-soft p-6 mb-8 border border-gray-200"
+              transition={{ delay: 0.3 }}
+              className="bg-white rounded-2xl shadow-soft p-6 mb-8 border border-gray-100"
             >
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                {/* Filters */}
                 <div className="flex items-center gap-4">
-                  <Filter className="w-5 h-5 text-blue-600" />
-                  <span className="font-medium text-gray-900">Filter by status:</span>
-                  <div className="flex gap-2">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-4 h-4 text-gray-500" />
+                    <span className="text-sm font-medium text-gray-700">Status:</span>
+                  </div>
+                  <div className="flex gap-1">
                     {(['all', 'active', 'sold', 'watching'] as const).map(status => (
                       <button
                         key={status}
                         onClick={() => handleFilterChange(status)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                           filterStatus === status
-                            ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-soft'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                         }`}
                       >
                         {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -947,45 +989,30 @@ export default function PortfolioTrackerPage() {
                     ))}
                   </div>
                 </div>
-                <div className="flex gap-2">
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-2">
                   <button 
                     onClick={handleAddProperty}
-                    className="rounded-full font-semibold shadow-soft bg-gradient-to-r from-blue-600 to-purple-600 text-white px-5 py-2.5 hover:from-purple-600 hover:to-blue-600 focus:ring-2 focus:ring-blue-600 transition inline-flex items-center gap-2"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
                   >
-                    <Plus className="w-5 h-5" />
+                    <Plus className="w-4 h-4" />
                     Add Property
                   </button>
                   <button 
                     onClick={handleExport}
-                    className="rounded-full font-semibold shadow-soft bg-white text-gray-700 px-5 py-2.5 hover:bg-gray-50 border border-gray-300 focus:ring-2 focus:ring-blue-600 transition inline-flex items-center gap-2"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-200 transition-colors"
                   >
-                    <BarChart3 className="w-5 h-5" />
+                    <BarChart3 className="w-4 h-4" />
                     Export
                   </button>
                   <button 
                     onClick={() => window.location.href = '/portfolio-tracker/statements'}
-                    className="rounded-full font-semibold shadow-soft bg-purple-600 text-white px-5 py-2.5 hover:bg-purple-700 focus:ring-2 focus:ring-purple-600 transition inline-flex items-center gap-2"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
                   >
-                    <Calendar className="w-5 h-5" />
-                    Monthly Statements
+                    <Calendar className="w-4 h-4" />
+                    Statements
                   </button>
-                  <button 
-                    onClick={updateAddresses}
-                    className="rounded-full font-semibold shadow-soft bg-green-600 text-white px-5 py-2.5 hover:bg-green-700 focus:ring-2 focus:ring-green-600 transition inline-flex items-center gap-2"
-                  >
-                    <MapPin className="w-5 h-5" />
-                    Update Addresses
-                  </button>
-                  <button 
-                    onClick={updatePurchaseDates}
-                    className="rounded-full font-semibold shadow-soft bg-orange-600 text-white px-5 py-2.5 hover:bg-orange-700 focus:ring-2 focus:ring-orange-600 transition inline-flex items-center gap-2"
-                  >
-                    <Calendar className="w-5 h-5" />
-                    Update Purchase Dates
-                  </button>
-
-
-
                 </div>
               </div>
             </motion.div>
@@ -1058,135 +1085,129 @@ export default function PortfolioTrackerPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1 + index * 0.05 }}
-                      className="bg-white rounded-xl shadow-soft p-6 hover:shadow-lg transition-all duration-200 border border-gray-200"
+                      className="bg-white rounded-2xl shadow-soft p-6 hover:shadow-lg transition-all duration-200 border border-gray-100"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-4">
-                            <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full flex items-center justify-center shadow-soft">
-                              <Home className="w-6 h-6 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold text-gray-900 mb-1">{formatAddress(enhancedProperty.address)}</h3>
-                              <p className="text-sm text-gray-600 flex items-center gap-1">
-                                <MapPin className="w-4 h-4" />
-                                {enhancedProperty.postcode}
-                              </p>
-                              <div className="flex items-center gap-4 mt-2">
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                  <Calendar className="w-3 h-3" />
-                                  <span>Purchased: {formatDate(enhancedProperty.purchaseDate)}</span>
-                                </div>
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                  <TrendingUp className="w-3 h-3" />
-                                  <span>Owned: {calculateOwnershipDuration(enhancedProperty.purchaseDate)}</span>
-                                </div>
-                              </div>
+                      {/* Property Header */}
+                      <div className="flex items-start justify-between mb-6">
+                        <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl flex items-center justify-center">
+                            <Home className="w-6 h-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-1">{formatAddress(enhancedProperty.address)}</h3>
+                            <p className="text-sm text-gray-500 flex items-center gap-1 mb-2">
+                              <MapPin className="w-4 h-4" />
+                              {enhancedProperty.postcode}
+                            </p>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span>Purchased {formatDate(enhancedProperty.purchaseDate)}</span>
+                              <span>•</span>
+                              <span>Owned {calculateOwnershipDuration(enhancedProperty.purchaseDate)}</span>
+                              {enhancedProperty.rentStartDate && (
+                                <>
+                                  <span>•</span>
+                                  <span>Renting {calculateRentDuration(enhancedProperty.rentStartDate)}</span>
+                                </>
+                              )}
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Purchase Price</p>
-                              <p className="font-semibold text-gray-900">{formatPrice(enhancedProperty.purchasePrice)}</p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Current Value</p>
-                              <p className="font-semibold text-gray-900">{formatPrice(enhancedProperty.currentValue)}</p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Growth</p>
-                              <p className="font-semibold text-green-600">+{typeof growth === 'number' && !isNaN(growth) ? growth.toFixed(1) : 'N/A'}%</p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">BMV Score</p>
-                              <p className="font-semibold text-blue-600">{enhancedProperty.bmvScore ? `${enhancedProperty.bmvScore}/100` : 'N/A'}</p>
-                            </div>
-                          </div>
-
-                          {/* Financial Details Row */}
-                          <div className="grid grid-cols-2 md:grid-cols-6 gap-4 text-sm mt-4">
-                            <div className="bg-green-50 rounded-lg p-3 border border-green-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1 flex items-center gap-1">
-                                <DollarSign className="w-3 h-3" />
-                                Monthly Rent
-                              </p>
-                              <p className="font-semibold text-green-600">
-                                {enhancedProperty.monthlyRent ? `£${enhancedProperty.monthlyRent.toLocaleString()}` : 'N/A'}
-                              </p>
-                            </div>
-                            <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1 flex items-center gap-1">
-                                <Percent className="w-3 h-3" />
-                                Yield
-                              </p>
-                              <p className="font-semibold text-blue-600">
-                                {enhancedProperty.yield ? `${enhancedProperty.yield.toFixed(1)}%` : 'N/A'}
-                              </p>
-                            </div>
-                            <div className="bg-purple-50 rounded-lg p-3 border border-purple-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Equity</p>
-                              <p className="font-semibold text-purple-600">
-                                {enhancedProperty.equity ? `£${enhancedProperty.equity.toLocaleString()}` : 'N/A'}
-                              </p>
-                            </div>
-                            <div className="bg-orange-50 rounded-lg p-3 border border-orange-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Equity %</p>
-                              <p className="font-semibold text-orange-600">
-                                {enhancedProperty.equityPercentage ? `${enhancedProperty.equityPercentage.toFixed(1)}%` : 'N/A'}
-                              </p>
-                            </div>
-                            <div className="bg-indigo-50 rounded-lg p-3 border border-indigo-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Monthly Profit</p>
-                              <p className={`font-semibold ${enhancedProperty.monthlyProfit && enhancedProperty.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {enhancedProperty.monthlyProfit ? `£${enhancedProperty.monthlyProfit.toLocaleString()}` : 'N/A'}
-                              </p>
-                            </div>
-                            <div className="bg-gray-50 rounded-lg p-3 border border-gray-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Deposit</p>
-                              <p className="font-semibold text-gray-600">
-                                {enhancedProperty.depositAmount ? (
-                                  <>
-                                    £{enhancedProperty.depositAmount.toLocaleString()}
-                                    <span className="text-xs text-gray-500 block">
-                                      ({Math.round((enhancedProperty.depositAmount / enhancedProperty.purchasePrice) * 100)}%)
-                                    </span>
-                                  </>
-                                ) : 'N/A'}
-                              </p>
-                            </div>
-                          </div>
-
-                          {/* Notes Section */}
-                          {enhancedProperty.propertyNotes && (
-                            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                              <p className="text-gray-600 text-xs font-medium uppercase tracking-wide mb-1">Notes</p>
-                              <p className="text-sm text-gray-700">{enhancedProperty.propertyNotes}</p>
-                            </div>
-                          )}
                         </div>
-                        <div className="flex flex-col gap-2 ml-6">
-                          <button
-                            onClick={() => handleEditProperty(enhancedProperty)}
-                            className="rounded-full font-semibold shadow-soft bg-blue-100 text-blue-700 px-5 py-2.5 hover:bg-blue-200 focus:ring-2 focus:ring-blue-400 transition inline-flex items-center gap-2 text-sm border border-blue-200"
-                          >
-                            <Edit className="w-4 h-4" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleRemoveProperty(enhancedProperty.id, enhancedProperty.address)}
-                            className="rounded-full font-semibold shadow-soft bg-red-100 text-red-700 px-5 py-2.5 hover:bg-red-200 focus:ring-2 focus:ring-red-400 transition inline-flex items-center gap-2 text-sm border border-red-200"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                            Remove
-                          </button>
-                          <button
-                            onClick={() => handleSoldProperty(enhancedProperty.id, enhancedProperty.address)}
-                            className="rounded-full font-semibold shadow-soft bg-green-100 text-green-700 px-5 py-2.5 hover:bg-green-200 focus:ring-2 focus:ring-green-400 transition inline-flex items-center gap-2 text-sm border border-green-200"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Sold
-                          </button>
+                        
+                        {/* Status Badge */}
+                        <div className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(enhancedProperty.status)}`}>
+                          {enhancedProperty.status.charAt(0).toUpperCase() + enhancedProperty.status.slice(1)}
                         </div>
+                      </div>
+
+                      {/* Key Metrics */}
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div className="text-center p-4 bg-gray-50 rounded-xl">
+                          <p className="text-2xl font-bold text-gray-900 mb-1">{formatPrice(enhancedProperty.currentValue)}</p>
+                          <p className="text-xs text-gray-500">Current Value</p>
+                        </div>
+                        <div className="text-center p-4 bg-gray-50 rounded-xl">
+                          <p className={`text-2xl font-bold mb-1 ${growth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {growth >= 0 ? '+' : ''}{typeof growth === 'number' && !isNaN(growth) ? growth.toFixed(1) : 'N/A'}%
+                          </p>
+                          <p className="text-xs text-gray-500">Growth</p>
+                        </div>
+                        <div className="text-center p-4 bg-gray-50 rounded-xl">
+                          <p className="text-2xl font-bold text-blue-600 mb-1">
+                            {enhancedProperty.yield ? `${enhancedProperty.yield.toFixed(1)}%` : 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-500">Yield</p>
+                        </div>
+                        <div className="text-center p-4 bg-gray-50 rounded-xl">
+                          <p className="text-2xl font-bold text-purple-600 mb-1">
+                            {enhancedProperty.bmvScore ? `${enhancedProperty.bmvScore}/100` : 'N/A'}
+                          </p>
+                          <p className="text-xs text-gray-500">BMV Score</p>
+                        </div>
+                      </div>
+
+                                             {/* Financial Summary */}
+                       <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
+                        <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+                          <span className="text-sm text-gray-600">Monthly Rent</span>
+                          <span className="font-semibold text-green-600">
+                            {enhancedProperty.monthlyRent ? formatPrice(enhancedProperty.monthlyRent) : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                          <span className="text-sm text-gray-600">Monthly Profit</span>
+                          <span className={`font-semibold ${enhancedProperty.monthlyProfit && enhancedProperty.monthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {enhancedProperty.monthlyProfit ? formatPrice(enhancedProperty.monthlyProfit) : 'N/A'}
+                          </span>
+                        </div>
+                                                 <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg">
+                           <span className="text-sm text-gray-600">Equity</span>
+                           <span className="font-semibold text-purple-600">
+                             {enhancedProperty.equity ? formatPrice(enhancedProperty.equity) : 'N/A'}
+                           </span>
+                         </div>
+                         <div className="flex justify-between items-center p-3 bg-indigo-50 rounded-lg">
+                           <span className="text-sm text-gray-600">Total Income</span>
+                           <span className="font-semibold text-indigo-600">
+                             {formatPrice(getPropertyTotalIncome(enhancedProperty))}
+                           </span>
+                         </div>
+                         <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                           <span className="text-sm text-gray-600">Purchase Price</span>
+                           <span className="font-semibold text-gray-700">
+                             {formatPrice(enhancedProperty.purchasePrice)}
+                           </span>
+                         </div>
+                        <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg">
+                          <span className="text-sm text-gray-600">Rent Started</span>
+                          <span className="font-semibold text-orange-600">
+                            {enhancedProperty.rentStartDate ? formatDate(enhancedProperty.rentStartDate) : 'Not set'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleEditProperty(enhancedProperty)}
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 text-sm font-medium rounded-lg hover:bg-blue-100 transition-colors"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleSoldProperty(enhancedProperty.id, enhancedProperty.address)}
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 text-sm font-medium rounded-lg hover:bg-green-100 transition-colors"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                          Mark Sold
+                        </button>
+                        <button
+                          onClick={() => handleRemoveProperty(enhancedProperty.id, enhancedProperty.address)}
+                          className="inline-flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 text-sm font-medium rounded-lg hover:bg-red-100 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remove
+                        </button>
                       </div>
                     </motion.div>
                   );
@@ -1214,7 +1235,7 @@ export default function PortfolioTrackerPage() {
             <button
               onClick={() => {
                 // Trigger sign in
-                console.log('Sign in clicked');
+                // Sign in clicked
               }}
               className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full font-semibold hover:from-purple-600 hover:to-blue-600 focus:ring-2 focus:ring-blue-600 transition shadow-soft"
             >

@@ -14,13 +14,8 @@ export default function SearchLimitManager() {
   
   const SEARCH_LIMIT = 5;
   
-  // Safely use useUser with error handling
-  let user = null;
-  try {
-    user = useUser();
-  } catch (error) {
-    console.warn('useUser not available:', error);
-  }
+  // Always call useUser hook (Rules of Hooks requirement)
+  const user = useUser();
 
   useEffect(() => {
     setIsClient(true);

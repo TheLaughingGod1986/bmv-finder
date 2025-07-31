@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log(`✅ Found ${salesHistory.length} sales for ${number} ${postcode}`);
+    // Found sales for property
 
     return NextResponse.json({
       success: true,

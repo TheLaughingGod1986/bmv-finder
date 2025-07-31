@@ -20,13 +20,8 @@ export function SearchLimitProvider({ children }: { children: ReactNode }) {
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Safely use useUser with error handling
-  let user = null;
-  try {
-    user = useUser();
-  } catch (error) {
-    console.warn('useUser not available:', error);
-  }
+  // Always call useUser hook (Rules of Hooks requirement)
+  const user = useUser();
 
   // Load search count from localStorage on mount
   useEffect(() => {

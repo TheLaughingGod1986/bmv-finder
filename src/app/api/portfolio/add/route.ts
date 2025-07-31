@@ -23,6 +23,7 @@ interface PortfolioProperty {
   purchase_price: number;
   current_value: number;
   purchase_date: string;
+  rent_start_date?: string;
   deal_score: number;
   deal_rating: string;
   bmv_score: number;
@@ -55,15 +56,13 @@ export async function POST(request: NextRequest) {
     const body: PortfolioProperty = await request.json();
     
     // DEBUG: Log the received data
-    console.log('🔍 API received body:', JSON.stringify(body, null, 2));
-    console.log('🔍 deal_score value:', body.deal_score, 'type:', typeof body.deal_score);
-    console.log('🔍 bmv_score value:', body.bmv_score, 'type:', typeof body.bmv_score);
+    // API received body
     
     // Validate required fields
     const requiredFields = ['address', 'postcode', 'house_number', 'property_type', 'purchase_price', 'current_value', 'purchase_date', 'deal_score', 'deal_rating', 'bmv_score', 'equity'];
     for (const field of requiredFields) {
       if (!body[field as keyof PortfolioProperty]) {
-        console.log(`❌ Missing field: ${field}, value:`, body[field as keyof PortfolioProperty]);
+        // Missing field detected
         return NextResponse.json({ error: `Missing required field: ${field}` }, { status: 400 });
       }
     }
@@ -90,6 +89,7 @@ export async function POST(request: NextRequest) {
         purchase_price: body.purchase_price,
         current_value: body.current_value,
         purchase_date: body.purchase_date,
+        rent_start_date: body.rent_start_date,
         deal_score: body.deal_score,
         deal_rating: body.deal_rating,
         bmv_score: body.bmv_score,

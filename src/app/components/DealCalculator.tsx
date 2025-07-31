@@ -220,7 +220,7 @@ export default function DealCalculator() {
         mortgageBalance: loanAmount,
         mortgageType: 'repayment',
         mortgageRate: rate,
-        monthlyMortgagePayment: monthlyPayment,
+        monthlyMortgagePayment: monthlyInterest,
         depositAmount: deposit,
         agentFees: 0,
         otherFees: refurb,

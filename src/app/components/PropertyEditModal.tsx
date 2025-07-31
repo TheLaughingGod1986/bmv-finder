@@ -15,6 +15,7 @@ interface PropertyEditModalProps {
 export default function PropertyEditModal({ property, isOpen, onClose, onSave }: PropertyEditModalProps) {
   const [formData, setFormData] = useState({
     monthlyRent: property?.monthlyRent || 0,
+    rentStartDate: property?.rentStartDate || '',
     mortgageBalance: property?.mortgageBalance || 0,
     mortgageType: property?.mortgageType || 'repayment',
     mortgageRate: property?.mortgageRate || 4.5,
@@ -33,7 +34,28 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     equity: 0,
     equityPercentage: 0,
     monthlyProfit: 0,
+    rentDuration: '',
+    totalIncome: 0,
   });
+
+  // Update form data when property changes
+  useEffect(() => {
+    if (property) {
+      setFormData({
+        monthlyRent: property.monthlyRent || 0,
+        rentStartDate: property.rentStartDate || '',
+        mortgageBalance: property.mortgageBalance || 0,
+        mortgageType: property.mortgageType || 'repayment',
+        mortgageRate: property.mortgageRate || 4.5,
+        depositAmount: property.depositAmount || Math.round((property.purchasePrice || 0) * 0.25),
+        depositPercentage: property.depositAmount ? Math.round((property.depositAmount / (property.purchasePrice || 1)) * 100) : 25,
+        agentFees: property.agentFees || 0,
+        otherFees: property.otherFees || 0,
+        monthlyExpenses: property.monthlyExpenses || 0,
+        propertyNotes: property.propertyNotes || '',
+      });
+    }
+  }, [property]);
 
   // Calculate derived values when form data changes
   useEffect(() => {
@@ -56,20 +78,55 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     const annualRent = monthlyRent * 12;
     const yieldPercentage = currentValue > 0 ? (annualRent / currentValue) * 100 : 0;
     
-    // Calculate equity
-    const equity = currentValue - mortgageBalance;
+    // Calculate equity (deposit + growth)
+    const depositAmount = formData.depositAmount || (purchasePrice * 0.25); // Default 25% deposit
+    const valueGrowth = currentValue - purchasePrice;
+    const equity = depositAmount + valueGrowth;
     const equityPercentage = currentValue > 0 ? (equity / currentValue) * 100 : 0;
     
     // Calculate monthly profit
     const monthlyProfit = monthlyRent - monthlyMortgagePayment - monthlyExpenses;
     
-    setCalculatedValues({
-      monthlyMortgagePayment: Math.round(monthlyMortgagePayment * 100) / 100,
-      yield: Math.round(yieldPercentage * 100) / 100,
-      equity: Math.round(equity * 100) / 100,
-      equityPercentage: Math.round(equityPercentage * 100) / 100,
-      monthlyProfit: Math.round(monthlyProfit * 100) / 100,
-    });
+    // Calculate total income
+    const totalIncome = annualRent + valueGrowth;
+           
+           // Calculate rent duration
+           let rentDuration = 'Not set';
+    if (formData.rentStartDate) {
+      try {
+        const rentStart = new Date(formData.rentStartDate);
+        const now = new Date();
+        const diffTime = Math.abs(now.getTime() - rentStart.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays < 30) {
+          rentDuration = `${diffDays} days`;
+        } else if (diffDays < 365) {
+          const months = Math.floor(diffDays / 30);
+          rentDuration = `${months} month${months !== 1 ? 's' : ''}`;
+        } else {
+          const years = Math.floor(diffDays / 365);
+          const remainingMonths = Math.floor((diffDays % 365) / 30);
+          if (remainingMonths === 0) {
+            rentDuration = `${years} year${years !== 1 ? 's' : ''}`;
+          } else {
+            rentDuration = `${years} year${years !== 1 ? 's' : ''}, ${remainingMonths} month${remainingMonths !== 1 ? 's' : ''}`;
+          }
+        }
+      } catch (error) {
+        rentDuration = 'Invalid date';
+      }
+    }
+    
+               setCalculatedValues({
+             monthlyMortgagePayment: Math.round(monthlyMortgagePayment * 100) / 100,
+             yield: Math.round(yieldPercentage * 100) / 100,
+             equity: Math.round(equity * 100) / 100,
+             equityPercentage: Math.round(equityPercentage * 100) / 100,
+             monthlyProfit: Math.round(monthlyProfit * 100) / 100,
+             rentDuration,
+             totalIncome: Math.round(totalIncome * 100) / 100,
+           });
   }, [formData, property]);
 
   const handleInputChange = (field: string, value: any) => {
@@ -84,34 +141,65 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     
     setIsSaving(true);
     try {
-      const { error } = await supabase
+      const updateData = {
+        monthly_rent: formData.monthlyRent || 0,
+        rent_start_date: formData.rentStartDate || null,
+        mortgage_balance: formData.mortgageBalance || 0,
+        mortgage_type: formData.mortgageType || 'repayment',
+        mortgage_rate: (formData.mortgageRate || 0) / 100,
+        monthly_mortgage_payment: calculatedValues.monthlyMortgagePayment || 0,
+        deposit_amount: formData.depositAmount || 0,
+        agent_fees: formData.agentFees || 0,
+        other_fees: formData.otherFees || 0,
+        monthly_expenses: formData.monthlyExpenses || 0,
+        property_notes: formData.propertyNotes || '',
+        yield: calculatedValues.yield || 0,
+        equity: calculatedValues.equity || 0,
+        rental_income: (formData.monthlyRent || 0) * 12, // Also update annual rental income
+      };
+      
+      console.log('Updating property with data:', updateData);
+      console.log('Property ID:', property.id);
+      console.log('Supabase client:', supabase ? 'Available' : 'Not available');
+      
+      if (!supabase) {
+        throw new Error('Supabase client not available');
+      }
+      
+      // Check if user is authenticated
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      console.log('Current user:', user);
+      console.log('Auth error:', authError);
+      
+      if (authError || !user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const { data, error } = await supabase
         .from('portfolio_properties')
-        .update({
-          monthly_rent: formData.monthlyRent,
-          mortgage_balance: formData.mortgageBalance,
-          mortgage_type: formData.mortgageType,
-          mortgage_rate: formData.mortgageRate / 100,
-          monthly_mortgage_payment: calculatedValues.monthlyMortgagePayment,
-          deposit_amount: formData.depositAmount,
-          agent_fees: formData.agentFees,
-          other_fees: formData.otherFees,
-          monthly_expenses: formData.monthlyExpenses,
-          property_notes: formData.propertyNotes,
-          monthly_rent: formData.monthlyRent,
-          yield: calculatedValues.yield,
-          equity: calculatedValues.equity,
-        })
-        .eq('id', property.id);
+        .update(updateData)
+        .eq('id', property.id)
+        .select();
+      
+      console.log('Update response data:', data);
+      console.log('Update response error:', error);
 
       if (error) {
         console.error('Error updating property:', error);
-        alert('Failed to update property. Please try again.');
+        console.error('Error details:', {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        alert(`Failed to update property: ${error.message || 'Unknown error'}. Please try again.`);
         return;
       }
 
       const updatedProperty = {
         ...property,
         monthlyRent: formData.monthlyRent,
+        rentStartDate: formData.rentStartDate,
         mortgageBalance: formData.mortgageBalance,
         mortgageType: formData.mortgageType,
         mortgageRate: formData.mortgageRate,
@@ -128,10 +216,12 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
       };
 
       onSave(updatedProperty);
+      alert('Property updated successfully!');
       onClose();
     } catch (error) {
       console.error('Error saving property:', error);
-      alert('Failed to save property. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      alert(`Failed to save property: ${errorMessage}. Please try again.`);
     } finally {
       setIsSaving(false);
     }
@@ -192,6 +282,18 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
                     onChange={(e) => handleInputChange('monthlyRent', parseFloat(e.target.value) || 0)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Rent Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={formData.rentStartDate}
+                    onChange={(e) => handleInputChange('rentStartDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
 
@@ -372,6 +474,27 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
                       </span>
                     </div>
                   </div>
+                  
+                                         <div className="bg-gray-50 p-3 rounded-lg">
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm font-medium text-gray-700">Rent Duration:</span>
+                           <span className="text-lg font-semibold text-orange-600">{calculatedValues.rentDuration}</span>
+                         </div>
+                       </div>
+                       
+                       <div className="bg-indigo-50 p-3 rounded-lg">
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm font-medium text-gray-700">Total Income:</span>
+                           <span className="text-lg font-semibold text-indigo-600">£{calculatedValues.totalIncome.toLocaleString()}</span>
+                         </div>
+                       </div>
+                       
+                       <div className="bg-gray-50 p-3 rounded-lg">
+                         <div className="flex justify-between items-center">
+                           <span className="text-sm font-medium text-gray-700">Purchase Price:</span>
+                           <span className="text-lg font-semibold text-gray-700">£{property?.purchasePrice?.toLocaleString() || 'N/A'}</span>
+                         </div>
+                       </div>
                 </div>
               </div>
             </div>
