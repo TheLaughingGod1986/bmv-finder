@@ -16,6 +16,11 @@ interface AddToPortfolioButtonProps {
     dealScore?: number;
     dealRating?: string;
     bmvScore?: number;
+    lastSale?: {
+      price: number;
+      date: string;
+      propertyType: string;
+    };
   };
   className?: string;
 }
@@ -78,21 +83,25 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
       const rentStartDate = new Date(purchaseDate);
       rentStartDate.setMonth(rentStartDate.getMonth() + 1);
 
+      // Use actual last sale price if available, otherwise use estimated value
+      const actualPurchasePrice = propertyData.lastSale?.price || propertyData.estimatedValue;
+      const actualPurchaseDate = propertyData.lastSale?.date || purchaseDate.toISOString().split('T')[0];
+      
       const portfolioData = {
         address: propertyData.address || '',
         postcode: propertyData.postcode || '',
         house_number: propertyData.houseNumber || '',
         property_type: propertyData.propertyType || '',
         bedrooms: propertyData.bedrooms ? Math.round(propertyData.bedrooms) : undefined,
-        purchase_price: propertyData.estimatedValue * 0.9, // Assume 10% below market value
+        purchase_price: actualPurchasePrice,
         current_value: propertyData.estimatedValue,
-        purchase_date: purchaseDate.toISOString().split('T')[0], // Today's date
+        purchase_date: actualPurchaseDate,
         rent_start_date: rentStartDate.toISOString().split('T')[0], // 1 month after purchase
         deal_score: propertyData.dealScore !== undefined ? propertyData.dealScore : 0,
         deal_rating: propertyData.dealRating || 'Good',
         bmv_score: propertyData.bmvScore !== undefined ? propertyData.bmvScore : 0,
-        equity: propertyData.estimatedValue * 0.25, // Assume 25% equity
-        notes: 'Added from property analysis'
+        equity: propertyData.estimatedValue - actualPurchasePrice, // Calculate actual equity
+        notes: propertyData.lastSale ? 'Added from property analysis with actual sale data' : 'Added from property analysis'
       };
 
       // Portfolio data being sent

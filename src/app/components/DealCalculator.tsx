@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import Button from './Button';
 import { useToast } from './ToastProvider';
 import { supabase } from '../../lib/supabaseClient';
-import DealCalculatorAddressInput from './DealCalculatorAddressInput';
 
 // Reusable input component
 interface InputFieldProps {
@@ -21,7 +20,7 @@ interface InputFieldProps {
 // Type for saved deals
 interface SavedDeal {
   id?: string;
-  address: string;
+  propertyName: string;
   purchasePrice: number;
   refurbCost: number;
   monthlyRent: number;
@@ -72,8 +71,8 @@ export default function DealCalculator() {
   const { showToast } = useToast();
   
   // State for inputs
+  const [propertyName, setPropertyName] = useState('');
   const [postcode, setPostcode] = useState('');
-  const [address, setAddress] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [refurbCost, setRefurbCost] = useState('');
   const [monthlyRent, setMonthlyRent] = useState('');
@@ -128,7 +127,7 @@ export default function DealCalculator() {
             // Convert portfolio properties to saved deals format
             const deals = data.portfolio.map((property: any) => ({
               id: property.id,
-              address: property.address,
+              propertyName: property.address, // Changed from address to propertyName
               purchasePrice: property.purchase_price,
               refurbCost: 0, // Not stored in portfolio
               monthlyRent: property.monthly_rent || 0,
@@ -171,7 +170,7 @@ export default function DealCalculator() {
   const totalMonthlyCashFlow = netMonthlyIncome;
 
   // Validation
-  const isValid = p > 0 && rent > 0 && rate > 0 && ltvVal > 0 && ltvVal <= 1 && address.trim().length > 0;
+  const isValid = p > 0 && rent > 0 && rate > 0 && ltvVal > 0 && ltvVal <= 1 && propertyName.trim().length > 0;
 
   // Save deal to portfolio
   const handleSave = async () => {
@@ -185,11 +184,11 @@ export default function DealCalculator() {
     }
 
     // Validate required fields
-    if (!postcode.trim() || !address.trim()) {
+    if (!postcode.trim() || !propertyName.trim()) {
       showToast({
         type: 'error',
         title: 'Missing Information',
-        message: 'Please enter both postcode and property address'
+        message: 'Please enter both postcode and property name'
       });
       return;
     }
@@ -200,14 +199,10 @@ export default function DealCalculator() {
       // Use the dedicated postcode field
       const postcodeValue = postcode.trim().toUpperCase();
       
-      // Extract house number from address
-      const houseNumberMatch = address.match(/^(\d+)/);
-      const houseNumber = houseNumberMatch ? houseNumberMatch[1] : '';
-
       const dealData = {
-        address,
+        address: propertyName, // API expects 'address' field
         postcode: postcodeValue,
-        houseNumber,
+        houseNumber: '', // No longer extracting house number
         propertyType: 'Residential', // Default
         purchasePrice: p,
         currentValue: p, // Same as purchase price initially
@@ -254,7 +249,7 @@ export default function DealCalculator() {
           if (data.success && data.portfolio) {
             const deals = data.portfolio.map((property: any) => ({
               id: property.id,
-              address: property.address,
+              propertyName: property.address, // Changed from address to propertyName
               purchasePrice: property.purchase_price,
               refurbCost: property.other_fees || 0,
               monthlyRent: property.monthly_rent || 0,
@@ -306,18 +301,8 @@ export default function DealCalculator() {
         </div>
       )}
       <form className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-beige rounded-3xl shadow-xl border border-taupe p-8" onSubmit={e => e.preventDefault()}>
-        <DealCalculatorAddressInput
-          postcode={postcode}
-          onPostcodeChange={setPostcode}
-          address={address}
-          onAddressChange={setAddress}
-          onAddressSelect={(selectedAddress) => {
-            // Optionally auto-fill some fields based on selected address
-            console.log('Selected address:', selectedAddress);
-          }}
-          required
-          className="md:col-span-2"
-        />
+        <InputField label="Property Name" value={propertyName} onChange={setPropertyName} required type="text" />
+        <InputField label="Postcode" value={postcode} onChange={setPostcode} required type="text" maxLength={8} />
         <InputField label="Purchase Price" value={purchasePrice} onChange={val => { setPurchasePrice(val); if (ltvMode === 'ltv') setDeposit(''); }} required min={0} />
         <InputField label="Refurbishment Costs" value={refurbCost} onChange={setRefurbCost} min={0} />
         <InputField label="Monthly Rent" value={monthlyRent} onChange={setMonthlyRent} required min={0} />
@@ -402,7 +387,7 @@ export default function DealCalculator() {
                   <li key={idx} className="bg-softgrey rounded-2xl border-2 border-taupe p-5">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
                       <div>
-                        <div className="text-sm text-primary font-semibold">{deal.address}</div>
+                        <div className="text-sm text-primary font-semibold">{deal.propertyName}</div> {/* Changed from address to propertyName */}
                         <div className="text-sm text-taupe">
                           Purchase: {formatCurrency(deal.purchasePrice)}
                           {deal.postcode && ` • ${deal.postcode}`}

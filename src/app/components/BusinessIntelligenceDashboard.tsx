@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import {
   ChartBarIcon,
   UserGroupIcon,
-  CurrencyPoundIcon,
+  BanknotesIcon,
   HomeIcon,
   ArrowTrendingUpIcon,
   ExclamationTriangleIcon,
@@ -298,7 +298,7 @@ export default function BusinessIntelligenceDashboard() {
           {/* Revenue */}
           <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg p-6">
             <div className="flex items-center justify-between mb-4">
-              <CurrencyPoundIcon className="w-8 h-8 text-orange-600" />
+                              <BanknotesIcon className="w-8 h-8 text-orange-600" />
               <div className="flex items-center space-x-1">
                 {getGrowthIcon(metrics.revenue.growth)}
                 <span className={`text-sm font-medium ${getGrowthColor(metrics.revenue.growth)}`}>

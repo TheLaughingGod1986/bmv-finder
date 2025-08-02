@@ -470,7 +470,12 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
                 estimatedValue: valuationData.summary.finalValue,
                 dealScore: Math.round(valuationData.summary.confidence * 100),
                 dealRating: getDealRating(valuationData.summary.confidence),
-                bmvScore: Math.round(valuationData.summary.confidence * 100)
+                bmvScore: Math.round(valuationData.summary.confidence * 100),
+                lastSale: valuationData.property.lastSoldPrice ? {
+                  price: valuationData.property.lastSoldPrice,
+                  date: valuationData.property.lastSoldDate || '',
+                  propertyType: valuationData.property.propertyType
+                } : undefined
               }}
               className="w-full"
             />

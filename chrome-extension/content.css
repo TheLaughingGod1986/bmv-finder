@@ -1,0 +1,159 @@
+/* BMV Finder Chrome Extension Content Styles */
+
+/* Capture button styling - positioned under property details */
+.bmv-capture-button {
+  width: 100%;
+  background: linear-gradient(135deg, #3A7CA5 0%, #2C6E91 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 20px;
+  cursor: pointer;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  box-shadow: 0 4px 12px rgba(58, 124, 165, 0.3);
+  transition: all 0.3s ease;
+  margin: 20px 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-decoration: none;
+  line-height: 1.2;
+}
+
+.bmv-capture-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(58, 124, 165, 0.4);
+  background: linear-gradient(135deg, #2C6E91 0%, #1D4ED8 100%);
+}
+
+.bmv-capture-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 12px rgba(58, 124, 165, 0.3);
+}
+
+.bmv-capture-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(58, 124, 165, 0.3);
+}
+
+/* Button content layout */
+.bmv-capture-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.bmv-capture-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.bmv-capture-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.bmv-capture-title {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.bmv-capture-subtitle {
+  font-size: 12px;
+  font-weight: 400;
+  opacity: 0.9;
+  margin-top: 2px;
+}
+
+/* Loading state */
+.bmv-loading {
+  background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%);
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+.bmv-loading .bmv-capture-icon {
+  animation: bmv-spin 1s linear infinite;
+}
+
+@keyframes bmv-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Success state */
+.bmv-success {
+  background: linear-gradient(135deg, #5DA271 0%, #3B755D 100%);
+  animation: bmv-success-pulse 0.5s ease-in-out;
+}
+
+@keyframes bmv-success-pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+/* Error state */
+.bmv-error {
+  background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%);
+  animation: bmv-error-shake 0.5s ease-in-out;
+}
+
+@keyframes bmv-error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .bmv-capture-button {
+    padding: 14px 16px;
+    font-size: 14px;
+    margin: 16px 0;
+  }
+  
+  .bmv-capture-icon {
+    font-size: 18px;
+  }
+  
+  .bmv-capture-title {
+    font-size: 14px;
+  }
+  
+  .bmv-capture-subtitle {
+    font-size: 11px;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .bmv-capture-button {
+    background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%);
+    box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4);
+  }
+  
+  .bmv-capture-button:hover {
+    background: linear-gradient(135deg, #1D4ED8 0%, #1E40AF 100%);
+    box-shadow: 0 8px 25px rgba(30, 64, 175, 0.5);
+  }
+}
+
+/* Ensure button appears above other elements */
+.bmv-capture-button {
+  z-index: 1000;
+}
+
+/* Hide capture button on non-property pages */
+.bmv-hidden {
+  display: none;
+} 

@@ -1,0 +1,142 @@
+console.log('BMV Finder: Background script loaded');
+
+// API configuration
+const API_BASE_URL = 'http://localhost:3000/api'; // Updated to port 3000
+
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('BMV Finder: Received message:', request);
+  
+  if (request.action === 'captureProperty') {
+    handlePropertyCapture(request.data, sendResponse);
+    return true; // Keep the message channel open for async response
+  }
+});
+
+async function handlePropertyCapture(propertyData, sendResponse) {
+  try {
+    console.log('BMV Finder: Capturing property:', propertyData);
+    
+    // First, store locally as backup
+    const result = await chrome.storage.local.get(['capturedProperties']);
+    const capturedProperties = result.capturedProperties || [];
+    
+    // Add the new property
+    capturedProperties.push({
+      ...propertyData,
+      id: Date.now().toString(),
+      capturedAt: new Date().toISOString()
+    });
+    
+    // Save back to local storage
+    await chrome.storage.local.set({ capturedProperties });
+    
+    // Now send to BMV Finder API
+    console.log('BMV Finder: Sending property to API...');
+    console.log('BMV Finder: API URL:', `${API_BASE_URL}/properties/capture`);
+    console.log('BMV Finder: Property data being sent:', propertyData);
+    
+    const apiResponse = await fetch(`${API_BASE_URL}/properties/capture`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ...propertyData,
+        source: 'chrome-extension',
+        capturedAt: new Date().toISOString()
+      })
+    });
+    
+    console.log('BMV Finder: API response status:', apiResponse.status);
+    console.log('BMV Finder: API response headers:', Object.fromEntries(apiResponse.headers.entries()));
+    
+    if (apiResponse.ok) {
+      const apiData = await apiResponse.json();
+      console.log('BMV Finder: Property sent to API successfully:', apiData);
+      
+      sendResponse({
+        success: true,
+        message: 'Property captured and saved to your watchlist!',
+        totalProperties: capturedProperties.length,
+        apiData: apiData
+      });
+    } else {
+      const errorText = await apiResponse.text();
+      console.error('BMV Finder: API error response:', errorText);
+      
+      try {
+        const errorData = JSON.parse(errorText);
+        console.error('BMV Finder: API error data:', errorData);
+      } catch (e) {
+        console.error('BMV Finder: API error is not JSON:', errorText);
+      }
+      
+      // Still return success for local storage, but note API failure
+      sendResponse({
+        success: true,
+        message: 'Property captured locally (API temporarily unavailable)',
+        totalProperties: capturedProperties.length,
+        warning: 'Could not sync with main application'
+      });
+    }
+    
+  } catch (error) {
+    console.error('BMV Finder: Error capturing property:', error);
+    
+    // Try to save locally even if API fails
+    try {
+      const result = await chrome.storage.local.get(['capturedProperties']);
+      const capturedProperties = result.capturedProperties || [];
+      capturedProperties.push({
+        ...propertyData,
+        id: Date.now().toString(),
+        capturedAt: new Date().toISOString()
+      });
+      await chrome.storage.local.set({ capturedProperties });
+      
+      sendResponse({
+        success: true,
+        message: 'Property captured locally (network error)',
+        totalProperties: capturedProperties.length,
+        warning: 'Could not sync with main application'
+      });
+    } catch (localError) {
+      sendResponse({
+        success: false,
+        error: 'Failed to save property: ' + error.message
+      });
+    }
+  }
+}
+
+// Handle extension installation
+chrome.runtime.onInstalled.addListener((details) => {
+  console.log('BMV Finder: Extension installed/updated:', details.reason);
+  
+  if (details.reason === 'install') {
+    // Initialize storage
+    chrome.storage.local.set({ capturedProperties: [] });
+    console.log('BMV Finder: Storage initialized');
+  }
+});
+
+// Handle tab updates to inject content script
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete' && tab.url) {
+    // Check if this is a property website
+    const propertySites = [
+      'rightmove.co.uk',
+      'zoopla.co.uk',
+      'onthemarket.com',
+      'primelocation.com'
+    ];
+    
+    const isPropertySite = propertySites.some(site => tab.url.includes(site));
+    
+    if (isPropertySite) {
+      console.log('BMV Finder: Property site detected:', tab.url);
+      // The content script will be automatically injected via manifest
+    }
+  }
+}); 

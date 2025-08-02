@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "BMV Finder Property Capture",
+  "version": "1.0.0",
+  "description": "Capture property data from real estate websites and add to your personalized watchlist",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "identity",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "https://*.rightmove.co.uk/*",
+    "https://*.zoopla.co.uk/*",
+    "https://*.onthemarket.com/*",
+    "https://*.primelocation.com/*",
+    "http://localhost:3000/*",
+    "https://localhost:3000/*",
+    "https://*/*",
+    "http://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.rightmove.co.uk/*",
+        "https://*.zoopla.co.uk/*",
+        "https://*.onthemarket.com/*",
+        "https://*.primelocation.com/*",
+        "https://*/*",
+        "http://*/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "BMV Finder Property Capture"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["injected.js"],
+      "matches": [
+        "https://*.rightmove.co.uk/*",
+        "https://*.zoopla.co.uk/*",
+        "https://*.onthemarket.com/*",
+        "https://*.primelocation.com/*",
+        "https://*/*",
+        "http://*/*"
+      ]
+    }
+  ]
+} 

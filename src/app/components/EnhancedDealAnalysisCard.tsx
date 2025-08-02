@@ -256,7 +256,8 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                       estimatedValue: estimatedValue,
                       dealScore: calculateDealScore(subject, confidence, comparables.length),
                       dealRating: getDealRating(calculateDealScore(subject, confidence, comparables.length)),
-                      bmvScore: calculateBMVScore(subject, estimatedValue)
+                      bmvScore: calculateBMVScore(subject, estimatedValue),
+                      lastSale: subject.lastSale || undefined
                     }}
                     className="w-full"
                   />

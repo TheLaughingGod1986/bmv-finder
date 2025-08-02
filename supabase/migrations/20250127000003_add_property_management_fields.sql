@@ -1,8 +1,10 @@
--- Add comprehensive property management fields to portfolio_properties table
+-- Add Property Management Fields to Portfolio Properties
+-- This migration adds the detailed financial fields needed for property management
 
--- Add new columns for property management
+-- Add new columns to portfolio_properties table
 ALTER TABLE portfolio_properties 
 ADD COLUMN IF NOT EXISTS monthly_rent DECIMAL(10,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS rent_start_date DATE,
 ADD COLUMN IF NOT EXISTS mortgage_type TEXT DEFAULT 'repayment' CHECK (mortgage_type IN ('repayment', 'interest_only')),
 ADD COLUMN IF NOT EXISTS mortgage_rate DECIMAL(5,4) DEFAULT 0.045,
 ADD COLUMN IF NOT EXISTS monthly_mortgage_payment DECIMAL(10,2) DEFAULT 0,
@@ -11,8 +13,25 @@ ADD COLUMN IF NOT EXISTS agent_fees DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS other_fees DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS monthly_expenses DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS property_notes TEXT,
-ADD COLUMN IF NOT EXISTS last_rent_payment_date DATE,
-ADD COLUMN IF NOT EXISTS next_rent_payment_date DATE;
+ADD COLUMN IF NOT EXISTS equity_percentage DECIMAL(5,2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS monthly_profit DECIMAL(10,2) DEFAULT 0;
+
+-- Update existing records to set default values
+UPDATE portfolio_properties 
+SET 
+  monthly_rent = COALESCE(rental_income / 12, 0),
+  deposit_amount = COALESCE(purchase_price * 0.25, 0),
+  equity_percentage = CASE 
+    WHEN current_value > 0 THEN ((deposit_amount + (current_value - purchase_price)) / current_value) * 100
+    ELSE 0 
+  END,
+  monthly_profit = COALESCE(rental_income / 12, 0) - COALESCE(monthly_mortgage_payment, 0) - COALESCE(monthly_expenses, 0)
+WHERE monthly_rent IS NULL OR deposit_amount IS NULL;
+
+-- Create indexes for the new fields
+CREATE INDEX IF NOT EXISTS idx_portfolio_properties_monthly_rent ON portfolio_properties(monthly_rent);
+CREATE INDEX IF NOT EXISTS idx_portfolio_properties_rent_start_date ON portfolio_properties(rent_start_date);
+CREATE INDEX IF NOT EXISTS idx_portfolio_properties_mortgage_balance ON portfolio_properties(mortgage_balance);
 
 -- Create a table for monthly statements
 CREATE TABLE IF NOT EXISTS portfolio_monthly_statements (

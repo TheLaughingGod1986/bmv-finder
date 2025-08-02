@@ -1367,7 +1367,7 @@ export default function Home() {
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
               viewport={{ once: true }}
-                              className="text-3xl sm:text-4xl font-bold text-white mb-8"
+              className="text-3xl sm:text-4xl font-bold text-white mb-8"
             >
               Ready to Transform Your Property Business?
             </motion.h2>

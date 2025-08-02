@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Icons</title>
+</head>
+<body>
+    <h1>BMV Finder Extension Icons</h1>
+    <p>This page generates the required icon files for the Chrome extension.</p>
+    
+    <canvas id="icon16" width="16" height="16"></canvas>
+    <canvas id="icon48" width="48" height="48"></canvas>
+    <canvas id="icon128" width="128" height="128"></canvas>
+    
+    <script>
+        function generateIcon(canvasId, size) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext('2d');
+            
+            // Background gradient
+            const gradient = ctx.createLinearGradient(0, 0, size, size);
+            gradient.addColorStop(0, '#3A7CA5');
+            gradient.addColorStop(1, '#2C6E91');
+            
+            // Draw background circle
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(size/2, size/2, size/2 - 2, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw house icon
+            ctx.fillStyle = 'white';
+            ctx.beginPath();
+            ctx.moveTo(size * 0.25, size * 0.625);
+            ctx.lineTo(size * 0.5, size * 0.375);
+            ctx.lineTo(size * 0.75, size * 0.625);
+            ctx.lineTo(size * 0.75, size * 0.781);
+            ctx.lineTo(size * 0.25, size * 0.781);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Draw door
+            ctx.fillStyle = '#2C6E91';
+            ctx.fillRect(size * 0.453, size * 0.664, size * 0.094, size * 0.117);
+            
+            // Draw windows
+            ctx.fillStyle = 'white';
+            ctx.fillRect(size * 0.313, size * 0.547, size * 0.063, size * 0.063);
+            ctx.fillRect(size * 0.625, size * 0.547, size * 0.063, size * 0.063);
+            
+            // Draw capture indicator
+            ctx.fillStyle = '#5DA271';
+            ctx.beginPath();
+            ctx.arc(size * 0.781, size * 0.219, size * 0.125, 0, 2 * Math.PI);
+            ctx.fill();
+            
+            // Draw plus symbol
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.023;
+            ctx.lineCap = 'round';
+            
+            // Vertical line
+            ctx.beginPath();
+            ctx.moveTo(size * 0.781, size * 0.156);
+            ctx.lineTo(size * 0.781, size * 0.281);
+            ctx.stroke();
+            
+            // Horizontal line
+            ctx.beginPath();
+            ctx.moveTo(size * 0.719, size * 0.219);
+            ctx.lineTo(size * 0.844, size * 0.219);
+            ctx.stroke();
+        }
+        
+        // Generate all icons
+        generateIcon('icon16', 16);
+        generateIcon('icon48', 48);
+        generateIcon('icon128', 128);
+        
+        console.log('Icons generated! Right-click each canvas and "Save image as..." to save the PNG files.');
+    </script>
+</body>
+</html> 

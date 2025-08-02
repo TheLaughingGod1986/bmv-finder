@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Ultra Simple Test",
+  "version": "1.0.0",
+  "description": "Ultra simple test extension",
+  "permissions": ["activeTab"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["ultra-simple.js"]
+    }
+  ]
+} 

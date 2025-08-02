@@ -9,7 +9,7 @@ interface PropertyEditModalProps {
   property: any;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedProperty: any) => void;
+  onSave: (updatedProperty: any) => Promise<void>;
 }
 
 export default function PropertyEditModal({ property, isOpen, onClose, onSave }: PropertyEditModalProps) {
@@ -21,11 +21,17 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     mortgageRate: property?.mortgageRate || 4.5,
     depositAmount: property?.depositAmount || Math.round((property?.purchasePrice || 0) * 0.25),
     depositPercentage: property?.depositAmount ? Math.round((property.depositAmount / (property.purchasePrice || 1)) * 100) : 25,
-    agentFees: property?.agentFees || 0,
-    otherFees: property?.otherFees || 0,
+    monthlyAgentFee: property?.monthlyAgentFee || 0,
+    monthlyInsurance: property?.monthlyInsurance || 0,
+    annualInsurance: property?.annualInsurance || 0,
+    oneOffFees: property?.oneOffFees || [],
+    scheduledFees: property?.scheduledFees || [],
     monthlyExpenses: property?.monthlyExpenses || 0,
     propertyNotes: property?.propertyNotes || '',
   });
+
+  // Temporary state for one-off fee inputs
+  const [oneOffFeeInput, setOneOffFeeInput] = useState({ description: '', amount: '' });
   
   const [isSaving, setIsSaving] = useState(false);
   const [calculatedValues, setCalculatedValues] = useState({
@@ -49,11 +55,17 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         mortgageRate: property.mortgageRate || 4.5,
         depositAmount: property.depositAmount || Math.round((property.purchasePrice || 0) * 0.25),
         depositPercentage: property.depositAmount ? Math.round((property.depositAmount / (property.purchasePrice || 1)) * 100) : 25,
-        agentFees: property.agentFees || 0,
-        otherFees: property.otherFees || 0,
+        monthlyAgentFee: property.monthlyAgentFee || 0,
+        monthlyInsurance: property.monthlyInsurance || 0,
+        annualInsurance: property.annualInsurance || 0,
+        oneOffFees: property.oneOffFees || [],
+        scheduledFees: property.scheduledFees || [],
         monthlyExpenses: property.monthlyExpenses || 0,
         propertyNotes: property.propertyNotes || '',
       });
+      
+      // Reset one-off fee input
+      setOneOffFeeInput({ description: '', amount: '' });
     }
   }, [property?.id, isOpen]); // Only update when property ID changes or modal opens
 
@@ -136,6 +148,31 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     }));
   };
 
+  const handleAddOneOffFee = () => {
+    if (oneOffFeeInput.description && oneOffFeeInput.amount) {
+      const newFee = {
+        description: oneOffFeeInput.description,
+        amount: parseFloat(oneOffFeeInput.amount),
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        oneOffFees: [...prev.oneOffFees, newFee]
+      }));
+      
+      // Clear the input fields
+      setOneOffFeeInput({ description: '', amount: '' });
+    }
+  };
+
+  const handleRemoveOneOffFee = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      oneOffFees: prev.oneOffFees.filter((_, i) => i !== index)
+    }));
+  };
+
   const handleSave = async () => {
     if (!property?.id) return;
     
@@ -149,8 +186,11 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         mortgage_rate: (formData.mortgageRate || 0) / 100,
         monthly_mortgage_payment: calculatedValues.monthlyMortgagePayment || 0,
         deposit_amount: formData.depositAmount || 0,
-        agent_fees: formData.agentFees || 0,
-        other_fees: formData.otherFees || 0,
+        monthly_agent_fee: formData.monthlyAgentFee || 0,
+        monthly_insurance: formData.monthlyInsurance || 0,
+        annual_insurance: formData.annualInsurance || 0,
+        one_off_fees: formData.oneOffFees || [],
+        scheduled_fees: formData.scheduledFees || [],
         monthly_expenses: formData.monthlyExpenses || 0,
         property_notes: formData.propertyNotes || '',
         yield: calculatedValues.yield || 0,
@@ -207,8 +247,11 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         mortgageRate: formData.mortgageRate,
         monthlyMortgagePayment: calculatedValues.monthlyMortgagePayment,
         depositAmount: formData.depositAmount,
-        agentFees: formData.agentFees,
-        otherFees: formData.otherFees,
+        monthlyAgentFee: formData.monthlyAgentFee,
+        monthlyInsurance: formData.monthlyInsurance,
+        annualInsurance: formData.annualInsurance,
+        oneOffFees: formData.oneOffFees,
+        scheduledFees: formData.scheduledFees,
         monthlyExpenses: formData.monthlyExpenses,
         propertyNotes: formData.propertyNotes,
         yield: calculatedValues.yield,
@@ -217,7 +260,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         monthlyProfit: calculatedValues.monthlyProfit,
       };
 
-      onSave(updatedProperty);
+      await onSave(updatedProperty);
       alert('Property updated successfully!');
       onClose();
     } catch (error) {
@@ -256,13 +299,12 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
 
           {/* Property Info */}
           <div className="p-6 border-b border-gray-200 bg-gray-50">
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{property?.address}</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {property?.address && property.address.includes(',') 
+                ? property.address.split(',')[0].trim() 
+                : property?.address}
+            </h3>
             <p className="text-gray-600">{property?.postcode}</p>
-            {property?.address && property.address.includes(',') && property.address.split(',').length > 2 && (
-              <p className="text-sm text-gray-500 mt-1">
-                Full Address: {property.address}
-              </p>
-            )}
           </div>
 
           <div className="p-6">
@@ -406,43 +448,156 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Agent Fees (£)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.agentFees}
-                    onChange={(e) => handleInputChange('agentFees', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0"
-                  />
-                </div>
+                {/* Enhanced Fee Management Section */}
+                <div className="col-span-2">
+                  <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                    <FileText className="w-5 h-5 text-purple-600" />
+                    Fee Management
+                  </h4>
+                  
+                  <div className="space-y-4">
+                    {/* Monthly Agent Fees */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Monthly Agent Fee (£)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.monthlyAgentFee || 0}
+                        onChange={(e) => handleInputChange('monthlyAgentFee', parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Recurring monthly agent management fee</p>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Other Fees (£)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.otherFees}
-                    onChange={(e) => handleInputChange('otherFees', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0"
-                  />
-                </div>
+                    {/* Insurance Fees */}
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Monthly Insurance (£)
+                        </label>
+                        <input
+                          type="number"
+                          value={formData.monthlyInsurance || 0}
+                          onChange={(e) => handleInputChange('monthlyInsurance', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Annual Insurance (£)
+                        </label>
+                        <input
+                          type="number"
+                          value={formData.annualInsurance || 0}
+                          onChange={(e) => handleInputChange('annualInsurance', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Monthly Expenses (£)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.monthlyExpenses}
-                    onChange={(e) => handleInputChange('monthlyExpenses', parseFloat(e.target.value) || 0)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    placeholder="0"
-                  />
+                    {/* One-off Fees */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        One-off Fees (£)
+                      </label>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={oneOffFeeInput.description}
+                            onChange={(e) => setOneOffFeeInput(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder="Fee description (e.g., Refurbishment)"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <input
+                            type="number"
+                            value={oneOffFeeInput.amount}
+                            onChange={(e) => setOneOffFeeInput(prev => ({ ...prev, amount: e.target.value }))}
+                            placeholder="Amount"
+                            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <button 
+                            type="button"
+                            onClick={handleAddOneOffFee}
+                            className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                          >
+                            Add
+                          </button>
+                        </div>
+                        
+                        {/* Display added fees */}
+                        {formData.oneOffFees.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <p className="text-sm font-medium text-gray-700">Added Fees:</p>
+                            {formData.oneOffFees.map((fee, index) => (
+                              <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                                <div>
+                                  <span className="text-sm font-medium">{fee.description}</span>
+                                  <span className="text-sm text-gray-500 ml-2">£{fee.amount}</span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveOneOffFee(index)}
+                                  className="text-red-600 hover:text-red-800 text-sm"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Scheduled Fees */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Scheduled Fees
+                      </label>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="Fee description (e.g., Insurance)"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Amount"
+                            className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <select className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            <option value="monthly">Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="annually">Annually</option>
+                            <option value="specific">Specific Date</option>
+                          </select>
+                          <button className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            Schedule
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Other Monthly Expenses */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Other Monthly Expenses (£)
+                      </label>
+                      <input
+                        type="number"
+                        value={formData.monthlyExpenses}
+                        onChange={(e) => handleInputChange('monthlyExpenses', parseFloat(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        placeholder="0"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Other recurring monthly expenses (utilities, maintenance, etc.)</p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

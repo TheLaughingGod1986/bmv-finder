@@ -176,13 +176,13 @@ async function fetchComparableProperties(
 
     // Properties before date filter logging removed
 
-    // Filter to last 24 months (more inclusive)
-    const twoYearsAgo = new Date();
-    twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+    // Filter to last 5 years (more inclusive)
+    const fiveYearsAgo = new Date();
+    fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
 
     properties = properties.filter((property: any) => {
       const saleDate = new Date(property.date);
-      return saleDate >= twoYearsAgo && property.price > 0;
+      return saleDate >= fiveYearsAgo && property.price > 0;
     });
 
     // Properties after date filter logging removed

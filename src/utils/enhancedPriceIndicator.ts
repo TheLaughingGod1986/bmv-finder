@@ -121,12 +121,12 @@ function getComparableProperties(
       // Match bedrooms if available (bedrooms data not available in current SoldPrice type)
       // if (targetBedrooms && sale.bedrooms && sale.bedrooms !== targetBedrooms) return false;
       
-      // Include sales from last 24 months for better coverage
+      // Include sales from last 5 years for better coverage
       const saleDate = new Date(sale.dateOfTransfer);
-      const twoYearsAgo = new Date();
-      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+      const fiveYearsAgo = new Date();
+      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5);
       
-      return saleDate >= twoYearsAgo && sale.price > 0;
+      return saleDate >= fiveYearsAgo && sale.price > 0;
     })
     .map(sale => {
       // Adjust price for HPI if data available

@@ -184,7 +184,7 @@ export class NextGenValuationModel {
             { term: { propertyType: features.propertyType } }
           ],
           filter: [
-            { range: { dateOfTransfer: { gte: 'now-2y' } } } // Last 2 years
+            { range: { dateOfTransfer: { gte: 'now-5y' } } } // Last 5 years
           ],
           should: [
             // Prioritize same number of bedrooms

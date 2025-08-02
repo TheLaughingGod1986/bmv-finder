@@ -40,14 +40,14 @@ export function getEnhancedPriceIndicator(
     };
   }
 
-  // Get sales from last 24 months
+  // Get sales from last 5 years
   const currentDate = new Date();
-  const twentyFourMonthsAgo = new Date(currentDate.getFullYear() - 2, currentDate.getMonth(), currentDate.getDate());
+  const fiveYearsAgo = new Date(currentDate.getFullYear() - 5, currentDate.getMonth(), currentDate.getDate());
   
   const recentPrices = soldPrices
     .filter(sale => {
       const saleDate = new Date(sale.dateOfTransfer);
-      return saleDate >= twentyFourMonthsAgo;
+      return saleDate >= fiveYearsAgo;
     })
     .map(sale => sale.price)
     .filter(price => price > 0);
@@ -75,7 +75,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-[#5DA271]', 
       textColor: 'text-white', 
       icon: '↓',
-      description: '10%+ below 24-month average'
+      description: '10%+ below 5-year average'
     };
   } else if (diff <= -0.05) {
     return { 
@@ -84,7 +84,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-green-100', 
       textColor: 'text-green-800', 
       icon: '↓',
-      description: '5-10% below 24-month average'
+      description: '5-10% below 5-year average'
     };
   } else if (diff >= 0.10) {
     return { 
@@ -93,7 +93,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-red-100', 
       textColor: 'text-red-800', 
       icon: '↑',
-      description: '10%+ above 24-month average'
+      description: '10%+ above 5-year average'
     };
   } else if (diff >= 0.05) {
     return { 
@@ -102,7 +102,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-orange-100', 
       textColor: 'text-orange-800', 
       icon: '↑',
-      description: '5-10% above 24-month average'
+      description: '5-10% above 5-year average'
     };
   } else {
     return { 
@@ -111,7 +111,7 @@ export function getEnhancedPriceIndicator(
       bgColor: 'bg-yellow-100', 
       textColor: 'text-yellow-800', 
       icon: '→',
-      description: 'Within 5% of 24-month average'
+      description: 'Within 5% of 5-year average'
     };
   }
 }
@@ -126,21 +126,21 @@ export function getPriceIndicatorLegend() {
       bgColor: 'bg-[#5DA271]',
       textColor: 'text-white',
       icon: '↓',
-      description: '10%+ below 24-month average'
+      description: '10%+ below 5-year average'
     },
     {
       label: 'Good Deal',
       bgColor: 'bg-green-100',
       textColor: 'text-green-800',
       icon: '↓',
-      description: '5-10% below 24-month average'
+      description: '5-10% below 5-year average'
     },
     {
       label: 'Fair Price',
       bgColor: 'bg-yellow-100',
       textColor: 'text-yellow-800',
       icon: '→',
-      description: 'Within 5% of 24-month average'
+      description: 'Within 5% of 5-year average'
     },
     {
       label: 'Expensive',
