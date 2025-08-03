@@ -1313,12 +1313,12 @@ export default function Home() {
             <div className="text-center">
               <button
                 onClick={() => window.open('/extension-welcome', '_blank')}
-                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 border-2 border-white/20"
               >
-                <Download className="w-5 h-5" />
+                <Download className="w-6 h-6" />
                 Get Chrome Extension
               </button>
-              <p className="text-sm text-gray-500 mt-3">Free to install • Works on all major property sites</p>
+              <p className="text-sm text-gray-600 mt-4 font-medium">Free to install • Works on all major property sites</p>
             </div>
           </div>
         </section>
