@@ -329,55 +329,55 @@ export default function Home() {
 
   const features = [
     {
-      icon: <Search className="w-6 h-6" />,
+      icon: <Search className="w-7 h-7 text-white" />,
       title: "25M+ Property Sales",
       description: "Instant access to every UK property sale since 1995 with comprehensive search tools",
       highlight: "Largest database"
     },
     {
-      icon: <TrendingUp className="w-6 h-6" />,
+      icon: <TrendingUp className="w-7 h-7 text-white" />,
       title: "BMV Score Analysis",
       description: "AI-powered below market value detection with enhanced scoring algorithms",
       highlight: "Exclusive feature"
     },
     {
-      icon: <Calculator className="w-6 h-6" />,
+      icon: <Calculator className="w-7 h-7 text-white" />,
       title: "Deal Calculator",
       description: "Calculate ROI, yields, and investment potential with advanced financial modeling",
       highlight: "Free tool"
     },
     {
-      icon: <BarChart3 className="w-6 h-6" />,
+      icon: <BarChart3 className="w-7 h-7 text-white" />,
       title: "Market Trends & HPI",
       description: "Track price movements, House Price Index data, and market performance over time",
       highlight: "Real-time data"
     },
     {
-      icon: <Target className="w-6 h-6" />,
+      icon: <Target className="w-7 h-7 text-white" />,
       title: "Advanced Deal Analysis",
       description: "Comprehensive investment analysis with comparable properties and market insights",
       highlight: "Pro feature"
     },
     {
-      icon: <Eye className="w-6 h-6" />,
+      icon: <Eye className="w-7 h-7 text-white" />,
       title: "Property Watchlist",
       description: "Save and track properties of interest with Chrome extension integration",
       highlight: "New feature"
     },
     {
-      icon: <PieChart className="w-6 h-6" />,
+      icon: <PieChart className="w-7 h-7 text-white" />,
       title: "Portfolio Tracker",
       description: "Monitor your property investments and track performance over time",
       highlight: "Pro feature"
     },
     {
-      icon: <PoundSterling className="w-6 h-6" />,
+      icon: <PoundSterling className="w-7 h-7 text-white" />,
       title: "Fair Value Analysis",
       description: "Get accurate property valuations and 'what should I pay' insights",
       highlight: "AI-powered"
     },
     {
-      icon: <FileText className="w-6 h-6" />,
+      icon: <FileText className="w-7 h-7 text-white" />,
       title: "Professional Reports",
       description: "Generate detailed PDF reports for negotiations and presentations",
       highlight: "Elite feature"
@@ -1256,7 +1256,7 @@ export default function Home() {
                   className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-all duration-300 group"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg text-white group-hover:scale-110 transition-transform duration-200">
+                    <div className="p-3 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg text-white group-hover:scale-110 transition-transform duration-200 shadow-md">
                       {feature.icon}
                     </div>
                     <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
