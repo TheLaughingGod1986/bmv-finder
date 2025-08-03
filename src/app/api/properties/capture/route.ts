@@ -88,7 +88,67 @@ export async function POST(request: NextRequest) {
       console.log('BMV Finder API: No authorization header, using default user ID');
     }
 
-    // Insert into watchlist table with basic fields
+    // Check if property already exists for this user and URL
+    const existingProperty = await supabase
+      .from('watchlist')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('original_url', propertyData.original_url || propertyData.url || 'https://example.com')
+      .single();
+
+    if (existingProperty.data) {
+      console.log('BMV Finder API: Property already exists, updating instead');
+      
+      // Update existing property with new data
+      const { data, error } = await supabase
+        .from('watchlist')
+        .update({
+          title: propertyData.title,
+          price: extractPrice(propertyData.price),
+          address: propertyData.address || '',
+          description: propertyData.description || '',
+          bedrooms: propertyData.bedrooms || 0,
+          bathrooms: propertyData.bathrooms || 0,
+          property_type: propertyData.propertyType || propertyData.property_type || '',
+          postcode: propertyData.postcode || '',
+          source: propertyData.source || 'chrome-extension',
+          images: propertyData.images || [],
+          notes: propertyData.notes || '',
+          status: 'active',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingProperty.data.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Watchlist update error:', error);
+        return NextResponse.json({ error: 'Failed to update property: ' + error.message }, { 
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+          },
+        });
+      }
+
+      console.log('BMV Finder API: Property updated successfully:', data);
+
+      return NextResponse.json({
+        success: true,
+        message: 'Property updated successfully',
+        property: data
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
+    }
+
+    // Insert new property into watchlist table
     const { data, error } = await supabase
       .from('watchlist')
       .insert({

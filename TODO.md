@@ -665,198 +665,91 @@ Applied the home page design system to the Portfolio Tracker page, creating a co
 - [x] Enhanced postcode and address extraction from page content
 - [x] Better bedroom and bathroom detection from multiple sources
 
-# BMV Finder - TODO List
+# TODO List
 
-## ✅ COMPLETED - Chrome Extension Implementation
+## Current Tasks
 
-### Chrome Extension Features
-- [x] **Extension Structure**: Created complete Chrome extension with Manifest V3
-- [x] **User Authentication**: OAuth integration with BMV Finder accounts
-- [x] **Membership Verification**: Backend API to check user subscription tiers
-- [x] **Property Data Capture**: Content script for extracting property data from real estate websites
-- [x] **Watchlist Management**: Backend APIs for adding and managing captured properties
-- [x] **Paywall Implementation**: Tier-based access control (free, mid-term, premium)
-- [x] **User Experience**: Intuitive popup interface with clear messaging
-- [x] **Legal Compliance**: Terms of service, privacy policy, and disclaimers
-- [x] **Database Schema**: Watchlist table with proper indexing and RLS policies
+### High Priority
+- [ ] Fix Chrome extension button visibility issues
+- [ ] Improve property data extraction accuracy
+- [x] Handle duplicate property URLs gracefully in capture API
+- [x] Test watchlist functionality with new duplicate handling
 
-### Backend APIs Created
-- [x] `/api/auth/verify` - Token verification for extension authentication
-- [x] `/api/user/membership` - Check user subscription tier and features
-- [x] `/api/watchlist/add` - Add captured properties to user's watchlist
-- [x] `/api/watchlist/count` - Get watchlist count for display
+### Medium Priority
+- [ ] Optimize rent estimation performance
+- [ ] Add more property sources to Chrome extension
+- [ ] Implement property comparison features
+- [ ] Add bulk property operations
 
-### Frontend Pages Created
-- [x] `/watchlist` - Complete watchlist management interface
-- [x] `/legal` - Terms, privacy policy, and disclaimer pages
-- [x] `/extension-welcome` - Extension installation and feature overview
+### Low Priority
+- [ ] Add property image gallery
+- [ ] Implement property alerts
+- [ ] Add export functionality
+- [ ] Create property analytics dashboard
 
-### Database Migration
-- [x] `20250127000007_create_watchlist_table.sql` - Complete watchlist table with indexes and RLS
-
-### Extension Files Created
-- [x] `manifest.json` - Extension configuration
-- [x] `popup.html` - Extension popup interface
-- [x] `popup.css` - Modern, responsive styling
-- [x] `popup.js` - Authentication and property capture logic
-- [x] `content.js` - Property data extraction from real estate websites
-- [x] `background.js` - Service worker for authentication and token management
-- [x] `content.css` - Content script styling
-- [x] `README.md` - Comprehensive documentation
-
-### Supported Websites
-- [x] Rightmove.co.uk
-- [x] Zoopla.co.uk
-- [x] OnTheMarket.com
-- [x] PrimeLocation.com
-
-### Security & Compliance
-- [x] Token-based authentication
-- [x] Rate limiting and abuse prevention
-- [x] GDPR compliance
-- [x] Terms of service compliance
-- [x] Manual capture only (no automation)
-- [x] User responsibility disclaimers
-
-## 🔄 IN PROGRESS
-
-### Portfolio Tracker UI/UX Improvements
-- [x] Redesigned portfolio dashboard with modern layout
-- [x] Added comprehensive portfolio-level metrics
-- [x] Improved property card design with better data presentation
-- [x] Enhanced filtering and search capabilities
-- [x] Added animations and visual feedback
-
-## 📋 PENDING
-
-### Chrome Extension Enhancements
-- [ ] Add extension icons (16px, 48px, 128px)
-- [ ] Implement Chrome Web Store submission
-- [ ] Add analytics tracking for extension usage
-- [ ] Create extension update mechanism
-- [ ] Add offline support for captured data
-- [ ] Implement data export functionality for premium users
-
-### Watchlist Features
-- [ ] Add property comparison tools
-- [ ] Implement price change tracking
-- [ ] Add email notifications for price changes
-- [ ] Create property notes and tags system
-- [ ] Add bulk operations (delete, archive, export)
-- [ ] Implement property sharing between users
-
-### Advanced Analytics
-- [ ] Property market trend analysis
-- [ ] ROI calculation tools
-- [ ] Investment portfolio optimization
-- [ ] Market timing indicators
-- [ ] Comparative market analysis
-
-### Mobile App Integration
-- [ ] React Native mobile app for watchlist access
-- [ ] Push notifications for property updates
-- [ ] Offline property viewing
-- [ ] Mobile property capture (camera integration)
-
-### Data Enhancement
-- [ ] Automatic property valuation updates
-- [ ] Integration with more data sources
-- [ ] Property history tracking
-- [ ] Neighborhood analytics
-- [ ] School district information
-- [ ] Transport links and accessibility
-
-### User Experience
-- [ ] Onboarding tutorial for new users
-- [ ] Advanced search and filtering
-- [ ] Customizable dashboard layouts
-- [ ] Dark mode support
-- [ ] Accessibility improvements
-- [ ] Multi-language support
-
-### Performance & Infrastructure
-- [ ] Implement caching strategies
-- [ ] Optimize database queries
-- [ ] Add CDN for static assets
-- [ ] Implement monitoring and alerting
-- [ ] Set up automated backups
-- [ ] Performance testing and optimization
-
-### Business Features
-- [ ] Team collaboration tools
-- [ ] Client management system
-- [ ] Deal pipeline tracking
-- [ ] Financial modeling tools
-- [ ] Document management
-- [ ] Integration with property management software
-
-### Security Enhancements
-- [ ] Two-factor authentication
-- [ ] Advanced audit logging
-- [ ] Data encryption at rest
-- [ ] Regular security audits
-- [ ] Compliance certifications
-- [ ] Penetration testing
-
-## 🐛 BUGS TO FIX
-
-### Portfolio Tracker
-- [ ] Fix address display issues for specific postcodes
-- [ ] Resolve rental income calculation for new properties
-- [ ] Improve error handling for missing data
-- [ ] Fix refresh functionality after UI updates
+## Completed Tasks
 
 ### Chrome Extension
-- [ ] Test property capture on all supported websites
-- [ ] Verify authentication flow works correctly
-- [ ] Test paywall restrictions for free users
-- [ ] Ensure proper error handling in content scripts
+- [x] Basic Chrome extension setup
+- [x] Property data extraction from Rightmove
+- [x] Property data extraction from Zoopla
+- [x] Button injection and positioning
+- [x] Data validation and cleaning
+- [x] Error handling and fallbacks
+- [x] Debugging tools and console functions
+- [x] `chrome-extension/manifest.json` - Extension configuration and permissions
+- [x] `chrome-extension/background.js` - Message handling and API communication
+- [x] `chrome-extension/content.js` - DOM manipulation and data extraction
+- [x] `chrome-extension/popup.html` - Extension popup interface
+- [x] `chrome-extension/popup.js` - Popup functionality
+- [x] `chrome-extension/popup.css` - Popup styling
 
-## 📊 ANALYTICS & MONITORING
+### API Development
+- [x] Property capture API endpoint
+- [x] Watchlist management API
+- [x] Rent estimation API
+- [x] Property search API
+- [x] User authentication integration
+- [x] Error handling and validation
+- [x] CORS configuration
+- [x] Rate limiting implementation
 
-### User Analytics
-- [ ] Track extension installation and usage
-- [ ] Monitor property capture success rates
-- [ ] Analyze user engagement patterns
-- [ ] Measure conversion rates between tiers
+### Database
+- [x] Supabase setup and configuration
+- [x] Watchlist table schema
+- [x] User authentication tables
+- [x] Property data storage
+- [x] Indexes and constraints
+- [x] Row Level Security (RLS) policies
+- [x] Data migration scripts
 
-### Performance Monitoring
-- [ ] Monitor API response times
-- [ ] Track database query performance
-- [ ] Monitor extension performance impact
-- [ ] Set up error tracking and alerting
+### Frontend
+- [x] Next.js application setup
+- [x] Watchlist page with property display
+- [x] Property editing functionality
+- [x] Property comparison features
+- [x] Rent estimation display
+- [x] User authentication UI
+- [x] Responsive design
+- [x] Toast notifications
+- [x] Loading states and error handling
 
-## 🚀 DEPLOYMENT & RELEASE
+### Testing
+- [x] API endpoint testing
+- [x] Chrome extension testing
+- [x] Database connectivity testing
+- [x] User authentication testing
+- [x] Property data extraction testing
 
-### Chrome Extension Release
-- [ ] Create Chrome Web Store listing
-- [ ] Prepare extension for production
-- [ ] Set up automated deployment pipeline
-- [ ] Create release notes and documentation
+### Documentation
+- [x] API documentation
+- [x] Chrome extension setup guide
+- [x] Database schema documentation
+- [x] Deployment instructions
+- [x] User manual
 
-### Website Updates
-- [ ] Deploy new watchlist functionality
-- [ ] Update legal pages
-- [ ] Add extension download links
-- [ ] Update user documentation
-
-## 📈 FUTURE ROADMAP
-
-### Phase 2 Features
-- [ ] AI-powered property recommendations
-- [ ] Advanced market analysis tools
-- [ ] Integration with mortgage calculators
-- [ ] Property investment calculators
-- [ ] Automated deal analysis
-
-### Phase 3 Features
-- [ ] Machine learning for price predictions
-- [ ] Advanced portfolio optimization
-- [ ] Integration with financial services
-- [ ] Mobile app with offline capabilities
-- [ ] Advanced collaboration features
-
----
-
-**Last Updated**: January 27, 2025
-**Status**: Chrome Extension implementation completed, portfolio tracker UI improvements in progress 
+## Notes
+- Chrome extension needs regular testing on different property websites
+- API endpoints should be monitored for performance
+- Database queries should be optimized for large datasets
+- User feedback should be collected for UI improvements 
