@@ -359,7 +359,7 @@ export default function Home() {
       highlight: "Pro feature"
     },
     {
-      icon: <Eye className="w-8 h-8 text-white" />,
+      icon: <Eye className="w-9 h-9 text-white stroke-2" />,
       title: "Property Watchlist",
       description: "Save and track properties of interest with Chrome extension integration",
       highlight: "New feature"
@@ -1256,10 +1256,18 @@ export default function Home() {
                   className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-all duration-300 group"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className="p-4 bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl text-white group-hover:scale-110 transition-transform duration-200 shadow-xl border-2 border-white/20">
+                    <div className={`p-4 rounded-xl text-white group-hover:scale-110 transition-transform duration-200 shadow-xl border-2 border-white/20 ${
+                      feature.title === "Property Watchlist" 
+                        ? "bg-gradient-to-r from-green-500 to-emerald-600" 
+                        : "bg-gradient-to-r from-blue-500 to-purple-500"
+                    }`}>
                       {feature.icon}
                     </div>
-                    <span className="text-xs font-semibold text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
+                      feature.title === "Property Watchlist"
+                        ? "text-green-700 bg-green-100"
+                        : "text-blue-600 bg-blue-100"
+                    }`}>
                       {feature.highlight}
                     </span>
                   </div>
