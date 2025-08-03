@@ -1258,14 +1258,14 @@ export default function Home() {
                   <div className="flex items-center justify-between mb-4">
                     <div className={`p-4 rounded-xl text-white group-hover:scale-110 transition-transform duration-200 shadow-xl border-2 border-white/20 ${
                       feature.title === "Property Watchlist" 
-                        ? "bg-gradient-to-r from-green-500 to-emerald-600" 
+                        ? "bg-gradient-to-r from-teal-600 to-cyan-600" 
                         : "bg-gradient-to-r from-blue-500 to-purple-500"
                     }`}>
                       {feature.icon}
                     </div>
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
                       feature.title === "Property Watchlist"
-                        ? "text-green-700 bg-green-100"
+                        ? "text-teal-700 bg-teal-100"
                         : "text-blue-600 bg-blue-100"
                     }`}>
                       {feature.highlight}
