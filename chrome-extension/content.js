@@ -375,16 +375,40 @@ function extractPropertyData() {
       }
     }
     
-    // If still no price, try general price extraction
+    // If still no price, try general price extraction with better logic
     if (propertyData.price === '£0') {
+      console.log('BMV Finder: Trying general price extraction...');
       const priceMatches = pageText.match(/£[\d,]+/g);
       if (priceMatches && priceMatches.length > 0) {
-        // Find the largest price (likely the property price)
-        const prices = priceMatches.map(p => parseInt(p.replace(/[£,]/g, '')));
-        const maxPrice = Math.max(...prices);
-        if (maxPrice > 10000 && maxPrice < 10000000) { // Reasonable property price range
+        console.log('BMV Finder: Found price matches:', priceMatches);
+        
+        // Convert to numbers and filter reasonable property prices
+        const prices = priceMatches
+          .map(p => parseInt(p.replace(/[£,]/g, '')))
+          .filter(p => p > 10000 && p < 10000000); // Reasonable property price range
+        
+        if (prices.length > 0) {
+          // Find the largest price (likely the property price)
+          const maxPrice = Math.max(...prices);
           propertyData.price = '£' + maxPrice.toLocaleString();
-          console.log('BMV Finder: Found fallback price:', propertyData.price);
+          console.log('BMV Finder: Found fallback price:', propertyData.price, 'from prices:', prices);
+        }
+      }
+    }
+    
+    // Last resort: search for any number that looks like a property price
+    if (propertyData.price === '£0') {
+      console.log('BMV Finder: Trying last resort price extraction...');
+      const numberMatches = pageText.match(/(\d{5,6})/g); // 5-6 digit numbers
+      if (numberMatches) {
+        const prices = numberMatches
+          .map(p => parseInt(p))
+          .filter(p => p > 10000 && p < 1000000);
+        
+        if (prices.length > 0) {
+          const maxPrice = Math.max(...prices);
+          propertyData.price = '£' + maxPrice.toLocaleString();
+          console.log('BMV Finder: Found last resort price:', propertyData.price);
         }
       }
     }

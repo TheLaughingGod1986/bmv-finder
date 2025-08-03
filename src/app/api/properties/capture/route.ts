@@ -49,8 +49,8 @@ export async function POST(request: NextRequest) {
     
     console.log('BMV Finder API: Received property capture request:', propertyData);
     
-    if (!propertyData || !propertyData.price || !propertyData.title) {
-      return NextResponse.json({ error: 'Invalid property data' }, { 
+    if (!propertyData || !propertyData.title) {
+      return NextResponse.json({ error: 'Invalid property data - title is required' }, { 
         status: 400,
         headers: {
           'Access-Control-Allow-Origin': '*',
@@ -60,12 +60,40 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Ensure price exists, default to 0 if not provided
+    if (!propertyData.price) {
+      propertyData.price = '£0';
+      console.log('BMV Finder API: No price provided, defaulting to £0');
+    }
+
+    // Try to get authenticated user ID from authorization header
+    let userId = '00000000-0000-0000-0000-000000000000'; // Default user ID
+    const authHeader = request.headers.get('authorization');
+    
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      try {
+        const token = authHeader.substring(7);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        
+        if (!error && user) {
+          userId = user.id;
+          console.log('BMV Finder API: Using authenticated user ID:', userId);
+        } else {
+          console.log('BMV Finder API: Invalid token, using default user ID');
+        }
+      } catch (authError) {
+        console.log('BMV Finder API: Auth error, using default user ID:', authError);
+      }
+    } else {
+      console.log('BMV Finder API: No authorization header, using default user ID');
+    }
+
     // Insert into watchlist table with basic fields
     const { data, error } = await supabase
       .from('watchlist')
       .insert({
         title: propertyData.title,
-        price: propertyData.price,
+        price: extractPrice(propertyData.price), // Use the helper function to convert price
         address: propertyData.address || '',
         description: propertyData.description || '',
         bedrooms: propertyData.bedrooms || 0,
@@ -78,7 +106,7 @@ export async function POST(request: NextRequest) {
         notes: propertyData.notes || '',
         status: 'active',
         captured_at: new Date().toISOString(),
-        user_id: '00000000-0000-0000-0000-000000000000' // Default user ID for now
+        user_id: userId
       })
       .select()
       .single();
@@ -122,13 +150,103 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function PUT(request: NextRequest) {
+  try {
+    const { id, price } = await request.json();
+    
+    if (!id || !price) {
+      return NextResponse.json({ error: 'ID and price are required' }, { status: 400 });
+    }
+
+    console.log('BMV Finder API: Updating property price:', { id, price });
+
+    const { data, error } = await supabase
+      .from('watchlist')
+      .update({ 
+        price: extractPrice(price),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Update error:', error);
+      return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+    }
+
+    console.log('BMV Finder API: Property updated successfully:', data);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Property updated successfully',
+      property: data
+    });
+
+  } catch (error) {
+    console.error('Property update error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Property ID is required' }, { status: 400 });
+    }
+
+    console.log('BMV Finder API: Deleting property:', id);
+
+    const { error } = await supabase
+      .from('watchlist')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Delete error:', error);
+      return NextResponse.json({ error: 'Failed to delete property' }, { status: 500 });
+    }
+
+    console.log('BMV Finder API: Property deleted successfully:', id);
+
+    return NextResponse.json({
+      success: true,
+      message: 'Property deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Property delete error:', error);
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
 // Helper function to extract price as number
-function extractPrice(priceString: string): number {
+function extractPrice(priceString: string | number): number {
   if (!priceString) return 0;
   
-  // Remove currency symbols and commas, extract numbers
-  const priceMatch = priceString.replace(/[£,]/g, '').match(/(\d+(?:\.\d+)?)/);
-  return priceMatch ? parseFloat(priceMatch[1]) : 0;
+  // If it's already a number, return it
+  if (typeof priceString === 'number') return priceString;
+  
+  // Convert to string and clean up
+  let price = priceString.toString();
+  
+  // Remove currency symbols, commas, and spaces
+  price = price.replace(/[£$,€\s]/g, '');
+  
+  // Extract the first number found
+  const priceMatch = price.match(/(\d+(?:\.\d+)?)/);
+  
+  if (priceMatch) {
+    const extractedPrice = parseFloat(priceMatch[1]);
+    console.log('BMV Finder API: Extracted price:', extractedPrice, 'from:', priceString);
+    return extractedPrice;
+  }
+  
+  console.log('BMV Finder API: Could not extract price from:', priceString);
+  return 0;
 }
 
 // Helper function to extract number from string
