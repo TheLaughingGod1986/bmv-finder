@@ -11,6 +11,7 @@ import { formatPostcode } from '@/utils/formatPostcode';
 import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 import AddressSearchInput from '../components/AddressSearchInput';
 import { motion } from 'framer-motion';
+import PredictionExplanationCard from '../components/PredictionExplanationCard';
 
 interface Comparable {
   address: string;
@@ -240,6 +241,9 @@ export default function AdvancedDealAnalysisPage() {
               subject={dealAnalysis?.subject || null}
               loading={isAnalyzing}
             />
+
+            {/* Prediction Explanation */}
+            <PredictionExplanationCard showAdvanced={true} />
           </div>
         )}
 

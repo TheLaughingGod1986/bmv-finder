@@ -29,14 +29,14 @@ export const metadata: Metadata = {
     email: false,
     address: false,
   },
-  metadataBase: new URL('https://bmvfinder.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'),
   alternates: {
     canonical: '/',
   },
   openGraph: {
     title: "BMV Finder | Find Below Market Value Properties in the UK",
     description: "Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.",
-    url: 'https://bmvfinder.com',
+    url: process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com',
     siteName: 'BMV Finder',
     images: [
       {
@@ -127,8 +127,8 @@ export default function RootLayout({
             "@context": "https://schema.org",
             "@type": "Organization",
             "name": "BMV Finder",
-            "url": "https://bmvfinder.com",
-            "logo": "https://bmvfinder.com/icon-192.png",
+            "url": process.env.NEXT_PUBLIC_APP_URL || "https://bmvfinder.com",
+            "logo": `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/icon-192.png`,
             "sameAs": [
               "https://twitter.com/bmvfinder"
             ],
@@ -141,7 +141,7 @@ export default function RootLayout({
             "@type": "Product",
             "name": "BMV Finder Property Insights Platform",
             "image": [
-              "https://bmvfinder.com/og-image.png"
+              `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/og-image.png`
             ],
             "description": "Instantly analyze UK property prices, BMV opportunities, and market trends. Compare plans for investors, buyers, and professionals.",
             "brand": {

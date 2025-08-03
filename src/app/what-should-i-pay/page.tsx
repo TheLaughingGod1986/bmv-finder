@@ -16,6 +16,7 @@ import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
 import SmartSearchInput from '../components/SmartSearchInput';
 import PDFDownloadButton from '../components/PDFDownloadButton';
 import { motion } from 'framer-motion';
+import PredictionExplanationCard from '../components/PredictionExplanationCard';
 
 function WhatShouldIPayPageContent() {
   const [postcode, setPostcode] = useState('');
@@ -248,6 +249,9 @@ function WhatShouldIPayPageContent() {
                     rating={result.confidence.rating}
                     reason={result.confidence.reason}
                   />
+                  
+                  {/* Prediction Explanation */}
+                  <PredictionExplanationCard />
                   
                   {result.latestYoY !== null && (
                     <div className="bg-white rounded-lg border p-3 shadow-sm">

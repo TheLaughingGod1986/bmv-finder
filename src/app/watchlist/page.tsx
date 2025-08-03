@@ -25,8 +25,11 @@ import {
   Plus,
   Edit as PencilIcon,
   CheckCircle,
-  Check
+  Check,
+  Clock
 } from 'lucide-react';
+import PredictionExplanationCard from '../components/PredictionExplanationCard';
+import { useToast } from '@/hooks/useToast';
 
 
 interface WatchlistItem {
@@ -73,6 +76,7 @@ interface WatchlistItem {
 
 export default function WatchlistPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -240,13 +244,70 @@ export default function WatchlistPage() {
     const annualRent = monthlyRent * 12;
     const annualROI = totalCost > 0 ? (annualRent / totalCost) * 100 : 0;
     
+    // Calculate payback period (years to return on investment)
+    const paybackPeriod = annualRent > 0 ? totalCost / annualRent : 0;
+    
+    // Mortgage calculations
+    const mortgageAmount = purchasePrice - deposit;
+    const interestRate = 0.045; // 4.5% default interest rate
+    const mortgageTerm = 25; // 25 years
+    
+    // Interest-only mortgage calculation
+    const monthlyInterestOnly = mortgageAmount * (interestRate / 12);
+    
+    // Repayment mortgage calculation (monthly payment)
+    const monthlyRate = interestRate / 12;
+    const numberOfPayments = mortgageTerm * 12;
+    const monthlyRepayment = mortgageAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+    
+    // Default to repayment mortgage
+    const monthlyMortgagePayment = monthlyRepayment;
+    
+    // Additional expenses
+    const managementFee = monthlyRent * 0.10; // 10% management fee
+    const insuranceCost = purchasePrice * 0.001 / 12; // 0.1% of property value annually
+    const maintenanceReserve = monthlyRent * 0.05; // 5% for maintenance
+    const voidPeriodReserve = monthlyRent * 0.05; // 5% for void periods
+    
+    // Total monthly expenses
+    const totalMonthlyExpenses = monthlyMortgagePayment + managementFee + insuranceCost + maintenanceReserve + voidPeriodReserve;
+    
+    // Monthly profit calculations
+    const grossMonthlyProfit = monthlyRent - monthlyMortgagePayment;
+    const netMonthlyProfit = monthlyRent - totalMonthlyExpenses;
+    
+    // Annual profit calculations
+    const grossAnnualProfit = grossMonthlyProfit * 12;
+    const netAnnualProfit = netMonthlyProfit * 12;
+    
+    // Real profit margin
+    const realProfitMargin = monthlyRent > 0 ? (netMonthlyProfit / monthlyRent) * 100 : 0;
+    
     return {
       deposit,
       refurbCost,
       fees,
       totalCost,
       annualRent,
-      annualROI
+      annualROI,
+      paybackPeriod,
+      // Mortgage details
+      mortgageAmount,
+      monthlyInterestOnly,
+      monthlyRepayment,
+      monthlyMortgagePayment,
+      // Expenses
+      managementFee,
+      insuranceCost,
+      maintenanceReserve,
+      voidPeriodReserve,
+      totalMonthlyExpenses,
+      // Profit calculations
+      grossMonthlyProfit,
+      netMonthlyProfit,
+      grossAnnualProfit,
+      netAnnualProfit,
+      realProfitMargin
     };
   };
 
@@ -311,19 +372,19 @@ export default function WatchlistPage() {
       reasons.push(`Low yield: ${yieldPercentage}%`);
     }
     
-    // ROI scoring (30% of total score)
-    if (metrics.annualROI >= 12) {
+    // ROI and Payback Period scoring (30% of total score)
+    if (metrics.annualROI >= 12 && metrics.paybackPeriod <= 3) {
       score += 30;
-      reasons.push(`High ROI: ${metrics.annualROI.toFixed(1)}%`);
-    } else if (metrics.annualROI >= 8) {
+      reasons.push(`Excellent ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
+    } else if (metrics.annualROI >= 8 && metrics.paybackPeriod <= 4) {
       score += 25;
-      reasons.push(`Good ROI: ${metrics.annualROI.toFixed(1)}%`);
-    } else if (metrics.annualROI >= 6) {
+      reasons.push(`Good ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
+    } else if (metrics.annualROI >= 6 && metrics.paybackPeriod <= 5) {
       score += 20;
-      reasons.push(`Average ROI: ${metrics.annualROI.toFixed(1)}%`);
+      reasons.push(`Average ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
     } else {
       score += 10;
-      reasons.push(`Low ROI: ${metrics.annualROI.toFixed(1)}%`);
+      reasons.push(`Low ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
     }
     
     // Price point scoring (20% of total score)
@@ -373,6 +434,7 @@ export default function WatchlistPage() {
       reasons,
       yieldPercentage,
       annualROI: metrics.annualROI,
+      paybackPeriod: metrics.paybackPeriod,
       totalCost: metrics.totalCost
     };
   };
@@ -821,7 +883,33 @@ export default function WatchlistPage() {
                 </div>
               </div>
 
-
+              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-white" />
+                  </div>
+                  <span className="text-sm font-medium text-gray-500">Avg. Payback</span>
+                </div>
+                <div className="text-3xl font-bold text-gray-900 mb-2">
+                  {watchlist.length > 0 ? 
+                    (watchlist.reduce((sum, p) => {
+                      const metrics = calculateInvestmentMetrics(p);
+                      return sum + metrics.paybackPeriod;
+                    }, 0) / watchlist.length).toFixed(1) + 'y' : 'N/A'
+                  }
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <span className="text-orange-600 font-semibold">
+                    {watchlist.length > 0 ? 
+                      watchlist.filter(p => {
+                        const metrics = calculateInvestmentMetrics(p);
+                        return metrics.paybackPeriod <= 3;
+                      }).length : 0
+                    }
+                  </span>
+                  <span className="text-gray-500">≤3y deals</span>
+                </div>
+              </div>
 
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
                 <div className="flex items-center justify-between mb-4">
@@ -840,6 +928,11 @@ export default function WatchlistPage() {
                   <span className="text-cyan-600 font-semibold">Last 7 days</span>
                 </div>
               </div>
+            </div>
+
+            {/* Prediction Explanation Section */}
+            <div className="mb-8">
+              <PredictionExplanationCard />
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
@@ -1129,16 +1222,86 @@ export default function WatchlistPage() {
                                        <div className="text-xs text-gray-500 mb-2">
                                          {offerAnalysis.negotiationBuffer}% below asking price
                                        </div>
-                                       <button
-                                         onClick={() => {
-                                           const message = `I'm interested in making an offer of ${formatPrice(offerAnalysis.recommendedOffer)} for this property.`;
-                                           navigator.clipboard.writeText(message);
-                                           alert('Offer message copied to clipboard! You can now paste it in your email to the agent.');
-                                         }}
-                                         className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                                       >
-                                         📋 Copy Offer Message
-                                       </button>
+                                       <div className="space-y-2">
+                                         <button
+                                           onClick={() => {
+                                             const metrics = calculateInvestmentMetrics(item);
+                                             const message = `Subject: Offer for ${item.address}
+
+Dear ${item.agent_name},
+
+I'm writing to express my interest in making an offer for the property at ${item.address}.
+
+Based on my analysis of comparable properties in the area and current market conditions, I would like to make an offer of ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)}.
+
+This offer represents:
+• ${offerAnalysis?.offerPercentage || 92}% of the asking price
+• A fair market value based on recent comparable sales
+• Consideration for the property's condition and market position
+
+I'm a serious buyer and can proceed quickly with the purchase. I would appreciate the opportunity to discuss this offer and answer any questions you may have.
+
+Please let me know if you need any additional information or if you'd like to arrange a viewing.
+
+Best regards,
+[Your Name]
+[Your Phone Number]`;
+                                             
+                                             navigator.clipboard.writeText(message);
+                                             showToast({
+                                               type: 'success',
+                                               title: 'Professional Offer Template Copied!',
+                                               message: 'A comprehensive offer message has been copied to your clipboard. You can now paste it in your email to the agent.'
+                                             });
+                                           }}
+                                           className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                         >
+                                           📋 Copy Professional Offer
+                                         </button>
+                                         
+                                         <button
+                                           onClick={() => {
+                                             const metrics = calculateInvestmentMetrics(item);
+                                             const strategy = `Negotiation Strategy for ${item.address}:
+
+🎯 TARGET OFFER: ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)} (${offerAnalysis?.offerPercentage || 92}% of asking)
+
+📊 NEGOTIATION POINTS:
+• Comparable properties sold for ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 0.95)} - ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 1.05)} in the last 6 months
+• Property condition: ${item.property_condition || 'Good'} - may need ${formatPrice(metrics.refurbCost)} in refurbishment
+• Market position: ${(offerAnalysis?.priceAssessment || 'Fair Price').toLowerCase()}
+• Days on market: ${item.days_on_market || 'Unknown'} - ${item.days_on_market > 30 ? 'Good leverage for negotiation' : 'Property may be in demand'}
+
+💰 INVESTMENT ANALYSIS:
+• Total investment needed: ${formatPrice(metrics.totalCost)}
+• Monthly mortgage payment: ${formatPrice(metrics.monthlyMortgagePayment)}
+• Gross monthly profit: ${formatPrice(metrics.grossMonthlyProfit)}
+• Net monthly profit (after all expenses): ${formatPrice(metrics.netMonthlyProfit)}
+• Annual ROI: ${metrics.annualROI.toFixed(1)}%
+• Payback period: ${metrics.paybackPeriod.toFixed(1)} years
+• Real profit margin: ${metrics.realProfitMargin.toFixed(1)}%
+
+💡 NEGOTIATION TACTICS:
+1. Start with ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 0.95)} as initial offer
+2. Be prepared to go up to ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)}
+3. Use comparable sales data to justify your offer
+4. Highlight any property issues or needed repairs
+5. Emphasize quick completion and no chain
+
+📞 AGENT CONTACT: ${item.agent_name} - ${item.agent_phone}`;
+                                             
+                                             navigator.clipboard.writeText(strategy);
+                                             showToast({
+                                               type: 'success',
+                                               title: 'Negotiation Strategy Generated!',
+                                               message: 'A detailed negotiation strategy has been copied to your clipboard. Use this to prepare for your conversation with the agent.'
+                                             });
+                                           }}
+                                           className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300"
+                                         >
+                                           🎯 Generate Negotiation Strategy
+                                         </button>
+                                       </div>
                                      </div>
                                    </div>
                                   
@@ -1163,29 +1326,103 @@ export default function WatchlistPage() {
                           {/* Investment Metrics */}
                           {(() => {
                             const metrics = calculateInvestmentMetrics(item);
+                            const growthAnalysis = analyzeGrowthPotential(item);
                             return (
                               <div className="space-y-3 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                 <h4 className="text-sm font-semibold text-blue-800 mb-3">Investment Analysis</h4>
-                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                
+                                {/* Initial Investment */}
+                                <div className="grid grid-cols-2 gap-3 text-xs mb-3">
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Deposit (25%):</span>
                                     <span className="font-semibold text-blue-600">{formatPrice(metrics.deposit)}</span>
-                  </div>
+                                  </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Refurb Cost:</span>
                                     <span className="font-semibold text-orange-600">{formatPrice(metrics.refurbCost)}</span>
-                </div>
+                                  </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Fees (3%):</span>
                                     <span className="font-semibold text-gray-600">{formatPrice(metrics.fees)}</span>
-              </div>
-                                  <div className="col-span-2 mt-3 pt-3 border-t border-blue-300">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-sm font-semibold text-blue-800">Total Investment:</span>
-                                      <span className="text-lg font-bold text-green-700">{formatPrice(metrics.totalCost)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Mortgage Amount:</span>
+                                    <span className="font-semibold text-purple-600">{formatPrice(metrics.mortgageAmount)}</span>
+                                  </div>
+                                </div>
+                                
+                                <div className="border-t border-blue-300 pt-3 mb-3">
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm font-semibold text-blue-800">Total Investment:</span>
+                                    <span className="text-lg font-bold text-green-700">{formatPrice(metrics.totalCost)}</span>
+                                  </div>
+                                </div>
+
+                                {/* Mortgage Details */}
+                                <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Monthly Mortgage:</span>
+                                    <span className="font-semibold text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Interest Rate:</span>
+                                    <span className="font-semibold text-gray-600">4.5%</span>
+                                  </div>
+                                </div>
+
+                                {/* Monthly Expenses */}
+                                <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Management Fee:</span>
+                                    <span className="font-semibold text-orange-600">{formatPrice(metrics.managementFee)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Insurance:</span>
+                                    <span className="font-semibold text-orange-600">{formatPrice(metrics.insuranceCost)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Maintenance:</span>
+                                    <span className="font-semibold text-orange-600">{formatPrice(metrics.maintenanceReserve)}</span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Void Period:</span>
+                                    <span className="font-semibold text-orange-600">{formatPrice(metrics.voidPeriodReserve)}</span>
+                                  </div>
+                                </div>
+
+                                {/* Profit Analysis */}
+                                <div className="border-t border-blue-300 pt-3 mb-3">
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Monthly Rent:</span>
+                                      <span className="font-semibold text-green-600">{formatPrice(calculateRentalEstimateSync(item))}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Total Expenses:</span>
+                                      <span className="font-semibold text-red-600">{formatPrice(metrics.totalMonthlyExpenses)}</span>
                                     </div>
                                   </div>
-                                  <div className="flex justify-between col-span-2">
+                                </div>
+
+                                {/* Profit Results */}
+                                <div className="grid grid-cols-2 gap-3 text-xs mb-3">
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Gross Monthly Profit:</span>
+                                    <span className={`font-semibold ${
+                                      metrics.grossMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {formatPrice(metrics.grossMonthlyProfit)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Net Monthly Profit:</span>
+                                    <span className={`font-semibold ${
+                                      metrics.netMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                                    }`}>
+                                      {formatPrice(metrics.netMonthlyProfit)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between">
                                     <span className="text-gray-600">Annual ROI:</span>
                                     <span className={`font-semibold ${
                                       metrics.annualROI >= 8 ? 'text-green-600' :
@@ -1194,6 +1431,52 @@ export default function WatchlistPage() {
                                     }`}>
                                       {metrics.annualROI.toFixed(1)}%
                                     </span>
+                                  </div>
+                                  <div className="flex justify-between">
+                                    <span className="text-gray-600">Payback Period:</span>
+                                    <span className={`font-semibold ${
+                                      metrics.paybackPeriod <= 3 ? 'text-green-600' :
+                                      metrics.paybackPeriod <= 5 ? 'text-yellow-600' :
+                                      'text-red-600'
+                                    }`}>
+                                      {metrics.paybackPeriod > 0 ? `${metrics.paybackPeriod.toFixed(1)}y` : 'N/A'}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Growth and Rental Profit */}
+                                <div className="border-t border-blue-300 pt-3">
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">10-Year Growth:</span>
+                                      <span className={`font-semibold ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
+                                        {growthAnalysis.tenYearGrowth}%
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Projected Value:</span>
+                                      <span className="font-semibold text-green-600">
+                                        {formatPrice(growthAnalysis.projectedValue)}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Annual Rental Profit:</span>
+                                      <span className={`font-semibold ${
+                                        metrics.netAnnualProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                                      }`}>
+                                        {formatPrice(metrics.netAnnualProfit)}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                      <span className="text-gray-600">Profit Margin:</span>
+                                      <span className={`font-semibold ${
+                                        metrics.realProfitMargin >= 20 ? 'text-green-600' :
+                                        metrics.realProfitMargin >= 10 ? 'text-yellow-600' :
+                                        'text-red-600'
+                                      }`}>
+                                        {metrics.realProfitMargin.toFixed(1)}%
+                                      </span>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -1520,6 +1803,16 @@ export default function WatchlistPage() {
                                          'text-red-600'
                                        }`}>
                                          {metrics.annualROI.toFixed(1)}%
+                                       </span>
+                                     </div>
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Payback Period:</span>
+                                       <span className={`font-medium ${
+                                         metrics.paybackPeriod <= 3 ? 'text-green-600' :
+                                         metrics.paybackPeriod <= 5 ? 'text-yellow-600' :
+                                         'text-red-600'
+                                       }`}>
+                                         {metrics.paybackPeriod > 0 ? `${metrics.paybackPeriod.toFixed(1)} years` : 'N/A'}
                                        </span>
                                      </div>
                                    </div>

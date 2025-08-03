@@ -71,11 +71,11 @@ export default function Footer({ className = '' }: FooterProps) {
   ];
 
   const socialLinks = [
-    { name: 'Twitter', href: 'https://twitter.com/bmvfinder', icon: Twitter },
-    { name: 'LinkedIn', href: 'https://linkedin.com/company/bmvfinder', icon: Linkedin },
-    { name: 'Facebook', href: 'https://facebook.com/bmvfinder', icon: Facebook },
-    { name: 'Instagram', href: 'https://instagram.com/bmvfinder', icon: Instagram },
-    { name: 'GitHub', href: 'https://github.com/TheLaughingGod1986/bmv-finder', icon: Github }
+    { name: 'Twitter', href: process.env.NEXT_PUBLIC_SOCIAL_TWITTER || 'https://twitter.com/bmvfinder', icon: Twitter },
+    { name: 'LinkedIn', href: process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN || 'https://linkedin.com/company/bmvfinder', icon: Linkedin },
+    { name: 'Facebook', href: process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK || 'https://facebook.com/bmvfinder', icon: Facebook },
+    { name: 'Instagram', href: process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM || 'https://instagram.com/bmvfinder', icon: Instagram },
+    { name: 'GitHub', href: process.env.NEXT_PUBLIC_SOCIAL_GITHUB || 'https://github.com/TheLaughingGod1986/bmv-finder', icon: Github }
   ];
 
   return (
@@ -103,8 +103,8 @@ export default function Footer({ className = '' }: FooterProps) {
             <div className="space-y-3 mb-6">
               <div className="flex items-center gap-3 text-gray-300">
                 <Mail className="w-4 h-4 text-blue-400" />
-                <a href="mailto:support@bmvfinder.com" className="hover:text-white transition-colors">
-                  support@bmvfinder.com
+                <a href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bmvfinder.com'}`} className="hover:text-white transition-colors">
+                  {process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bmvfinder.com'}
                 </a>
               </div>
               <div className="flex items-center gap-3 text-gray-300">

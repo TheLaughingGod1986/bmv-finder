@@ -4,7 +4,7 @@ const path = require('path');
 
 // Elasticsearch client configuration
 const client = new Client({
-  node: 'https://5210a2528e1a499e8b6ee0214cd4fbca.us-central1.gcp.cloud.es.io:443',
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
   auth: {
     apiKey: process.env.MEDIUM_API_KEY
   },

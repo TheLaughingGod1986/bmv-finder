@@ -2,12 +2,12 @@ export const metadata = {
   title: 'UK Sold Property Prices Search & Analysis | Land Registry Data',
   description: 'Instantly search and analyze millions of sold house prices from the official HM Land Registry. Get detailed property data, market trends, and regional analysis for smarter decisions.',
   alternates: {
-    canonical: 'https://yourdomain.com/',
+    canonical: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/`,
   },
   openGraph: {
     title: 'UK Sold Property Prices Search & Analysis',
     description: 'Search and analyze sold house prices from the official HM Land Registry. Market trends, property data, and more.',
-    url: 'https://yourdomain.com/',
+    url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/`,
     siteName: 'Sold Property Prices',
     images: [
       {

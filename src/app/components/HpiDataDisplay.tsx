@@ -157,7 +157,7 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
               <span className="inline-flex items-center gap-1 text-blue-700"><Info className="w-4 h-4" />
                 Tip: Try a nearby postcode, or check for typos.</span>
             </div>
-            <div className="text-xs text-text-tertiary">If you believe this is an error, <a href="mailto:support@bmvfinder.com" className="underline">let us know</a>.</div>
+                            <div className="text-xs text-text-tertiary">If you believe this is an error, <a href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bmvfinder.com'}`} className="underline">let us know</a>.</div>
           </div>
         )}
 
@@ -315,7 +315,7 @@ const HpiDataDisplay: React.FC<HpiDataDisplayProps> = ({ query, isVisible, onClo
         {/* Feedback Button */}
         <div className="flex justify-end mt-4">
           <a
-            href={`mailto:support@bmvfinder.com?subject=HPI%20Panel%20Feedback%20for%20${encodeURIComponent(query.value)}`}
+                            href={`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bmvfinder.com'}?subject=HPI%20Panel%20Feedback%20for%20${encodeURIComponent(query.value)}`}
             className="inline-flex items-center gap-2 px-4 py-2 bg-primary-100 text-primary-700 rounded-lg shadow-sm hover:bg-primary-200 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors text-sm font-medium"
             target="_blank"
             rel="noopener noreferrer"

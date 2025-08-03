@@ -303,7 +303,7 @@ const RecentSalesDisplay: React.FC<RecentSalesDisplayProps> = ({ postcode, isVis
                     <span>Data from Land Registry Price Paid Data</span>
                   </div>
                   <button
-                    onClick={() => window.open(`mailto:support@bmvfinder.com?subject=Recent Sales Feedback - ${postcode}`, '_blank')}
+                    onClick={() => window.open(`mailto:${process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bmvfinder.com'}?subject=Recent Sales Feedback - ${postcode}`, '_blank')}
                     className="text-primary-600 hover:text-primary-700 font-medium"
                   >
                     Report Issue
