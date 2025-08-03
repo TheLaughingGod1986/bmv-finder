@@ -7,9 +7,9 @@ import { useRouter } from 'next/navigation';
 import { useUser } from '@supabase/auth-helpers-react';
 
 export default function SearchLimitManager() {
-  const [isClient, setIsClient] = useState(false);
   const [searchCount, setSearchCount] = useState(0);
   const [isLimitReached, setIsLimitReached] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   
   const SEARCH_LIMIT = 5;
@@ -18,7 +18,7 @@ export default function SearchLimitManager() {
   const user = useUser();
 
   useEffect(() => {
-    setIsClient(true);
+    setMounted(true);
     
     // Only load search count for anonymous users
     if (!user) {
@@ -39,9 +39,9 @@ export default function SearchLimitManager() {
     }
   }, [user]);
 
-  // Always render the container to prevent hydration issues
-  // but only show content when client-side and user is anonymous
-  if (!isClient || user) {
+  // Always render the same structure to prevent hydration issues
+  // Only show content when mounted and user is anonymous
+  if (!mounted || user) {
     return <div className="mt-4 text-center" />; // Empty container to maintain layout
   }
 

@@ -40,37 +40,37 @@ const features = [
     icon: TrendingUp,
     title: "BMV Analysis",
     description: "AI-powered below market value scoring for investment opportunities",
-    color: "from-blue-600 to-indigo-600"
+    color: "from-purple-500 to-purple-600"
   },
   {
     icon: BarChart3,
     title: "Market Trends",
     description: "Real-time market analysis and price trend predictions",
-    color: "from-purple-500 to-purple-600"
+    color: "from-orange-500 to-orange-600"
   },
   {
     icon: Calculator,
     title: "Deal Calculator",
     description: "Calculate ROI, yields, and investment returns instantly",
-    color: "from-orange-500 to-orange-600"
+    color: "from-emerald-500 to-green-600"
   },
   {
     icon: Eye,
     title: "Property Watchlist",
     description: "Save and track properties of interest with Chrome extension",
-    color: "from-green-500 to-green-600"
+    color: "from-teal-500 to-teal-600"
   },
   {
     icon: Building,
     title: "Portfolio Tracker",
     description: "Track your property investments and performance",
-    color: "from-indigo-500 to-indigo-600"
+    color: "from-red-500 to-red-600"
   },
   {
     icon: FileText,
     title: "Professional Reports",
     description: "Generate detailed property analysis reports",
-    color: "from-blue-500 to-purple-600"
+    color: "from-indigo-500 to-indigo-600"
   }
 ];
 

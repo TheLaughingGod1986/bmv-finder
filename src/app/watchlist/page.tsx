@@ -377,6 +377,180 @@ export default function WatchlistPage() {
     };
   };
 
+  const analyzePropertyValue = (property: WatchlistItem) => {
+    const rentalEstimate = calculateRentalEstimateSync(property);
+    const yieldPercentage = calculateYield(rentalEstimate, property.price);
+    
+    // Calculate fair value based on current market yield
+    // Use the actual yield achieved by the property as the baseline
+    // If yield is high (>8%), the property is likely undervalued
+    // If yield is low (<4%), the property is likely overvalued
+    
+    let targetYield = 6; // Default target yield
+    let fairValue = (rentalEstimate * 12) / (targetYield / 100);
+    
+    // Adjust target yield based on current market conditions
+    if (yieldPercentage > 8) {
+      // High yield suggests undervalued property - use higher target yield
+      targetYield = 7.5;
+      fairValue = (rentalEstimate * 12) / (targetYield / 100);
+    } else if (yieldPercentage < 4) {
+      // Low yield suggests overvalued property - use lower target yield
+      targetYield = 4.5;
+      fairValue = (rentalEstimate * 12) / (targetYield / 100);
+    }
+    
+    // Cap fair value to be more realistic (not more than 20% above asking price)
+    const maxFairValue = property.price * 1.2;
+    if (fairValue > maxFairValue) {
+      fairValue = maxFairValue;
+    }
+    
+    // Calculate price difference
+    const priceDifference = property.price - fairValue;
+    const priceDifferencePercentage = (priceDifference / property.price) * 100;
+    
+    // Determine if it's a good price
+    let priceAssessment = 'Fair Price';
+    let priceReason = '';
+    
+    if (priceDifferencePercentage <= -15) {
+      priceAssessment = 'Excellent Price';
+      priceReason = `Property is ${Math.abs(priceDifferencePercentage).toFixed(1)}% below fair value`;
+    } else if (priceDifferencePercentage <= -8) {
+      priceAssessment = 'Good Price';
+      priceReason = `Property is ${Math.abs(priceDifferencePercentage).toFixed(1)}% below fair value`;
+    } else if (priceDifferencePercentage <= 8) {
+      priceAssessment = 'Fair Price';
+      priceReason = 'Property is close to fair value';
+    } else if (priceDifferencePercentage <= 15) {
+      priceAssessment = 'Overpriced';
+      priceReason = `Property is ${priceDifferencePercentage.toFixed(1)}% above fair value`;
+    } else {
+      priceAssessment = 'Significantly Overpriced';
+      priceReason = `Property is ${priceDifferencePercentage.toFixed(1)}% above fair value`;
+    }
+    
+    return {
+      fairValue: Math.round(fairValue),
+      priceDifference,
+      priceDifferencePercentage,
+      priceAssessment,
+      priceReason,
+      targetYield
+    };
+  };
+
+  const getRecommendedOffer = (property: WatchlistItem) => {
+    const valueAnalysis = analyzePropertyValue(property);
+    const condition = property.property_condition || 'Good';
+    
+    // Start with the asking price as the base
+    let baseOffer = property.price;
+    
+    // Adjust based on fair value analysis
+    if (valueAnalysis.priceDifferencePercentage < -10) {
+      // Property is significantly below fair value - can offer closer to asking
+      baseOffer = property.price * 0.98; // 2% below asking
+    } else if (valueAnalysis.priceDifferencePercentage < -5) {
+      // Property is below fair value - reasonable offer
+      baseOffer = property.price * 0.95; // 5% below asking
+    } else if (valueAnalysis.priceDifferencePercentage > 10) {
+      // Property is overpriced - offer significantly less
+      baseOffer = property.price * 0.85; // 15% below asking
+    } else {
+      // Property is around fair value - standard negotiation
+      baseOffer = property.price * 0.92; // 8% below asking
+    }
+    
+    // Adjust for condition
+    const conditionAdjustments = {
+      'Excellent': 1.02, // Pay 2% more for excellent condition
+      'Good': 1.0,       // No adjustment for good condition
+      'Fair': 0.98,      // Pay 2% less for fair condition
+      'Poor': 0.92,      // Pay 8% less for poor condition
+      'Needs Work': 0.88 // Pay 12% less if needs work
+    };
+    
+    baseOffer *= conditionAdjustments[condition as keyof typeof conditionAdjustments] || 1.0;
+    
+    const recommendedOffer = Math.round(baseOffer);
+    
+    // Calculate offer range (±3% of recommended offer)
+    const minOffer = Math.round(recommendedOffer * 0.97);
+    const maxOffer = Math.round(recommendedOffer * 1.03);
+    
+    return {
+      recommendedOffer,
+      offerRange: { min: minOffer, max: maxOffer },
+      baseOffer: Math.round(baseOffer),
+      negotiationBuffer: Math.round(((property.price - recommendedOffer) / property.price) * 100)
+    };
+  };
+
+  const analyzeGrowthPotential = (property: WatchlistItem) => {
+    // This would ideally use real market data, but for now we'll use estimates
+    // based on property type, location, and current market trends
+    
+    const baseAnnualGrowth = 2.5; // UK average historical growth
+    let growthMultiplier = 1.0;
+    const factors: string[] = [];
+    
+    // Property type adjustments
+    if (property.property_type?.toLowerCase().includes('terraced')) {
+      growthMultiplier *= 1.1; // Terraced houses often perform well
+      factors.push('Terraced houses have strong demand');
+    } else if (property.property_type?.toLowerCase().includes('detached')) {
+      growthMultiplier *= 1.05; // Detached houses typically perform well
+      factors.push('Detached properties have good growth potential');
+    }
+    
+    // Location-based adjustments (simplified)
+    if (property.postcode?.startsWith('NE')) {
+      growthMultiplier *= 1.15; // Newcastle area has been growing well
+      factors.push('Newcastle area showing strong growth');
+    } else if (property.postcode?.startsWith('M')) {
+      growthMultiplier *= 1.2; // Manchester area
+      factors.push('Manchester area has excellent growth potential');
+    } else if (property.postcode?.startsWith('B')) {
+      growthMultiplier *= 1.1; // Birmingham area
+      factors.push('Birmingham area showing good growth');
+    }
+    
+    // Price point adjustments
+    if (property.price < 200000) {
+      growthMultiplier *= 1.1; // Lower price points often grow faster
+      factors.push('Affordable price point typically grows well');
+    } else if (property.price > 500000) {
+      growthMultiplier *= 0.95; // Higher price points may grow slower
+      factors.push('Premium price point may grow slower');
+    }
+    
+    // Calculate 10-year growth
+    const annualGrowthRate = baseAnnualGrowth * growthMultiplier;
+    const tenYearGrowth = Math.pow(1 + (annualGrowthRate / 100), 10) - 1;
+    const projectedValue = property.price * (1 + tenYearGrowth);
+    
+    let growthAssessment = 'Average Growth';
+    if (annualGrowthRate >= 4) {
+      growthAssessment = 'High Growth Potential';
+    } else if (annualGrowthRate >= 3) {
+      growthAssessment = 'Good Growth Potential';
+    } else if (annualGrowthRate >= 2) {
+      growthAssessment = 'Moderate Growth Potential';
+    } else {
+      growthAssessment = 'Low Growth Potential';
+    }
+    
+    return {
+      annualGrowthRate: annualGrowthRate.toFixed(1),
+      tenYearGrowth: (tenYearGrowth * 100).toFixed(1),
+      projectedValue: Math.round(projectedValue),
+      growthAssessment,
+      factors
+    };
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -441,14 +615,7 @@ export default function WatchlistPage() {
     return ((monthlyRent * 12) / price * 100).toFixed(1);
   };
 
-  const calculateBmvScore = (property: WatchlistItem) => {
-    const bmvPercentage = 15; // Placeholder calculation
-    if (bmvPercentage >= 20) return { score: 'A', percentage: bmvPercentage.toFixed(1) };
-    if (bmvPercentage >= 10) return { score: 'B', percentage: bmvPercentage.toFixed(1) };
-    if (bmvPercentage >= 5) return { score: 'C', percentage: bmvPercentage.toFixed(1) };
-    if (bmvPercentage >= 0) return { score: 'D', percentage: bmvPercentage.toFixed(1) };
-    return { score: 'E', percentage: bmvPercentage.toFixed(1) };
-  };
+
 
   const getSourceIcon = (source: string) => {
     const sourceMap: { [key: string]: string } = {
@@ -654,26 +821,7 @@ export default function WatchlistPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                    <Target className="w-6 h-6 text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-500">BMV Score</span>
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-2">
-                  {watchlist.length > 0 ? 
-                    watchlist.reduce((sum, p) => {
-                      const score = calculateBmvScore(p);
-                      return sum + (score.score === 'A' ? 5 : score.score === 'B' ? 4 : score.score === 'C' ? 3 : score.score === 'D' ? 2 : 1);
-                    }, 0) / watchlist.length : 0
-                  }/5
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-orange-600 font-semibold">{watchlist.filter(p => calculateBmvScore(p).score === 'A').length}</span>
-                  <span className="text-gray-500">A-grade properties</span>
-                </div>
-              </div>
+
 
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
                 <div className="flex items-center justify-between mb-4">
@@ -730,19 +878,19 @@ export default function WatchlistPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                      <input
-                        type="text"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        placeholder="Search properties..."
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search properties..."
                         className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      />
+                  />
                     </div>
-                  </div>
-                  
+                </div>
+                
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                    <select
+                  <select 
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -750,14 +898,14 @@ export default function WatchlistPage() {
                       <option value="all">All Status</option>
                       <option value="active">Active</option>
                       <option value="archived">Archived</option>
-                    </select>
-                  </div>
-                  
+                  </select>
+                </div>
+                
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
-                    <select
-                      value={priceFilter}
-                      onChange={(e) => setPriceFilter(e.target.value)}
+                  <select 
+                    value={priceFilter} 
+                    onChange={(e) => setPriceFilter(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="all">All Prices</option>
@@ -767,65 +915,64 @@ export default function WatchlistPage() {
                       <option value="300k-400k">£300k - £400k</option>
                       <option value="400k-500k">£400k - £500k</option>
                       <option value="over-500k">Over £500k</option>
-                    </select>
-                  </div>
-                  
+                  </select>
+                </div>
+                
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
+                  >
                       <option value="captured_at">Date Captured</option>
-                      <option value="price">Price</option>
+                    <option value="price">Price</option>
                       <option value="address">Address</option>
                       <option value="bedrooms">Bedrooms</option>
-                    </select>
-                  </div>
+                  </select>
                 </div>
-              )}
+                      </div>
+                    )}
 
               {filteredWatchlist.length === 0 ? (
-                <div className="text-center py-16">
-                  <div className="bg-gray-50 rounded-2xl p-12">
+              <div className="text-center py-16">
+                <div className="bg-gray-50 rounded-2xl p-12">
                     <HomeIcon className="h-20 w-20 text-gray-400 mx-auto mb-6" />
                     <h3 className="text-2xl font-semibold text-gray-900 mb-4">No properties found</h3>
-                    <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
                       {searchTerm || statusFilter !== 'all' || priceFilter !== 'all'
                         ? "Try adjusting your filters to see more properties."
                         : "Start capturing properties with the BMV Finder Chrome extension to build your watchlist."
-                      }
-                    </p>
+                    }
+                  </p>
                     {searchTerm || statusFilter !== 'all' || priceFilter !== 'all' ? (
-                      <button
-                        onClick={() => {
-                          setSearchTerm('');
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
                           setStatusFilter('all');
                           setPriceFilter('all');
-                        }}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                        Clear Filters
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => router.push('/extension-welcome')}
-                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                      >
-                        <Plus className="w-4 h-4" />
-                        Get Chrome Extension
-                      </button>
-                    )}
-                  </div>
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      Clear Filters
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push('/extension-welcome')}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Get Chrome Extension
+                    </button>
+                  )}
                 </div>
+              </div>
               ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredWatchlist.map((item, index) => {
-                    const rentalEstimate = calculateRentalEstimateSync(item);
-                    const yieldPercentage = calculateYield(rentalEstimate, item.price);
-                    const bmvScore = calculateBmvScore(item);
+                                            const rentalEstimate = calculateRentalEstimateSync(item);
+                        const yieldPercentage = calculateYield(rentalEstimate, item.price);
                     
                     return (
                       <motion.div
@@ -846,7 +993,7 @@ export default function WatchlistPage() {
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
                                 {getSourceIcon(item.source)} {item.source}
                               </span>
-                            </div>
+                  </div>
                             <div className="absolute top-3 right-3">
                               <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
                                 item.status === 'active' 
@@ -855,13 +1002,13 @@ export default function WatchlistPage() {
                               }`}>
                                 {item.status}
                               </span>
-                            </div>
+                </div>
                           </div>
                         )}
 
                         <div className="p-6">
                           <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
+                                <div className="flex-1">
                               {comparisonMode && (
                                 <div className="flex items-center gap-2 mb-2">
                                   <input
@@ -871,7 +1018,7 @@ export default function WatchlistPage() {
                                     className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
                                   />
                                   <span className="text-sm text-gray-600">Select for comparison</span>
-                                </div>
+                                  </div>
                               )}
                               <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
                                 {item.title}
@@ -879,17 +1026,17 @@ export default function WatchlistPage() {
                               <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                                 <MapPin className="w-4 h-4" />
                                 <span className="line-clamp-1">{item.address}</span>
-                              </div>
-                            </div>
+                                  </div>
+                                </div>
                           </div>
-
+                              
                           <div className="grid grid-cols-2 gap-4 mb-6">
                             <div className="text-center p-3 bg-gray-50 rounded-lg">
                               <div className="text-2xl font-bold text-blue-600">
-                                {formatPrice(item.price)}
-                              </div>
+                                  {formatPrice(item.price)}
+                                </div>
                               <div className="text-xs text-gray-500">Price</div>
-                            </div>
+                                </div>
                             <div className="text-center p-3 bg-gray-50 rounded-lg">
                               <div className="text-lg font-bold text-green-600">
                                 £{rentalEstimate.toLocaleString()}
@@ -904,23 +1051,12 @@ export default function WatchlistPage() {
                               <span className={`font-semibold ${
                                 parseFloat(yieldPercentage) >= 6 ? 'text-green-600' :
                                 parseFloat(yieldPercentage) >= 4 ? 'text-yellow-600' :
-                                'text-red-600'
-                              }`}>
+                                  'text-red-600'
+                                }`}>
                                 {yieldPercentage}%
                               </span>
-                            </div>
-                            <div className="flex justify-between text-sm">
-                              <span className="text-gray-600">BMV Score:</span>
-                              <span className={`font-semibold ${
-                                bmvScore.score === 'A' ? 'text-green-600' :
-                                bmvScore.score === 'B' ? 'text-blue-600' :
-                                bmvScore.score === 'C' ? 'text-yellow-600' :
-                                bmvScore.score === 'D' ? 'text-orange-600' :
-                                'text-red-600'
-                              }`}>
-                                {bmvScore.score} ({bmvScore.percentage}%)
-                              </span>
-                            </div>
+                                </div>
+
                             <div className="flex justify-between text-sm">
                               <span className="text-gray-600">Bedrooms:</span>
                               <span className="font-semibold">{item.bedrooms > 0 ? item.bedrooms : 'N/A'}</span>
@@ -937,7 +1073,7 @@ export default function WatchlistPage() {
                                 return 'text-red-600';
                               };
                               
-                              return (
+                                                            return (
                                 <div className="flex justify-between text-sm">
                                   <span className="text-gray-600">Deal Rating:</span>
                                   <span className={`font-semibold ${getRatingColor(assessment.overallRating)}`}>
@@ -946,7 +1082,83 @@ export default function WatchlistPage() {
                                 </div>
                               );
                             })()}
-                          </div>
+
+                            {/* Property Valuation Analysis */}
+                            {(() => {
+                              const valueAnalysis = analyzePropertyValue(item);
+                              const offerAnalysis = getRecommendedOffer(item);
+                              const growthAnalysis = analyzeGrowthPotential(item);
+                              
+                              const getPriceColor = (assessment: string) => {
+                                if (assessment.includes('Excellent')) return 'text-green-600';
+                                if (assessment.includes('Good')) return 'text-blue-600';
+                                if (assessment.includes('Fair')) return 'text-yellow-600';
+                                if (assessment.includes('Overpriced')) return 'text-orange-600';
+                                return 'text-red-600';
+                              };
+                              
+                              const getGrowthColor = (assessment: string) => {
+                                if (assessment.includes('High')) return 'text-green-600';
+                                if (assessment.includes('Good')) return 'text-blue-600';
+                                if (assessment.includes('Moderate')) return 'text-yellow-600';
+                                return 'text-orange-600';
+                              };
+                              
+                              return (
+                                <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Price Assessment:</span>
+                                    <span className={`font-semibold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                      {valueAnalysis.priceAssessment}
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Fair Value:</span>
+                                    <span className="font-semibold text-gray-800">
+                                      {formatPrice(valueAnalysis.fairValue)}
+                                    </span>
+                                  </div>
+                                  
+                                                                     <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-200">
+                                     <div className="text-center">
+                                       <div className="text-xs text-gray-600 mb-1">🎯 RECOMMENDED OFFER</div>
+                                       <div className="text-xl font-bold text-blue-700 mb-1">
+                                         {formatPrice(offerAnalysis.recommendedOffer)}
+                                       </div>
+                                       <div className="text-xs text-gray-500 mb-2">
+                                         {offerAnalysis.negotiationBuffer}% below asking price
+                                       </div>
+                                       <button
+                                         onClick={() => {
+                                           const message = `I'm interested in making an offer of ${formatPrice(offerAnalysis.recommendedOffer)} for this property.`;
+                                           navigator.clipboard.writeText(message);
+                                           alert('Offer message copied to clipboard! You can now paste it in your email to the agent.');
+                                         }}
+                                         className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                       >
+                                         📋 Copy Offer Message
+                                       </button>
+                                     </div>
+                                   </div>
+                                  
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">10-Year Growth:</span>
+                                    <span className={`font-semibold ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
+                                      {growthAnalysis.tenYearGrowth}%
+                                    </span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Projected Value:</span>
+                                    <span className="font-semibold text-green-600">
+                                      {formatPrice(growthAnalysis.projectedValue)}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                </div>
 
                           {/* Investment Metrics */}
                           {(() => {
@@ -958,18 +1170,20 @@ export default function WatchlistPage() {
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Deposit (25%):</span>
                                     <span className="font-semibold text-blue-600">{formatPrice(metrics.deposit)}</span>
-                                  </div>
+                  </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Refurb Cost:</span>
                                     <span className="font-semibold text-orange-600">{formatPrice(metrics.refurbCost)}</span>
-                                  </div>
+                </div>
                                   <div className="flex justify-between">
                                     <span className="text-gray-600">Fees (3%):</span>
                                     <span className="font-semibold text-gray-600">{formatPrice(metrics.fees)}</span>
-                                  </div>
-                                  <div className="flex justify-between">
-                                    <span className="text-gray-600">Total Cost:</span>
-                                    <span className="font-semibold text-green-600">{formatPrice(metrics.totalCost)}</span>
+              </div>
+                                  <div className="col-span-2 mt-3 pt-3 border-t border-blue-300">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-sm font-semibold text-blue-800">Total Investment:</span>
+                                      <span className="text-lg font-bold text-green-700">{formatPrice(metrics.totalCost)}</span>
+                                    </div>
                                   </div>
                                   <div className="flex justify-between col-span-2">
                                     <span className="text-gray-600">Annual ROI:</span>
@@ -988,56 +1202,56 @@ export default function WatchlistPage() {
 
                           <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                             <div className="flex space-x-2">
-                              <button
+                    <button
                                 onClick={() => window.open(item.original_url, '_blank')}
                                 className="p-2 text-gray-600 hover:text-blue-600 transition-colors"
                                 title="View Original Listing"
-                              >
+                    >
                                 <ExternalLinkIcon className="h-4 w-4" />
-                              </button>
-                              
-                              <button
+                    </button>
+                  
+                      <button
                                 onClick={() => startEditing(item)}
                                 className="p-2 text-gray-600 hover:text-purple-600 transition-colors"
                                 title="Edit Property"
-                              >
+                      >
                                 <PencilIcon className="h-4 w-4" />
-                              </button>
+                      </button>
                               
-                              <button
+                      <button
                                 onClick={() => updatePropertyStatus(item.id, item.status === 'active' ? 'archived' : 'active')}
                                 className="p-2 text-gray-600 hover:text-yellow-600 transition-colors"
                                 title={item.status === 'active' ? 'Archive' : 'Activate'}
-                              >
+                      >
                                 <ArchiveIcon className="h-4 w-4" />
-                              </button>
+                      </button>
 
-                              <button
+                      <button
                                 onClick={() => addToPortfolio(item)}
                                 className="p-2 text-gray-600 hover:text-green-600 transition-colors"
                                 title="Add to Portfolio"
-                              >
+                      >
                                 <BriefcaseIcon className="h-4 w-4" />
-                              </button>
-                            </div>
-                            
-                            <button
+                      </button>
+                  </div>
+                  
+                    <button
                               onClick={() => deleteProperty(item.id)}
                               className="p-2 text-gray-600 hover:text-red-600 transition-colors"
                               title="Delete"
                             >
                               <TrashIcon className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </div>
+                    </button>
+                  </div>
+                </div>
                       </motion.div>
                     );
                   })}
-                </div>
-              )}
+              </div>
+            )}
 
-              {/* Comparison View */}
-              {comparisonMode && selectedProperties.length > 0 && (
+            {/* Comparison View */}
+            {comparisonMode && selectedProperties.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -1045,23 +1259,23 @@ export default function WatchlistPage() {
                   className="mt-8"
                 >
                   <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                    <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center justify-between mb-6">
                       <h3 className="text-2xl font-bold text-gray-900">
                         Property Comparison ({selectedProperties.length} selected)
                       </h3>
-                      <button
-                        onClick={() => setSelectedProperties([])}
+                    <button
+                      onClick={() => setSelectedProperties([])}
                         className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        Clear Selection
-                      </button>
-                    </div>
-
+                    >
+                      Clear Selection
+                    </button>
+                </div>
+                
                     {/* Deal Summary */}
                     {(() => {
                       const assessments = selectedProperties.map(propertyId => {
-                        const property = watchlist.find(p => p.id === propertyId);
-                        if (!property) return null;
+                    const property = watchlist.find(p => p.id === propertyId);
+                    if (!property) return null;
                         return { ...assessDealQuality(property), property };
                       }).filter(Boolean);
 
@@ -1073,8 +1287,8 @@ export default function WatchlistPage() {
                       );
 
                       const averageScore = Math.round(assessments.reduce((sum, a) => sum + a.score, 0) / assessments.length);
-
-                      return (
+                    
+                    return (
                         <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
                           <h4 className="text-lg font-semibold text-gray-900 mb-3">Deal Summary</h4>
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1092,7 +1306,7 @@ export default function WatchlistPage() {
                               <div className="text-2xl font-bold text-purple-600">{bestDeal.yieldPercentage}%</div>
                               <div className="text-sm text-gray-600">Best Yield</div>
                               <div className="text-xs text-gray-500">From {bestDeal.property.title.substring(0, 20)}...</div>
-                            </div>
+                          </div>
                           </div>
                         </div>
                       );
@@ -1105,7 +1319,6 @@ export default function WatchlistPage() {
 
                         const rentalEstimate = calculateRentalEstimateSync(property);
                         const yieldPercentage = calculateYield(rentalEstimate, property.price);
-                        const bmvScore = calculateBmvScore(property);
 
                         return (
                           <div
@@ -1116,27 +1329,27 @@ export default function WatchlistPage() {
                               <h4 className="font-semibold text-gray-900 line-clamp-2">
                                 {property.title}
                               </h4>
-                              <button
-                                onClick={() => togglePropertySelection(property.id)}
+                          <button
+                            onClick={() => togglePropertySelection(property.id)}
                                 className="text-red-500 hover:text-red-700"
-                              >
+                          >
                                 <X className="h-4 w-4" />
-                              </button>
-                            </div>
-
-                            <div className="space-y-3">
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-3">
                               <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Price:</span>
                                 <span className="font-semibold text-blue-600">
                                   {formatPrice(property.price)}
                                 </span>
-                              </div>
+                          </div>
                               <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Est. Rent:</span>
                                 <span className="font-semibold text-green-600">
                                   £{rentalEstimate.toLocaleString()}
                                 </span>
-                              </div>
+                          </div>
                               <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Gross Yield:</span>
                                 <span className={`font-semibold ${
@@ -1146,19 +1359,8 @@ export default function WatchlistPage() {
                                 }`}>
                                   {yieldPercentage}%
                                 </span>
-                              </div>
-                              <div className="flex justify-between text-sm">
-                                <span className="text-gray-600">BMV Score:</span>
-                                <span className={`font-semibold ${
-                                  bmvScore.score === 'A' ? 'text-green-600' :
-                                  bmvScore.score === 'B' ? 'text-blue-600' :
-                                  bmvScore.score === 'C' ? 'text-yellow-600' :
-                                  bmvScore.score === 'D' ? 'text-orange-600' :
-                                  'text-red-600'
-                                }`}>
-                                  {bmvScore.score} ({bmvScore.percentage}%)
-                                </span>
-                              </div>
+                          </div>
+
                               <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Bedrooms:</span>
                                 <span className="font-semibold">
@@ -1169,10 +1371,10 @@ export default function WatchlistPage() {
                                 <span className="text-gray-600">Address:</span>
                                 <span className="font-semibold text-gray-800 line-clamp-1 max-w-[150px]">
                                   {property.address}
-                                </span>
-                              </div>
-                            </div>
-
+                            </span>
+                          </div>
+                        </div>
+                        
                                                          {/* Deal Assessment */}
                              {(() => {
                                const assessment = assessDealQuality(property);
@@ -1190,8 +1392,8 @@ export default function WatchlistPage() {
                                      <div className="flex justify-between items-center">
                                        <span className="text-sm font-semibold">{assessment.overallRating}</span>
                                        <span className="text-xs font-medium">Score: {assessment.score}/100</span>
-                                     </div>
-                                   </div>
+                          </div>
+                        </div>
                                    <div className="space-y-1 mb-3">
                                      {assessment.reasons.slice(0, 2).map((reason, index) => (
                                        <div key={index} className="text-xs text-gray-600">
@@ -1208,10 +1410,126 @@ export default function WatchlistPage() {
                                  </div>
                                );
                              })()}
-                          </div>
-                        );
-                      })}
-                    </div>
+
+                             {/* Valuation Analysis in Comparison */}
+                             {(() => {
+                               const valueAnalysis = analyzePropertyValue(property);
+                               const offerAnalysis = getRecommendedOffer(property);
+                               const growthAnalysis = analyzeGrowthPotential(property);
+                               
+                               const getPriceColor = (assessment: string) => {
+                                 if (assessment.includes('Excellent')) return 'text-green-600';
+                                 if (assessment.includes('Good')) return 'text-blue-600';
+                                 if (assessment.includes('Fair')) return 'text-yellow-600';
+                                 if (assessment.includes('Overpriced')) return 'text-orange-600';
+                                 return 'text-red-600';
+                               };
+                               
+                               const getGrowthColor = (assessment: string) => {
+                                 if (assessment.includes('High')) return 'text-green-600';
+                                 if (assessment.includes('Good')) return 'text-blue-600';
+                                 if (assessment.includes('Moderate')) return 'text-yellow-600';
+                                 return 'text-orange-600';
+                               };
+                               
+                               return (
+                                 <div className="mt-4 pt-3 border-t border-gray-200">
+                                   <h5 className="text-sm font-semibold text-gray-800 mb-2">Valuation Analysis</h5>
+                                   <div className="space-y-2 text-xs">
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Price Assessment:</span>
+                                       <span className={`font-medium ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                         {valueAnalysis.priceAssessment}
+                                       </span>
+                                     </div>
+                                     
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Fair Value:</span>
+                                       <span className="font-medium text-gray-800">
+                                         {formatPrice(valueAnalysis.fairValue)}
+                                       </span>
+                                     </div>
+                                     
+                                                                            <div className="mt-2 p-2 bg-gradient-to-r from-blue-50 to-green-50 rounded border border-blue-200">
+                                         <div className="text-center">
+                                           <div className="text-xs text-gray-600 mb-1">🎯 OFFER</div>
+                                           <div className="text-sm font-bold text-blue-700 mb-1">
+                                             {formatPrice(offerAnalysis.recommendedOffer)}
+                                           </div>
+                                           <button
+                                             onClick={() => {
+                                               const message = `I'm interested in making an offer of ${formatPrice(offerAnalysis.recommendedOffer)} for this property.`;
+                                               navigator.clipboard.writeText(message);
+                                               alert('Offer message copied to clipboard!');
+                                             }}
+                                             className="w-full px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+                                           >
+                                             Copy Offer
+                                           </button>
+                                         </div>
+                                       </div>
+                                     
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">10-Year Growth:</span>
+                                       <span className={`font-medium ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
+                                         {growthAnalysis.tenYearGrowth}%
+                                       </span>
+                                     </div>
+                                     
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Projected Value:</span>
+                                       <span className="font-medium text-green-600">
+                                         {formatPrice(growthAnalysis.projectedValue)}
+                                       </span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               );
+                             })()}
+
+                             {/* Investment Analysis in Comparison */}
+                             {(() => {
+                               const metrics = calculateInvestmentMetrics(property);
+                               return (
+                                 <div className="mt-4 pt-3 border-t border-gray-200">
+                                   <h5 className="text-sm font-semibold text-gray-800 mb-2">Investment Summary</h5>
+                                   <div className="space-y-2 text-xs">
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Deposit (25%):</span>
+                                       <span className="font-medium text-blue-600">{formatPrice(metrics.deposit)}</span>
+                                     </div>
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Fees (3%):</span>
+                                       <span className="font-medium text-gray-600">{formatPrice(metrics.fees)}</span>
+                                     </div>
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Refurb Cost:</span>
+                                       <span className="font-medium text-orange-600">{formatPrice(metrics.refurbCost)}</span>
+                                     </div>
+                                     <div className="mt-2 pt-2 border-t border-gray-300">
+                                       <div className="flex justify-between items-center">
+                                         <span className="text-sm font-semibold text-blue-800">Total Investment:</span>
+                                         <span className="text-base font-bold text-green-700">{formatPrice(metrics.totalCost)}</span>
+                                       </div>
+                                     </div>
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Annual ROI:</span>
+                                       <span className={`font-medium ${
+                                         metrics.annualROI >= 8 ? 'text-green-600' :
+                                         metrics.annualROI >= 6 ? 'text-yellow-600' :
+                                         'text-red-600'
+                                       }`}>
+                                         {metrics.annualROI.toFixed(1)}%
+                                       </span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               );
+                             })()}
+                      </div>
+                    );
+                  })}
+                </div>
                   </div>
                 </motion.div>
               )}
@@ -1232,7 +1550,7 @@ export default function WatchlistPage() {
                       </div>
 
                       <div className="space-y-4">
-                        <div>
+                      <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Monthly Rental Estimate (£)
                           </label>
@@ -1266,7 +1584,7 @@ export default function WatchlistPage() {
                             <option value="Poor">Poor</option>
                             <option value="Needs Work">Needs Work</option>
                           </select>
-                        </div>
+                      </div>
 
                         {/* Refurbishment Recommendations */}
                         {(() => {
@@ -1283,10 +1601,10 @@ export default function WatchlistPage() {
                               <h4 className="text-sm font-semibold text-blue-800 mb-3">Refurbishment Recommendations</h4>
                               <div className="space-y-3">
                                 <div className="flex justify-between items-center">
-                                  <div>
+                      <div>
                                     <span className="text-sm font-medium text-green-700">Low End:</span>
                                     <p className="text-xs text-gray-600">{recommendations.description.lowEnd}</p>
-                                  </div>
+                        </div>
                                   <div className="text-right">
                                     <span className="text-sm font-bold text-green-700">{formatPrice(recommendations.lowEnd)}</span>
                                     <button
@@ -1295,14 +1613,14 @@ export default function WatchlistPage() {
                                     >
                                       Use this
                                     </button>
-                                  </div>
+                      </div>
                                 </div>
                                 
                                 <div className="flex justify-between items-center">
-                                  <div>
+                      <div>
                                     <span className="text-sm font-medium text-blue-700">Medium End:</span>
                                     <p className="text-xs text-gray-600">{recommendations.description.mediumEnd}</p>
-                                  </div>
+                        </div>
                                   <div className="text-right">
                                     <span className="text-sm font-bold text-blue-700">{formatPrice(recommendations.mediumEnd)}</span>
                                     <button
@@ -1311,14 +1629,14 @@ export default function WatchlistPage() {
                                     >
                                       Use this
                                     </button>
-                                  </div>
+                      </div>
                                 </div>
                                 
                                 <div className="flex justify-between items-center">
-                                  <div>
+                      <div>
                                     <span className="text-sm font-medium text-purple-700">High End:</span>
                                     <p className="text-xs text-gray-600">{recommendations.description.highEnd}</p>
-                                  </div>
+                        </div>
                                   <div className="text-right">
                                     <span className="text-sm font-bold text-purple-700">{formatPrice(recommendations.highEnd)}</span>
                                     <button
@@ -1327,13 +1645,13 @@ export default function WatchlistPage() {
                                     >
                                       Use this
                                     </button>
-                                  </div>
-                                </div>
+                      </div>
+                    </div>
                               </div>
                             </div>
                           );
                         })()}
-
+                    
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
                             Refurbishment Cost (£)
@@ -1348,7 +1666,7 @@ export default function WatchlistPage() {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="0"
                           />
-                        </div>
+                          </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1364,7 +1682,7 @@ export default function WatchlistPage() {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="0"
                           />
-                        </div>
+                          </div>
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1380,8 +1698,8 @@ export default function WatchlistPage() {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                             placeholder="Add your notes about this property..."
                           />
+                          </div>
                         </div>
-                      </div>
 
                       <div className="flex space-x-3 mt-6">
                         <button
@@ -1399,8 +1717,8 @@ export default function WatchlistPage() {
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+              </div>
+            )}
             </div>
           </motion.div>
         </div>

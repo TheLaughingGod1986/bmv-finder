@@ -332,55 +332,73 @@ export default function Home() {
       icon: <Search className="w-7 h-7 text-white" />,
       title: "25M+ Property Sales",
       description: "Instant access to every UK property sale since 1995 with comprehensive search tools",
-      highlight: "Largest database"
+      highlight: "Largest database",
+      color: "from-blue-500 to-blue-600",
+      labelColor: "text-blue-700 bg-blue-100"
     },
     {
       icon: <TrendingUp className="w-7 h-7 text-white" />,
       title: "BMV Score Analysis",
       description: "AI-powered below market value detection with enhanced scoring algorithms",
-      highlight: "Exclusive feature"
+      highlight: "Exclusive feature",
+      color: "from-purple-500 to-purple-600",
+      labelColor: "text-purple-700 bg-purple-100"
     },
     {
       icon: <Calculator className="w-7 h-7 text-white" />,
       title: "Deal Calculator",
       description: "Calculate ROI, yields, and investment potential with advanced financial modeling",
-      highlight: "Free tool"
+      highlight: "Free tool",
+      color: "from-emerald-600 to-green-700",
+      labelColor: "text-emerald-700 bg-emerald-100"
     },
     {
       icon: <BarChart3 className="w-7 h-7 text-white" />,
       title: "Market Trends & HPI",
       description: "Track price movements, House Price Index data, and market performance over time",
-      highlight: "Real-time data"
+      highlight: "Real-time data",
+      color: "from-orange-500 to-orange-600",
+      labelColor: "text-orange-700 bg-orange-100"
     },
     {
       icon: <Target className="w-7 h-7 text-white" />,
       title: "Advanced Deal Analysis",
       description: "Comprehensive investment analysis with comparable properties and market insights",
-      highlight: "Pro feature"
+      highlight: "Pro feature",
+      color: "from-red-500 to-red-600",
+      labelColor: "text-red-700 bg-red-100"
     },
     {
       icon: <Eye className="w-9 h-9 text-white stroke-2" />,
       title: "Property Watchlist",
       description: "Save and track properties of interest with Chrome extension integration",
-      highlight: "New feature"
+      highlight: "New feature",
+      color: "from-teal-500 to-teal-600",
+      labelColor: "text-teal-700 bg-teal-100"
     },
     {
       icon: <PieChart className="w-7 h-7 text-white" />,
       title: "Portfolio Tracker",
       description: "Monitor your property investments and track performance over time",
-      highlight: "Pro feature"
+      highlight: "Pro feature",
+      color: "from-indigo-500 to-indigo-600",
+      labelColor: "text-indigo-700 bg-indigo-100"
     },
     {
       icon: <PoundSterling className="w-7 h-7 text-white" />,
       title: "Fair Value Analysis",
       description: "Get accurate property valuations and 'what should I pay' insights",
-      highlight: "AI-powered"
+      highlight: "AI-powered",
+      color: "from-pink-500 to-pink-600",
+      labelColor: "text-pink-700 bg-pink-100"
     },
     {
       icon: <FileText className="w-7 h-7 text-white" />,
       title: "Professional Reports",
       description: "Generate detailed PDF reports for negotiations and presentations",
-      highlight: "Elite feature"
+      highlight: "Elite feature",
+      color: "from-cyan-500 to-cyan-600",
+      labelColor: "text-cyan-700 bg-cyan-100"
     }
   ];
 
@@ -1256,18 +1274,10 @@ export default function Home() {
                   className="bg-gradient-to-br from-gray-50 to-white p-8 rounded-2xl border border-gray-200 hover:shadow-xl transition-all duration-300 group"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <div className={`p-4 rounded-xl text-white group-hover:scale-110 transition-transform duration-200 shadow-xl border-2 border-white/20 ${
-                      feature.title === "Property Watchlist" 
-                        ? "bg-gradient-to-r from-teal-600 to-cyan-600" 
-                        : "bg-gradient-to-r from-blue-500 to-purple-500"
-                    }`}>
+                    <div className={`p-4 rounded-xl text-white group-hover:scale-110 transition-transform duration-200 shadow-xl border-2 border-white/20 ${feature.color === 'from-emerald-600 to-green-700' ? 'bg-gradient-to-r from-emerald-600 to-green-700' : `bg-gradient-to-r ${feature.color}`}`}>
                       {feature.icon}
                     </div>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${
-                      feature.title === "Property Watchlist"
-                        ? "text-teal-700 bg-teal-100"
-                        : "text-blue-600 bg-blue-100"
-                    }`}>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${feature.labelColor}`}>
                       {feature.highlight}
                     </span>
                   </div>
