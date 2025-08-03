@@ -1,13 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_KEY!
-);
+// Only create Supabase client if environment variables are available
+const createSupabaseClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase environment variables are not configured');
+  }
+  
+  return createClient(supabaseUrl, supabaseKey);
+};
 
 export async function GET() {
   try {
+    const supabase = createSupabaseClient();
     const { data: properties, error } = await supabase
       .from('watchlist')
       .select('*')
@@ -66,6 +74,8 @@ export async function POST(request: NextRequest) {
       console.log('BMV Finder API: No price provided, defaulting to £0');
     }
 
+    const supabase = createSupabaseClient();
+    
     // Try to get authenticated user ID from authorization header
     let userId = '00000000-0000-0000-0000-000000000000'; // Default user ID
     const authHeader = request.headers.get('authorization');
@@ -213,6 +223,7 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const supabase = createSupabaseClient();
     const updateData = await request.json();
     const { id, price, refurbishment_cost, user_notes, property_condition, estimated_fair_value, custom_rental_estimate, status } = updateData;
     
@@ -264,6 +275,7 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const supabase = createSupabaseClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
@@ -333,6 +345,7 @@ function extractNumber(value: string | number): number {
 
 // Function to create the watchlist table if it doesn't exist
 async function createWatchlistTable() {
+  const supabase = createSupabaseClient();
   const { error } = await supabase.rpc('create_watchlist_table', {});
   
   if (error) {
