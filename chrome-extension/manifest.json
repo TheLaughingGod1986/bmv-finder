@@ -14,8 +14,7 @@
     "https://*.zoopla.co.uk/*",
     "https://*.onthemarket.com/*",
     "https://*.primelocation.com/*",
-    "http://localhost:3000/*",
-    "https://localhost:3000/*",
+    "https://bmv-finder-5ivoe051a-bens-projects-11c93b15.vercel.app/*",
     "https://*/*",
     "http://*/*"
   ],
