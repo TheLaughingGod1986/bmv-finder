@@ -292,33 +292,31 @@ function extractPropertyData() {
     
     // Extract price - try multiple selectors
     const priceSelectors = [
+      // Specific Rightmove selectors for current layout
       '[data-testid="price"]',
+      '[data-testid="price-value"]',
+      '[data-testid="property-price"]',
       '.propertyCard-priceValue',
-      '[class*="price"]',
-      'h1 + div',
+      '.propertyCard-price',
+      '.property-header-price',
+      '.property-header__price',
+      '.property-details__price',
+      '.property-price-value',
+      '.price-display',
       '.listing-price',
       '.property-price',
-      '[data-testid="property-price"]',
-      '.property-header-price',
       '.price',
-      '[data-testid="price-value"]',
-      '.propertyCard-price',
-      '.property-header__price',
-      '.property-details__price',
-      '.price-display',
-      '.property-price-value',
-      // Add more specific selectors for current Rightmove layout
-      '[data-testid="price-value"]',
-      '.propertyCard-priceValue',
-      '.propertyCard-price',
-      '.property-header__price',
-      '.property-details__price',
-      '.price-display',
-      '.property-price-value',
+      // Look for elements containing "Guide price" specifically
+      'span:contains("Guide price")',
+      'div:contains("Guide price")',
+      'p:contains("Guide price")',
+      'h2:contains("Guide price")',
+      'h3:contains("Guide price")',
       // Look for elements containing price text
       'span:contains("£")',
       'div:contains("£")',
       'p:contains("£")',
+      'h1 + div',
       // More generic selectors
       '[class*="price"]',
       '[class*="Price"]',
@@ -333,6 +331,18 @@ function extractPropertyData() {
       for (const element of elements) {
         const text = element.textContent;
         console.log('BMV Finder: Checking price selector:', selector, 'Text:', text.substring(0, 100));
+        
+        // First, look for "Guide price" specifically
+        if (text.toLowerCase().includes('guide price')) {
+          const guidePriceMatch = text.match(/Guide Price £([\d,]+)/i);
+          if (guidePriceMatch) {
+            propertyData.price = '£' + guidePriceMatch[1];
+            console.log('BMV Finder: Found Rightmove Guide price:', propertyData.price);
+            break;
+          }
+        }
+        
+        // Then look for any price
         const priceMatch = text.match(/£[\d,]+/);
         if (priceMatch) {
           propertyData.price = priceMatch[0];
@@ -391,19 +401,26 @@ function extractPropertyData() {
       console.log('BMV Finder: Trying fallback price extraction...');
       const pageText = document.body.textContent;
       
+      // First, specifically look for "Guide price" in the page text
+      const guidePriceMatch = pageText.match(/Guide Price £([\d,]+)/i);
+      if (guidePriceMatch) {
+        propertyData.price = '£' + guidePriceMatch[1];
+        console.log('BMV Finder: Found Guide price in page text:', propertyData.price);
+      }
+      
       // Look for Rightmove-specific patterns first
       const rightmovePatterns = [
+        /Guide Price £([\d,]+)/i,  // Prioritize Guide Price
         /Offers Over £([\d,]+)/i,
-        /Guide Price £([\d,]+)/i,
         /Asking Price £([\d,]+)/i,
         /Price £([\d,]+)/i,
-        /£([\d,]+) Offers Over/i,
         /£([\d,]+) Guide Price/i,
+        /£([\d,]+) Offers Over/i,
         // Add more patterns for current layouts
-        /£([\d,]+)/g,  // Simple £ followed by numbers
         /Price:?\s*£([\d,]+)/i,
         /Guide price:?\s*£([\d,]+)/i,
-        /Asking price:?\s*£([\d,]+)/i
+        /Asking price:?\s*£([\d,]+)/i,
+        /£([\d,]+)/g  // Simple £ followed by numbers (fallback)
       ];
     
     for (const pattern of rightmovePatterns) {

@@ -8,6 +8,7 @@ import ClientNavigation from './components/ClientNavigation';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
 import ScrollToTop from './components/ScrollToTop';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
+import Footer from './components/Footer';
 import { SearchLimitProvider } from './components/SearchLimitContext';
 
 const inter = Inter({
@@ -200,6 +201,7 @@ export default function RootLayout({
                 {children}
               </ToastProvider>
             </main>
+            <Footer />
             <ScrollToTop />
             <PWAInstallPrompt />
           </SearchLimitProvider>

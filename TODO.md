@@ -100,7 +100,7 @@
 - **✅ Property Editing & Investment Analysis** - Added inline editing with refurb costs, ROI calculations, total purchase costs, rental estimate editing, refurbishment recommendations, and deal assessment system
 - **✅ Deleted Properties Issue Fixed** - Fixed issue where deleted properties would reappear when adding new properties with the same URL. Now properly excludes deleted properties from duplicate checks.
 - **⚠️ Database Schema Issue** - Some new columns (refurbishment_cost, user_notes, property_condition, estimated_fair_value, custom_rental_estimate) need to be added to the actual database. Currently only basic fields (price, status) can be updated.
-- **🔧 Price Extraction Enhancement** - Improved Chrome extension price extraction with more selectors, better fallback logic, and added test button for debugging price extraction issues.
+- **🔧 Price Extraction Enhancement** - Improved Chrome extension price extraction with more selectors, better fallback logic, and added test button for debugging price extraction issues. **Enhanced Guide Price detection** - Added specific logic to prioritize "Guide price" extraction from Rightmove listings.
 - **🔍 Price Extraction Debug Tools** - Created debug script and instructions to help identify why price extraction is failing on Rightmove/Zoopla pages.
 - **✅ Syntax Errors Fixed** - Fixed Eye icon import in Navigation.tsx, PieChart and Download imports in page.tsx, and unescaped quotes in page.tsx. Performed complete environment reset (cleared cache, reinstalled dependencies) to resolve all import issues.
 
