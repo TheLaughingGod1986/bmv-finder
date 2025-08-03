@@ -670,15 +670,16 @@ Applied the home page design system to the Portfolio Tracker page, creating a co
 ## Current Tasks
 
 ### High Priority
-- [ ] Fix Chrome extension button visibility issues
-- [ ] Improve property data extraction accuracy
+- [x] Fix Chrome extension button visibility issues
+- [x] Improve property data extraction accuracy
 - [x] Handle duplicate property URLs gracefully in capture API
 - [x] Test watchlist functionality with new duplicate handling
+- [x] Fix webpack build corruption and module resolution errors
 
 ### Medium Priority
 - [ ] Optimize rent estimation performance
 - [ ] Add more property sources to Chrome extension
-- [ ] Implement property comparison features
+- [x] Implement property comparison features
 - [ ] Add bulk property operations
 
 ### Low Priority

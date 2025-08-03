@@ -481,12 +481,12 @@ export default function WatchlistPage() {
                     onClick={toggleComparisonMode}
                     className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
                       comparisonMode 
-                        ? 'bg-blue-600 text-white' 
+                        ? 'bg-blue-600 text-white shadow-lg' 
                         : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
                     }`}
                   >
                     <Target className="w-4 h-4" />
-                    Compare
+                    {comparisonMode ? 'Exit Compare' : 'Compare'}
                   </button>
                 </div>
               </div>
@@ -629,6 +629,17 @@ export default function WatchlistPage() {
                         <div className="p-6">
                           <div className="flex items-start justify-between mb-4">
                             <div className="flex-1">
+                              {comparisonMode && (
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={isPropertySelected(item.id)}
+                                    onChange={() => togglePropertySelection(item.id)}
+                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                  />
+                                  <span className="text-sm text-gray-600">Select for comparison</span>
+                                </div>
+                              )}
                               <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
                                 {item.title}
                               </h3>
@@ -723,6 +734,118 @@ export default function WatchlistPage() {
                     );
                   })}
                 </div>
+              )}
+
+              {/* Comparison View */}
+              {comparisonMode && selectedProperties.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="mt-8"
+                >
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        Property Comparison ({selectedProperties.length} selected)
+                      </h3>
+                      <button
+                        onClick={() => setSelectedProperties([])}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        Clear Selection
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {selectedProperties.map(propertyId => {
+                        const property = watchlist.find(p => p.id === propertyId);
+                        if (!property) return null;
+
+                        const rentalEstimate = calculateRentalEstimateSync(property);
+                        const yieldPercentage = calculateYield(rentalEstimate, property.price);
+                        const bmvScore = calculateBmvScore(property);
+
+                        return (
+                          <div
+                            key={property.id}
+                            className="bg-gray-50 rounded-xl p-4 border-2 border-blue-200"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold text-gray-900 line-clamp-2">
+                                {property.title}
+                              </h4>
+                              <button
+                                onClick={() => togglePropertySelection(property.id)}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+
+                            <div className="space-y-3">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Price:</span>
+                                <span className="font-semibold text-blue-600">
+                                  {formatPrice(property.price)}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Est. Rent:</span>
+                                <span className="font-semibold text-green-600">
+                                  £{rentalEstimate.toLocaleString()}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Gross Yield:</span>
+                                <span className={`font-semibold ${
+                                  parseFloat(yieldPercentage) >= 6 ? 'text-green-600' :
+                                  parseFloat(yieldPercentage) >= 4 ? 'text-yellow-600' :
+                                  'text-red-600'
+                                }`}>
+                                  {yieldPercentage}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">BMV Score:</span>
+                                <span className={`font-semibold ${
+                                  bmvScore.score === 'A' ? 'text-green-600' :
+                                  bmvScore.score === 'B' ? 'text-blue-600' :
+                                  bmvScore.score === 'C' ? 'text-yellow-600' :
+                                  bmvScore.score === 'D' ? 'text-orange-600' :
+                                  'text-red-600'
+                                }`}>
+                                  {bmvScore.score} ({bmvScore.percentage}%)
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Bedrooms:</span>
+                                <span className="font-semibold">
+                                  {property.bedrooms > 0 ? property.bedrooms : 'N/A'}
+                                </span>
+                              </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Address:</span>
+                                <span className="font-semibold text-gray-800 line-clamp-1 max-w-[150px]">
+                                  {property.address}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 pt-3 border-t border-gray-200">
+                              <button
+                                onClick={() => window.open(property.original_url, '_blank')}
+                                className="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                              >
+                                View Original
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
               )}
             </div>
           </motion.div>
