@@ -198,10 +198,24 @@ export default function WatchlistPage() {
     return selectedProperties.includes(propertyId);
   };
 
+  // Memoized rental estimates to prevent recalculation
+  const rentalEstimates = useMemo(() => {
+    const estimates: { [key: string]: number } = {};
+    watchlist.forEach(property => {
+      const baseRent = property.price * 0.008;
+      // Use property ID to generate consistent variation
+      const hash = property.id.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      const variation = 0.9 + (Math.abs(hash) % 20) / 100; // 0.9 to 1.1 range
+      estimates[property.id] = Math.round(baseRent * variation);
+    });
+    return estimates;
+  }, [watchlist]);
+
   const calculateRentalEstimateSync = (property: WatchlistItem) => {
-    const baseRent = property.price * 0.008;
-    const variation = 0.9 + Math.random() * 0.2;
-    return Math.round(baseRent * variation);
+    return rentalEstimates[property.id] || Math.round(property.price * 0.008);
   };
 
   const calculateYield = (monthlyRent: number, price: number) => {

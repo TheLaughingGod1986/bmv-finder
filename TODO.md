@@ -96,6 +96,7 @@
 ### **🎨 UI/UX Improvements**
 - **✅ Navigation Button Styling** - Fixed green "Account ELITE" button to display solid green without gradient fade
 - **✅ Supabase Configuration** - Resolved authentication setup with graceful fallbacks
+- **✅ Rental Estimate Consistency** - Fixed rental estimates changing when toggling comparison mode
 
 <details>
 <summary><strong>🔧 Supabase Configuration Fix (Technical Details)</strong></summary>
