@@ -379,7 +379,7 @@ export default function WatchlistPage() {
 
   const analyzePropertyValue = (property: WatchlistItem) => {
     const rentalEstimate = calculateRentalEstimateSync(property);
-    const yieldPercentage = calculateYield(rentalEstimate, property.price);
+    const yieldPercentage = parseFloat(calculateYield(rentalEstimate, property.price));
     
     // Calculate fair value based on current market yield
     // Use the actual yield achieved by the property as the baseline
