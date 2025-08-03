@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.SUPABASE_KEY!
 );
 
 export async function GET() {
@@ -88,12 +88,13 @@ export async function POST(request: NextRequest) {
       console.log('BMV Finder API: No authorization header, using default user ID');
     }
 
-    // Check if property already exists for this user and URL
+    // Check if property already exists for this user and URL (excluding deleted properties)
     const existingProperty = await supabase
       .from('watchlist')
       .select('*')
       .eq('user_id', userId)
       .eq('original_url', propertyData.original_url || propertyData.url || 'https://example.com')
+      .neq('status', 'deleted')
       .single();
 
     if (existingProperty.data) {
@@ -227,11 +228,12 @@ export async function PUT(request: NextRequest) {
 
     // Add fields to update if they exist
     if (price !== undefined) updateFields.price = extractPrice(price);
-    if (refurbishment_cost !== undefined) updateFields.refurbishment_cost = refurbishment_cost;
-    if (user_notes !== undefined) updateFields.user_notes = user_notes;
-    if (property_condition !== undefined) updateFields.property_condition = property_condition;
-    if (estimated_fair_value !== undefined) updateFields.estimated_fair_value = estimated_fair_value;
-    if (custom_rental_estimate !== undefined) updateFields.custom_rental_estimate = custom_rental_estimate;
+    // Note: These columns may not exist yet, so we'll skip them for now
+    // if (refurbishment_cost !== undefined) updateFields.refurbishment_cost = refurbishment_cost;
+    // if (user_notes !== undefined) updateFields.user_notes = user_notes;
+    // if (property_condition !== undefined) updateFields.property_condition = property_condition;
+    // if (estimated_fair_value !== undefined) updateFields.estimated_fair_value = estimated_fair_value;
+    // if (custom_rental_estimate !== undefined) updateFields.custom_rental_estimate = custom_rental_estimate;
     if (status !== undefined) updateFields.status = status;
 
     const { data, error } = await supabase
@@ -243,7 +245,7 @@ export async function PUT(request: NextRequest) {
 
     if (error) {
       console.error('Update error:', error);
-      return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to update property: ' + error.message }, { status: 500 });
     }
 
     console.log('BMV Finder API: Property updated successfully:', data);

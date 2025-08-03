@@ -55,6 +55,12 @@ const features = [
     color: "from-orange-500 to-orange-600"
   },
   {
+    icon: Eye,
+    title: "Property Watchlist",
+    description: "Save and track properties of interest with Chrome extension",
+    color: "from-green-500 to-green-600"
+  },
+  {
     icon: Building,
     title: "Portfolio Tracker",
     description: "Track your property investments and performance",

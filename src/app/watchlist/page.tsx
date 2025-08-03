@@ -184,21 +184,21 @@ export default function WatchlistPage() {
 
   const saveEdit = async (propertyId: string) => {
     try {
+      // Remove custom_rental_estimate from the request for now since the column doesn't exist
+      const { custom_rental_estimate, ...updateData } = editForm;
+      
       const response = await fetch(`/api/properties/capture`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: propertyId,
-          refurbishment_cost: editForm.refurbishment_cost,
-          user_notes: editForm.user_notes,
-          property_condition: editForm.property_condition,
-          estimated_fair_value: editForm.estimated_fair_value,
-          custom_rental_estimate: editForm.custom_rental_estimate
+          ...updateData
         }),
       });
       
       if (!response.ok) {
-        console.error('Error updating property');
+        const errorText = await response.text();
+        console.error('Error updating property:', errorText);
         return;
       }
 

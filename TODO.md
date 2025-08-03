@@ -98,6 +98,10 @@
 - **✅ Supabase Configuration** - Resolved authentication setup with graceful fallbacks
 - **✅ Rental Estimate Consistency** - Fixed rental estimates changing when toggling comparison mode
 - **✅ Property Editing & Investment Analysis** - Added inline editing with refurb costs, ROI calculations, total purchase costs, rental estimate editing, refurbishment recommendations, and deal assessment system
+- **✅ Deleted Properties Issue Fixed** - Fixed issue where deleted properties would reappear when adding new properties with the same URL. Now properly excludes deleted properties from duplicate checks.
+- **⚠️ Database Schema Issue** - Some new columns (refurbishment_cost, user_notes, property_condition, estimated_fair_value, custom_rental_estimate) need to be added to the actual database. Currently only basic fields (price, status) can be updated.
+- **🔧 Price Extraction Enhancement** - Improved Chrome extension price extraction with more selectors, better fallback logic, and added test button for debugging price extraction issues.
+- **🔍 Price Extraction Debug Tools** - Created debug script and instructions to help identify why price extraction is failing on Rightmove/Zoopla pages.
 
 <details>
 <summary><strong>🔧 Supabase Configuration Fix (Technical Details)</strong></summary>

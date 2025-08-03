@@ -40,6 +40,7 @@ const navItems = [
   { name: 'Market Trends', href: '/market-analysis', icon: BarChart3, description: 'Regional insights' },
   { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: TrendingUp, description: 'Price trends' },
   { name: 'Valuation', href: '/what-should-i-pay', icon: PoundSterling, description: 'What to pay' },
+  { name: 'Watchlist', href: '/watchlist', icon: Eye, description: 'Saved properties' },
   { name: 'Portfolio', href: '/portfolio-tracker', icon: PieChart, description: 'Track investments' }
 ];
 

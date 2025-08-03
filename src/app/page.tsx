@@ -331,48 +331,67 @@ export default function Home() {
     {
       icon: <Search className="w-6 h-6" />,
       title: "25M+ Property Sales",
-      description: "Instant access to every UK property sale since 1995",
+      description: "Instant access to every UK property sale since 1995 with comprehensive search tools",
       highlight: "Largest database"
     },
     {
       icon: <TrendingUp className="w-6 h-6" />,
       title: "BMV Score Analysis",
-      description: "AI-powered below market value detection for investors",
+      description: "AI-powered below market value detection with enhanced scoring algorithms",
       highlight: "Exclusive feature"
     },
     {
       icon: <Calculator className="w-6 h-6" />,
       title: "Deal Calculator",
-      description: "Calculate ROI, yields, and investment potential instantly",
+      description: "Calculate ROI, yields, and investment potential with advanced financial modeling",
       highlight: "Free tool"
     },
     {
       icon: <BarChart3 className="w-6 h-6" />,
-      title: "Market Trends",
-      description: "Track price movements and market performance over time",
+      title: "Market Trends & HPI",
+      description: "Track price movements, House Price Index data, and market performance over time",
       highlight: "Real-time data"
     },
     {
       icon: <Target className="w-6 h-6" />,
-      title: "Investment Insights",
-      description: "Identify high-growth areas and investment opportunities",
+      title: "Advanced Deal Analysis",
+      description: "Comprehensive investment analysis with comparable properties and market insights",
       highlight: "Pro feature"
+    },
+    {
+      icon: <Eye className="w-6 h-6" />,
+      title: "Property Watchlist",
+      description: "Save and track properties of interest with Chrome extension integration",
+      highlight: "New feature"
+    },
+    {
+      icon: <PieChart className="w-6 h-6" />,
+      title: "Portfolio Tracker",
+      description: "Monitor your property investments and track performance over time",
+      highlight: "Pro feature"
+    },
+    {
+      icon: <PoundSterling className="w-6 h-6" />,
+      title: "Fair Value Analysis",
+      description: "Get accurate property valuations and "what should I pay" insights",
+      highlight: "AI-powered"
     },
     {
       icon: <FileText className="w-6 h-6" />,
       title: "Professional Reports",
-      description: "Generate detailed PDF reports for negotiations",
+      description: "Generate detailed PDF reports for negotiations and presentations",
       highlight: "Elite feature"
     }
   ];
 
   const benefits = [
-    "Save hours of research time",
-    "Make data-driven investment decisions", 
-    "Negotiate better deals with evidence",
-    "Track your portfolio performance",
-    "Identify emerging market trends",
-    "Access professional-grade tools"
+    "Save hours of research time with instant property data access",
+    "Make data-driven investment decisions with AI-powered insights", 
+    "Negotiate better deals with evidence-based valuations",
+    "Track your portfolio performance and investment returns",
+    "Identify emerging market trends with real-time HPI data",
+    "Access professional-grade tools and Chrome extension integration",
+    "Capture properties on-the-go with our browser extension"
   ];
 
   const testimonials = [
@@ -1248,6 +1267,58 @@ export default function Home() {
                   <p className="text-gray-600 leading-relaxed">{feature.description}</p>
                 </motion.div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Chrome Extension Highlight */}
+        <section className="py-20 bg-gradient-to-r from-green-50 to-blue-50">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full mb-6">
+                <Download className="w-8 h-8 text-white" />
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+                Capture Properties Anywhere with Our Chrome Extension
+              </h2>
+              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+                Install our browser extension to instantly capture properties from Rightmove, Zoopla, and other property sites directly to your watchlist.
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">1</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Install Extension</h3>
+                <p className="text-gray-600">Add our Chrome extension to your browser in seconds</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">2</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Browse Properties</h3>
+                <p className="text-gray-600">Visit any property listing on supported sites</p>
+              </div>
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-2xl">3</span>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Capture & Analyze</h3>
+                <p className="text-gray-600">Click our button to save and analyze the property</p>
+              </div>
+            </div>
+            
+            <div className="text-center">
+              <button
+                onClick={() => window.open('/extension-welcome', '_blank')}
+                className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold rounded-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl"
+              >
+                <Download className="w-5 h-5" />
+                Get Chrome Extension
+              </button>
+              <p className="text-sm text-gray-500 mt-3">Free to install • Works on all major property sites</p>
             </div>
           </div>
         </section>

@@ -1,6 +1,24 @@
 console.log('BMV Finder: Content script loaded on:', window.location.href);
 
 // Test functions for debugging
+function testCurrentPageExtraction() {
+  console.log('BMV Finder: Testing current page extraction...');
+  const data = extractPropertyData();
+  console.log('BMV Finder: Extracted data:', data);
+  
+  // Show results in console and alert
+  const message = `Extracted Data:
+Title: ${data.title}
+Price: ${data.price}
+Address: ${data.address}
+Source: ${data.source}`;
+  
+  console.log(message);
+  alert(message);
+  
+  return data;
+}
+
 function testPropertyExtraction() {
   console.log('BMV Finder: Testing property extraction...');
   
@@ -56,7 +74,15 @@ function testDOMExtraction() {
     '.property-header__price',
     '.property-details__price',
     '.price-display',
-    '.property-price-value'
+    '.property-price-value',
+    // Add more selectors for current layouts
+    '[class*="Price"]',
+    '[class*="price"]',
+    '[class*="value"]',
+    '[class*="Value"]',
+    'span',
+    'div',
+    'p'
   ];
   
   console.log('BMV Finder: Testing price selectors...');
@@ -186,7 +212,24 @@ function extractPropertyData() {
       '.css-1tppcjb-Text',
       '.css-1tppcjb-Text--price',
       '.css-1tppcjb-Text--large',
-      '.css-1tppcjb-Text--bold'
+      '.css-1tppcjb-Text--bold',
+      // Add more specific selectors for current Zoopla layout
+      '[data-testid="price-value"]',
+      '.property-price-value',
+      '.price-display',
+      '.listing-price-value',
+      '.property-header__price',
+      '.property-details__price',
+      '.price-value',
+      // Look for elements containing price text
+      'span:contains("£")',
+      'div:contains("£")',
+      'p:contains("£")',
+      // More generic selectors
+      '[class*="price"]',
+      '[class*="Price"]',
+      '[class*="value"]',
+      '[class*="Value"]'
     ];
     
     for (const selector of priceSelectors) {
@@ -263,7 +306,24 @@ function extractPropertyData() {
       '.property-header__price',
       '.property-details__price',
       '.price-display',
-      '.property-price-value'
+      '.property-price-value',
+      // Add more specific selectors for current Rightmove layout
+      '[data-testid="price-value"]',
+      '.propertyCard-priceValue',
+      '.propertyCard-price',
+      '.property-header__price',
+      '.property-details__price',
+      '.price-display',
+      '.property-price-value',
+      // Look for elements containing price text
+      'span:contains("£")',
+      'div:contains("£")',
+      'p:contains("£")',
+      // More generic selectors
+      '[class*="price"]',
+      '[class*="Price"]',
+      '[class*="value"]',
+      '[class*="Value"]'
     ];
     
     for (const selector of priceSelectors) {
@@ -326,20 +386,25 @@ function extractPropertyData() {
     }
   }
   
-  // Fallback: try to extract price from any text on page
-  if (propertyData.price === '£0') {
-    console.log('BMV Finder: Trying fallback price extraction...');
-    const pageText = document.body.textContent;
-    
-    // Look for Rightmove-specific patterns first
-    const rightmovePatterns = [
-      /Offers Over £([\d,]+)/i,
-      /Guide Price £([\d,]+)/i,
-      /Asking Price £([\d,]+)/i,
-      /Price £([\d,]+)/i,
-      /£([\d,]+) Offers Over/i,
-      /£([\d,]+) Guide Price/i
-    ];
+      // Fallback: try to extract price from any text on page
+    if (propertyData.price === '£0') {
+      console.log('BMV Finder: Trying fallback price extraction...');
+      const pageText = document.body.textContent;
+      
+      // Look for Rightmove-specific patterns first
+      const rightmovePatterns = [
+        /Offers Over £([\d,]+)/i,
+        /Guide Price £([\d,]+)/i,
+        /Asking Price £([\d,]+)/i,
+        /Price £([\d,]+)/i,
+        /£([\d,]+) Offers Over/i,
+        /£([\d,]+) Guide Price/i,
+        // Add more patterns for current layouts
+        /£([\d,]+)/g,  // Simple £ followed by numbers
+        /Price:?\s*£([\d,]+)/i,
+        /Guide price:?\s*£([\d,]+)/i,
+        /Asking price:?\s*£([\d,]+)/i
+      ];
     
     for (const pattern of rightmovePatterns) {
       const match = pageText.match(pattern);
@@ -409,6 +474,36 @@ function extractPropertyData() {
           const maxPrice = Math.max(...prices);
           propertyData.price = '£' + maxPrice.toLocaleString();
           console.log('BMV Finder: Found last resort price:', propertyData.price);
+        }
+      }
+    }
+    
+    // Ultra aggressive: search through all text nodes for price patterns
+    if (propertyData.price === '£0') {
+      console.log('BMV Finder: Trying ultra aggressive price extraction...');
+      const walker = document.createTreeWalker(
+        document.body,
+        NodeFilter.SHOW_TEXT,
+        null,
+        false
+      );
+      
+      const textNodes = [];
+      let node;
+      while (node = walker.nextNode()) {
+        textNodes.push(node);
+      }
+      
+      for (const textNode of textNodes) {
+        const text = textNode.textContent;
+        const priceMatch = text.match(/£([\d,]+)/);
+        if (priceMatch) {
+          const price = parseInt(priceMatch[1].replace(/,/g, ''));
+          if (price > 10000 && price < 10000000) {
+            propertyData.price = '£' + price.toLocaleString();
+            console.log('BMV Finder: Found price in text node:', propertyData.price, 'from text:', text.substring(0, 50));
+            break;
+          }
         }
       }
     }
@@ -522,16 +617,53 @@ function injectButton() {
     return;
   }
   
-  // Remove any existing buttons
-  const existingButton = document.getElementById('bmv-capture-button');
-  if (existingButton) {
-    existingButton.remove();
+  // Remove any existing button containers
+  const existingContainer = document.getElementById('bmv-button-container');
+  if (existingContainer) {
+    existingContainer.remove();
   }
   
-  // Create button element
+  // Create button container
+  const buttonContainer = document.createElement('div');
+  buttonContainer.id = 'bmv-button-container';
+  buttonContainer.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999999;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  `;
+  
+  // Create main capture button
   const button = document.createElement('button');
   button.id = 'bmv-capture-button';
   button.innerHTML = '<span style="font-size: 14px;">🏠</span> Capture Property';
+  
+  // Create test button
+  const testButton = document.createElement('button');
+  testButton.id = 'bmv-test-button';
+  testButton.innerHTML = '<span style="font-size: 14px;">🔍</span> Test Extraction';
+  testButton.style.cssText = `
+    background: linear-gradient(135deg, #D4AF37 0%, #B8860B 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(212, 175, 55, 0.2);
+    font-family: Arial, sans-serif;
+    transition: all 0.3s ease;
+  `;
+  
+  testButton.onclick = function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    testCurrentPageExtraction();
+  };
   
   // Apply professional styles
   button.style.position = 'fixed';
@@ -612,16 +744,20 @@ function injectButton() {
     });
   };
   
-  // Inject to body
+  // Add buttons to container
+  buttonContainer.appendChild(button);
+  buttonContainer.appendChild(testButton);
+  
+  // Inject container to body
   if (document.body) {
-    document.body.appendChild(button);
-    console.log('BMV Finder: Button injected successfully');
+    document.body.appendChild(buttonContainer);
+    console.log('BMV Finder: Buttons injected successfully');
   } else {
     console.log('BMV Finder: No body element, waiting...');
     setTimeout(function() {
       if (document.body) {
-        document.body.appendChild(button);
-        console.log('BMV Finder: Button injected (delayed)');
+        document.body.appendChild(buttonContainer);
+        console.log('BMV Finder: Buttons injected (delayed)');
       }
     }, 1000);
   }
