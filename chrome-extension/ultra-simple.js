@@ -1,1 +1,0 @@
-alert('ULTRA SIMPLE TEST: Extension is working!'); 
