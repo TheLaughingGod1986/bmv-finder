@@ -29,7 +29,7 @@ import {
   Clock
 } from 'lucide-react';
 import PredictionExplanationCard from '../components/PredictionExplanationCard';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '../components/ToastProvider';
 
 
 interface WatchlistItem {
@@ -234,81 +234,109 @@ export default function WatchlistPage() {
   };
 
   const calculateInvestmentMetrics = (property: WatchlistItem) => {
-    const purchasePrice = property.price;
-    const deposit = purchasePrice * 0.25; // 25% deposit
-    const refurbCost = property.refurbishment_cost || 0;
-    const fees = purchasePrice * 0.03; // 3% for stamp duty, legal fees, etc.
-    const totalCost = deposit + refurbCost + fees;
-    
-    const monthlyRent = calculateRentalEstimateSync(property);
-    const annualRent = monthlyRent * 12;
-    const annualROI = totalCost > 0 ? (annualRent / totalCost) * 100 : 0;
-    
-    // Calculate payback period (years to return on investment)
-    const paybackPeriod = annualRent > 0 ? totalCost / annualRent : 0;
-    
-    // Mortgage calculations
-    const mortgageAmount = purchasePrice - deposit;
-    const interestRate = 0.045; // 4.5% default interest rate
-    const mortgageTerm = 25; // 25 years
-    
-    // Interest-only mortgage calculation
-    const monthlyInterestOnly = mortgageAmount * (interestRate / 12);
-    
-    // Repayment mortgage calculation (monthly payment)
-    const monthlyRate = interestRate / 12;
-    const numberOfPayments = mortgageTerm * 12;
-    const monthlyRepayment = mortgageAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
-    
-    // Default to repayment mortgage
-    const monthlyMortgagePayment = monthlyRepayment;
-    
-    // Additional expenses
-    const managementFee = monthlyRent * 0.10; // 10% management fee
-    const insuranceCost = purchasePrice * 0.001 / 12; // 0.1% of property value annually
-    const maintenanceReserve = monthlyRent * 0.05; // 5% for maintenance
-    const voidPeriodReserve = monthlyRent * 0.05; // 5% for void periods
-    
-    // Total monthly expenses
-    const totalMonthlyExpenses = monthlyMortgagePayment + managementFee + insuranceCost + maintenanceReserve + voidPeriodReserve;
-    
-    // Monthly profit calculations
-    const grossMonthlyProfit = monthlyRent - monthlyMortgagePayment;
-    const netMonthlyProfit = monthlyRent - totalMonthlyExpenses;
-    
-    // Annual profit calculations
-    const grossAnnualProfit = grossMonthlyProfit * 12;
-    const netAnnualProfit = netMonthlyProfit * 12;
-    
-    // Real profit margin
-    const realProfitMargin = monthlyRent > 0 ? (netMonthlyProfit / monthlyRent) * 100 : 0;
-    
-    return {
-      deposit,
-      refurbCost,
-      fees,
-      totalCost,
-      annualRent,
-      annualROI,
-      paybackPeriod,
-      // Mortgage details
-      mortgageAmount,
-      monthlyInterestOnly,
-      monthlyRepayment,
-      monthlyMortgagePayment,
-      // Expenses
-      managementFee,
-      insuranceCost,
-      maintenanceReserve,
-      voidPeriodReserve,
-      totalMonthlyExpenses,
-      // Profit calculations
-      grossMonthlyProfit,
-      netMonthlyProfit,
-      grossAnnualProfit,
-      netAnnualProfit,
-      realProfitMargin
-    };
+    try {
+      const purchasePrice = property.price;
+      const deposit = purchasePrice * 0.25; // 25% deposit
+      const refurbCost = property.refurbishment_cost || 0;
+      const fees = purchasePrice * 0.03; // 3% for stamp duty, legal fees, etc.
+      const totalCost = deposit + refurbCost + fees;
+      
+      const monthlyRent = calculateRentalEstimateSync(property);
+      const annualRent = monthlyRent * 12;
+      const annualROI = totalCost > 0 ? (annualRent / totalCost) * 100 : 0;
+      
+      // Calculate payback period (years to return on investment)
+      const paybackPeriod = annualRent > 0 ? totalCost / annualRent : 0;
+      
+      // Mortgage calculations
+      const mortgageAmount = purchasePrice - deposit;
+      const interestRate = 0.045; // 4.5% default interest rate
+      const mortgageTerm = 25; // 25 years
+      
+      // Interest-only mortgage calculation
+      const monthlyInterestOnly = mortgageAmount * (interestRate / 12);
+      
+      // Repayment mortgage calculation (monthly payment)
+      const monthlyRate = interestRate / 12;
+      const numberOfPayments = mortgageTerm * 12;
+      const monthlyRepayment = mortgageAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+      
+      // Default to repayment mortgage
+      const monthlyMortgagePayment = monthlyRepayment;
+      
+      // Additional expenses
+      const managementFee = monthlyRent * 0.10; // 10% management fee
+      const insuranceCost = purchasePrice * 0.001 / 12; // 0.1% of property value annually
+      const maintenanceReserve = monthlyRent * 0.05; // 5% for maintenance
+      const voidPeriodReserve = monthlyRent * 0.05; // 5% for void periods
+      
+      // Total monthly expenses
+      const totalMonthlyExpenses = monthlyMortgagePayment + managementFee + insuranceCost + maintenanceReserve + voidPeriodReserve;
+      
+      // Monthly profit calculations
+      const grossMonthlyProfit = monthlyRent - monthlyMortgagePayment;
+      const netMonthlyProfit = monthlyRent - totalMonthlyExpenses;
+      
+      // Annual profit calculations
+      const grossAnnualProfit = grossMonthlyProfit * 12;
+      const netAnnualProfit = netMonthlyProfit * 12;
+      
+      // Real profit margin
+      const realProfitMargin = monthlyRent > 0 ? (netMonthlyProfit / monthlyRent) * 100 : 0;
+      
+      return {
+        deposit,
+        refurbCost,
+        fees,
+        totalCost,
+        annualRent,
+        annualROI,
+        paybackPeriod,
+        // Mortgage details
+        mortgageAmount,
+        monthlyInterestOnly,
+        monthlyRepayment,
+        monthlyMortgagePayment,
+        // Expenses
+        managementFee,
+        insuranceCost,
+        maintenanceReserve,
+        voidPeriodReserve,
+        totalMonthlyExpenses,
+        // Profit calculations
+        grossMonthlyProfit,
+        netMonthlyProfit,
+        grossAnnualProfit,
+        netAnnualProfit,
+        realProfitMargin
+      };
+    } catch (error) {
+      console.error('Error calculating investment metrics:', error);
+      // Return default values if calculation fails
+      return {
+        deposit: 0,
+        refurbCost: 0,
+        fees: 0,
+        totalCost: 0,
+        annualRent: 0,
+        annualROI: 0,
+        paybackPeriod: 0,
+        mortgageAmount: 0,
+        monthlyInterestOnly: 0,
+        monthlyRepayment: 0,
+        monthlyMortgagePayment: 0,
+        managementFee: 0,
+        insuranceCost: 0,
+        maintenanceReserve: 0,
+        voidPeriodReserve: 0,
+        totalMonthlyExpenses: 0,
+        grossMonthlyProfit: 0,
+        netMonthlyProfit: 0,
+        grossAnnualProfit: 0,
+        netAnnualProfit: 0,
+        realProfitMargin: 0
+      };
+    }
   };
 
   const getRefurbishmentRecommendations = (property: WatchlistItem) => {
@@ -680,13 +708,23 @@ export default function WatchlistPage() {
 
 
   const getSourceIcon = (source: string) => {
-    const sourceMap: { [key: string]: string } = {
-      'rightmove': '🏠',
-      'zoopla': '🏡',
-      'onthemarket': '🏘️',
-      'prime-location': '🏢'
-    };
-    return sourceMap[source] || '🏠';
+    switch (source.toLowerCase()) {
+      case 'rightmove':
+        return '🏠';
+      case 'zoopla':
+        return '🏘️';
+      case 'onthemarket':
+        return '🏡';
+      default:
+        return '🏠';
+    }
+  };
+
+  const getGrowthColor = (assessment: string) => {
+    if (assessment.includes('High')) return 'text-green-600';
+    if (assessment.includes('Good')) return 'text-blue-600';
+    if (assessment.includes('Moderate')) return 'text-yellow-600';
+    return 'text-orange-600';
   };
 
   const filteredWatchlist = useMemo(() => {
@@ -1180,7 +1218,17 @@ export default function WatchlistPage() {
                             {(() => {
                               const valueAnalysis = analyzePropertyValue(item);
                               const offerAnalysis = getRecommendedOffer(item);
-                              const growthAnalysis = analyzeGrowthPotential(item);
+                              let growthAnalysis;
+                              try {
+                                growthAnalysis = analyzeGrowthPotential(item);
+                              } catch (error) {
+                                console.error('Error analyzing growth potential:', error);
+                                growthAnalysis = {
+                                  tenYearGrowth: 0,
+                                  projectedValue: item.price,
+                                  growthAssessment: 'stable'
+                                };
+                              }
                               
                               const getPriceColor = (assessment: string) => {
                                 if (assessment.includes('Excellent')) return 'text-green-600';
@@ -1188,13 +1236,6 @@ export default function WatchlistPage() {
                                 if (assessment.includes('Fair')) return 'text-yellow-600';
                                 if (assessment.includes('Overpriced')) return 'text-orange-600';
                                 return 'text-red-600';
-                              };
-                              
-                              const getGrowthColor = (assessment: string) => {
-                                if (assessment.includes('High')) return 'text-green-600';
-                                if (assessment.includes('Good')) return 'text-blue-600';
-                                if (assessment.includes('Moderate')) return 'text-yellow-600';
-                                return 'text-orange-600';
                               };
                               
                               return (
@@ -1235,7 +1276,7 @@ I'm writing to express my interest in making an offer for the property at ${item
 Based on my analysis of comparable properties in the area and current market conditions, I would like to make an offer of ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)}.
 
 This offer represents:
-• ${offerAnalysis?.offerPercentage || 92}% of the asking price
+• ${offerAnalysis ? Math.round((offerAnalysis.recommendedOffer / item.price) * 100) : 92}% of the asking price
 • A fair market value based on recent comparable sales
 • Consideration for the property's condition and market position
 
@@ -1264,12 +1305,15 @@ Best regards,
                                              const metrics = calculateInvestmentMetrics(item);
                                              const strategy = `Negotiation Strategy for ${item.address}:
 
-🎯 TARGET OFFER: ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)} (${offerAnalysis?.offerPercentage || 92}% of asking)
+🎯 TARGET OFFER: ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)} (${offerAnalysis ? Math.round((offerAnalysis.recommendedOffer / item.price) * 100) : 92}% of asking)
 
 📊 NEGOTIATION POINTS:
 • Comparable properties sold for ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 0.95)} - ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 1.05)} in the last 6 months
 • Property condition: ${item.property_condition || 'Good'} - may need ${formatPrice(metrics.refurbCost)} in refurbishment
-• Market position: ${(offerAnalysis?.priceAssessment || 'Fair Price').toLowerCase()}
+• Market position: ${(() => {
+                                             const valueAnalysis = analyzePropertyValue(item);
+                                             return valueAnalysis.priceAssessment.toLowerCase();
+                                           })()}
 • Days on market: ${item.days_on_market || 'Unknown'} - ${item.days_on_market > 30 ? 'Good leverage for negotiation' : 'Property may be in demand'}
 
 💰 INVESTMENT ANALYSIS:
@@ -1326,7 +1370,17 @@ Best regards,
                           {/* Investment Metrics */}
                           {(() => {
                             const metrics = calculateInvestmentMetrics(item);
-                            const growthAnalysis = analyzeGrowthPotential(item);
+                            let growthAnalysis;
+                            try {
+                              growthAnalysis = analyzeGrowthPotential(item);
+                            } catch (error) {
+                              console.error('Error analyzing growth potential:', error);
+                              growthAnalysis = {
+                                tenYearGrowth: 0,
+                                projectedValue: item.price,
+                                growthAssessment: 'stable'
+                              };
+                            }
                             return (
                               <div className="space-y-3 mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                                 <h4 className="text-sm font-semibold text-blue-800 mb-3">Investment Analysis</h4>
@@ -1698,7 +1752,17 @@ Best regards,
                              {(() => {
                                const valueAnalysis = analyzePropertyValue(property);
                                const offerAnalysis = getRecommendedOffer(property);
-                               const growthAnalysis = analyzeGrowthPotential(property);
+                               let growthAnalysis;
+                               try {
+                                 growthAnalysis = analyzeGrowthPotential(property);
+                               } catch (error) {
+                                 console.error('Error analyzing growth potential:', error);
+                                 growthAnalysis = {
+                                   tenYearGrowth: 0,
+                                   projectedValue: property.price,
+                                   growthAssessment: 'stable'
+                                 };
+                               }
                                
                                const getPriceColor = (assessment: string) => {
                                  if (assessment.includes('Excellent')) return 'text-green-600';
@@ -1706,13 +1770,6 @@ Best regards,
                                  if (assessment.includes('Fair')) return 'text-yellow-600';
                                  if (assessment.includes('Overpriced')) return 'text-orange-600';
                                  return 'text-red-600';
-                               };
-                               
-                               const getGrowthColor = (assessment: string) => {
-                                 if (assessment.includes('High')) return 'text-green-600';
-                                 if (assessment.includes('Good')) return 'text-blue-600';
-                                 if (assessment.includes('Moderate')) return 'text-yellow-600';
-                                 return 'text-orange-600';
                                };
                                
                                return (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { Plus, Check, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from './ToastProvider';
 import { supabase } from '@/lib/supabaseClient';
 
 interface AddToPortfolioButtonProps {
@@ -30,7 +30,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isInPortfolio, setIsInPortfolio] = useState(false);
   const [checkingPortfolio, setCheckingPortfolio] = useState(true);
-  const { success, error } = useToast();
+  const { showToast } = useToast();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -108,13 +108,13 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
 
       // Get the current session token
       if (!supabase) {
-        error('Supabase client not available');
+        showToast({ type: 'error', title: 'Supabase client not available' });
         return;
       }
       
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        error('Please log in to add properties to your portfolio');
+        showToast({ type: 'error', title: 'Please log in to add properties to your portfolio' });
         return;
       }
 
@@ -128,17 +128,17 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
       });
 
       if (response.ok) {
-        success('Property added to your portfolio!');
+        showToast({ type: 'success', title: 'Property added to your portfolio!' });
         setIsInPortfolio(true);
       } else {
         const data = await response.json();
         // API Error Response logged
-        error(data.error || data.details || 'Failed to add property to portfolio');
+        showToast({ type: 'error', title: data.error || data.details || 'Failed to add property to portfolio' });
       }
-    } catch (err) {
-      console.error('Error adding to portfolio:', err);
-      error('Failed to add property to portfolio');
-    } finally {
+          } catch (err) {
+        console.error('Error adding to portfolio:', err);
+        showToast({ type: 'error', title: 'Failed to add property to portfolio' });
+      } finally {
       setLoading(false);
     }
   };
@@ -146,7 +146,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
   if (!isLoggedIn) {
     return (
       <button
-        onClick={() => error('Please log in to add properties to your portfolio')}
+        onClick={() => showToast({ type: 'error', title: 'Please log in to add properties to your portfolio' })}
         className={`inline-flex items-center gap-2 px-4 py-2 bg-gray-400 text-white rounded-lg font-semibold cursor-not-allowed ${className}`}
       >
         <Plus className="w-4 h-4" />

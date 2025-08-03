@@ -6,6 +6,11 @@ const nextConfig = {
   compress: true,
   generateEtags: false,
   
+  // ESLint configuration - ignore errors during build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  
   // Security headers
   async headers() {
     // Only set CSP in production

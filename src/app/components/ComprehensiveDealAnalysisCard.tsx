@@ -33,7 +33,7 @@ import {
 } from 'lucide-react';
 import AddToPortfolioButton from './AddToPortfolioButton';
 import MissingDataCard from './MissingDataCard';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from './ToastProvider';
 
 interface ComprehensiveValuationData {
   property: {
@@ -244,7 +244,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
   const [isLoading, setIsLoading] = useState(false);
   const [showMissingDataForm, setShowMissingDataForm] = useState(false);
   const [missingData, setMissingData] = useState({ floor_area_m2: '', epc_rating: '', bedrooms: '' });
-  const { success, error } = useToast();
+  const { showToast } = useToast();
   const [errorState, setError] = useState<any>(null);
 
   const fetchComprehensiveData = async () => {
@@ -363,14 +363,14 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
         }),
       });
       if (res.ok) {
-        success('Thank you! Your data was submitted and will improve future valuations.');
+        showToast({ type: 'success', title: 'Thank you! Your data was submitted and will improve future valuations.' });
         setShowMissingDataForm(false);
       } else {
-        error('Failed to submit data.');
+        showToast({ type: 'error', title: 'Failed to submit data.' });
       }
-    } catch {
-      error('Failed to submit data.');
-    }
+          } catch {
+        showToast({ type: 'error', title: 'Failed to submit data.' });
+      }
   };
 
   if (loading || isLoading) {
@@ -1167,7 +1167,7 @@ function ManualAddToPortfolioForm({ postcode, houseNumber }: { postcode: string;
   const [purchasePrice, setPurchasePrice] = useState("");
   const [purchaseDate, setPurchaseDate] = useState("");
   const [loading, setLoading] = useState(false);
-  const { success, error } = useToast();
+  const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1193,14 +1193,14 @@ function ManualAddToPortfolioForm({ postcode, houseNumber }: { postcode: string;
         body: JSON.stringify(propertyData),
       });
       if (res.ok) {
-        success('Property added to your portfolio!');
+        showToast({ type: 'success', title: 'Property added to your portfolio!' });
       } else {
         const data = await res.json();
-        error(data.error || 'Failed to add property');
+        showToast({ type: 'error', title: data.error || 'Failed to add property' });
       }
-    } catch (err) {
-      error('Failed to add property');
-    } finally {
+          } catch (err) {
+        showToast({ type: 'error', title: 'Failed to add property' });
+      } finally {
       setLoading(false);
     }
   };

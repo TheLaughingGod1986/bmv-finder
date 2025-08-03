@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useUser } from '@supabase/auth-helpers-react';
-import { useToast } from '@/hooks/useToast';
+import { useToast } from '../components/ToastProvider';
 import { Search, Clock, MapPin, Trash2, Plus, Bookmark } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Head from 'next/head';
