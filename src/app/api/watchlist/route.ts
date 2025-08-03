@@ -1,13 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_KEY! // Use service role key to bypass RLS
-);
+// Only create Supabase client if environment variables are available
+const createSupabaseClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Supabase environment variables are not configured');
+  }
+  
+  return createClient(supabaseUrl, supabaseKey);
+};
 
 export async function GET(request: NextRequest) {
   try {
+    const supabase = createSupabaseClient();
+    
     // Get current user from authorization header if available
     const authHeader = request.headers.get('authorization');
     let userId = '00000000-0000-0000-0000-000000000000'; // Default user ID
