@@ -258,7 +258,7 @@ async function getElasticsearchRent(postcode: string, propertyType: string, bedr
     return null;
     
   } catch (error) {
-    console.warn('Elasticsearch connection failed, using fallback calculation:', error.message);
+    console.warn('Elasticsearch connection failed, using fallback calculation:', error instanceof Error ? error.message : 'Unknown error');
     return null;
   }
 }
