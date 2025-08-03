@@ -286,6 +286,97 @@ export default function WatchlistPage() {
     };
   };
 
+  const assessDealQuality = (property: WatchlistItem) => {
+    const metrics = calculateInvestmentMetrics(property);
+    const monthlyRent = calculateRentalEstimateSync(property);
+    const yieldPercentage = parseFloat(calculateYield(monthlyRent, property.price));
+    
+    // Scoring system
+    let score = 0;
+    let reasons = [];
+    let overallRating = '';
+    
+    // Yield scoring (40% of total score)
+    if (yieldPercentage >= 8) {
+      score += 40;
+      reasons.push(`Excellent yield: ${yieldPercentage}%`);
+    } else if (yieldPercentage >= 6) {
+      score += 30;
+      reasons.push(`Good yield: ${yieldPercentage}%`);
+    } else if (yieldPercentage >= 4) {
+      score += 20;
+      reasons.push(`Average yield: ${yieldPercentage}%`);
+    } else {
+      score += 10;
+      reasons.push(`Low yield: ${yieldPercentage}%`);
+    }
+    
+    // ROI scoring (30% of total score)
+    if (metrics.annualROI >= 12) {
+      score += 30;
+      reasons.push(`High ROI: ${metrics.annualROI.toFixed(1)}%`);
+    } else if (metrics.annualROI >= 8) {
+      score += 25;
+      reasons.push(`Good ROI: ${metrics.annualROI.toFixed(1)}%`);
+    } else if (metrics.annualROI >= 6) {
+      score += 20;
+      reasons.push(`Average ROI: ${metrics.annualROI.toFixed(1)}%`);
+    } else {
+      score += 10;
+      reasons.push(`Low ROI: ${metrics.annualROI.toFixed(1)}%`);
+    }
+    
+    // Price point scoring (20% of total score)
+    if (property.price <= 150000) {
+      score += 20;
+      reasons.push('Affordable entry point');
+    } else if (property.price <= 250000) {
+      score += 15;
+      reasons.push('Mid-range price point');
+    } else if (property.price <= 400000) {
+      score += 10;
+      reasons.push('Higher price point');
+    } else {
+      score += 5;
+      reasons.push('Premium price point');
+    }
+    
+    // Property condition scoring (10% of total score)
+    const condition = property.property_condition || 'Good';
+    if (condition === 'Excellent' || condition === 'Good') {
+      score += 10;
+      reasons.push(`Good condition: ${condition}`);
+    } else if (condition === 'Fair') {
+      score += 7;
+      reasons.push(`Fair condition: ${condition}`);
+    } else {
+      score += 5;
+      reasons.push(`Needs work: ${condition}`);
+    }
+    
+    // Overall rating
+    if (score >= 85) {
+      overallRating = 'Excellent Deal';
+    } else if (score >= 70) {
+      overallRating = 'Good Deal';
+    } else if (score >= 55) {
+      overallRating = 'Average Deal';
+    } else if (score >= 40) {
+      overallRating = 'Poor Deal';
+    } else {
+      overallRating = 'Avoid';
+    }
+    
+    return {
+      score,
+      overallRating,
+      reasons,
+      yieldPercentage,
+      annualROI: metrics.annualROI,
+      totalCost: metrics.totalCost
+    };
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-GB', {
       style: 'currency',
@@ -834,6 +925,27 @@ export default function WatchlistPage() {
                               <span className="text-gray-600">Bedrooms:</span>
                               <span className="font-semibold">{item.bedrooms > 0 ? item.bedrooms : 'N/A'}</span>
                             </div>
+                            
+                            {/* Quick Deal Assessment */}
+                            {(() => {
+                              const assessment = assessDealQuality(item);
+                              const getRatingColor = (rating: string) => {
+                                if (rating.includes('Excellent')) return 'text-green-600';
+                                if (rating.includes('Good')) return 'text-blue-600';
+                                if (rating.includes('Average')) return 'text-yellow-600';
+                                if (rating.includes('Poor')) return 'text-orange-600';
+                                return 'text-red-600';
+                              };
+                              
+                              return (
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Deal Rating:</span>
+                                  <span className={`font-semibold ${getRatingColor(assessment.overallRating)}`}>
+                                    {assessment.overallRating}
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           {/* Investment Metrics */}
@@ -945,6 +1057,47 @@ export default function WatchlistPage() {
                       </button>
                     </div>
 
+                    {/* Deal Summary */}
+                    {(() => {
+                      const assessments = selectedProperties.map(propertyId => {
+                        const property = watchlist.find(p => p.id === propertyId);
+                        if (!property) return null;
+                        return { ...assessDealQuality(property), property };
+                      }).filter(Boolean);
+
+                      if (assessments.length === 0) return null;
+
+                      // Find the best deal
+                      const bestDeal = assessments.reduce((best, current) => 
+                        current.score > best.score ? current : best
+                      );
+
+                      const averageScore = Math.round(assessments.reduce((sum, a) => sum + a.score, 0) / assessments.length);
+
+                      return (
+                        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-3">Deal Summary</h4>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-green-600">{bestDeal.overallRating}</div>
+                              <div className="text-sm text-gray-600">Best Deal</div>
+                              <div className="text-xs text-gray-500">{bestDeal.property.title.substring(0, 30)}...</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-blue-600">{averageScore}/100</div>
+                              <div className="text-sm text-gray-600">Average Score</div>
+                              <div className="text-xs text-gray-500">Across {assessments.length} properties</div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-2xl font-bold text-purple-600">{bestDeal.yieldPercentage}%</div>
+                              <div className="text-sm text-gray-600">Best Yield</div>
+                              <div className="text-xs text-gray-500">From {bestDeal.property.title.substring(0, 20)}...</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
                       {selectedProperties.map(propertyId => {
                         const property = watchlist.find(p => p.id === propertyId);
@@ -1020,14 +1173,41 @@ export default function WatchlistPage() {
                               </div>
                             </div>
 
-                            <div className="mt-4 pt-3 border-t border-gray-200">
-                              <button
-                                onClick={() => window.open(property.original_url, '_blank')}
-                                className="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                              >
-                                View Original
-                              </button>
-                            </div>
+                                                         {/* Deal Assessment */}
+                             {(() => {
+                               const assessment = assessDealQuality(property);
+                               const getRatingColor = (rating: string) => {
+                                 if (rating.includes('Excellent')) return 'text-green-600 bg-green-50 border-green-200';
+                                 if (rating.includes('Good')) return 'text-blue-600 bg-blue-50 border-blue-200';
+                                 if (rating.includes('Average')) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+                                 if (rating.includes('Poor')) return 'text-orange-600 bg-orange-50 border-orange-200';
+                                 return 'text-red-600 bg-red-50 border-red-200';
+                               };
+                               
+                               return (
+                                 <div className="mt-4 pt-3 border-t border-gray-200">
+                                   <div className={`mb-3 p-2 rounded-lg border ${getRatingColor(assessment.overallRating)}`}>
+                                     <div className="flex justify-between items-center">
+                                       <span className="text-sm font-semibold">{assessment.overallRating}</span>
+                                       <span className="text-xs font-medium">Score: {assessment.score}/100</span>
+                                     </div>
+                                   </div>
+                                   <div className="space-y-1 mb-3">
+                                     {assessment.reasons.slice(0, 2).map((reason, index) => (
+                                       <div key={index} className="text-xs text-gray-600">
+                                         • {reason}
+                                       </div>
+                                     ))}
+                                   </div>
+                                   <button
+                                     onClick={() => window.open(property.original_url, '_blank')}
+                                     className="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                                   >
+                                     View Original
+                                   </button>
+                                 </div>
+                               );
+                             })()}
                           </div>
                         );
                       })}
