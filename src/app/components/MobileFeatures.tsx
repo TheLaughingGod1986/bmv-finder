@@ -70,7 +70,7 @@ const features = [
     icon: FileText,
     title: "Professional Reports",
     description: "Generate detailed property analysis reports",
-    color: "from-red-500 to-red-600"
+    color: "from-blue-500 to-purple-600"
   }
 ];
 
