@@ -6801,3 +6801,6 @@ Node.js v22.16.0
 [2025-08-02T02:00:14.464Z] [INFO] Indexed batch: 220011/220011 records
 [2025-08-02T02:00:14.464Z] [INFO] Successfully indexed 220011 HPI records
 [2025-08-02T02:00:14.464Z] [INFO] HPI update completed successfully. Indexed 220011 records.
+[dotenv@17.2.1] injecting env (0) from .env -- tip: ⚙️  suppress all logs with { quiet: true }
+[2025-08-03T02:00:01.508Z] [INFO] Starting HPI update process...
+[2025-08-03T02:00:08.642Z] [ERROR] HPI update failed: 

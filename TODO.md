@@ -97,6 +97,7 @@
 - **✅ Navigation Button Styling** - Fixed green "Account ELITE" button to display solid green without gradient fade
 - **✅ Supabase Configuration** - Resolved authentication setup with graceful fallbacks
 - **✅ Rental Estimate Consistency** - Fixed rental estimates changing when toggling comparison mode
+- **✅ Property Editing & Investment Analysis** - Added inline editing with refurb costs, ROI calculations, total purchase costs, rental estimate editing, and refurbishment recommendations
 
 <details>
 <summary><strong>🔧 Supabase Configuration Fix (Technical Details)</strong></summary>

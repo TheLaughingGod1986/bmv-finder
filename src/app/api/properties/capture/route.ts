@@ -212,20 +212,31 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const { id, price } = await request.json();
+    const updateData = await request.json();
+    const { id, price, refurbishment_cost, user_notes, property_condition, estimated_fair_value, custom_rental_estimate, status } = updateData;
     
-    if (!id || !price) {
-      return NextResponse.json({ error: 'ID and price are required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    console.log('BMV Finder API: Updating property price:', { id, price });
+    console.log('BMV Finder API: Updating property:', { id, ...updateData });
+
+    const updateFields: any = {
+      updated_at: new Date().toISOString()
+    };
+
+    // Add fields to update if they exist
+    if (price !== undefined) updateFields.price = extractPrice(price);
+    if (refurbishment_cost !== undefined) updateFields.refurbishment_cost = refurbishment_cost;
+    if (user_notes !== undefined) updateFields.user_notes = user_notes;
+    if (property_condition !== undefined) updateFields.property_condition = property_condition;
+    if (estimated_fair_value !== undefined) updateFields.estimated_fair_value = estimated_fair_value;
+    if (custom_rental_estimate !== undefined) updateFields.custom_rental_estimate = custom_rental_estimate;
+    if (status !== undefined) updateFields.status = status;
 
     const { data, error } = await supabase
       .from('watchlist')
-      .update({ 
-        price: extractPrice(price),
-        updated_at: new Date().toISOString()
-      })
+      .update(updateFields)
       .eq('id', id)
       .select()
       .single();
