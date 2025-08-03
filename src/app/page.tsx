@@ -8,7 +8,7 @@ import {
   TrendingUp, BarChart3, Calculator, Search, Home as HomeIcon, 
   Target, Award, Shield, Zap, Clock, Users, CheckCircle, 
   ArrowRight, Star, MapPin, PoundSterling, ChartBar, 
-  FileText, Building, Eye, ArrowUpRight, Lock
+  FileText, Building, Eye, ArrowUpRight, Lock, PieChart
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@supabase/auth-helpers-react';
@@ -373,7 +373,7 @@ export default function Home() {
     {
       icon: <PoundSterling className="w-6 h-6" />,
       title: "Fair Value Analysis",
-      description: "Get accurate property valuations and "what should I pay" insights",
+      description: "Get accurate property valuations and 'what should I pay' insights",
       highlight: "AI-powered"
     },
     {

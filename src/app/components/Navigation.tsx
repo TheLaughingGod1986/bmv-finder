@@ -20,7 +20,8 @@ import {
   Star,
   ArrowRight,
   Users,
-  Menu
+  Menu,
+  Eye
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUser, useSession } from '@supabase/auth-helpers-react';
