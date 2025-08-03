@@ -8,7 +8,7 @@ import {
   TrendingUp, BarChart3, Calculator, Search, Home as HomeIcon, 
   Target, Award, Shield, Zap, Clock, Users, CheckCircle, 
   ArrowRight, Star, MapPin, PoundSterling, ChartBar, 
-  FileText, Building, Eye, ArrowUpRight, Lock, PieChart
+  FileText, Building, Eye, ArrowUpRight, Lock, PieChart, Download
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@supabase/auth-helpers-react';
