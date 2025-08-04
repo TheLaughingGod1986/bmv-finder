@@ -90,11 +90,31 @@ export default function WatchlistPage() {
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [editingProperty, setEditingProperty] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({
+    // Basic property details
+    title: '',
+    price: 0,
+    address: '',
+    description: '',
+    bedrooms: 0,
+    bathrooms: 0,
+    property_type: '',
+    tenure: '',
+    postcode: '',
+    
+    // Agent details
+    agent_name: '',
+    agent_phone: '',
+    
+    // Investment analysis
     refurbishment_cost: 0,
-    user_notes: '',
-    property_condition: 'Good',
     estimated_fair_value: 0,
-    custom_rental_estimate: 0
+    custom_rental_estimate: 0,
+    property_condition: 'Good',
+    days_on_market: 0,
+    
+    // Notes and status
+    user_notes: '',
+    status: 'active'
   });
 
   useEffect(() => {
@@ -179,11 +199,31 @@ export default function WatchlistPage() {
   const startEditing = (property: WatchlistItem) => {
     setEditingProperty(property.id);
     setEditForm({
+      // Basic property details
+      title: property.title || '',
+      price: property.price || 0,
+      address: property.address || '',
+      description: property.description || '',
+      bedrooms: property.bedrooms || 0,
+      bathrooms: property.bathrooms || 0,
+      property_type: property.property_type || '',
+      tenure: property.tenure || '',
+      postcode: property.postcode || '',
+      
+      // Agent details
+      agent_name: property.agent_name || '',
+      agent_phone: property.agent_phone || '',
+      
+      // Investment analysis
       refurbishment_cost: property.refurbishment_cost || 0,
-      user_notes: property.user_notes || '',
-      property_condition: property.property_condition || 'Good',
       estimated_fair_value: property.estimated_fair_value || property.price,
-      custom_rental_estimate: property.custom_rental_estimate || calculateRentalEstimateSync(property)
+      custom_rental_estimate: property.custom_rental_estimate || calculateRentalEstimateSync(property),
+      property_condition: property.property_condition || 'Good',
+      days_on_market: property.days_on_market || 0,
+      
+      // Notes and status
+      user_notes: property.user_notes || '',
+      status: property.status || 'active'
     });
   };
 
@@ -210,13 +250,14 @@ export default function WatchlistPage() {
       // Reload watchlist to get updated data
       await loadWatchlist();
       setEditingProperty(null);
-      setEditForm({
+      setEditForm(prev => ({
+        ...prev,
         refurbishment_cost: 0,
         user_notes: '',
         property_condition: 'Good',
         estimated_fair_value: 0,
         custom_rental_estimate: 0
-      });
+      }));
     } catch (error) {
       console.error('Error saving edit:', error);
       alert('Failed to save changes');
@@ -226,11 +267,31 @@ export default function WatchlistPage() {
   const cancelEdit = () => {
     setEditingProperty(null);
     setEditForm({
+      // Basic property details
+      title: '',
+      price: 0,
+      address: '',
+      description: '',
+      bedrooms: 0,
+      bathrooms: 0,
+      property_type: '',
+      tenure: '',
+      postcode: '',
+      
+      // Agent details
+      agent_name: '',
+      agent_phone: '',
+      
+      // Investment analysis
       refurbishment_cost: 0,
-      user_notes: '',
-      property_condition: 'Good',
       estimated_fair_value: 0,
-      custom_rental_estimate: 0
+      custom_rental_estimate: 0,
+      property_condition: 'Good',
+      days_on_market: 0,
+      
+      // Notes and status
+      user_notes: '',
+      status: 'active'
     });
   };
 
@@ -1738,11 +1799,11 @@ Best regards,
                                         <div className="grid grid-cols-2 gap-2 text-xs">
                                           <div className="flex justify-between">
                                             <span className="text-gray-500">Interest-Only:</span>
-                                            <span className="font-medium text-blue-600">£{formatPrice(metrics.monthlyInterestOnly)}</span>
+                                            <span className="font-medium text-blue-600">{formatPrice(metrics.monthlyInterestOnly)}</span>
                                           </div>
                                           <div className="flex justify-between">
                                             <span className="text-gray-500">Repayment:</span>
-                                            <span className="font-medium text-purple-600">£{formatPrice(metrics.monthlyRepayment)}</span>
+                                            <span className="font-medium text-purple-600">{formatPrice(metrics.monthlyRepayment)}</span>
                                           </div>
                                         </div>
                                       </div>
@@ -2321,7 +2382,7 @@ Best regards,
               {/* Edit Property Modal */}
               {editingProperty && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                  <div className="bg-white rounded-2xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+                  <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                     <div className="p-6">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xl font-bold text-gray-900">Edit Property</h3>
@@ -2334,156 +2395,314 @@ Best regards,
                       </div>
 
                       <div className="space-y-4">
-                      <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Monthly Rental Estimate (£)
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.custom_rental_estimate}
-                            onChange={(e) => setEditForm(prev => ({
-                              ...prev,
-                              custom_rental_estimate: parseInt(e.target.value) || 0
-                            }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="0"
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Property Condition
-                          </label>
-                          <select
-                            value={editForm.property_condition}
-                            onChange={(e) => setEditForm(prev => ({
-                              ...prev,
-                              property_condition: e.target.value
-                            }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          >
-                            <option value="Excellent">Excellent</option>
-                            <option value="Good">Good</option>
-                            <option value="Fair">Fair</option>
-                            <option value="Poor">Poor</option>
-                            <option value="Needs Work">Needs Work</option>
-                          </select>
-                      </div>
-
-                        {/* Refurbishment Recommendations */}
-                        {(() => {
-                          const property = watchlist.find(p => p.id === editingProperty);
-                          if (!property) return null;
-                          
-                          const recommendations = getRefurbishmentRecommendations({
-                            ...property,
-                            property_condition: editForm.property_condition
-                          });
-                          
-                          return (
-                            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                              <h4 className="text-sm font-semibold text-blue-800 mb-3">Refurbishment Recommendations</h4>
-                              <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                      <div>
-                                    <span className="text-sm font-medium text-green-700">Low End:</span>
-                                    <p className="text-xs text-gray-600">{recommendations.description.lowEnd}</p>
-                        </div>
-                                  <div className="text-right">
-                                    <span className="text-sm font-bold text-green-700">{formatPrice(recommendations.lowEnd)}</span>
-                                    <button
-                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.lowEnd }))}
-                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                                    >
-                                      Use this
-                                    </button>
-                      </div>
-                                </div>
-                                
-                                <div className="flex justify-between items-center">
-                      <div>
-                                    <span className="text-sm font-medium text-blue-700">Medium End:</span>
-                                    <p className="text-xs text-gray-600">{recommendations.description.mediumEnd}</p>
-                        </div>
-                                  <div className="text-right">
-                                    <span className="text-sm font-bold text-blue-700">{formatPrice(recommendations.mediumEnd)}</span>
-                                    <button
-                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.mediumEnd }))}
-                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                                    >
-                                      Use this
-                                    </button>
-                      </div>
-                                </div>
-                                
-                                <div className="flex justify-between items-center">
-                      <div>
-                                    <span className="text-sm font-medium text-purple-700">High End:</span>
-                                    <p className="text-xs text-gray-600">{recommendations.description.highEnd}</p>
-                        </div>
-                                  <div className="text-right">
-                                    <span className="text-sm font-bold text-purple-700">{formatPrice(recommendations.highEnd)}</span>
-                                    <button
-                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.highEnd }))}
-                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                                    >
-                                      Use this
-                                    </button>
-                      </div>
-                    </div>
-                              </div>
+                        {/* Basic Property Details */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-gray-800 mb-3">Basic Property Details</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
+                              <input
+                                type="text"
+                                value={editForm.title}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Property title"
+                              />
                             </div>
-                          );
-                        })()}
-                    
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Refurbishment Cost (£)
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.refurbishment_cost}
-                            onChange={(e) => setEditForm(prev => ({
-                              ...prev,
-                              refurbishment_cost: parseInt(e.target.value) || 0
-                            }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="0"
-                          />
-                          </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Estimated Fair Value (£)
-                          </label>
-                          <input
-                            type="number"
-                            value={editForm.estimated_fair_value}
-                            onChange={(e) => setEditForm(prev => ({
-                              ...prev,
-                              estimated_fair_value: parseInt(e.target.value) || 0
-                            }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="0"
-                          />
-                          </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Notes
-                          </label>
-                          <textarea
-                            value={editForm.user_notes}
-                            onChange={(e) => setEditForm(prev => ({
-                              ...prev,
-                              user_notes: e.target.value
-                            }))}
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Add your notes about this property..."
-                          />
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Price (£)</label>
+                              <input
+                                type="number"
+                                value={editForm.price}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Address</label>
+                              <input
+                                type="text"
+                                value={editForm.address}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Property address"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Bedrooms</label>
+                              <input
+                                type="number"
+                                value={editForm.bedrooms}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, bedrooms: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Bathrooms</label>
+                              <input
+                                type="number"
+                                value={editForm.bathrooms}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, bathrooms: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Property Type</label>
+                              <select
+                                value={editForm.property_type}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, property_type: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="">Select type</option>
+                                <option value="Detached">Detached</option>
+                                <option value="Semi-Detached">Semi-Detached</option>
+                                <option value="Terraced">Terraced</option>
+                                <option value="Flat">Flat</option>
+                                <option value="Apartment">Apartment</option>
+                                <option value="Bungalow">Bungalow</option>
+                                <option value="Maisonette">Maisonette</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Tenure</label>
+                              <select
+                                value={editForm.tenure}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, tenure: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="">Select tenure</option>
+                                <option value="Freehold">Freehold</option>
+                                <option value="Leasehold">Leasehold</option>
+                                <option value="Share of Freehold">Share of Freehold</option>
+                              </select>
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Postcode</label>
+                              <input
+                                type="text"
+                                value={editForm.postcode}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, postcode: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Postcode"
+                              />
+                            </div>
                           </div>
                         </div>
+
+                        {/* Agent Details */}
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-blue-800 mb-3">Agent Details</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Agent Name</label>
+                              <input
+                                type="text"
+                                value={editForm.agent_name}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, agent_name: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Agent name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Agent Phone</label>
+                              <input
+                                type="text"
+                                value={editForm.agent_phone}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, agent_phone: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Phone number"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Investment Analysis */}
+                        <div className="bg-green-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-green-800 mb-3">Investment Analysis</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Rental Estimate (£)</label>
+                              <input
+                                type="number"
+                                value={editForm.custom_rental_estimate}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, custom_rental_estimate: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Estimated Fair Value (£)</label>
+                              <input
+                                type="number"
+                                value={editForm.estimated_fair_value}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, estimated_fair_value: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Days on Market</label>
+                              <input
+                                type="number"
+                                value={editForm.days_on_market}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, days_on_market: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Property Condition</label>
+                              <select
+                                value={editForm.property_condition}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, property_condition: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="Excellent">Excellent</option>
+                                <option value="Good">Good</option>
+                                <option value="Fair">Fair</option>
+                                <option value="Poor">Poor</option>
+                                <option value="Needs Work">Needs Work</option>
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Property Description */}
+                        <div className="bg-yellow-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-yellow-800 mb-3">Property Description</h4>
+                          <textarea
+                            value={editForm.description}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                            rows={3}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="Property description..."
+                          />
+                        </div>
+
+                        {/* Refurbishment Section */}
+                        <div className="bg-orange-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-orange-800 mb-3">Refurbishment & Costs</h4>
+                          
+                          {/* Refurbishment Recommendations */}
+                          {(() => {
+                            const property = watchlist.find(p => p.id === editingProperty);
+                            if (!property) return null;
+                            
+                            const recommendations = getRefurbishmentRecommendations({
+                              ...property,
+                              property_condition: editForm.property_condition
+                            });
+                            
+                            return (
+                              <div className="bg-white rounded-lg p-3 border border-orange-200 mb-3">
+                                <h5 className="text-xs font-semibold text-orange-700 mb-2">Refurbishment Recommendations</h5>
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <span className="text-xs font-medium text-green-700">Low End:</span>
+                                      <p className="text-xs text-gray-600">{recommendations.description.lowEnd}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-xs font-bold text-green-700">{formatPrice(recommendations.lowEnd)}</span>
+                                      <button
+                                        onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.lowEnd }))}
+                                        className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                      >
+                                        Use this
+                                      </button>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <span className="text-xs font-medium text-blue-700">Medium End:</span>
+                                      <p className="text-xs text-gray-600">{recommendations.description.mediumEnd}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-xs font-bold text-blue-700">{formatPrice(recommendations.mediumEnd)}</span>
+                                      <button
+                                        onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.mediumEnd }))}
+                                        className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                      >
+                                        Use this
+                                      </button>
+                                    </div>
+                                  </div>
+                                  
+                                  <div className="flex justify-between items-center">
+                                    <div>
+                                      <span className="text-xs font-medium text-purple-700">High End:</span>
+                                      <p className="text-xs text-gray-600">{recommendations.description.highEnd}</p>
+                                    </div>
+                                    <div className="text-right">
+                                      <span className="text-xs font-bold text-purple-700">{formatPrice(recommendations.highEnd)}</span>
+                                      <button
+                                        onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.highEnd }))}
+                                        className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                      >
+                                        Use this
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                              Refurbishment Cost (£)
+                            </label>
+                            <input
+                              type="number"
+                              value={editForm.refurbishment_cost}
+                              onChange={(e) => setEditForm(prev => ({
+                                ...prev,
+                                refurbishment_cost: parseInt(e.target.value) || 0
+                              }))}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              placeholder="0"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Status & Notes */}
+                        <div className="bg-purple-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-purple-800 mb-3">Status & Notes</h4>
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                              <select
+                                value={editForm.status}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="active">Active</option>
+                                <option value="under_offer">Under Offer</option>
+                                <option value="sold">Sold</option>
+                                <option value="withdrawn">Withdrawn</option>
+                                <option value="archived">Archived</option>
+                              </select>
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea
+                              value={editForm.user_notes}
+                              onChange={(e) => setEditForm(prev => ({
+                                ...prev,
+                                user_notes: e.target.value
+                              }))}
+                              rows={3}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              placeholder="Add your notes about this property..."
+                            />
+                          </div>
+                        </div>
+                      </div>
 
                       <div className="flex space-x-3 mt-6">
                         <button

@@ -57,6 +57,8 @@
 - ✅ Improved UI flow - Moved Price Assessment and Fair Value into Recommended Offer card for better logical grouping
 - ✅ Removed GitHub link from footer to prevent source code access
 - ✅ Added mortgage type indicator - Shows whether calculations use interest-only or repayment mortgage
+- ✅ Enhanced property editing - Comprehensive edit form with all property fields (basic details, agent info, investment analysis, refurbishment, status & notes)
+- ✅ Fixed double pound sign display - Removed redundant £ symbols in mortgage options comparison
 
 ## 📋 **CURRENT TASKS**
 
