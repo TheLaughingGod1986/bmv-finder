@@ -262,23 +262,23 @@ const EnhancedPriceIndicatorLegend: React.FC<EnhancedPriceIndicatorLegendProps> 
                     <div>
                       <strong className="text-blue-900">What the indicators mean:</strong>
                       <div className="mt-2 space-y-1">
-                        <div>• <strong>"Fair Price"</strong> = Would be a good deal if purchased <strong>today</strong> at that historical price</div>
-                        <div>• <strong>"Overpriced"</strong> = Would be expensive if purchased <strong>today</strong> at that historical price</div>
-                        <div>• <strong>"Excellent Deal"</strong> = Would be an outstanding deal if purchased <strong>today</strong> at that price</div>
+                        <div>• <strong>&ldquo;Fair Price&rdquo;</strong> = Would be a good deal if purchased <strong>today</strong> at that historical price</div>
+                        <div>• <strong>&ldquo;Overpriced&rdquo;</strong> = Would be expensive if purchased <strong>today</strong> at that historical price</div>
+                        <div>• <strong>&ldquo;Excellent Deal&rdquo;</strong> = Would be an outstanding deal if purchased <strong>today</strong> at that price</div>
                       </div>
                     </div>
                     <div>
                       <strong className="text-blue-900">Historical context:</strong>
                       <div className="mt-1">
-                        A property that shows as "Overpriced" today might have been an excellent deal when it was originally sold! 
-                        For example, a property sold for £97,500 in 2007 might be "Overpriced" compared to today's market, 
+                        A property that shows as &ldquo;Overpriced&rdquo; today might have been an excellent deal when it was originally sold! 
+                        For example, a property sold for £97,500 in 2007 might be &ldquo;Overpriced&rdquo; compared to today&apos;s market, 
                         but it was likely a great investment at the time.
                       </div>
                     </div>
                     <div>
                       <strong className="text-blue-900">Investment insight:</strong>
                       <div className="mt-1">
-                        This analysis helps you understand which historical prices would be good deals in today's market, 
+                        This analysis helps you understand which historical prices would be good deals in today&apos;s market, 
                         helping you identify undervalued properties and avoid overpaying.
                       </div>
                     </div>

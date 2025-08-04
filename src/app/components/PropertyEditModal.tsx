@@ -139,7 +139,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
              rentDuration,
              totalIncome: Math.round(totalIncome * 100) / 100,
            });
-  }, [formData, property]);
+  }, [formData, property?.currentValue, property?.purchasePrice]);
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({

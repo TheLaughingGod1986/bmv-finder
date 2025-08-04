@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Plus, Check, Loader2 } from 'lucide-react';
 import { useToast } from './ToastProvider';
 import { supabase } from '@/lib/supabaseClient';
@@ -49,7 +49,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
     checkAuth();
   }, [propertyData.address, propertyData.postcode, propertyData.houseNumber]);
 
-  const checkIfInPortfolio = async (token: string) => {
+  const checkIfInPortfolio = useCallback(async (token: string) => {
     try {
       const response = await fetch('/api/portfolio', {
         headers: {
@@ -71,7 +71,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
     } finally {
       setCheckingPortfolio(false);
     }
-  };
+  }, [propertyData.address, propertyData.postcode, propertyData.houseNumber]);
 
   const handleAddToPortfolio = async () => {
     setLoading(true);

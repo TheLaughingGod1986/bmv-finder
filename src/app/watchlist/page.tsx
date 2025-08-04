@@ -112,6 +112,11 @@ export default function WatchlistPage() {
     property_condition: 'Good',
     days_on_market: 0,
     
+    // Mortgage settings
+    mortgage_type: 'Interest-Only',
+    mortgage_rate: 4.5,
+    mortgage_term: 25,
+    
     // Notes and status
     user_notes: '',
     status: 'active'
