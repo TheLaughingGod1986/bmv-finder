@@ -1135,34 +1135,51 @@ export default function WatchlistPage() {
                         {formatPrice(item.price)}
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <span>🛏️ {item.bedrooms} bed{item.bedrooms !== 1 ? 's' : ''}</span>
+                      {/* Basic Property Info */}
+                      <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-100">
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span className="text-lg">🛏️</span>
+                            <span className="font-medium">{item.bedrooms} bed{item.bedrooms !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span className="text-lg">🚿</span>
+                            <span className="font-medium">{item.bathrooms} bath{item.bathrooms !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span className="text-lg">🏠</span>
+                            <span className="font-medium">{item.property_type}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-gray-600">
+                            <span className="text-lg">📅</span>
+                            <span className="font-medium">{formatDate(item.captured_at)}</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <span>🚿 {item.bathrooms} bath{item.bathrooms !== 1 ? 's' : ''}</span>
+                      </div>
+
+                      {/* Quick Investment Metrics */}
+                      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
+                        <div className="bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white">📊</span>
+                            <h4 className="text-sm font-bold text-white">QUICK METRICS</h4>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <span>🏠 {item.property_type}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-gray-600">
-                          <span>📅 {formatDate(item.captured_at)}</span>
+                        <div className="p-4">
+                          <div className="grid grid-cols-2 gap-3 text-xs">
+                            <div className="flex justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                              <span className="text-gray-600 font-medium">Yield:</span>
+                              <span className="font-bold text-purple-600">{calculateYield(calculateRentalEstimateSync(item), item.price)}%</span>
+                            </div>
+                            <div className="flex justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
+                              <span className="text-gray-600 font-medium">Monthly Rent:</span>
+                              <span className="font-bold text-purple-600">{formatPrice(calculateRentalEstimateSync(item))}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
 
                       {/* Investment Metrics */}
-                      <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="text-gray-600">
-                            <span className="font-medium">Yield:</span> {calculateYield(calculateRentalEstimateSync(item), item.price)}%
-                          </div>
-                          <div className="text-gray-600">
-                            <span className="font-medium">Rent:</span> {formatPrice(calculateRentalEstimateSync(item))}/mo
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Growth Projections */}
                       {(() => {
                         const metrics = calculateInvestmentMetrics(item);
                         const growthAnalysis = analyzeGrowthPotential(item);
@@ -1184,138 +1201,154 @@ export default function WatchlistPage() {
                         };
                         
                         return (
-                          <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
+                          <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
                             {/* Growth Projections */}
-                            <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-200">
-                              <div className="text-center mb-2">
-                                <div className="text-xs text-gray-600 mb-1">📈 GROWTH PROJECTIONS</div>
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                              {/* Header */}
+                              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white">📈</span>
+                                  <h4 className="text-sm font-bold text-white">GROWTH PROJECTIONS</h4>
+                                </div>
                               </div>
-                              <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                  <span className="text-gray-600">10-Year Growth:</span>
-                                  <span className={`font-semibold ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
-                                    {growthAnalysis.tenYearGrowth}%
-                                  </span>
-                                </div>
-                                <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                  <span className="text-gray-600">Projected Value:</span>
-                                  <span className="font-semibold text-green-600">{formatPrice(growthAnalysis.projectedValue)}</span>
-                                </div>
-                                <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                  <span className="text-gray-600">Payback Period:</span>
-                                  <span className="font-semibold text-blue-600">{metrics.paybackPeriod.toFixed(1)}y</span>
-                                </div>
-                                <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                  <span className="text-gray-600">Annual Profit:</span>
-                                  <span className={`font-semibold ${metrics.netAnnualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                    {formatPrice(metrics.netAnnualProfit)}
-                                  </span>
+                              
+                              {/* Content */}
+                              <div className="p-4">
+                                <div className="grid grid-cols-2 gap-3 text-xs">
+                                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <span className="text-gray-600 font-medium">10-Year Growth:</span>
+                                    <span className={`font-bold ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
+                                      {growthAnalysis.tenYearGrowth}%
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <span className="text-gray-600 font-medium">Projected Value:</span>
+                                    <span className="font-bold text-green-600">{formatPrice(growthAnalysis.projectedValue)}</span>
+                                  </div>
+                                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <span className="text-gray-600 font-medium">Payback Period:</span>
+                                    <span className="font-bold text-blue-600">{metrics.paybackPeriod.toFixed(1)}y</span>
+                                  </div>
+                                  <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <span className="text-gray-600 font-medium">Annual Profit:</span>
+                                    <span className={`font-bold ${metrics.netAnnualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {formatPrice(metrics.netAnnualProfit)}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                             
                             {/* Recommended Offer Section */}
-                            <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                               {/* Header */}
-                              <div className="bg-blue-600 px-4 py-2">
+                              <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3">
                                 <div className="flex items-center justify-between">
-                                  <h4 className="text-sm font-bold text-white">🎯 RECOMMENDED OFFER</h4>
-                                  <span className="text-xs text-white">{offerAnalysis.negotiationBuffer}% below asking</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white">🎯</span>
+                                    <h4 className="text-sm font-bold text-white">RECOMMENDED OFFER</h4>
+                                  </div>
+                                  <span className="text-xs text-blue-100 font-medium">{offerAnalysis.negotiationBuffer}% below asking</span>
                                 </div>
                               </div>
                               
                               {/* Main Offer Display */}
                               <div className="p-4">
                                 <div className="text-center mb-4">
-                                  <div className="text-2xl font-bold text-blue-700 mb-1">
+                                  <div className="text-3xl font-bold text-blue-700 mb-2">
                                     {formatPrice(offerAnalysis.recommendedOffer)}
                                   </div>
-                                  <div className="text-xs text-gray-500">
+                                  <div className="text-sm text-gray-500 font-medium">
                                     vs {formatPrice(item.price)} asking price
                                   </div>
                                 </div>
                                 
                                 {/* Quick Analysis */}
                                 <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-                                  <div className="flex justify-between p-2 bg-blue-50 rounded border border-blue-100">
-                                    <span className="text-gray-600">Price Assessment:</span>
-                                    <span className={`font-semibold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                  <div className="flex justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                    <span className="text-gray-600 font-medium">Price Assessment:</span>
+                                    <span className={`font-bold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
                                       {valueAnalysis.priceAssessment}
                                     </span>
                                   </div>
-                                  <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
-                                    <span className="text-gray-600">Fair Value:</span>
-                                    <span className="font-semibold text-gray-800">
+                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                    <span className="text-gray-600 font-medium">Fair Value:</span>
+                                    <span className="font-bold text-gray-800">
                                       {formatPrice(valueAnalysis.fairValue)}
                                     </span>
                                   </div>
                                 </div>
                                 
                                 {/* Action Buttons */}
-                                <div className="flex gap-2">
-                                  <button className="flex-1 py-2 px-3 bg-blue-600 text-white text-xs font-medium rounded-lg hover:bg-blue-700 transition-colors">
-                                    📄 Copy Professional Offer
+                                <div className="flex gap-3">
+                                  <button className="flex-1 py-3 px-4 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                    <span>📄</span>
+                                    Copy Professional Offer
                                   </button>
-                                  <button className="flex-1 py-2 px-3 bg-gray-100 text-gray-700 text-xs font-medium rounded-lg hover:bg-gray-200 transition-colors">
-                                    🎯 Generate Negotiation Strategy
+                                  <button className="flex-1 py-3 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                                    <span>🎯</span>
+                                    Generate Strategy
                                   </button>
                                 </div>
                               </div>
                             </div>
                             
                             {/* Investment Summary */}
-                            <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                               {/* Header */}
-                              <div className="bg-green-600 px-4 py-2">
-                                <h4 className="text-sm font-bold text-white">💰 INVESTMENT SUMMARY</h4>
+                              <div className="bg-gradient-to-r from-green-600 to-green-700 px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-white">💰</span>
+                                  <h4 className="text-sm font-bold text-white">INVESTMENT SUMMARY</h4>
+                                </div>
                               </div>
                               
                               {/* Summary Content */}
                               <div className="p-4">
                                 <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-                                  <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
-                                    <span className="text-gray-600">Total Investment:</span>
-                                    <span className="font-semibold text-gray-800">{formatPrice(metrics.totalInvestment)}</span>
+                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                    <span className="text-gray-600 font-medium">Total Investment:</span>
+                                    <span className="font-bold text-gray-800">{formatPrice(metrics.totalInvestment)}</span>
                                   </div>
-                                  <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
-                                    <span className="text-gray-600">Annual Return:</span>
-                                    <span className="font-semibold text-green-600">{metrics.annualReturn.toFixed(1)}%</span>
+                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                    <span className="text-gray-600 font-medium">Annual Return:</span>
+                                    <span className="font-bold text-green-600">{metrics.annualReturn.toFixed(1)}%</span>
                                   </div>
-                                  <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
-                                    <span className="text-gray-600">Monthly Profit:</span>
-                                    <span className="font-semibold text-green-600">{formatPrice(metrics.monthlyCashFlow)}</span>
+                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                    <span className="text-gray-600 font-medium">Monthly Profit:</span>
+                                    <span className="font-bold text-green-600">{formatPrice(metrics.monthlyCashFlow)}</span>
                                   </div>
-                                  <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
-                                    <span className="text-gray-600">Cash-on-Cash:</span>
-                                    <span className="font-semibold text-blue-600">{metrics.cashOnCashReturn.toFixed(1)}%</span>
+                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                    <span className="text-gray-600 font-medium">Cash-on-Cash:</span>
+                                    <span className="font-bold text-blue-600">{metrics.cashOnCashReturn.toFixed(1)}%</span>
                                   </div>
                                 </div>
                                 
                                 {/* Mortgage Type Indicator */}
-                                <div className="flex items-center gap-2 text-xs text-gray-600 mb-3">
+                                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
                                   <span>🏠</span>
-                                  <span>{item.mortgage_type || 'Interest-Only'} Mortgage</span>
+                                  <span className="font-medium">{item.mortgage_type || 'Interest-Only'} Mortgage</span>
                                 </div>
                                 
                                 {/* Monthly Cash Flow Breakdown */}
-                                <div className="bg-gray-50 rounded-lg p-3 text-xs">
-                                  <div className="text-center mb-2 font-medium text-gray-700">Monthly Cash Flow</div>
-                                  <div className="space-y-1">
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">+ Rental Income:</span>
-                                      <span className="font-semibold text-green-600">+{formatPrice(calculateRentalEstimateSync(item))}</span>
+                                <div className="bg-gray-50 rounded-lg p-4 text-xs border border-gray-100">
+                                  <div className="text-center mb-3 font-bold text-gray-700 text-sm">Monthly Cash Flow</div>
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-gray-600 font-medium">+ Rental Income:</span>
+                                      <span className="font-bold text-green-600">+{formatPrice(calculateRentalEstimateSync(item))}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">- Mortgage Payment:</span>
-                                      <span className="font-semibold text-red-600">-{formatPrice(metrics.monthlyMortgagePayment)}</span>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-gray-600 font-medium">- Mortgage Payment:</span>
+                                      <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyMortgagePayment)}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                      <span className="text-gray-600">- Other Expenses:</span>
-                                      <span className="font-semibold text-red-600">-{formatPrice(metrics.monthlyExpenses)}</span>
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-gray-600 font-medium">- Other Expenses:</span>
+                                      <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyExpenses)}</span>
                                     </div>
-                                    <div className="flex justify-between border-t border-gray-300 pt-1 font-bold">
-                                      <span className="text-gray-800">= Net Cash Flow:</span>
-                                      <span className={`font-bold ${metrics.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    <div className="flex justify-between items-center border-t border-gray-300 pt-2 mt-2">
+                                      <span className="text-gray-800 font-bold">= Net Cash Flow:</span>
+                                      <span className={`font-bold text-lg ${metrics.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                                         = {formatPrice(metrics.monthlyCashFlow)}
                                       </span>
                                     </div>
