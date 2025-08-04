@@ -1256,6 +1256,99 @@ export default function WatchlistPage() {
                         );
                       })()}
 
+                      {/* Detailed Breakdown Section */}
+                      <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-5 h-5 bg-gradient-to-r from-green-500 via-red-500 to-blue-500 rounded"></div>
+                              <h4 className="text-sm font-semibold text-gray-800">View Detailed Breakdown</h4>
+                            </div>
+                            <button className="text-gray-400 hover:text-gray-600">
+                              <ChevronDown className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <div className="p-4 space-y-4">
+                          {/* Initial Investment */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Initial Investment</h5>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-blue-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Deposit</div>
+                                <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.totalInvestment)}</div>
+                              </div>
+                              <div className="bg-orange-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Refurbishment</div>
+                                <div className="text-sm font-semibold text-orange-700">{formatPrice(item.refurbishment_cost || 0)}</div>
+                              </div>
+                              <div className="bg-red-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Stamp Duty</div>
+                                <div className="text-sm font-semibold text-red-700">{formatPrice(Math.round(item.price * 0.02))}</div>
+                              </div>
+                              <div className="bg-gray-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Legal & Survey</div>
+                                <div className="text-sm font-semibold text-gray-700">{formatPrice(4750)}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Monthly Expenses */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Monthly Expenses</h5>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-purple-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Mortgage ({item.mortgage_type || 'Interest-Only'})</div>
+                                <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
+                              </div>
+                              <div className="bg-blue-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Management</div>
+                                <div className="text-sm font-semibold text-blue-700">{formatPrice(calculateRentalEstimateSync(item) * 0.08)}</div>
+                              </div>
+                              <div className="bg-orange-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Insurance</div>
+                                <div className="text-sm font-semibold text-orange-700">{formatPrice(18)}</div>
+                              </div>
+                              <div className="bg-gray-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Maintenance</div>
+                                <div className="text-sm font-semibold text-gray-700">{formatPrice(metrics.monthlyExpenses)}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Mortgage Options */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Mortgage Options</h5>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-blue-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Interest-Only</div>
+                                <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
+                              </div>
+                              <div className="bg-purple-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Repayment</div>
+                                <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment * 1.48)}</div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Investment Timeline */}
+                          <div>
+                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Investment Timeline</h5>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-yellow-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Payback Period</div>
+                                <div className="text-sm font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
+                              </div>
+                              <div className="bg-purple-50 rounded p-2">
+                                <div className="text-xs text-gray-600">Annual Profit</div>
+                                <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.netAnnualProfit)}</div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
                       <div className="space-y-2">
                         <button
                           onClick={() => window.open(item.original_url, '_blank')}
@@ -1647,6 +1740,67 @@ export default function WatchlistPage() {
                   />
                 </div>
               </div>
+
+              {/* Offer Details - Show only when status is "under_offer" */}
+              {editForm.status === 'under_offer' && (
+                <div className="bg-red-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-red-800 mb-3 flex items-center gap-2">
+                    <span>📁</span>
+                    Offer Details
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Offer Amount (£)</label>
+                      <input
+                        type="number"
+                        value={editForm.offer_amount || 0}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, offer_amount: parseFloat(e.target.value) || 0 }))}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                        placeholder="0"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Offer Date</label>
+                      <div className="relative">
+                        <input
+                          type="date"
+                          value={editForm.offer_date || ''}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, offer_date: e.target.value }))}
+                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                        />
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400">
+                          📅
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Offer Status</label>
+                    <select
+                      value={editForm.offer_status || 'pending'}
+                      onChange={(e) => setEditForm(prev => ({ ...prev, offer_status: e.target.value }))}
+                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="accepted">Accepted</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="counter_offer">Counter Offer</option>
+                    </select>
+                  </div>
+                  
+                  <div className="bg-red-100 border border-red-200 rounded p-3">
+                    <div className="flex items-start gap-2">
+                      <span className="text-red-600">💡</span>
+                      <div className="text-xs text-red-800">
+                        <strong>Tip:</strong> When you set status to "Under Offer", you can track your offer details here. Update the offer status when you receive a response from the vendor.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
             
             <div className="flex gap-3 mt-6">
