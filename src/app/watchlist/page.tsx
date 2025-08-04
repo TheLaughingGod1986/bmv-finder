@@ -103,6 +103,7 @@ export default function WatchlistPage() {
   const [sortBy, setSortBy] = useState('captured_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
   const [editingProperty, setEditingProperty] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({
     title: '',
@@ -380,6 +381,18 @@ export default function WatchlistPage() {
       growthAssessment,
       factors
     };
+  };
+
+  const toggleBreakdown = (propertyId: string) => {
+    setExpandedBreakdowns(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(propertyId)) {
+        newSet.delete(propertyId);
+      } else {
+        newSet.add(propertyId);
+      }
+      return newSet;
+    });
   };
 
   const getRefurbishmentRecommendations = (property: WatchlistItem) => {
@@ -1259,21 +1272,26 @@ export default function WatchlistPage() {
                       {/* Detailed Breakdown Section */}
                       {(() => {
                         const metrics = calculateInvestmentMetrics(item);
+                        const isExpanded = expandedBreakdowns.has(item.id);
                         return (
                           <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
                             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                              <div className="flex items-center justify-between">
+                              <button 
+                                onClick={() => toggleBreakdown(item.id)}
+                                className="flex items-center justify-between w-full hover:bg-gray-100 transition-colors"
+                              >
                                 <div className="flex items-center gap-2">
                                   <div className="w-5 h-5 bg-gradient-to-r from-green-500 via-red-500 to-blue-500 rounded"></div>
                                   <h4 className="text-sm font-semibold text-gray-800">View Detailed Breakdown</h4>
                                 </div>
-                                <button className="text-gray-400 hover:text-gray-600">
+                                <div className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
                                   <ChevronDown className="w-4 h-4" />
-                                </button>
-                              </div>
+                                </div>
+                              </button>
                             </div>
                             
-                            <div className="p-4 space-y-4">
+                            {isExpanded && (
+                              <div className="p-4 space-y-4">
                               {/* Initial Investment */}
                               <div>
                                 <h5 className="text-xs font-semibold text-gray-700 mb-2">Initial Investment</h5>
