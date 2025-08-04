@@ -295,12 +295,37 @@ export async function PUT(request: NextRequest) {
     }
     
     const updateData = await request.json();
-    const { id, price, refurbishment_cost, user_notes, property_condition, estimated_fair_value, custom_rental_estimate, status } = updateData;
+    const { 
+      id, 
+      price, 
+      title,
+      address,
+      description,
+      bedrooms,
+      bathrooms,
+      property_type,
+      tenure,
+      postcode,
+      agent_name,
+      agent_phone,
+      refurbishment_cost, 
+      user_notes, 
+      property_condition, 
+      estimated_fair_value, 
+      custom_rental_estimate, 
+      status,
+      mortgage_type,
+      mortgage_rate,
+      mortgage_term,
+      offer_amount,
+      offer_date,
+      offer_status,
+      days_on_market
+    } = updateData;
     
     if (!id) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
-
 
     const updateFields: any = {
       updated_at: new Date().toISOString()
@@ -308,13 +333,29 @@ export async function PUT(request: NextRequest) {
 
     // Add fields to update if they exist
     if (price !== undefined) updateFields.price = extractPrice(price);
-    // Note: These columns may not exist yet, so we'll skip them for now
-    // if (refurbishment_cost !== undefined) updateFields.refurbishment_cost = refurbishment_cost;
-    // if (user_notes !== undefined) updateFields.user_notes = user_notes;
-    // if (property_condition !== undefined) updateFields.property_condition = property_condition;
-    // if (estimated_fair_value !== undefined) updateFields.estimated_fair_value = estimated_fair_value;
-    // if (custom_rental_estimate !== undefined) updateFields.custom_rental_estimate = custom_rental_estimate;
+    if (title !== undefined) updateFields.title = title;
+    if (address !== undefined) updateFields.address = address;
+    if (description !== undefined) updateFields.description = description;
+    if (bedrooms !== undefined) updateFields.bedrooms = bedrooms;
+    if (bathrooms !== undefined) updateFields.bathrooms = bathrooms;
+    if (property_type !== undefined) updateFields.property_type = property_type;
+    if (tenure !== undefined) updateFields.tenure = tenure;
+    if (postcode !== undefined) updateFields.postcode = postcode;
+    if (agent_name !== undefined) updateFields.agent_name = agent_name;
+    if (agent_phone !== undefined) updateFields.agent_phone = agent_phone;
+    if (refurbishment_cost !== undefined) updateFields.refurbishment_cost = refurbishment_cost;
+    if (user_notes !== undefined) updateFields.user_notes = user_notes;
+    if (property_condition !== undefined) updateFields.property_condition = property_condition;
+    if (estimated_fair_value !== undefined) updateFields.estimated_fair_value = estimated_fair_value;
+    if (custom_rental_estimate !== undefined) updateFields.custom_rental_estimate = custom_rental_estimate;
     if (status !== undefined) updateFields.status = status;
+    if (mortgage_type !== undefined) updateFields.mortgage_type = mortgage_type;
+    if (mortgage_rate !== undefined) updateFields.mortgage_rate = mortgage_rate;
+    if (mortgage_term !== undefined) updateFields.mortgage_term = mortgage_term;
+    if (offer_amount !== undefined) updateFields.offer_amount = offer_amount;
+    if (offer_date !== undefined) updateFields.offer_date = offer_date;
+    if (offer_status !== undefined) updateFields.offer_status = offer_status;
+    if (days_on_market !== undefined) updateFields.days_on_market = days_on_market;
 
     const { data, error } = await supabase
       .from('watchlist')
@@ -327,7 +368,6 @@ export async function PUT(request: NextRequest) {
       console.error('Update error:', error);
       return NextResponse.json({ error: 'Failed to update property: ' + error.message }, { status: 500 });
     }
-
 
     return NextResponse.json({
       success: true,

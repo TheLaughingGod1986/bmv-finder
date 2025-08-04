@@ -320,4 +320,88 @@ export async function POST(request: NextRequest) {
     console.error('Watchlist POST error:', error);
     return NextResponse.json({ error: 'Failed to add property to watchlist' }, { status: 500 });
   }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // If Supabase is not configured, update in-memory storage
+    if (!supabase) {
+      const updateData = await request.json();
+      const { id, ...updateFields } = updateData;
+      
+      if (!id) {
+        return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+      }
+      
+      // Find and update the property in both mock data and captured properties
+      let updatedProperty = null;
+      
+      // Update in mock data
+      const mockIndex = mockWatchlistData.findIndex(p => p.id === id);
+      if (mockIndex !== -1) {
+        mockWatchlistData[mockIndex] = {
+          ...mockWatchlistData[mockIndex],
+          ...updateFields,
+          updated_at: new Date().toISOString()
+        };
+        updatedProperty = mockWatchlistData[mockIndex];
+      }
+      
+      // Update in captured properties
+      const capturedIndex = capturedProperties.findIndex(p => p.id === id);
+      if (capturedIndex !== -1) {
+        capturedProperties[capturedIndex] = {
+          ...capturedProperties[capturedIndex],
+          ...updateFields,
+          updated_at: new Date().toISOString()
+        };
+        updatedProperty = capturedProperties[capturedIndex];
+      }
+      
+      if (!updatedProperty) {
+        return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Property updated successfully (mock)',
+        property: updatedProperty
+      });
+    }
+    
+    // If Supabase is configured, use the real database
+    const updateData = await request.json();
+    const { id, ...updateFields } = updateData;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+    
+    const { data, error } = await supabase
+      .from('watchlist')
+      .update({
+        ...updateFields,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Watchlist update error:', error);
+      return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Property updated successfully',
+      property: data
+    });
+    
+  } catch (error) {
+    console.error('Watchlist PUT error:', error);
+    return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+  }
 } 

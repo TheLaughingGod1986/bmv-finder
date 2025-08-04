@@ -25,6 +25,7 @@
     "deploy:production": "./scripts/deploy-production.sh",
     "deploy:core": "./scripts/deploy-core.sh",
     "deploy:staging": "vercel --yes",
+    "deploy:verify": "./scripts/deploy-verify-retry.sh",
     "setup": "./scripts/setup-env.sh",
     "setup:infrastructure": "./scripts/setup-production-infrastructure.sh",
     "setup:monitoring": "./scripts/setup-monitoring.sh",

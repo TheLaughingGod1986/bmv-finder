@@ -259,7 +259,7 @@ export default function WatchlistPage() {
       // Remove custom_rental_estimate from the request for now since the column doesn't exist
       const { custom_rental_estimate, ...updateData } = editForm;
       
-      const response = await fetch(`/api/properties/capture`, {
+      const response = await fetch(`/api/watchlist`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -334,9 +334,9 @@ export default function WatchlistPage() {
 
   const calculateInvestmentMetrics = (property: WatchlistItem) => {
     try {
-      const purchasePrice = property.price;
-      const deposit = purchasePrice * 0.25; // 25% deposit
-      const refurbCost = property.refurbishment_cost || 0;
+    const purchasePrice = property.price;
+    const deposit = purchasePrice * 0.25; // 25% deposit
+    const refurbCost = property.refurbishment_cost || 0;
       
       // Calculate stamp duty for Limited Company (LTD)
       const calculateStampDutyLTD = (price: number) => {
@@ -354,10 +354,13 @@ export default function WatchlistPage() {
       
       const totalFees = stampDutyLTD + legalFees + surveyFees + otherFees;
       const totalCost = deposit + refurbCost + totalFees;
-      
-      const monthlyRent = calculateRentalEstimateSync(property);
-      const annualRent = monthlyRent * 12;
-      const annualROI = totalCost > 0 ? (annualRent / totalCost) * 100 : 0;
+    
+    const monthlyRent = calculateRentalEstimateSync(property);
+    const annualRent = monthlyRent * 12;
+    const annualROI = totalCost > 0 ? (annualRent / totalCost) * 100 : 0;
+    
+    // Calculate cash-on-cash return (more meaningful for mortgage comparisons)
+    const cashOnCashReturn = totalCost > 0 ? (netMonthlyProfit * 12 / totalCost) * 100 : 0;
       
       // Calculate payback period (years to return on investment)
       const paybackPeriod = annualRent > 0 ? totalCost / annualRent : 0;
@@ -397,18 +400,19 @@ export default function WatchlistPage() {
       
       // Real profit margin
       const realProfitMargin = monthlyRent > 0 ? (netMonthlyProfit / monthlyRent) * 100 : 0;
-      
-      return {
-        deposit,
-        refurbCost,
+    
+    return {
+      deposit,
+      refurbCost,
         stampDutyLTD,
         legalFees,
         surveyFees,
         otherFees,
         totalFees,
-        totalCost,
-        annualRent,
+      totalCost,
+      annualRent,
         annualROI,
+        cashOnCashReturn,
         paybackPeriod,
         // Mortgage details
         mortgageAmount,
@@ -1416,7 +1420,7 @@ export default function WatchlistPage() {
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
                                 {getSourceIcon(item.source)} {item.source}
                               </span>
-                            </div>
+                  </div>
                             <div className="absolute top-3 right-3 flex gap-1">
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                                 Demo
@@ -1439,7 +1443,7 @@ export default function WatchlistPage() {
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                                 Demo
                               </span>
-                            </div>
+                </div>
                           </div>
                         )}
 
@@ -1593,67 +1597,76 @@ export default function WatchlistPage() {
                                     );
                                   })()}
                                   
-                                                                     <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-200">
-                                     <div className="text-center">
-                                       <div className="text-xs text-gray-600 mb-1">🎯 RECOMMENDED OFFER</div>
-                                       
-                                       {/* Price Analysis Context */}
-                                       <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
-                                         <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                           <span className="text-gray-600">Price Assessment:</span>
-                                           <span className={`font-semibold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
-                                             {valueAnalysis.priceAssessment}
-                                           </span>
-                                         </div>
-                                         <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                           <span className="text-gray-600">Fair Value:</span>
-                                           <span className="font-semibold text-gray-800">
-                                             {formatPrice(valueAnalysis.fairValue)}
-                                           </span>
-                                         </div>
-                                       </div>
-                                       
-                                       {/* Recommended Offer */}
-                                       <div className="text-xl font-bold text-blue-700 mb-1">
-                                         {formatPrice(offerAnalysis.recommendedOffer)}
-                                       </div>
-                                       
-                                       {/* Current Offer Status - Show if under offer */}
-                                       {item.status === 'under_offer' && item.offer_amount && (
-                                         <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
-                                           <div className="text-xs text-red-700 font-medium mb-1">📋 Your Offer:</div>
-                                           <div className="flex justify-between text-sm">
-                                             <span className="text-red-600">Amount:</span>
-                                             <span className="font-bold text-red-800">{formatPrice(item.offer_amount)}</span>
-                                           </div>
-                                           {item.offer_date && (
-                                             <div className="flex justify-between text-xs text-red-600">
-                                               <span>Date:</span>
-                                               <span>{formatDate(item.offer_date)}</span>
-                                             </div>
-                                           )}
-                                           {item.offer_status && (
-                                             <div className="flex justify-between text-xs text-red-600">
-                                               <span>Status:</span>
-                                               <span className={`font-medium ${
-                                                 item.offer_status === 'accepted' ? 'text-green-600' :
-                                                 item.offer_status === 'rejected' ? 'text-red-600' :
-                                                 'text-yellow-600'
-                                               }`}>
-                                                 {item.offer_status.charAt(0).toUpperCase() + item.offer_status.slice(1)}
-                                               </span>
-                                             </div>
-                                           )}
-                                         </div>
-                                       )}
-                                       <div className="text-xs text-gray-500 mb-2">
-                                         {offerAnalysis.negotiationBuffer}% below asking price
-                                       </div>
-                                       <div className="space-y-2">
-                                         <button
-                                           onClick={() => {
-                                             const metrics = calculateInvestmentMetrics(item);
-                                             const message = `Subject: Offer for ${item.address}
+                                                                     {/* Recommended Offer Section - Redesigned */}
+                                  <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                    {/* Header */}
+                                    <div className="bg-blue-600 px-4 py-2">
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-bold text-white">🎯 Recommended Offer</h4>
+                                        <span className="text-xs text-white">{offerAnalysis.negotiationBuffer}% below asking</span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Main Offer Display */}
+                                    <div className="p-4">
+                                      <div className="text-center mb-4">
+                                        <div className="text-2xl font-bold text-blue-700 mb-1">
+                                          {formatPrice(offerAnalysis.recommendedOffer)}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          vs {formatPrice(item.price)} asking price
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Quick Analysis */}
+                                      <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
+                                        <div className="flex justify-between p-2 bg-blue-50 rounded border border-blue-100">
+                                          <span className="text-gray-600">Price Assessment:</span>
+                                          <span className={`font-semibold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                            {valueAnalysis.priceAssessment}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
+                                          <span className="text-gray-600">Fair Value:</span>
+                                          <span className="font-semibold text-gray-800">
+                                            {formatPrice(valueAnalysis.fairValue)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Current Offer Status - Show if under offer */}
+                                      {item.status === 'under_offer' && item.offer_amount && (
+                                        <div className="mb-4 p-3 bg-red-50 rounded border border-red-200">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <span className="text-xs font-semibold text-red-700">📋 Your Current Offer</span>
+                                            <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                              item.offer_status === 'accepted' ? 'bg-green-100 text-green-700' :
+                                              item.offer_status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                              'bg-yellow-100 text-yellow-700'
+                                            }`}>
+                                              {item.offer_status?.charAt(0).toUpperCase() + item.offer_status?.slice(1) || 'Pending'}
+                                            </span>
+                                          </div>
+                                          <div className="grid grid-cols-2 gap-2 text-xs">
+                                            <div className="flex justify-between">
+                                              <span className="text-red-600">Amount:</span>
+                                              <span className="font-bold text-red-800">{formatPrice(item.offer_amount)}</span>
+                                            </div>
+                                            {item.offer_date && (
+                                              <div className="flex justify-between">
+                                                <span className="text-red-600">Date:</span>
+                                                <span className="text-red-700">{formatDate(item.offer_date)}</span>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Action Buttons */}
+                                      <div className="space-y-2">
+                                        <button
+                                          onClick={() => {
+                                            const message = `Subject: Offer for ${item.address}
 
 Dear ${item.agent_name},
 
@@ -1673,23 +1686,23 @@ Please let me know if you need any additional information or if you'd like to ar
 Best regards,
 [Your Name]
 [Your Phone Number]`;
-                                             
-                                             navigator.clipboard.writeText(message);
-                                             showToast({
-                                               type: 'success',
-                                               title: 'Professional Offer Template Copied!',
-                                               message: 'A comprehensive offer message has been copied to your clipboard. You can now paste it in your email to the agent.'
-                                             });
-                                           }}
-                                           className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
-                                         >
-                                           📋 Copy Professional Offer
-                                         </button>
-                                         
-                                         <button
-                                           onClick={() => {
-                                             const metrics = calculateInvestmentMetrics(item);
-                                             const strategy = `Negotiation Strategy for ${item.address}:
+                                            
+                                            navigator.clipboard.writeText(message);
+                                            showToast({
+                                              type: 'success',
+                                              title: 'Professional Offer Template Copied!',
+                                              message: 'A comprehensive offer message has been copied to your clipboard. You can now paste it in your email to the agent.'
+                                            });
+                                          }}
+                                          className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                          📋 Copy Professional Offer
+                                        </button>
+                                        
+                                        <button
+                                          onClick={() => {
+                                            const metrics = calculateInvestmentMetrics(item);
+                                            const strategy = `Negotiation Strategy for ${item.address}:
 
 🎯 TARGET OFFER: ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)} (${offerAnalysis ? Math.round((offerAnalysis.recommendedOffer / item.price) * 100) : 92}% of asking)
 
@@ -1697,7 +1710,6 @@ Best regards,
 • Comparable properties sold for ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 0.95)} - ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 1.05)} in the last 6 months
 • Property condition: ${item.property_condition || 'Good'} - may need ${formatPrice(metrics.refurbCost)} in refurbishment
 • Market position: ${(() => {
-                                             const valueAnalysis = analyzePropertyValue(item);
                                              return valueAnalysis.priceAssessment.toLowerCase();
                                            })()}
 • Days on market: ${item.days_on_market || 'Unknown'} - ${item.days_on_market > 30 ? 'Good leverage for negotiation' : 'Property may be in demand'}
@@ -1730,10 +1742,10 @@ Best regards,
                                            className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300"
                                          >
                                            🎯 Generate Negotiation Strategy
-                                         </button>
-                                       </div>
+                                       </button>
                                      </div>
                                    </div>
+                                  </div>
                                   
 
                                 </div>
@@ -1741,30 +1753,19 @@ Best regards,
                             })()}
                 </div>
 
-                          {/* Investment Analysis - Redesigned for Better UX */}
+                          {/* Investment Analysis - Streamlined */}
                           {(() => {
                             const metrics = calculateInvestmentMetrics(item);
-                            let growthAnalysis;
-                            try {
-                              growthAnalysis = analyzeGrowthPotential(item);
-                            } catch (error) {
-                              console.error('Error analyzing growth potential:', error);
-                              growthAnalysis = {
-                                tenYearGrowth: 0,
-                                projectedValue: item.price,
-                                growthAssessment: 'stable'
-                              };
-                            }
                             return (
-                              <div className="space-y-4 mb-6">
-                                {/* Key Investment Summary - Most Important Info First */}
-                                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200 p-4">
+                              <div className="space-y-3 mb-6">
+                                {/* Key Investment Summary */}
+                                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200 p-4">
                                   <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
                                     <span className="mr-2">💰</span> Investment Summary
                                   </h4>
                                   
                                   {/* Three Key Metrics */}
-                                  <div className="grid grid-cols-3 gap-3 mb-4">
+                                  <div className="grid grid-cols-3 gap-3 mb-3">
                                     <div className="text-center">
                                       <div className="text-lg font-bold text-green-600">{formatPrice(metrics.totalCost)}</div>
                                       <div className="text-xs text-gray-600">Total Investment</div>
@@ -1779,14 +1780,6 @@ Best regards,
                                     </div>
                                   </div>
                                   
-                                  {/* Mortgage Type Indicator */}
-                                  <div className="flex justify-center mb-3">
-                                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full border border-purple-200">
-                                      <span className="mr-1">🏠</span>
-                                      {metrics.mortgageType} Mortgage
-                                    </span>
-                                  </div>
-                                  
                                   {/* Quick Cash Flow */}
                                   <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
                                     <span className="text-sm text-gray-600">Monthly Cash Flow:</span>
@@ -1798,96 +1791,36 @@ Best regards,
                                   </div>
                                 </div>
 
-                                {/* Detailed Breakdown - Collapsible */}
-                                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                                  <button
-                                    onClick={() => {
-                                      const element = document.getElementById(`details-${item.id}`);
-                                      if (element) {
-                                        element.classList.toggle('hidden');
-                                      }
-                                    }}
-                                    className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
-                                  >
-                                    <span className="text-sm font-semibold text-gray-700">📊 View Detailed Breakdown</span>
-                                    <span className="text-gray-500">▼</span>
-                                  </button>
+                                {/* Quick Breakdown - Always Visible */}
+                                <div className="bg-white rounded-lg border border-gray-200 p-3">
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="flex justify-between p-2 bg-blue-50 rounded">
+                                      <span className="text-gray-600">Deposit:</span>
+                                      <span className="font-medium text-blue-600">{formatPrice(metrics.deposit)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-2 bg-orange-50 rounded">
+                                      <span className="text-gray-600">Refurb:</span>
+                                      <span className="font-medium text-orange-600">{formatPrice(metrics.refurbCost)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-2 bg-red-50 rounded">
+                                      <span className="text-gray-600">Stamp Duty:</span>
+                                      <span className="font-medium text-red-600">{formatPrice(metrics.stampDutyLTD)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-2 bg-purple-50 rounded">
+                                      <span className="text-gray-600">Mortgage ({metrics.mortgageType}):</span>
+                                      <span className="font-medium text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</span>
+                                    </div>
+                                  </div>
                                   
-                                  <div id={`details-${item.id}`} className="hidden p-4 space-y-3">
-                                    {/* Initial Costs */}
-                                    <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 mb-2">Initial Investment</h5>
-                                      <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="flex justify-between p-2 bg-blue-50 rounded">
-                                          <span className="text-gray-600">Deposit:</span>
-                                          <span className="font-medium text-blue-600">{formatPrice(metrics.deposit)}</span>
-                                        </div>
-                                        <div className="flex justify-between p-2 bg-orange-50 rounded">
-                                          <span className="text-gray-600">Refurbishment:</span>
-                                          <span className="font-medium text-orange-600">{formatPrice(metrics.refurbCost)}</span>
-                                        </div>
-                                        <div className="flex justify-between p-2 bg-red-50 rounded">
-                                          <span className="text-gray-600">Stamp Duty:</span>
-                                          <span className="font-medium text-red-600">{formatPrice(metrics.stampDutyLTD)}</span>
-                                        </div>
-                                        <div className="flex justify-between p-2 bg-gray-50 rounded">
-                                          <span className="text-gray-600">Legal & Survey:</span>
-                                          <span className="font-medium text-gray-600">{formatPrice(metrics.legalFees + metrics.surveyFees)}</span>
-                                        </div>
-                                      </div>
+                                  {/* Investment Timeline */}
+                                  <div className="grid grid-cols-2 gap-2 mt-3">
+                                    <div className="text-center p-2 bg-yellow-50 rounded border border-yellow-200">
+                                      <div className="font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
+                                      <div className="text-gray-600">Payback Period</div>
                                     </div>
-
-                                    {/* Monthly Expenses */}
-                                    <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 mb-2">Monthly Expenses</h5>
-                                      <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="flex justify-between p-2 bg-purple-50 rounded">
-                                          <span className="text-gray-600">Mortgage ({metrics.mortgageType}):</span>
-                                          <span className="font-medium text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</span>
-                                        </div>
-                                        <div className="flex justify-between p-2 bg-blue-50 rounded">
-                                          <span className="text-gray-600">Management:</span>
-                                          <span className="font-medium text-blue-600">{formatPrice(metrics.managementFee)}</span>
-                                        </div>
-                                        <div className="flex justify-between p-2 bg-orange-50 rounded">
-                                          <span className="text-gray-600">Insurance:</span>
-                                          <span className="font-medium text-orange-600">{formatPrice(metrics.insuranceCost)}</span>
-                                        </div>
-                                        <div className="flex justify-between p-2 bg-green-50 rounded">
-                                          <span className="text-gray-600">Maintenance:</span>
-                                          <span className="font-medium text-green-600">{formatPrice(metrics.maintenanceReserve)}</span>
-                                        </div>
-                                      </div>
-                                      
-                                      {/* Mortgage Comparison */}
-                                      <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-                                        <div className="text-xs text-gray-600 mb-1">Mortgage Options:</div>
-                                        <div className="grid grid-cols-2 gap-2 text-xs">
-                                          <div className="flex justify-between">
-                                            <span className="text-gray-500">Interest-Only:</span>
-                                            <span className="font-medium text-blue-600">{formatPrice(metrics.monthlyInterestOnly)}</span>
-                                          </div>
-                                          <div className="flex justify-between">
-                                            <span className="text-gray-500">Repayment:</span>
-                                            <span className="font-medium text-purple-600">{formatPrice(metrics.monthlyRepayment)}</span>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </div>
-
-                                    {/* Investment Timeline */}
-                                    <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 mb-2">Investment Timeline</h5>
-                                      <div className="grid grid-cols-2 gap-2 text-xs">
-                                        <div className="text-center p-2 bg-yellow-50 rounded border border-yellow-200">
-                                          <div className="font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
-                                          <div className="text-gray-600">Payback Period</div>
-                                        </div>
-                                        <div className="text-center p-2 bg-indigo-50 rounded border border-indigo-200">
-                                          <div className="font-semibold text-indigo-700">{formatPrice(metrics.netAnnualProfit)}</div>
-                                          <div className="text-gray-600">Annual Profit</div>
-                                        </div>
-                                      </div>
+                                    <div className="text-center p-2 bg-indigo-50 rounded border border-indigo-200">
+                                      <div className="font-semibold text-indigo-700">{formatPrice(metrics.netAnnualProfit)}</div>
+                                      <div className="text-gray-600">Annual Profit</div>
                                     </div>
                                   </div>
                                 </div>
@@ -1967,15 +1900,15 @@ Best regards,
                     </div>
                     
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    Property Comparison ({selectedProperties.length} selected)
-                  </h3>
-                  <button
-                    onClick={() => setSelectedProperties([])}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                  >
-                    Clear Selection
-                  </button>
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        Property Comparison ({selectedProperties.length} selected)
+                      </h3>
+                    <button
+                      onClick={() => setSelectedProperties([])}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Clear Selection
+                    </button>
                 </div>
                 
                     {/* Deal Summary */}
@@ -2043,9 +1976,17 @@ Best regards,
                             </div>
                           </div>
                           
-                          {/* Average Metrics */}
-                          <div className="mt-4 pt-3 border-t border-blue-200">
-                            <h5 className="text-sm font-semibold text-gray-700 mb-2">Average Performance</h5>
+                          {/* Average Metrics & Actions */}
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="text-sm font-semibold text-gray-700">Average Performance</h5>
+                              <button
+                                onClick={() => addToPortfolio(bestDeal.property)}
+                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
+                              >
+                                Add Best Deal to Portfolio (Demo)
+                              </button>
+                            </div>
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                               <div className="text-center">
                                 <div className="text-lg font-bold text-blue-600">{averageScore}/100</div>
@@ -2068,19 +2009,6 @@ Best regards,
                                   {(allMetrics.reduce((sum, m) => sum + m.paybackPeriod, 0) / allMetrics.length).toFixed(1)}y
                                 </div>
                                 <div className="text-gray-500">Avg Payback Period</div>
-                              </div>
-                            </div>
-                            
-                            {/* Quick Actions */}
-                            <div className="mt-4 pt-3 border-t border-blue-200">
-                              <div className="flex justify-center">
-                                <button
-                                  onClick={() => addToPortfolio(bestDeal.property)}
-                                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium flex items-center"
-                                >
-                                  <span className="mr-2">📈</span>
-                                  Add Best Deal to Portfolio (Demo)
-                                </button>
                               </div>
                             </div>
                           </div>
@@ -2109,16 +2037,16 @@ Best regards,
                                 <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                                   Demo
                                 </span>
-                                <button
-                                  onClick={() => togglePropertySelection(property.id)}
-                                  className="text-red-500 hover:text-red-700"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
+                          <button
+                            onClick={() => togglePropertySelection(property.id)}
+                                className="text-red-500 hover:text-red-700"
+                          >
+                                <X className="h-4 w-4" />
+                          </button>
                               </div>
-                            </div>
-                            
-                            <div className="space-y-3">
+                        </div>
+                        
+                        <div className="space-y-3">
                               <div className="flex justify-between text-sm">
                                 <span className="text-gray-600">Price:</span>
                                 <span className="font-semibold text-blue-600">
@@ -2355,22 +2283,7 @@ Best regards,
                                        <span className="text-gray-600">Monthly Rent:</span>
                                        <span className="font-medium text-green-600">{formatPrice(calculateRentalEstimateSync(property))}</span>
                                      </div>
-                                     <div className="flex justify-between p-1 bg-red-50 rounded border border-red-100 cursor-pointer hover:bg-red-100 transition-colors" 
-                                          onClick={() => {
-                                            const breakdown = `Monthly Expenses Breakdown:
-• Mortgage Payment: £${formatPrice(metrics.monthlyMortgagePayment)}
-• Management Fee (8%): £${formatPrice(metrics.managementFee)}
-• Insurance (0.05%): £${formatPrice(metrics.insuranceCost)}
-• Maintenance Reserve (3%): £${formatPrice(metrics.maintenanceReserve)}
-• Total: £${formatPrice(metrics.totalMonthlyExpenses)}`;
-                                            navigator.clipboard.writeText(breakdown);
-                                            showToast({
-                                              type: 'success',
-                                              title: 'Expense Breakdown Copied!',
-                                              message: 'Monthly expense breakdown has been copied to your clipboard.'
-                                            });
-                                          }}
-                                          title="Click to copy expense breakdown">
+                                     <div className="flex justify-between p-1 bg-red-50 rounded border border-red-100">
                                        <span className="text-gray-600">Total Expenses:</span>
                                        <span className="font-medium text-red-600">{formatPrice(metrics.totalMonthlyExpenses)}</span>
                                      </div>
@@ -2385,29 +2298,6 @@ Best regards,
                                        <span className={`font-medium ${metrics.realProfitMargin >= 20 ? 'text-green-600' : metrics.realProfitMargin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
                                          {metrics.realProfitMargin.toFixed(1)}%
                                        </span>
-                                     </div>
-                                   </div>
-                                   
-                                   {/* Expense Breakdown Details */}
-                                   <div className="mb-3 p-2 bg-gray-50 rounded border border-gray-200">
-                                     <div className="text-xs text-gray-600 mb-1">Monthly Expenses Breakdown:</div>
-                                     <div className="grid grid-cols-2 gap-1 text-xs">
-                                       <div className="flex justify-between">
-                                         <span className="text-gray-500">Mortgage Payment:</span>
-                                         <span className="font-medium text-purple-600">£{formatPrice(metrics.monthlyMortgagePayment)}</span>
-                                       </div>
-                                       <div className="flex justify-between">
-                                         <span className="text-gray-500">Management Fee (8%):</span>
-                                         <span className="font-medium text-blue-600">£{formatPrice(metrics.managementFee)}</span>
-                                       </div>
-                                       <div className="flex justify-between">
-                                         <span className="text-gray-500">Insurance (0.05%):</span>
-                                         <span className="font-medium text-orange-600">£{formatPrice(metrics.insuranceCost)}</span>
-                                       </div>
-                                       <div className="flex justify-between">
-                                         <span className="text-gray-500">Maintenance Reserve (3%):</span>
-                                         <span className="font-medium text-green-600">£{formatPrice(metrics.maintenanceReserve)}</span>
-                                       </div>
                                      </div>
                                    </div>
                                    
@@ -2465,7 +2355,7 @@ Best regards,
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="text-sm font-semibold text-gray-800 mb-3">Basic Property Details</h4>
                           <div className="grid grid-cols-2 gap-3">
-                            <div>
+                      <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
                               <input
                                 type="text"
@@ -2477,13 +2367,13 @@ Best regards,
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">Price (£)</label>
-                              <input
-                                type="number"
+                          <input
+                            type="number"
                                 value={editForm.price}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                                placeholder="0"
-                              />
+                            placeholder="0"
+                          />
                             </div>
                             <div className="col-span-2">
                               <label className="block text-xs font-medium text-gray-700 mb-1">Address</label>
@@ -2562,7 +2452,7 @@ Best regards,
                         <div className="bg-blue-50 rounded-lg p-4">
                           <h4 className="text-sm font-semibold text-blue-800 mb-3">Agent Details</h4>
                           <div className="grid grid-cols-2 gap-3">
-                            <div>
+                        <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">Agent Name</label>
                               <input
                                 type="text"
@@ -2621,20 +2511,20 @@ Best regards,
                             </div>
                             <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">Property Condition</label>
-                              <select
-                                value={editForm.property_condition}
+                          <select
+                            value={editForm.property_condition}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, property_condition: e.target.value }))}
                                 className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                              >
-                                <option value="Excellent">Excellent</option>
-                                <option value="Good">Good</option>
-                                <option value="Fair">Fair</option>
-                                <option value="Poor">Poor</option>
-                                <option value="Needs Work">Needs Work</option>
-                              </select>
+                          >
+                            <option value="Excellent">Excellent</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                            <option value="Poor">Poor</option>
+                            <option value="Needs Work">Needs Work</option>
+                          </select>
                             </div>
                           </div>
-                        </div>
+                      </div>
 
                         {/* Mortgage Settings */}
                         <div className="bg-indigo-50 rounded-lg p-4">
@@ -2690,95 +2580,95 @@ Best regards,
                         {/* Refurbishment Section */}
                         <div className="bg-orange-50 rounded-lg p-4">
                           <h4 className="text-sm font-semibold text-orange-800 mb-3">Refurbishment & Costs</h4>
+
+                        {/* Refurbishment Recommendations */}
+                        {(() => {
+                          const property = watchlist.find(p => p.id === editingProperty);
+                          if (!property) return null;
                           
-                          {/* Refurbishment Recommendations */}
-                          {(() => {
-                            const property = watchlist.find(p => p.id === editingProperty);
-                            if (!property) return null;
-                            
-                            const recommendations = getRefurbishmentRecommendations({
-                              ...property,
-                              property_condition: editForm.property_condition
-                            });
-                            
-                            return (
+                          const recommendations = getRefurbishmentRecommendations({
+                            ...property,
+                            property_condition: editForm.property_condition
+                          });
+                          
+                          return (
                               <div className="bg-white rounded-lg p-3 border border-orange-200 mb-3">
                                 <h5 className="text-xs font-semibold text-orange-700 mb-2">Refurbishment Recommendations</h5>
                                 <div className="space-y-2">
-                                  <div className="flex justify-between items-center">
-                                    <div>
+                                <div className="flex justify-between items-center">
+                      <div>
                                       <span className="text-xs font-medium text-green-700">Low End:</span>
-                                      <p className="text-xs text-gray-600">{recommendations.description.lowEnd}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <span className="text-xs font-bold text-green-700">{formatPrice(recommendations.lowEnd)}</span>
-                                      <button
-                                        onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.lowEnd }))}
-                                        className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                                      >
-                                        Use this
-                                      </button>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <div>
-                                      <span className="text-xs font-medium text-blue-700">Medium End:</span>
-                                      <p className="text-xs text-gray-600">{recommendations.description.mediumEnd}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <span className="text-xs font-bold text-blue-700">{formatPrice(recommendations.mediumEnd)}</span>
-                                      <button
-                                        onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.mediumEnd }))}
-                                        className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                                      >
-                                        Use this
-                                      </button>
-                                    </div>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-center">
-                                    <div>
-                                      <span className="text-xs font-medium text-purple-700">High End:</span>
-                                      <p className="text-xs text-gray-600">{recommendations.description.highEnd}</p>
-                                    </div>
-                                    <div className="text-right">
-                                      <span className="text-xs font-bold text-purple-700">{formatPrice(recommendations.highEnd)}</span>
-                                      <button
-                                        onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.highEnd }))}
-                                        className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                                      >
-                                        Use this
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })()}
-                          
-                          <div>
-                            <label className="block text-xs font-medium text-gray-700 mb-1">
-                              Refurbishment Cost (£)
-                            </label>
-                            <input
-                              type="number"
-                              value={editForm.refurbishment_cost}
-                              onChange={(e) => setEditForm(prev => ({
-                                ...prev,
-                                refurbishment_cost: parseInt(e.target.value) || 0
-                              }))}
-                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                              placeholder="0"
-                            />
-                          </div>
+                                    <p className="text-xs text-gray-600">{recommendations.description.lowEnd}</p>
                         </div>
+                                  <div className="text-right">
+                                      <span className="text-xs font-bold text-green-700">{formatPrice(recommendations.lowEnd)}</span>
+                                    <button
+                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.lowEnd }))}
+                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                    >
+                                      Use this
+                                    </button>
+                      </div>
+                                </div>
+                                
+                                <div className="flex justify-between items-center">
+                      <div>
+                                      <span className="text-xs font-medium text-blue-700">Medium End:</span>
+                                    <p className="text-xs text-gray-600">{recommendations.description.mediumEnd}</p>
+                        </div>
+                                  <div className="text-right">
+                                      <span className="text-xs font-bold text-blue-700">{formatPrice(recommendations.mediumEnd)}</span>
+                                    <button
+                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.mediumEnd }))}
+                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                    >
+                                      Use this
+                                    </button>
+                      </div>
+                                </div>
+                                
+                                <div className="flex justify-between items-center">
+                      <div>
+                                      <span className="text-xs font-medium text-purple-700">High End:</span>
+                                    <p className="text-xs text-gray-600">{recommendations.description.highEnd}</p>
+                        </div>
+                                  <div className="text-right">
+                                      <span className="text-xs font-bold text-purple-700">{formatPrice(recommendations.highEnd)}</span>
+                                    <button
+                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.highEnd }))}
+                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                    >
+                                      Use this
+                                    </button>
+                      </div>
+                    </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                    
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Refurbishment Cost (£)
+                          </label>
+                          <input
+                            type="number"
+                            value={editForm.refurbishment_cost}
+                            onChange={(e) => setEditForm(prev => ({
+                              ...prev,
+                              refurbishment_cost: parseInt(e.target.value) || 0
+                            }))}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="0"
+                          />
+                          </div>
+                          </div>
 
                         {/* Status & Notes */}
                         <div className="bg-purple-50 rounded-lg p-4">
                           <h4 className="text-sm font-semibold text-purple-800 mb-3">Status & Notes</h4>
                           <div className="grid grid-cols-2 gap-3 mb-3">
-                            <div>
+                        <div>
                               <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
                               <select
                                 value={editForm.status}
@@ -2791,20 +2681,20 @@ Best regards,
                                 <option value="withdrawn">Withdrawn</option>
                                 <option value="archived">Archived</option>
                               </select>
-                            </div>
                           </div>
-                          <div>
+                          </div>
+                        <div>
                             <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
-                            <textarea
-                              value={editForm.user_notes}
-                              onChange={(e) => setEditForm(prev => ({
-                                ...prev,
-                                user_notes: e.target.value
-                              }))}
-                              rows={3}
+                          <textarea
+                            value={editForm.user_notes}
+                            onChange={(e) => setEditForm(prev => ({
+                              ...prev,
+                              user_notes: e.target.value
+                            }))}
+                            rows={3}
                               className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                              placeholder="Add your notes about this property..."
-                            />
+                            placeholder="Add your notes about this property..."
+                          />
                           </div>
                         </div>
 
@@ -2850,7 +2740,7 @@ Best regards,
                             </div>
                           </div>
                         )}
-                      </div>
+                        </div>
 
                       <div className="flex space-x-3 mt-6">
                         <button

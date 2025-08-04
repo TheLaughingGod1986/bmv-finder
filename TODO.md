@@ -62,6 +62,8 @@
 - ✅ Added mortgage configuration to edit form - Users can now set mortgage type, rate, and term
 - ✅ Changed default mortgage type to Interest-Only - Updated calculations to use Interest-Only as standard
 - ✅ Added offer tracking functionality - Users can track offer amount, date, and vendor response when status is "Under Offer"
+- ✅ Fixed save functionality for offer tracking - Updated API endpoints to properly handle all new fields including offer details
+- ✅ Streamlined investment analysis section - Removed duplication, simplified layout, and improved user experience with cleaner presentation
 
 ## 📋 **CURRENT TASKS**
 
