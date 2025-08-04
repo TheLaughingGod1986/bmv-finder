@@ -87,6 +87,68 @@ export async function POST(request: NextRequest) {
 
     const supabase = createSupabaseClient();
     
+    // If Supabase is not configured, return mock success
+    if (!supabase) {
+      console.log('Supabase not configured, returning mock capture success');
+      
+      // Create a mock property object
+      const mockProperty = {
+        id: Date.now().toString(),
+        title: propertyData.title || 'Property',
+        price: extractPrice(propertyData.price || '£0'),
+        address: propertyData.address || 'Address not available',
+        description: propertyData.description || '',
+        bedrooms: propertyData.bedrooms || 0,
+        bathrooms: propertyData.bathrooms || 0,
+        property_type: propertyData.propertyType || propertyData.property_type || 'Property',
+        tenure: propertyData.tenure || 'Unknown',
+        postcode: propertyData.postcode || '',
+        latitude: propertyData.latitude || null,
+        longitude: propertyData.longitude || null,
+        original_url: propertyData.original_url || propertyData.url || '',
+        source: propertyData.source || 'chrome-extension',
+        agent_name: propertyData.agent_name || 'Unknown Agent',
+        agent_phone: propertyData.agent_phone || '',
+        images: propertyData.images || ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop&crop=center'],
+        captured_at: new Date().toISOString(),
+        notes: propertyData.notes || '',
+        status: 'active',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        days_on_market: propertyData.days_on_market || 30,
+        user_id: '00000000-0000-0000-0000-000000000000'
+      };
+      
+      // Also add to watchlist via the watchlist API
+      try {
+        const watchlistResponse = await fetch(`${request.nextUrl.origin}/api/watchlist`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(mockProperty)
+        });
+        
+        if (watchlistResponse.ok) {
+          console.log('BMV Finder API: Property also added to watchlist');
+        }
+      } catch (watchlistError) {
+        console.log('BMV Finder API: Failed to add to watchlist:', watchlistError);
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Property captured successfully (mock)',
+        property: mockProperty
+      }, {
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      });
+    }
+    
     // Try to get authenticated user ID from authorization header
     let userId = '00000000-0000-0000-0000-000000000000'; // Default user ID
     const authHeader = request.headers.get('authorization');

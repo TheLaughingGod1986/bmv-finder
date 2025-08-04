@@ -6,6 +6,50 @@ const propertyCount = document.getElementById('property-count');
 const lastCapture = document.getElementById('last-capture');
 const propertiesList = document.getElementById('properties-list');
 const clearAllButton = document.getElementById('clear-all');
+const userName = document.getElementById('user-name');
+const userMembership = document.getElementById('user-membership');
+const captureLimit = document.getElementById('capture-limit');
+const progressFill = document.getElementById('progress-fill');
+const signInButton = document.getElementById('sign-in-button');
+
+// User authentication and membership data
+let userData = {
+  isAuthenticated: false,
+  name: 'Not Signed In',
+  membership: 'Free Plan',
+  captureLimit: 5,
+  capturedCount: 0
+};
+
+// Load user data and capture limits
+async function loadUserData() {
+  try {
+    // Check if user is authenticated (in a real app, this would check with your backend)
+    const authResult = await chrome.storage.local.get(['userData', 'isAuthenticated']);
+    
+    if (authResult.isAuthenticated && authResult.userData) {
+      userData = {
+        ...userData,
+        ...authResult.userData,
+        isAuthenticated: true
+      };
+    } else {
+      // Demo data for unauthenticated users
+      userData = {
+        isAuthenticated: false,
+        name: 'Demo User',
+        membership: 'Free Plan',
+        captureLimit: 5,
+        capturedCount: 0
+      };
+    }
+    
+    updateUserInterface();
+    
+  } catch (error) {
+    console.error('Error loading user data:', error);
+  }
+}
 
 // Load and display captured properties
 async function loadCapturedProperties() {
@@ -24,6 +68,9 @@ async function loadCapturedProperties() {
       lastCapture.textContent = 'Never';
     }
     
+    // Update user interface with new count
+    updateUserInterface();
+    
     // Display properties
     displayProperties(properties);
     
@@ -31,6 +78,73 @@ async function loadCapturedProperties() {
     console.error('Error loading properties:', error);
     showError('Failed to load properties');
   }
+}
+
+// Update user interface based on authentication status
+function updateUserInterface() {
+  // Update user info
+  userName.textContent = userData.name;
+  userMembership.textContent = userData.membership;
+  
+  // Update sign-in button
+  if (userData.isAuthenticated) {
+    signInButton.textContent = 'Signed In';
+    signInButton.style.background = 'linear-gradient(135deg, #27AE60 0%, #2ECC71 100%)';
+    signInButton.disabled = true;
+  } else {
+    signInButton.textContent = 'Sign In';
+    signInButton.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2980b9 100%)';
+    signInButton.disabled = false;
+  }
+  
+  // Update capture limits
+  const currentCount = parseInt(propertyCount.textContent) || 0;
+  const limit = userData.captureLimit;
+  
+  captureLimit.textContent = `${currentCount} / ${limit}`;
+  
+  // Update progress bar
+  const progressPercentage = limit > 0 ? Math.min((currentCount / limit) * 100, 100) : 0;
+  progressFill.style.width = `${progressPercentage}%`;
+  
+  // Change progress bar color based on usage
+  if (progressPercentage >= 90) {
+    progressFill.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
+  } else if (progressPercentage >= 75) {
+    progressFill.style.background = 'linear-gradient(135deg, #F39C12 0%, #E67E22 100%)';
+  } else {
+    progressFill.style.background = 'linear-gradient(135deg, #2980b9 0%, #3498db 100%)';
+  }
+  
+  // Show upgrade prompt if approaching limit
+  if (progressPercentage >= 80 && !userData.isAuthenticated) {
+    showUpgradePrompt();
+  }
+}
+
+// Show upgrade prompt
+function showUpgradePrompt() {
+  const upgradeDiv = document.createElement('div');
+  upgradeDiv.className = 'upgrade-prompt';
+  upgradeDiv.innerHTML = `
+    <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); 
+                border-radius: 8px; 
+                padding: 10px; 
+                margin-bottom: 15px; 
+                text-align: center; 
+                color: #333; 
+                font-size: 12px;">
+      <strong>🚀 Upgrade to capture more properties!</strong><br>
+      <a href="https://bmv-finder.com/pricing" target="_blank" 
+         style="color: #3A7CA5; text-decoration: none; font-weight: bold;">
+        View Plans →
+      </a>
+    </div>
+  `;
+  
+  // Insert before the stats section
+  const statsSection = document.querySelector('.stats');
+  statsSection.parentNode.insertBefore(upgradeDiv, statsSection);
 }
 
 function displayProperties(properties) {
@@ -90,10 +204,96 @@ function showError(message) {
   `;
 }
 
+// Handle sign-in button click
+signInButton.addEventListener('click', () => {
+  if (!userData.isAuthenticated) {
+    // Open sign-in page in new tab
+    chrome.tabs.create({ url: 'https://bmv-finder.com/auth' });
+  }
+});
+
+// Demo function to show different membership tiers (for testing)
+function setDemoUser(membershipType) {
+  const demoUsers = {
+    free: {
+      isAuthenticated: true,
+      name: 'John Doe',
+      membership: 'Free Plan',
+      captureLimit: 5,
+      capturedCount: 3
+    },
+    mid: {
+      isAuthenticated: true,
+      name: 'Sarah Smith',
+      membership: 'Mid-Tier Plan',
+      captureLimit: 50,
+      capturedCount: 12
+    },
+    premium: {
+      isAuthenticated: true,
+      name: 'Mike Johnson',
+      membership: 'Premium Plan',
+      captureLimit: -1, // Unlimited
+      capturedCount: 42
+    },
+    demo: {
+      isAuthenticated: false,
+      name: 'Demo User',
+      membership: 'Free Plan',
+      captureLimit: 5,
+      capturedCount: 0
+    }
+  };
+  
+  userData = { ...userData, ...demoUsers[membershipType] };
+  updateUserInterface();
+  
+  // Update capture limit display for unlimited
+  if (userData.captureLimit === -1) {
+    captureLimit.textContent = `${userData.capturedCount} / Unlimited`;
+    progressFill.style.width = '0%';
+  }
+}
+
+// Add demo buttons for testing (remove in production)
+function addDemoButtons() {
+  const demoDiv = document.createElement('div');
+  demoDiv.style.cssText = `
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    z-index: 1000;
+  `;
+  
+  const demoTypes = ['demo', 'free', 'mid', 'premium'];
+  demoTypes.forEach(type => {
+    const button = document.createElement('button');
+    button.textContent = type.toUpperCase();
+    button.style.cssText = `
+      font-size: 10px;
+      padding: 4px 8px;
+      background: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    `;
+    button.onclick = () => setDemoUser(type);
+    demoDiv.appendChild(button);
+  });
+  
+  document.body.appendChild(demoDiv);
+}
+
 // Load properties when popup opens
 document.addEventListener('DOMContentLoaded', () => {
   console.log('BMV Finder: Popup DOM loaded, loading properties');
   loadCapturedProperties();
+  loadUserData(); // Load user data on popup open
+  addDemoButtons(); // Add demo buttons on popup open
 });
 
 // Listen for storage changes to update the popup

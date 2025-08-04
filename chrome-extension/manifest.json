@@ -6,8 +6,7 @@
   "permissions": [
     "activeTab",
     "storage",
-    "identity",
-    "webNavigation"
+    "identity"
   ],
   "host_permissions": [
     "https://*.rightmove.co.uk/*",
@@ -40,18 +39,5 @@
   "action": {
     "default_popup": "popup.html",
     "default_title": "BMV Finder Property Capture"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": ["injected.js"],
-      "matches": [
-        "https://*.rightmove.co.uk/*",
-        "https://*.zoopla.co.uk/*",
-        "https://*.onthemarket.com/*",
-        "https://*.primelocation.com/*",
-        "https://*/*",
-        "http://*/*"
-      ]
-    }
-  ]
+  }
 } 

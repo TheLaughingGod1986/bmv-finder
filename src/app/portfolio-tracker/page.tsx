@@ -45,6 +45,7 @@ interface PortfolioProperty {
   equityPercentage?: number;
   monthlyProfit?: number;
   totalProfit?: number;
+  images?: string[]; // Added for demo images
 }
 
 export default function PortfolioTrackerPage() {
@@ -59,6 +60,88 @@ export default function PortfolioTrackerPage() {
   const [editingProperty, setEditingProperty] = useState<PortfolioProperty | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const hasInitialized = useRef(false);
+
+  // Demo portfolio data for unauthenticated users
+  const demoPortfolioData: PortfolioProperty[] = [
+    {
+      id: 'demo-1',
+      address: '16 Lowbiggin, Leeds',
+      postcode: 'LS6 4PR',
+      purchasePrice: 185000,
+      currentValue: 210000,
+      purchaseDate: '2024-06-28',
+      propertyType: 'Semi-Detached House',
+      bmvScore: 85,
+      status: 'active',
+      notes: 'Excellent rental yield, great location near transport links',
+      monthlyRent: 1200,
+      rentStartDate: '2024-07-01',
+      mortgageBalance: 138750,
+      mortgageType: 'repayment',
+      mortgageRate: 4.5,
+      monthlyMortgagePayment: 780,
+      depositAmount: 46250,
+      monthlyExpenses: 120,
+      yield: 6.86,
+      equity: 71250,
+      equityPercentage: 33.93,
+      monthlyProfit: 300,
+      totalProfit: 25000,
+      images: ['https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&h=300&fit=crop&crop=center'] // UK semi-detached
+    },
+    {
+      id: 'demo-2',
+      address: '21 Fourstone, Liverpool',
+      postcode: 'L18 2PR',
+      purchasePrice: 220000,
+      currentValue: 245000,
+      purchaseDate: '2024-02-28',
+      propertyType: 'Detached House',
+      bmvScore: 92,
+      status: 'active',
+      notes: 'Family home with great potential for capital growth',
+      monthlyRent: 1400,
+      rentStartDate: '2024-03-01',
+      mortgageBalance: 165000,
+      mortgageType: 'repayment',
+      mortgageRate: 4.2,
+      monthlyMortgagePayment: 890,
+      depositAmount: 55000,
+      monthlyExpenses: 140,
+      yield: 6.86,
+      equity: 80000,
+      equityPercentage: 32.65,
+      monthlyProfit: 370,
+      totalProfit: 25000,
+      images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop&crop=center'] // UK detached house
+    },
+    {
+      id: 'demo-3',
+      address: '3 William Street, Cardiff',
+      postcode: 'CF10 7JH',
+      purchasePrice: 165000,
+      currentValue: 180000,
+      purchaseDate: '2024-01-15',
+      propertyType: 'Apartment',
+      bmvScore: 78,
+      status: 'sold',
+      notes: 'Sold for profit after 18 months',
+      monthlyRent: 950,
+      rentStartDate: '2024-02-15',
+      mortgageBalance: 123750,
+      mortgageType: 'repayment',
+      mortgageRate: 4.8,
+      monthlyMortgagePayment: 720,
+      depositAmount: 41250,
+      monthlyExpenses: 95,
+      yield: 6.33,
+      equity: 56250,
+      equityPercentage: 31.25,
+      monthlyProfit: 135,
+      totalProfit: 15000,
+      images: ['https://images.unsplash.com/photo-1600607687644-c7171b42498b?w=400&h=300&fit=crop&crop=center'] // UK apartment interior
+    }
+  ];
 
   useEffect(() => {
     if (typeof window === 'undefined' || !supabase) {
@@ -92,6 +175,10 @@ export default function PortfolioTrackerPage() {
 
   const loadPortfolioData = useCallback(async () => {
     if (!user || !supabase) {
+      // Use demo data for unauthenticated users
+      console.log('Using demo portfolio data for unauthenticated user');
+      setPortfolioProperties(demoPortfolioData);
+      setDataError(null);
       setIsLoading(false);
       setIsDataLoading(false);
       return;
@@ -150,6 +237,7 @@ export default function PortfolioTrackerPage() {
             equityPercentage: property.equity_percentage,
             monthlyProfit: property.monthly_profit,
             totalProfit: property.total_profit,
+            images: property.images || [], // Assuming 'images' is a comma-separated string in DB
           };
         });
         
@@ -166,7 +254,7 @@ export default function PortfolioTrackerPage() {
       setIsDataLoading(false);
       setIsLoading(false);
     }
-  }, [user, supabase]);
+  }, [user, supabase, demoPortfolioData]);
 
   useEffect(() => {
     if (user) {
@@ -548,6 +636,56 @@ export default function PortfolioTrackerPage() {
         </section>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Demo Banner for unauthenticated users */}
+          {!user && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm"
+              data-demo-portfolio-banner
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-lg">ℹ️</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-2">Demo Portfolio</h3>
+                  <p className="text-blue-700 mb-3">
+                    You're currently viewing a demo portfolio with sample data. To track your real property investments, 
+                    please <a href="/auth" className="font-semibold underline hover:text-blue-800">sign in</a> or 
+                    <a href="/pricing" className="font-semibold underline hover:text-blue-800 ml-1">upgrade your account</a>.
+                  </p>
+                  <div className="flex items-center gap-6 text-sm text-blue-600">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                      Demo properties shown
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                      Real data when logged in
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-purple-400 rounded-full"></span>
+                      Full portfolio management
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    const banner = document.querySelector('[data-demo-portfolio-banner]');
+                    if (banner) banner.style.display = 'none';
+                  }}
+                  className="flex-shrink-0 text-blue-400 hover:text-blue-600"
+                >
+                  <span className="text-xl">×</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {user && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -557,7 +695,12 @@ export default function PortfolioTrackerPage() {
               <div className="mb-8">
                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Portfolio Overview</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
                         <PoundSterling className="w-6 h-6 text-white" />
@@ -573,7 +716,12 @@ export default function PortfolioTrackerPage() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
                         <TrendingUp className="w-6 h-6 text-white" />
@@ -589,7 +737,12 @@ export default function PortfolioTrackerPage() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
                         <Target className="w-6 h-6 text-white" />
@@ -605,7 +758,12 @@ export default function PortfolioTrackerPage() {
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
                     <div className="flex items-center justify-between mb-4">
                       <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
                         <Home className="w-6 h-6 text-white" />
@@ -626,7 +784,7 @@ export default function PortfolioTrackerPage() {
               <div className="mb-8">
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-xl font-semibold text-gray-900 mb-1">Your Properties</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-1">Your Properties (Demo)</h2>
                     <p className="text-gray-600">Manage and track individual property performance</p>
                   </div>
                   <button
@@ -634,7 +792,7 @@ export default function PortfolioTrackerPage() {
                     className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
                     <Plus className="w-5 h-5" />
-                    Add Property
+                    Add Property (Demo)
                   </button>
                 </div>
 
@@ -717,6 +875,203 @@ export default function PortfolioTrackerPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.1 }}
                       >
+                        <div className="relative">
+                          <SimplePropertyCard
+                            property={enhancedProperty}
+                            onEdit={(property) => {
+                              setEditingProperty(property);
+                              setIsEditModalOpen(true);
+                            }}
+                            onSold={(id, address) => {
+                              if (confirm(`Mark ${address} as sold?`)) {
+                                handleStatusChange(id, 'sold');
+                              }
+                            }}
+                            onRemove={(id, address) => {
+                              if (confirm(`Remove ${address} from your portfolio?`)) {
+                                handleRemoveProperty(id, address);
+                              }
+                            }}
+                          />
+                          {/* Demo badge */}
+                          <div className="absolute top-3 right-3">
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                              Demo
+                            </span>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {!user && !isLoading && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <div className="mb-8">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">Portfolio Overview</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
+                        <PoundSterling className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-500">Total Value</span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                      {formatPrice(getTotalValue())}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-green-600 font-semibold">+{formatPrice(getTotalGrowth())}</span>
+                      <span className="text-gray-500">growth</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
+                        <TrendingUp className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-500">Total Equity</span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                      {formatPrice(getTotalEquity())}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-purple-600 font-semibold">{formatPercentage(getPercentageOwned())}</span>
+                      <span className="text-gray-500">ownership</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center">
+                        <Target className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-500">Total ROI</span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                      {formatPercentage(getTotalROI())}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-emerald-600 font-semibold">{formatPrice(getTotalRentalProfits())}</span>
+                      <span className="text-gray-500">rental profit</span>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1 relative">
+                    <div className="absolute top-3 right-3">
+                      <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                        Demo
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
+                        <Home className="w-6 h-6 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-500">Properties</span>
+                    </div>
+                    <div className="text-3xl font-bold text-gray-900 mb-2">
+                      {portfolioProperties.length}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-orange-600 font-semibold">{formatPrice(getTotalYearlyTurnover())}</span>
+                      <span className="text-gray-500">annual income</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-8">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-900 mb-1">Demo Properties</h2>
+                    <p className="text-gray-600">Sample portfolio showing what your real investments could look like</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => router.push('/auth')}
+                      className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      <BarChart3 className="w-5 h-5" />
+                      Sign In
+                    </button>
+                    <button
+                      onClick={() => router.push('/pricing')}
+                      className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-xl border border-gray-200 hover:bg-gray-50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      <Target className="w-5 h-5" />
+                      View Plans
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <button
+                    onClick={() => setFilterStatus('all')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      filterStatus === 'all' 
+                        ? 'bg-blue-600 text-white shadow-lg ring-2 ring-blue-200' 
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md'
+                    }`}
+                  >
+                    All Properties ({portfolioProperties.length})
+                  </button>
+                  <button
+                    onClick={() => setFilterStatus('active')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      filterStatus === 'active' 
+                        ? 'bg-emerald-600 text-white shadow-lg ring-2 ring-emerald-200' 
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md'
+                    }`}
+                  >
+                    Active ({portfolioProperties.filter(p => p.status === 'active').length})
+                  </button>
+                  <button
+                    onClick={() => setFilterStatus('sold')}
+                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      filterStatus === 'sold' 
+                        ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-200' 
+                        : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 hover:border-gray-300 hover:shadow-md'
+                    }`}
+                  >
+                    Sold ({portfolioProperties.filter(p => p.status === 'sold').length})
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {filteredProperties.map((property, index) => {
+                  const enhancedProperty = calculateMissingData(property);
+                  return (
+                    <motion.div
+                      key={property.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.1 }}
+                    >
+                      <div className="relative">
                         <SimplePropertyCard
                           property={enhancedProperty}
                           onEdit={(property) => {
@@ -734,40 +1089,18 @@ export default function PortfolioTrackerPage() {
                             }
                           }}
                         />
-                      </motion.div>
-                    );
-                  })
-                )}
+                        {/* Demo badge */}
+                        <div className="absolute top-3 right-3">
+                          <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                            Demo
+                          </span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </motion.div>
-          )}
-
-          {!user && !isLoading && (
-            <div className="container mx-auto px-4 py-20">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-center"
-              >
-                <div className="w-24 h-24 mx-auto mb-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl flex items-center justify-center shadow-sm">
-                  <BarChart3 className="w-12 h-12 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-3">Sign In to View Your Portfolio</h3>
-                <p className="text-gray-600 mb-6 max-w-md mx-auto">
-                  To track your property investments and monitor portfolio performance, please sign in to your account.
-                </p>
-                <button
-                  onClick={() => {
-                    // Trigger sign in
-                  }}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-xl font-medium hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-lg hover:shadow-xl"
-                >
-                  <BarChart3 className="w-4 h-4" />
-                  Sign In to Portfolio
-                </button>
-              </motion.div>
-            </div>
           )}
 
           <PropertyEditModal

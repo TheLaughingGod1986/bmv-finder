@@ -140,40 +140,118 @@ console.log('BMV Finder: Run bmvFinderTest.testDOMExtraction() to test DOM extra
 // Check if we're on a property page
 function isPropertyPage() {
   const hostname = window.location.hostname;
-  const url = window.location.href;
+  const pathname = window.location.pathname;
   
-  // Check for property sites
+  console.log('BMV Finder: Checking if property page:', hostname, pathname);
+  
+  // Check for property-specific patterns in URL
+  const propertyPatterns = [
+    /\/properties\//,
+    /\/property\//,
+    /\/for-sale\//,
+    /\/to-rent\//,
+    /\/details\//,
+    /\/property-details\//,
+    /\/house-details\//,
+    /\/flat-details\//,
+    /\/apartment-details\//,
+    /\/property\?/,
+    /\/house\?/,
+    /\/flat\?/,
+    /\/apartment\?/
+  ];
+  
+  // Check if URL contains property patterns
+  const hasPropertyPattern = propertyPatterns.some(pattern => pattern.test(pathname));
+  
+  // Check for property-specific elements on the page
+  const propertyElements = [
+    '[data-testid="price"]',
+    '[data-testid="property-price"]',
+    '.property-price',
+    '.listing-price',
+    '.price',
+    '[class*="price"]',
+    '[class*="Price"]',
+    'h1', // Property titles are often in h1
+    '.property-title',
+    '.listing-title'
+  ];
+  
+  const hasPropertyElements = propertyElements.some(selector => {
+    const elements = document.querySelectorAll(selector);
+    return elements.length > 0;
+  });
+  
+  // Check for property websites
   const propertySites = [
     'rightmove.co.uk',
-    'zoopla.co.uk', 
+    'zoopla.co.uk',
     'onthemarket.com',
     'primelocation.com'
   ];
   
   const isPropertySite = propertySites.some(site => hostname.includes(site));
   
-  // Check for property URL patterns
-  const propertyPatterns = [
-    /\/properties\//,
-    /\/property\//,
-    /\/for-sale\//,
-    /\/to-rent\//,
-    /\/buy\//,
-    /\/rent\//
-  ];
+  // Additional checks for specific sites
+  let isPropertyPage = false;
   
-  const hasPropertyUrl = propertyPatterns.some(pattern => pattern.test(url));
+  if (isPropertySite) {
+    // For property sites, be more lenient
+    isPropertyPage = hasPropertyPattern || hasPropertyElements || pathname.length > 10;
+  } else {
+    // For other sites, require stronger evidence
+    isPropertyPage = hasPropertyPattern && hasPropertyElements;
+  }
   
-  console.log('BMV Finder: Property page check:', {
+  console.log('BMV Finder: Property page check results:', {
     hostname,
-    url,
+    pathname,
+    hasPropertyPattern,
+    hasPropertyElements,
     isPropertySite,
-    hasPropertyUrl,
-    isPropertyPage: isPropertySite && hasPropertyUrl
+    isPropertyPage
   });
   
-  return isPropertySite && hasPropertyUrl;
+  return isPropertyPage;
 }
+
+// Debug function to help troubleshoot
+function debugPageInfo() {
+  console.log('BMV Finder: === DEBUG PAGE INFO ===');
+  console.log('BMV Finder: URL:', window.location.href);
+  console.log('BMV Finder: Title:', document.title);
+  console.log('BMV Finder: Is property page:', isPropertyPage());
+  
+  // Check for common property elements
+  const elementsToCheck = [
+    'h1', 'h2', 'h3',
+    '[data-testid="price"]',
+    '[data-testid="property-price"]',
+    '.property-price',
+    '.listing-price',
+    '.price',
+    '[class*="price"]',
+    '[class*="Price"]',
+    '.property-title',
+    '.listing-title'
+  ];
+  
+  elementsToCheck.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    if (elements.length > 0) {
+      console.log(`BMV Finder: Found ${elements.length} elements for "${selector}":`);
+      elements.forEach((el, index) => {
+        console.log(`  ${index}: "${el.textContent.substring(0, 100)}"`);
+      });
+    }
+  });
+  
+  console.log('BMV Finder: === END DEBUG ===');
+}
+
+// Make debug function available globally
+window.bmvFinderDebug = debugPageInfo;
 
 // Extract property data based on the site
 function extractPropertyData() {
@@ -183,10 +261,116 @@ function extractPropertyData() {
     title: document.title || 'Property',
     price: '£0',
     address: '',
+    bedrooms: 0,
+    bathrooms: 0,
+    property_type: 'Property',
     source: hostname,
     original_url: window.location.href,
+    images: [],
     captured_at: new Date().toISOString()
   };
+  
+  // Extract bedrooms and bathrooms from title or page content
+  const extractBedroomsBathrooms = () => {
+    const pageText = document.body.textContent || '';
+    const title = document.title || '';
+    
+    // Look for bedroom patterns
+    const bedroomPatterns = [
+      /(\d+)\s*bedroom/i,
+      /(\d+)\s*bed/i,
+      /(\d+)\s*br/i
+    ];
+    
+    for (const pattern of bedroomPatterns) {
+      const match = (title + ' ' + pageText).match(pattern);
+      if (match) {
+        propertyData.bedrooms = parseInt(match[1]);
+        break;
+      }
+    }
+    
+    // Look for bathroom patterns
+    const bathroomPatterns = [
+      /(\d+)\s*bathroom/i,
+      /(\d+)\s*bath/i,
+      /(\d+)\s*en\s*suite/i
+    ];
+    
+    for (const pattern of bathroomPatterns) {
+      const match = (title + ' ' + pageText).match(pattern);
+      if (match) {
+        propertyData.bathrooms = parseInt(match[1]);
+        break;
+      }
+    }
+    
+    // Determine property type based on bedrooms and title
+    if (propertyData.bedrooms === 0) {
+      if (title.toLowerCase().includes('studio') || title.toLowerCase().includes('bedsit')) {
+        propertyData.property_type = 'Studio';
+        propertyData.bedrooms = 1;
+      } else if (title.toLowerCase().includes('apartment') || title.toLowerCase().includes('flat')) {
+        propertyData.property_type = 'Apartment';
+      } else if (title.toLowerCase().includes('house')) {
+        propertyData.property_type = 'House';
+      }
+    } else if (propertyData.bedrooms === 1) {
+      propertyData.property_type = 'Apartment';
+    } else {
+      propertyData.property_type = 'House';
+    }
+  };
+  
+  // Extract address from title or page content
+  const extractAddress = () => {
+    const title = document.title || '';
+    
+    // Common address patterns in property titles
+    const addressPatterns = [
+      /for sale in (.+?)(?:,|$)/i,
+      /in (.+?)(?:,|$)/i,
+      /at (.+?)(?:,|$)/i
+    ];
+    
+    for (const pattern of addressPatterns) {
+      const match = title.match(pattern);
+      if (match && match[1].length > 5 && match[1].length < 100) {
+        propertyData.address = match[1].trim();
+        break;
+      }
+    }
+    
+    // If no address found in title, try to extract from page content
+    if (!propertyData.address) {
+      const addressSelectors = [
+        '[data-testid="address"]',
+        '.property-address',
+        '.listing-address',
+        '.address',
+        'h1',
+        'h2'
+      ];
+      
+      for (const selector of addressSelectors) {
+        const elements = document.querySelectorAll(selector);
+        for (const element of elements) {
+          const text = element.textContent?.trim();
+          if (text && text.length > 10 && text.length < 100 && 
+              !text.includes('Rightmove') && !text.includes('Zoopla') && 
+              !text.includes('OnTheMarket')) {
+            propertyData.address = text;
+            break;
+          }
+        }
+        if (propertyData.address) break;
+      }
+    }
+  };
+  
+  // Extract bedrooms, bathrooms, and address
+  extractBedroomsBathrooms();
+  extractAddress();
   
   // Zoopla extraction
   if (hostname.includes('zoopla.co.uk')) {
@@ -429,6 +613,37 @@ function extractPropertyData() {
       }
       if (propertyData.address) break;
     }
+    
+    // Extract images for Zoopla
+    const imageSelectors = [
+      '[data-testid="property-image"]',
+      '.css-1tppcjb-Image',
+      '.property-header__image',
+      '.property-details__image',
+      '.listing-image',
+      '.property-image',
+      'img[src*="zoopla"]',
+      'img[alt*="property"]',
+      'img[alt*="house"]',
+      'img[alt*="apartment"]',
+      'img[alt*="flat"]'
+    ];
+    
+    for (const selector of imageSelectors) {
+      const elements = document.querySelectorAll(selector);
+      console.log('BMV Finder: Found', elements.length, 'image elements for Zoopla selector:', selector);
+      
+      for (const element of elements) {
+        const imgSrc = element.getAttribute('src');
+        if (imgSrc && imgSrc.startsWith('http') && !imgSrc.includes('placeholder')) {
+          propertyData.images.push(imgSrc);
+          console.log('BMV Finder: Found Zoopla image:', imgSrc);
+        }
+      }
+      
+      // Limit to first 3 images
+      if (propertyData.images.length >= 3) break;
+    }
   }
   
   // Rightmove extraction
@@ -529,6 +744,37 @@ function extractPropertyData() {
           }
       }
       if (propertyData.address) break;
+    }
+    
+    // Extract images
+    const imageSelectors = [
+      '[data-testid="property-image"]',
+      '.propertyCard-img',
+      '.property-header__image',
+      '.property-details__image',
+      '.listing-image',
+      '.property-image',
+      'img[src*="rightmove"]',
+      'img[alt*="property"]',
+      'img[alt*="house"]',
+      'img[alt*="apartment"]',
+      'img[alt*="flat"]'
+    ];
+    
+    for (const selector of imageSelectors) {
+      const elements = document.querySelectorAll(selector);
+      console.log('BMV Finder: Found', elements.length, 'image elements for selector:', selector);
+      
+      for (const element of elements) {
+        const imgSrc = element.getAttribute('src');
+        if (imgSrc && imgSrc.startsWith('http') && !imgSrc.includes('placeholder')) {
+          propertyData.images.push(imgSrc);
+          console.log('BMV Finder: Found Rightmove image:', imgSrc);
+        }
+      }
+      
+      // Limit to first 3 images
+      if (propertyData.images.length >= 3) break;
     }
   }
   
@@ -742,6 +988,13 @@ function extractPropertyData() {
   }
   
   console.log('BMV Finder: Final extracted property data:', propertyData);
+  
+  // If no images found, use a default UK property image
+  if (propertyData.images.length === 0) {
+    propertyData.images.push('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop&crop=center');
+    console.log('BMV Finder: Using default UK property image');
+  }
+  
   return propertyData;
 }
 
