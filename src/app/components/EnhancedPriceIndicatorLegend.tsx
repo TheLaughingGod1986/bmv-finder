@@ -104,9 +104,9 @@ const EnhancedPriceIndicatorLegend: React.FC<EnhancedPriceIndicatorLegendProps> 
                 <div className="text-xs text-blue-800">
                   <div className="font-semibold mb-1">📅 Time Perspective Clarification:</div>
                   <div className="space-y-1">
-                    <div>• <strong>"Fair Price"</strong> = Would be a good deal if bought today at that price</div>
-                    <div>• <strong>"Overpriced"</strong> = Would be expensive if bought today at that price</div>
-                    <div>• <strong>Historical context:</strong> A property that was "overpriced" in 2007 might have been a great deal at the time!</div>
+                    <div>• <strong>&ldquo;Fair Price&rdquo;</strong> = Would be a good deal if bought today at that price</div>
+                    <div>• <strong>&ldquo;Overpriced&rdquo;</strong> = Would be expensive if bought today at that price</div>
+                                          <div>• <strong>Historical context:</strong> A property that was &ldquo;overpriced&rdquo; in 2007 might have been a great deal at the time!</div>
                   </div>
                 </div>
               </div>

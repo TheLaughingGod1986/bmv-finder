@@ -1317,13 +1317,6 @@ export default function WatchlistPage() {
                               </span>
                             </div>
                             <div className="absolute top-3 right-3 flex gap-1">
-                              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                                item.status === 'active' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {item.status}
-                              </span>
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                                 Demo
                               </span>
@@ -1342,13 +1335,6 @@ export default function WatchlistPage() {
                               </span>
                             </div>
                             <div className="absolute top-3 right-3 flex gap-1">
-                              <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                                item.status === 'active' 
-                                  ? 'bg-green-100 text-green-800' 
-                                  : 'bg-gray-100 text-gray-800'
-                              }`}>
-                                {item.status}
-                              </span>
                               <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
                                 Demo
                               </span>
@@ -1615,25 +1601,13 @@ Best regards,
                                      </div>
                                    </div>
                                   
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">10-Year Growth:</span>
-                                    <span className={`font-semibold ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
-                                      {growthAnalysis.tenYearGrowth}%
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Projected Value:</span>
-                                    <span className="font-semibold text-green-600">
-                                      {formatPrice(growthAnalysis.projectedValue)}
-                                    </span>
-                                  </div>
+
                                 </div>
                               );
                             })()}
                 </div>
 
-                          {/* Investment Metrics */}
+                          {/* Investment Analysis - Redesigned for Better UX */}
                           {(() => {
                             const metrics = calculateInvestmentMetrics(item);
                             let growthAnalysis;
@@ -1648,135 +1622,118 @@ Best regards,
                               };
                             }
                             return (
-                              <div className="space-y-4 mb-6 p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                                <h4 className="text-sm font-semibold text-blue-800 mb-3 flex items-center">
-                                  <span className="mr-2">💰</span> Investment Analysis
-                                </h4>
-                                
-                                {/* Investment Breakdown - Show First */}
-                                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                                  <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                    <span className="text-gray-600">Deposit (25%):</span>
-                                    <span className="font-semibold text-blue-600">{formatPrice(metrics.deposit)}</span>
-                                  </div>
-                                  <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                    <span className="text-gray-600">Refurb Cost:</span>
-                                    <span className="font-semibold text-orange-600">{formatPrice(metrics.refurbCost)}</span>
-                                  </div>
-                                  <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                    <span className="text-gray-600">Stamp Duty (LTD):</span>
-                                    <span className="font-semibold text-red-600">{formatPrice(metrics.stampDutyLTD)}</span>
-                                  </div>
-                                  <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
-                                    <span className="text-gray-600">Legal Fees:</span>
-                                    <span className="font-semibold text-gray-600">{formatPrice(metrics.legalFees)}</span>
-                                  </div>
-                                </div>
-                                
-                                {/* Additional Fees Breakdown */}
-                                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
-                                  <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-200">
-                                    <span className="text-gray-600">Survey Fees:</span>
-                                    <span className="font-semibold text-gray-600">{formatPrice(metrics.surveyFees)}</span>
-                                  </div>
-                                  <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-200">
-                                    <span className="text-gray-600">Other Fees:</span>
-                                    <span className="font-semibold text-gray-600">{formatPrice(metrics.otherFees)}</span>
-                                  </div>
-                                  <div className="flex justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                                    <span className="text-gray-600">Total Fees:</span>
-                                    <span className="font-semibold text-blue-600">{formatPrice(metrics.totalFees)}</span>
-                                  </div>
-                                  <div className="flex justify-between p-2 bg-purple-50 rounded border border-purple-200">
-                                    <span className="text-gray-600">Mortgage Amount:</span>
-                                    <span className="font-semibold text-purple-600">{formatPrice(metrics.mortgageAmount)}</span>
-                                  </div>
-                                </div>
-
-                                {/* Total Investment Summary - Show After Breakdown */}
-                                <div className="grid grid-cols-3 gap-3 text-xs mb-3">
-                                  <div className="text-center p-2 bg-green-50 rounded-lg border border-green-200">
-                                    <div className="text-lg font-bold text-green-600">{formatPrice(metrics.totalCost)}</div>
-                                    <div className="text-gray-500">Total Investment</div>
-                                  </div>
-                                  <div className="text-center p-2 bg-purple-50 rounded-lg border border-purple-200">
-                                    <div className="text-lg font-bold text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</div>
-                                    <div className="text-gray-500">Monthly Mortgage</div>
-                                  </div>
-                                  <div className="text-center p-2 bg-blue-50 rounded-lg border border-blue-200">
-                                    <div className="text-lg font-bold text-blue-600">{metrics.annualROI.toFixed(1)}%</div>
-                                    <div className="text-gray-500">Annual ROI</div>
-                                  </div>
-                                </div>
-
-
-
-                                {/* Monthly Cash Flow */}
-                                <div className="border-t border-blue-200 pt-3">
-                                  <h5 className="text-xs font-semibold text-blue-700 mb-2">Monthly Cash Flow</h5>
-                                  <div className="grid grid-cols-2 gap-2 text-xs">
-                                    <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
-                                      <span className="text-gray-600">Monthly Rent:</span>
-                                      <span className="font-semibold text-green-600">{formatPrice(calculateRentalEstimateSync(item))}</span>
+                              <div className="space-y-4 mb-6">
+                                {/* Key Investment Summary - Most Important Info First */}
+                                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border-2 border-green-200 p-4">
+                                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                                    <span className="mr-2">💰</span> Investment Summary
+                                  </h4>
+                                  
+                                  {/* Three Key Metrics */}
+                                  <div className="grid grid-cols-3 gap-3 mb-4">
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-green-600">{formatPrice(metrics.totalCost)}</div>
+                                      <div className="text-xs text-gray-600">Total Investment</div>
                                     </div>
-                                    <div className="flex justify-between p-2 bg-red-50 rounded border border-red-100 cursor-pointer hover:bg-red-100 transition-colors" 
-                                         onClick={() => {
-                                           const breakdown = `Monthly Expenses Breakdown:
-• Mortgage Payment: £${formatPrice(metrics.monthlyMortgagePayment)}
-• Management Fee (8%): £${formatPrice(metrics.managementFee)}
-• Insurance (0.05%): £${formatPrice(metrics.insuranceCost)}
-• Maintenance Reserve (3%): £${formatPrice(metrics.maintenanceReserve)}
-• Total: £${formatPrice(metrics.totalMonthlyExpenses)}`;
-                                           navigator.clipboard.writeText(breakdown);
-                                           showToast({
-                                             type: 'success',
-                                             title: 'Expense Breakdown Copied!',
-                                             message: 'Monthly expense breakdown has been copied to your clipboard.'
-                                           });
-                                         }}
-                                         title="Click to copy expense breakdown">
-                                      <span className="text-gray-600">Total Expenses:</span>
-                                      <span className="font-semibold text-red-600">{formatPrice(metrics.totalMonthlyExpenses)}</span>
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-blue-600">{metrics.annualROI.toFixed(1)}%</div>
+                                      <div className="text-xs text-gray-600">Annual Return</div>
                                     </div>
-                                    <div className="flex justify-between p-2 bg-blue-50 rounded border border-blue-100">
-                                      <span className="text-gray-600">Net Monthly Profit:</span>
-                                      <span className={`font-semibold ${metrics.netMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatPrice(metrics.netMonthlyProfit)}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between p-2 bg-yellow-50 rounded border border-yellow-100">
-                                      <span className="text-gray-600">Profit Margin:</span>
-                                      <span className={`font-semibold ${metrics.realProfitMargin >= 20 ? 'text-green-600' : metrics.realProfitMargin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
-                                        {metrics.realProfitMargin.toFixed(1)}%
-                                      </span>
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-purple-600">{formatPrice(metrics.netMonthlyProfit)}</div>
+                                      <div className="text-xs text-gray-600">Monthly Profit</div>
                                     </div>
                                   </div>
                                   
-                                  {/* Expense Breakdown Details */}
-                                  <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
-                                    <div className="text-xs text-gray-600 mb-1">Monthly Expenses Breakdown:</div>
-                                    <div className="grid grid-cols-2 gap-1 text-xs">
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-500">Mortgage Payment:</span>
-                                        <span className="font-medium text-purple-600">£{formatPrice(metrics.monthlyMortgagePayment)}</span>
-                                      </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-500">Management Fee (8%):</span>
-                                        <span className="font-medium text-blue-600">£{formatPrice(metrics.managementFee)}</span>
-                                      </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-500">Insurance (0.05%):</span>
-                                        <span className="font-medium text-orange-600">£{formatPrice(metrics.insuranceCost)}</span>
-                                      </div>
-                                      <div className="flex justify-between">
-                                        <span className="text-gray-500">Maintenance Reserve (3%):</span>
-                                        <span className="font-medium text-green-600">£{formatPrice(metrics.maintenanceReserve)}</span>
-                                      </div>
+                                  {/* Quick Cash Flow */}
+                                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                    <span className="text-sm text-gray-600">Monthly Cash Flow:</span>
+                                    <div className="text-right">
+                                      <div className="text-sm font-semibold text-green-600">+{formatPrice(calculateRentalEstimateSync(item))}</div>
+                                      <div className="text-xs text-red-600">-{formatPrice(metrics.totalMonthlyExpenses)}</div>
+                                      <div className="text-sm font-bold text-blue-600">= {formatPrice(metrics.netMonthlyProfit)}</div>
                                     </div>
                                   </div>
                                 </div>
 
+                                {/* Detailed Breakdown - Collapsible */}
+                                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                  <button
+                                    onClick={() => {
+                                      const element = document.getElementById(`details-${item.id}`);
+                                      if (element) {
+                                        element.classList.toggle('hidden');
+                                      }
+                                    }}
+                                    className="w-full p-3 text-left bg-gray-50 hover:bg-gray-100 transition-colors flex items-center justify-between"
+                                  >
+                                    <span className="text-sm font-semibold text-gray-700">📊 View Detailed Breakdown</span>
+                                    <span className="text-gray-500">▼</span>
+                                  </button>
+                                  
+                                  <div id={`details-${item.id}`} className="hidden p-4 space-y-3">
+                                    {/* Initial Costs */}
+                                    <div>
+                                      <h5 className="text-xs font-semibold text-gray-700 mb-2">Initial Investment</h5>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="flex justify-between p-2 bg-blue-50 rounded">
+                                          <span className="text-gray-600">Deposit:</span>
+                                          <span className="font-medium text-blue-600">{formatPrice(metrics.deposit)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-orange-50 rounded">
+                                          <span className="text-gray-600">Refurbishment:</span>
+                                          <span className="font-medium text-orange-600">{formatPrice(metrics.refurbCost)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-red-50 rounded">
+                                          <span className="text-gray-600">Stamp Duty:</span>
+                                          <span className="font-medium text-red-600">{formatPrice(metrics.stampDutyLTD)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-gray-50 rounded">
+                                          <span className="text-gray-600">Legal & Survey:</span>
+                                          <span className="font-medium text-gray-600">{formatPrice(metrics.legalFees + metrics.surveyFees)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
 
+                                    {/* Monthly Expenses */}
+                                    <div>
+                                      <h5 className="text-xs font-semibold text-gray-700 mb-2">Monthly Expenses</h5>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="flex justify-between p-2 bg-purple-50 rounded">
+                                          <span className="text-gray-600">Mortgage:</span>
+                                          <span className="font-medium text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-blue-50 rounded">
+                                          <span className="text-gray-600">Management:</span>
+                                          <span className="font-medium text-blue-600">{formatPrice(metrics.managementFee)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-orange-50 rounded">
+                                          <span className="text-gray-600">Insurance:</span>
+                                          <span className="font-medium text-orange-600">{formatPrice(metrics.insuranceCost)}</span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-green-50 rounded">
+                                          <span className="text-gray-600">Maintenance:</span>
+                                          <span className="font-medium text-green-600">{formatPrice(metrics.maintenanceReserve)}</span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    {/* Investment Timeline */}
+                                    <div>
+                                      <h5 className="text-xs font-semibold text-gray-700 mb-2">Investment Timeline</h5>
+                                      <div className="grid grid-cols-2 gap-2 text-xs">
+                                        <div className="text-center p-2 bg-yellow-50 rounded border border-yellow-200">
+                                          <div className="font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
+                                          <div className="text-gray-600">Payback Period</div>
+                                        </div>
+                                        <div className="text-center p-2 bg-indigo-50 rounded border border-indigo-200">
+                                          <div className="font-semibold text-indigo-700">{formatPrice(metrics.netAnnualProfit)}</div>
+                                          <div className="text-gray-600">Annual Profit</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
                             );
                           })()}
@@ -2152,19 +2109,7 @@ Best regards,
                                          </div>
                                        </div>
                                      
-                                     <div className="flex justify-between">
-                                       <span className="text-gray-600">10-Year Growth:</span>
-                                       <span className={`font-medium ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
-                                         {growthAnalysis.tenYearGrowth}%
-                                       </span>
-                                     </div>
-                                     
-                                     <div className="flex justify-between">
-                                       <span className="text-gray-600">Projected Value:</span>
-                                       <span className="font-medium text-green-600">
-                                         {formatPrice(growthAnalysis.projectedValue)}
-                                       </span>
-                                     </div>
+
                                    </div>
                                  </div>
                                );

@@ -96,7 +96,7 @@ export default function Footer({ className = '' }: FooterProps) {
               </div>
             </div>
             <p className="text-gray-300 mb-6 leading-relaxed">
-              The UK's most comprehensive property investment platform. Find below market value properties, analyze deals, and track your portfolio with AI-powered insights.
+              The UK&apos;s most comprehensive property investment platform. Find below market value properties, analyze deals, and track your portfolio with AI-powered insights.
             </p>
             
             {/* Contact Info */}

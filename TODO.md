@@ -51,6 +51,9 @@
 - ✅ Added rental demand marker based on location, property type, and market factors
 - ✅ Added detailed stamp duty calculation for Limited Companies (LTD) with proper tax bands
 - ✅ Added comprehensive growth predictions (2-year, 5-year, and 10-year) with projected values
+- ✅ Cleaned up UI duplication - Removed duplicate "10-Year Growth" and "Projected Value" sections
+- ✅ Removed unnecessary "active" badges from property cards for cleaner UI
+- ✅ Redesigned investment analysis for better UX - Key metrics first, collapsible details, cleaner layout
 
 ## 📋 **CURRENT TASKS**
 

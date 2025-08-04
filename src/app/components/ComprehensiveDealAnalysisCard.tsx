@@ -299,7 +299,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
     if (postcode && houseNumber) {
       fetchComprehensiveData();
     }
-  }, [postcode, houseNumber]);
+  }, [postcode, houseNumber, fetchComprehensiveData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {

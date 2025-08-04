@@ -512,7 +512,7 @@ export default function AccountPage() {
               <ShieldCheckIcon className="h-5 w-5 text-blue-600" />
               <span className="font-semibold text-gray-700">Trusted by 1,000+ property investors</span>
             </div>
-            <blockquote className="italic text-gray-600 max-w-md mx-auto mt-2">"This platform is a game changer for property research and investment."</blockquote>
+            <blockquote className="italic text-gray-600 max-w-md mx-auto mt-2">&ldquo;This platform is a game changer for property research and investment.&rdquo;</blockquote>
           </section>
 
           {/* Trust and Social Proof */}

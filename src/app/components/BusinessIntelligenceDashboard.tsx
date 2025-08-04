@@ -164,7 +164,7 @@ export default function BusinessIntelligenceDashboard() {
       setMetrics(mockMetrics);
       setLoading(false);
     }, 1000);
-  }, []);
+  }, [mockMetrics]);
 
   const formatNumber = (num: number) => {
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
