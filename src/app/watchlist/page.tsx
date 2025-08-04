@@ -1257,97 +1257,102 @@ export default function WatchlistPage() {
                       })()}
 
                       {/* Detailed Breakdown Section */}
-                      <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
-                        <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-5 h-5 bg-gradient-to-r from-green-500 via-red-500 to-blue-500 rounded"></div>
-                              <h4 className="text-sm font-semibold text-gray-800">View Detailed Breakdown</h4>
-                            </div>
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <ChevronDown className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="p-4 space-y-4">
-                          {/* Initial Investment */}
-                          <div>
-                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Initial Investment</h5>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-blue-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Deposit</div>
-                                <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.totalInvestment)}</div>
-                              </div>
-                              <div className="bg-orange-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Refurbishment</div>
-                                <div className="text-sm font-semibold text-orange-700">{formatPrice(item.refurbishment_cost || 0)}</div>
-                              </div>
-                              <div className="bg-red-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Stamp Duty</div>
-                                <div className="text-sm font-semibold text-red-700">{formatPrice(Math.round(item.price * 0.02))}</div>
-                              </div>
-                              <div className="bg-gray-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Legal & Survey</div>
-                                <div className="text-sm font-semibold text-gray-700">{formatPrice(4750)}</div>
+                      {(() => {
+                        const metrics = calculateInvestmentMetrics(item);
+                        return (
+                          <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-5 h-5 bg-gradient-to-r from-green-500 via-red-500 to-blue-500 rounded"></div>
+                                  <h4 className="text-sm font-semibold text-gray-800">View Detailed Breakdown</h4>
+                                </div>
+                                <button className="text-gray-400 hover:text-gray-600">
+                                  <ChevronDown className="w-4 h-4" />
+                                </button>
                               </div>
                             </div>
-                          </div>
+                            
+                            <div className="p-4 space-y-4">
+                              {/* Initial Investment */}
+                              <div>
+                                <h5 className="text-xs font-semibold text-gray-700 mb-2">Initial Investment</h5>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="bg-blue-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Deposit</div>
+                                    <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.totalInvestment)}</div>
+                                  </div>
+                                  <div className="bg-orange-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Refurbishment</div>
+                                    <div className="text-sm font-semibold text-orange-700">{formatPrice(item.refurbishment_cost || 0)}</div>
+                                  </div>
+                                  <div className="bg-red-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Stamp Duty</div>
+                                    <div className="text-sm font-semibold text-red-700">{formatPrice(Math.round(item.price * 0.02))}</div>
+                                  </div>
+                                  <div className="bg-gray-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Legal & Survey</div>
+                                    <div className="text-sm font-semibold text-gray-700">{formatPrice(4750)}</div>
+                                  </div>
+                                </div>
+                              </div>
 
-                          {/* Monthly Expenses */}
-                          <div>
-                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Monthly Expenses</h5>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-purple-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Mortgage ({item.mortgage_type || 'Interest-Only'})</div>
-                                <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
+                              {/* Monthly Expenses */}
+                              <div>
+                                <h5 className="text-xs font-semibold text-gray-700 mb-2">Monthly Expenses</h5>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="bg-purple-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Mortgage ({item.mortgage_type || 'Interest-Only'})</div>
+                                    <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
+                                  </div>
+                                  <div className="bg-blue-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Management</div>
+                                    <div className="text-sm font-semibold text-blue-700">{formatPrice(calculateRentalEstimateSync(item) * 0.08)}</div>
+                                  </div>
+                                  <div className="bg-orange-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Insurance</div>
+                                    <div className="text-sm font-semibold text-orange-700">{formatPrice(18)}</div>
+                                  </div>
+                                  <div className="bg-gray-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Maintenance</div>
+                                    <div className="text-sm font-semibold text-gray-700">{formatPrice(metrics.monthlyExpenses)}</div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="bg-blue-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Management</div>
-                                <div className="text-sm font-semibold text-blue-700">{formatPrice(calculateRentalEstimateSync(item) * 0.08)}</div>
-                              </div>
-                              <div className="bg-orange-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Insurance</div>
-                                <div className="text-sm font-semibold text-orange-700">{formatPrice(18)}</div>
-                              </div>
-                              <div className="bg-gray-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Maintenance</div>
-                                <div className="text-sm font-semibold text-gray-700">{formatPrice(metrics.monthlyExpenses)}</div>
-                              </div>
-                            </div>
-                          </div>
 
-                          {/* Mortgage Options */}
-                          <div>
-                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Mortgage Options</h5>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-blue-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Interest-Only</div>
-                                <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
+                              {/* Mortgage Options */}
+                              <div>
+                                <h5 className="text-xs font-semibold text-gray-700 mb-2">Mortgage Options</h5>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="bg-blue-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Interest-Only</div>
+                                    <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
+                                  </div>
+                                  <div className="bg-purple-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Repayment</div>
+                                    <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment * 1.48)}</div>
+                                  </div>
+                                </div>
                               </div>
-                              <div className="bg-purple-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Repayment</div>
-                                <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment * 1.48)}</div>
-                              </div>
-                            </div>
-                          </div>
 
-                          {/* Investment Timeline */}
-                          <div>
-                            <h5 className="text-xs font-semibold text-gray-700 mb-2">Investment Timeline</h5>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-yellow-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Payback Period</div>
-                                <div className="text-sm font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
-                              </div>
-                              <div className="bg-purple-50 rounded p-2">
-                                <div className="text-xs text-gray-600">Annual Profit</div>
-                                <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.netAnnualProfit)}</div>
+                              {/* Investment Timeline */}
+                              <div>
+                                <h5 className="text-xs font-semibold text-gray-700 mb-2">Investment Timeline</h5>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div className="bg-yellow-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Payback Period</div>
+                                    <div className="text-sm font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
+                                  </div>
+                                  <div className="bg-purple-50 rounded p-2">
+                                    <div className="text-xs text-gray-600">Annual Profit</div>
+                                    <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.netAnnualProfit)}</div>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })()}
 
                       <div className="space-y-2">
                         <button
