@@ -297,7 +297,7 @@ export default function HpiDashboard() {
           </div>
         </motion.div>
 
-        {/* TODOs for further enhancements */}
+        {/* Future enhancements planned */}
         {/*
           - Add postcode search and mapping to region
           - Add upgrade prompt for free users

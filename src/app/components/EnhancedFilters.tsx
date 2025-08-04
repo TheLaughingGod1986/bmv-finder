@@ -88,6 +88,8 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
     localFilters.duration.length > 0,
     localFilters.year.length > 0
   ].filter(Boolean).length;
+  
+  const filterSuffix = activeFiltersCount !== 1 ? 's' : '';
 
   return (
     <AnimatePresence>
@@ -120,7 +122,7 @@ const EnhancedFilters: React.FC<EnhancedFiltersProps> = ({
                   <div>
                     <h3 className="text-lg font-semibold text-text-primary">Filters</h3>
                     <p className="text-sm text-text-secondary">
-                      {activeFiltersCount} active filter{activeFiltersCount !== 1 ? 's' : ''}
+                      {activeFiltersCount} active filter{filterSuffix}
                     </p>
                   </div>
                 </div>

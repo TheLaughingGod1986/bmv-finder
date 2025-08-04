@@ -92,7 +92,7 @@ export default function PortfolioAnalytics() {
   const fetchAnalytics = async () => {
     try {
       // For now, use mock data since the API endpoint doesn't exist
-      // TODO: Implement actual API endpoint
+      // Note: Replace with actual API endpoint when backend is ready
       const mockAnalytics: PortfolioAnalytics = {
         overview: {
           totalProperties: 3,

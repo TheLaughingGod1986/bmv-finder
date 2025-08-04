@@ -314,7 +314,7 @@ export default function EnhancedDealAnalysisCard({ estimatedValue, confidence, c
                     </div>
                     <div className="flex items-center gap-2 text-sm text-[#3B755D]">
                       <div className="w-2 h-2 bg-[#5DA271] rounded-full flex-shrink-0"></div>
-                      <span>Property type & location factors</span>
+                      <span>Property type &amp; location factors</span>
                     </div>
                     {comparables.length > 0 && (
                       <div className="flex items-center gap-2 text-sm text-[#3B755D]">

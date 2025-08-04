@@ -87,7 +87,6 @@ export async function GET(request: NextRequest) {
 
     // Format postcode automatically
     const formattedPostcode = formatPostcode(postcode);
-    console.log(`Formatted postcode: "${postcode}" -> "${formattedPostcode}"`);
 
     // Get property data
     let propertyData = await getPropertyData(formattedPostcode, number);
@@ -150,7 +149,6 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
   try {
     const cleanPostcode = postcode.trim().toUpperCase();
     const cleanNumber = number.trim();
-    console.log(`[DEBUG] Searching for property: number='${cleanNumber}', postcode='${cleanPostcode}'`);
     
     // First, try to get enriched property data from the property enrichment service
     try {
@@ -159,7 +157,6 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
       
       if (enrichmentResponse.ok) {
         const enrichedData = await enrichmentResponse.json();
-        console.log('[DEBUG] Found enriched property data:', enrichedData);
         
         if (enrichedData && enrichedData.address) {
           return {
@@ -176,7 +173,6 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
         }
       }
     } catch (enrichmentError) {
-      console.log('[DEBUG] Property enrichment service failed, falling back to Elasticsearch:', enrichmentError);
     }
     
     // Fallback to Elasticsearch search strategies
@@ -233,12 +229,10 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
     ];
 
     for (const searchQuery of searchQueries) {
-      console.log(`[DEBUG] Trying search strategy: ${searchQuery.index}`);
       try {
         const response = await esClient.search(searchQuery);
         if (response.hits.hits.length > 0) {
           const property = response.hits.hits[0]._source as any;
-          console.log(`[DEBUG] Found property in ${searchQuery.index}:`, property);
           
           // Map property types
           const propertyTypeMap: { [key: string]: string } = {
@@ -271,14 +265,11 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
             lastSoldDate: property.date || property.dateOfTransfer
           };
         } else {
-          console.log(`[DEBUG] No hits for strategy: ${searchQuery.index}`);
         }
       } catch (searchError) {
-        console.log(`[DEBUG] Search strategy failed: ${searchQuery.index}`, searchError);
         continue;
       }
     }
-    console.log('[DEBUG] No property found with any search strategy');
     return null;
   } catch (err) {
     console.error('[DEBUG] getPropertyData error:', err);
@@ -336,7 +327,6 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
     // Note: Size filter removed due to TypeScript field validation issues
     // The query will still work effectively with postcode and property type filters
 
-    console.log('Sales Comparison query:', JSON.stringify(queryBody, null, 2));
 
     // Try properties-enhanced first, then fall back to properties
     let response;
@@ -350,7 +340,6 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
         }
       });
     } catch (error) {
-      console.log('properties-enhanced search failed, trying properties index...');
       response = await esClient.search({
         index: 'properties',
         body: {
@@ -362,14 +351,12 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
     }
 
     const comparables = response.hits.hits.map(hit => hit._source as any);
-    console.log(`Found ${comparables.length} comparable sales`);
 
     let whyThisResult = '';
     let confidence = 0.2;
     
     if (comparables.length === 0) {
       // Try a broader search without postcode restriction
-      console.log('No comparables found, trying broader search...');
       
       const broaderQuery = {
         bool: {
@@ -401,7 +388,6 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
           }
         });
       } catch (error) {
-        console.log('Broader search in properties-enhanced failed, trying properties index...');
         broaderResponse = await esClient.search({
           index: 'properties',
           body: {
@@ -413,7 +399,6 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
       }
 
       const broaderComparables = broaderResponse.hits.hits.map(hit => hit._source as any);
-      console.log(`Found ${broaderComparables.length} broader comparable sales`);
 
       if (broaderComparables.length === 0) {
         whyThisResult = 'Low confidence: No comparable sales found in the last 3 years for this property type. Fallback to last sold price.';
@@ -711,7 +696,6 @@ async function getEnhancedRegionalRent(property: PropertyData): Promise<{ monthl
       }
     };
 
-    console.log('Rental query:', JSON.stringify(rentalQuery, null, 2));
 
     const response = await esClient.search({
       index: 'rental-data',
@@ -745,7 +729,6 @@ async function getEnhancedRegionalRent(property: PropertyData): Promise<{ monthl
     }
 
     // If no exact match found, try broader search
-    console.log('No exact match found, trying broader search...');
     
     const broaderQuery = {
       bool: {
@@ -790,7 +773,6 @@ async function getEnhancedRegionalRent(property: PropertyData): Promise<{ monthl
     }
 
     // Fallback to hardcoded values if no indexed data found
-    console.log('No indexed rental data found, using fallback values...');
     throw new Error('No indexed rental data available');
 
   } catch (error) {

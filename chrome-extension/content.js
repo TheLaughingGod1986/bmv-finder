@@ -1,222 +1,57 @@
-console.log('BMV Finder: Content script loaded on:', window.location.href);
+// BMV Finder Chrome Extension - Content Script
+console.log('BMV Finder: Content script loaded');
 
-// Test functions for debugging
-function testCurrentPageExtraction() {
-  console.log('BMV Finder: Testing current page extraction...');
-  const data = extractPropertyData();
-  console.log('BMV Finder: Extracted data:', data);
-  
-  // Show results in console and alert
-  const message = `Extracted Data:
-Title: ${data.title}
-Price: ${data.price}
-Address: ${data.address}
-Source: ${data.source}`;
-  
-  console.log(message);
-  alert(message);
-  
-  return data;
-}
-
-function testPropertyExtraction() {
-  console.log('BMV Finder: Testing property extraction...');
-  
-  // Simulate Rightmove property data
-  const testPropertyData = {
-    title: 'Test Property',
-    price: '£395,000',
-    address: 'Mandarin Close, Chapel Park, Newcastle upon Tyne, Tyne and Wear, NE5 1YP',
-    source: 'rightmove.co.uk',
-    original_url: 'https://rightmove.co.uk/properties/test',
-    captured_at: new Date().toISOString()
-  };
-  
-  console.log('BMV Finder: Test property data:', testPropertyData);
-  
-  // Test sending to background script
-  if (typeof chrome !== 'undefined' && chrome.runtime) {
-    chrome.runtime.sendMessage({
-        action: 'captureProperty',
-      data: testPropertyData
-    }, function(response) {
-      console.log('BMV Finder: Test response:', response);
-      if (response && response.success) {
-        console.log('BMV Finder: ✅ Test successful!');
-        alert('Extension test successful! Check console for details.');
-      } else {
-        console.log('BMV Finder: ❌ Test failed!');
-        alert('Extension test failed! Check console for details.');
-      }
-    });
-    } else {
-    console.log('BMV Finder: Chrome runtime not available');
-    alert('Chrome runtime not available - make sure this is running in the extension context');
-  }
-}
-
-function testDOMExtraction() {
-  console.log('BMV Finder: Testing DOM extraction...');
-  
-  // Test price extraction
-        const priceSelectors = [
-          '[data-testid="price"]',
-          '.propertyCard-priceValue',
-    '[class*="price"]',
-    'h1 + div',
-    '.listing-price',
-    '.property-price',
-          '[data-testid="property-price"]',
-    '.property-header-price',
-    '.price',
-    '[data-testid="price-value"]',
-    '.propertyCard-price',
-    '.property-header__price',
-    '.property-details__price',
-    '.price-display',
-    '.property-price-value',
-    // Add more selectors for current layouts
-    '[class*="Price"]',
-          '[class*="price"]',
-    '[class*="value"]',
-    '[class*="Value"]',
-    'span',
-    'div',
-    'p'
-  ];
-  
-  console.log('BMV Finder: Testing price selectors...');
-  priceSelectors.forEach(selector => {
-    const elements = document.querySelectorAll(selector);
-    if (elements.length > 0) {
-      console.log('BMV Finder: Found', elements.length, 'elements for selector:', selector);
-      elements.forEach((element, index) => {
-        const text = element.textContent.substring(0, 100);
-        console.log('BMV Finder: Element', index, 'text:', text);
-      });
-    }
-  });
-  
-  // Test title extraction
-        const titleSelectors = [
-    'h1',
-          '[data-testid="property-title"]',
-          '.propertyCard-title',
-          '[class*="title"]',
-    '.listing-title',
-    '[data-testid="address"]',
-    '.property-header__title',
-    '.property-details__title',
-    '.property-title',
-    '.address',
-    '.property-address',
-    '.property-header__address',
-    '.property-details__address'
-  ];
-  
-  console.log('BMV Finder: Testing title selectors...');
-  titleSelectors.forEach(selector => {
-    const elements = document.querySelectorAll(selector);
-    if (elements.length > 0) {
-      console.log('BMV Finder: Found', elements.length, 'elements for selector:', selector);
-      elements.forEach((element, index) => {
-        const text = element.textContent.substring(0, 100);
-        console.log('BMV Finder: Element', index, 'text:', text);
-      });
-    }
-  });
-}
-
-// Add test functions to window for easy access
-window.bmvFinderTest = {
-  testPropertyExtraction,
-  testDOMExtraction
-};
-
-console.log('BMV Finder: Test functions available at window.bmvFinderTest');
-console.log('BMV Finder: Run bmvFinderTest.testPropertyExtraction() to test the extension');
-console.log('BMV Finder: Run bmvFinderTest.testDOMExtraction() to test DOM extraction');
-
-// Check if we're on a property page
+// Check if this is a property page
 function isPropertyPage() {
   const hostname = window.location.hostname;
   const pathname = window.location.pathname;
   
-  console.log('BMV Finder: Checking if property page:', hostname, pathname);
-  
-  // Check for property-specific patterns in URL
-  const propertyPatterns = [
-    /\/properties\//,
-    /\/property\//,
-    /\/for-sale\//,
-    /\/to-rent\//,
-    /\/details\//,
-    /\/property-details\//,
-    /\/house-details\//,
-    /\/flat-details\//,
-    /\/apartment-details\//,
-    /\/property\?/,
-    /\/house\?/,
-    /\/flat\?/,
-    /\/apartment\?/
-  ];
-  
-  // Check if URL contains property patterns
-  const hasPropertyPattern = propertyPatterns.some(pattern => pattern.test(pathname));
-  
-  // Check for property-specific elements on the page
-  const propertyElements = [
-    '[data-testid="price"]',
-    '[data-testid="property-price"]',
-    '.property-price',
-    '.listing-price',
-    '.price',
-    '[class*="price"]',
-    '[class*="Price"]',
-    'h1', // Property titles are often in h1
-    '.property-title',
-    '.listing-title'
-  ];
-  
-  const hasPropertyElements = propertyElements.some(selector => {
-    const elements = document.querySelectorAll(selector);
-    return elements.length > 0;
-  });
-  
-  // Check for property websites
-  const propertySites = [
-    'rightmove.co.uk',
-    'zoopla.co.uk',
-    'onthemarket.com',
-    'primelocation.com'
-  ];
-  
-  const isPropertySite = propertySites.some(site => hostname.includes(site));
-  
-  // Additional checks for specific sites
-  let isPropertyPage = false;
-  
-  if (isPropertySite) {
-    // For property sites, be more lenient
-    isPropertyPage = hasPropertyPattern || hasPropertyElements || pathname.length > 10;
-  } else {
-    // For other sites, require stronger evidence
-    isPropertyPage = hasPropertyPattern && hasPropertyElements;
+  // Check for property listing pages
+  if (hostname.includes('rightmove.co.uk')) {
+    return pathname.includes('/properties/') || pathname.includes('/for-sale/');
   }
   
-  console.log('BMV Finder: Property page check results:', {
-    hostname,
-    pathname,
-    hasPropertyPattern,
-    hasPropertyElements,
-    isPropertySite,
-    isPropertyPage
-  });
+  if (hostname.includes('zoopla.co.uk')) {
+    return pathname.includes('/for-sale/') || pathname.includes('/to-rent/');
+  }
   
-  return isPropertyPage;
+  if (hostname.includes('onthemarket.com')) {
+    return pathname.includes('/for-sale/') || pathname.includes('/to-rent/');
+  }
+  
+  if (hostname.includes('primelocation.com')) {
+    return pathname.includes('/for-sale/') || pathname.includes('/to-rent/');
+  }
+  
+  // Check for property-related keywords in title
+  const title = document.title.toLowerCase();
+  const propertyKeywords = ['for sale', 'to rent', 'property', 'house', 'flat', 'apartment'];
+  return propertyKeywords.some(keyword => title.includes(keyword));
 }
 
-// Debug function to help troubleshoot
+// Test function for debugging
+function testCurrentPageExtraction() {
+  console.log('BMV Finder: Testing current page extraction...');
+  const propertyData = extractPropertyData();
+  console.log('BMV Finder: Extracted data:', propertyData);
+  
+  // Show test results
+  const testResults = `
+    Title: ${propertyData.title}
+    Price: ${propertyData.price}
+    Address: ${propertyData.address}
+    Bedrooms: ${propertyData.bedrooms}
+    Bathrooms: ${propertyData.bathrooms}
+    Property Type: ${propertyData.property_type}
+    Images: ${propertyData.images.length}
+    Source: ${propertyData.source}
+  `;
+  
+  console.log('BMV Finder: Test Results:', testResults);
+  showMessage('Test completed - check console for results', true);
+}
+
+// Debug function to show page information
 function debugPageInfo() {
   console.log('BMV Finder: === DEBUG PAGE INFO ===');
   console.log('BMV Finder: URL:', window.location.href);
@@ -255,8 +90,8 @@ window.bmvFinderDebug = debugPageInfo;
 
 // Extract property data based on the site
 function extractPropertyData() {
-    const hostname = window.location.hostname;
-    
+  const hostname = window.location.hostname;
+  
   let propertyData = {
     title: document.title || 'Property',
     price: '£0',
@@ -376,7 +211,7 @@ function extractPropertyData() {
   if (hostname.includes('zoopla.co.uk')) {
     console.log('BMV Finder: Extracting Zoopla data...');
     
-        // Extract price - collect all prices first, then select the best one
+    // Extract price - collect all prices first, then select the best one
     const allPrices = [];
     const priceSelectors = [
       // Zoopla-specific selectors for main price (most specific first)
@@ -502,94 +337,18 @@ function extractPropertyData() {
       console.log('BMV Finder: Selected Zoopla price:', propertyData.price, 'from:', selectedPrice.selector);
     }
     
-    // Fallback: If no price found, try to extract from page text
-    if (propertyData.price === '£0') {
-      console.log('BMV Finder: No price found from selectors, trying page text fallback...');
-      const pageText = document.body.textContent;
-      
-      // Look for Zoopla-specific price patterns
-      const pricePatterns = [
-        /£([\d,]+)/g,  // Any price pattern
-      ];
-      
-      const allPriceMatches = [];
-      for (const pattern of pricePatterns) {
-        const matches = pageText.match(pattern);
-        if (matches) {
-          allPriceMatches.push(...matches);
-        }
-      }
-      
-      if (allPriceMatches.length > 0) {
-        // Convert to numbers and filter reasonable property prices
-        const prices = allPriceMatches
-          .map(p => parseInt(p.replace(/[£,]/g, '')))
-          .filter(p => p > 10000 && p < 10000000); // Reasonable property price range
-        
-        if (prices.length > 0) {
-          // Find the largest price (likely the property price)
-          const maxPrice = Math.max(...prices);
-          propertyData.price = '£' + maxPrice.toLocaleString();
-          console.log('BMV Finder: Found fallback price from page text:', propertyData.price);
-        }
-      }
-    }
-    
-    // Additional check: Look specifically for the main property price area
-    console.log('BMV Finder: Additional check for main property price...');
-    
-    // Try to find the main property price by looking for common patterns
-    const mainPriceSelectors = [
-      // Look for price in the main property header
-      '.property-header h1',
-      '.property-header h2',
-      '.property-header h3',
-      '.property-header [class*="price"]',
-      // Look for price near the property title
-      'h1 + div',
-      'h1 + span',
-      'h2 + div',
-      'h2 + span',
-      // Look for price in the main content area
-      '.property-content [class*="price"]',
-      '.listing-content [class*="price"]',
-      // Look for price in the sidebar
-      '.sidebar [class*="price"]',
-      '.property-sidebar [class*="price"]'
-    ];
-    
-    for (const selector of mainPriceSelectors) {
-      const elements = document.querySelectorAll(selector);
-      for (const element of elements) {
-        const text = element.textContent;
-        const priceMatch = text.match(/£[\d,]+/);
-        if (priceMatch) {
-          const price = priceMatch[0];
-          const priceValue = parseInt(price.replace(/[£,]/g, ''));
-          
-          // Only consider reasonable property prices
-          if (priceValue > 50000 && priceValue < 1000000) {
-            console.log('BMV Finder: Found main property price:', price, 'from selector:', selector);
-            propertyData.price = price;
-            break;
-          }
-        }
-      }
-      if (propertyData.price !== '£0') break;
-    }
-    
     // Extract address/title - try multiple selectors
-      const titleSelectors = [
-        'h1',
+    const titleSelectors = [
+      'h1',
       '[data-testid="address"]',
       '.css-1tppcjb',
-        '[class*="title"]',
-        '.listing-title',
+      '[class*="title"]',
+      '.listing-title',
       '.css-1tppcjb-Text',
       '.css-1tppcjb-Text--title',
       '.property-title',
-        '.property-address',
-        '.listing-address',
+      '.property-address',
+      '.listing-address',
       '.address',
       '.property-header__title',
       '.property-details__title',
@@ -599,17 +358,17 @@ function extractPropertyData() {
     ];
     
     for (const selector of titleSelectors) {
-        const elements = document.querySelectorAll(selector);
+      const elements = document.querySelectorAll(selector);
       console.log('BMV Finder: Found', elements.length, 'elements for Zoopla title selector:', selector);
       
-        for (const element of elements) {
-          const text = element.textContent.trim();
+      for (const element of elements) {
+        const text = element.textContent.trim();
         console.log('BMV Finder: Checking Zoopla title selector:', selector, 'Text:', text.substring(0, 100));
         if (text && text.length > 10 && text.length < 200 && !text.includes('Zoopla')) {
           propertyData.address = text;
           console.log('BMV Finder: Found Zoopla address:', propertyData.address);
-            break;
-          }
+          break;
+        }
       }
       if (propertyData.address) break;
     }
@@ -685,10 +444,10 @@ function extractPropertyData() {
     ];
     
     for (const selector of priceSelectors) {
-        const elements = document.querySelectorAll(selector);
+      const elements = document.querySelectorAll(selector);
       console.log('BMV Finder: Found', elements.length, 'elements for selector:', selector);
       
-        for (const element of elements) {
+      for (const element of elements) {
         const text = element.textContent;
         console.log('BMV Finder: Checking price selector:', selector, 'Text:', text.substring(0, 100));
         
@@ -707,41 +466,41 @@ function extractPropertyData() {
         if (priceMatch) {
           propertyData.price = priceMatch[0];
           console.log('BMV Finder: Found Rightmove price:', propertyData.price);
-            break;
-          }
+          break;
         }
+      }
       if (propertyData.price !== '£0') break;
     }
     
     // Extract address/title - try multiple selectors
-      const titleSelectors = [
-        'h1',
+    const titleSelectors = [
+      'h1',
       '[data-testid="property-title"]',
       '.propertyCard-title',
-        '[class*="title"]',
+      '[class*="title"]',
       '.listing-title',
-        '[data-testid="address"]',
+      '[data-testid="address"]',
       '.property-header__title',
       '.property-details__title',
       '.property-title',
-        '.address',
-        '.property-address',
+      '.address',
+      '.property-address',
       '.property-header__address',
       '.property-details__address'
     ];
     
     for (const selector of titleSelectors) {
-        const elements = document.querySelectorAll(selector);
+      const elements = document.querySelectorAll(selector);
       console.log('BMV Finder: Found', elements.length, 'elements for title selector:', selector);
       
-        for (const element of elements) {
-          const text = element.textContent.trim();
+      for (const element of elements) {
+        const text = element.textContent.trim();
         console.log('BMV Finder: Checking title selector:', selector, 'Text:', text.substring(0, 100));
         if (text && text.length > 10 && text.length < 200 && !text.includes('Rightmove')) {
           propertyData.address = text;
           console.log('BMV Finder: Found Rightmove address:', propertyData.address);
-            break;
-          }
+          break;
+        }
       }
       if (propertyData.address) break;
     }
@@ -787,32 +546,32 @@ function extractPropertyData() {
     }
   }
   
-      // Fallback: try to extract price from any text on page
-    if (propertyData.price === '£0') {
-      console.log('BMV Finder: Trying fallback price extraction...');
-      const pageText = document.body.textContent;
-      
-      // First, specifically look for "Guide price" in the page text
-      const guidePriceMatch = pageText.match(/Guide Price £([\d,]+)/i);
-      if (guidePriceMatch) {
-        propertyData.price = '£' + guidePriceMatch[1];
-        console.log('BMV Finder: Found Guide price in page text:', propertyData.price);
-      }
-      
-      // Look for Rightmove-specific patterns first
-      const rightmovePatterns = [
-        /Guide Price £([\d,]+)/i,  // Prioritize Guide Price
-        /Offers Over £([\d,]+)/i,
-        /Asking Price £([\d,]+)/i,
-        /Price £([\d,]+)/i,
-        /£([\d,]+) Guide Price/i,
-        /£([\d,]+) Offers Over/i,
-        // Add more patterns for current layouts
-        /Price:?\s*£([\d,]+)/i,
-        /Guide price:?\s*£([\d,]+)/i,
-        /Asking price:?\s*£([\d,]+)/i,
-        /£([\d,]+)/g  // Simple £ followed by numbers (fallback)
-      ];
+  // Fallback: try to extract price from any text on page
+  if (propertyData.price === '£0') {
+    console.log('BMV Finder: Trying fallback price extraction...');
+    const pageText = document.body.textContent;
+    
+    // First, specifically look for "Guide price" in the page text
+    const guidePriceMatch = pageText.match(/Guide Price £([\d,]+)/i);
+    if (guidePriceMatch) {
+      propertyData.price = '£' + guidePriceMatch[1];
+      console.log('BMV Finder: Found Guide price in page text:', propertyData.price);
+    }
+    
+    // Look for Rightmove-specific patterns first
+    const rightmovePatterns = [
+      /Guide Price £([\d,]+)/i,  // Prioritize Guide Price
+      /Offers Over £([\d,]+)/i,
+      /Asking Price £([\d,]+)/i,
+      /Price £([\d,]+)/i,
+      /£([\d,]+) Guide Price/i,
+      /£([\d,]+) Offers Over/i,
+      // Add more patterns for current layouts
+      /Price:?\s*£([\d,]+)/i,
+      /Guide price:?\s*£([\d,]+)/i,
+      /Asking price:?\s*£([\d,]+)/i,
+      /£([\d,]+)/g  // Simple £ followed by numbers (fallback)
+    ];
     
     for (const pattern of rightmovePatterns) {
       const match = pageText.match(pattern);
@@ -820,8 +579,8 @@ function extractPropertyData() {
         const price = '£' + match[1];
         console.log('BMV Finder: Found Rightmove pattern price:', price, 'from pattern:', pattern);
         propertyData.price = price;
-            break;
-          }
+        break;
+      }
     }
     
     // Look for Zoopla-specific patterns
@@ -843,10 +602,10 @@ function extractPropertyData() {
           const price = '£' + match[1];
           console.log('BMV Finder: Found Zoopla pattern price:', price, 'from pattern:', pattern);
           propertyData.price = price;
-            break;
-          }
+          break;
         }
       }
+    }
 
     // If still no price, try general price extraction with better logic
     if (propertyData.price === '£0') {
