@@ -528,6 +528,20 @@ export default function WatchlistPage() {
 
   const startEditing = (property: WatchlistItem) => {
     setEditingProperty(property.id);
+    
+    // Format the offer date for HTML date input (YYYY-MM-DD)
+    let formattedOfferDate = '';
+    if (property.offer_date) {
+      try {
+        const date = new Date(property.offer_date);
+        if (!isNaN(date.getTime())) {
+          formattedOfferDate = date.toISOString().split('T')[0];
+        }
+      } catch (error) {
+        console.warn('Invalid offer date format:', property.offer_date);
+      }
+    }
+    
     setEditForm({
       title: property.title || '',
       price: property.price || 0,
@@ -551,7 +565,7 @@ export default function WatchlistPage() {
       user_notes: property.user_notes || '',
       status: property.status || 'active',
       offer_amount: property.offer_amount || 0,
-      offer_date: property.offer_date || '',
+      offer_date: formattedOfferDate,
       offer_status: property.offer_status || 'pending'
     });
   };
@@ -1787,17 +1801,13 @@ export default function WatchlistPage() {
                     
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Offer Date</label>
-                      <div className="relative">
-                        <input
-                          type="date"
-                          value={editForm.offer_date || ''}
-                          onChange={(e) => setEditForm(prev => ({ ...prev, offer_date: e.target.value }))}
-                          className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                        />
-                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400">
-                          📅
-                        </div>
-                      </div>
+                      <input
+                        type="date"
+                        value={editForm.offer_date || ''}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, offer_date: e.target.value }))}
+                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                        placeholder="Select date"
+                      />
                     </div>
                   </div>
                   
