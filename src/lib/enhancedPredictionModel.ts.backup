@@ -409,7 +409,6 @@ export class EnhancedPredictionModel {
       inflationAdjustment = baseValue * (cumulativeInflation - 1);
       economicMultiplier *= cumulativeInflation;
       
-      console.log(`💰 Inflation adjustment: ${soldYear}-${currentYear}: ${((cumulativeInflation - 1) * 100).toFixed(1)}% = £${inflationAdjustment.toLocaleString()}`);
     }
 
     // Current inflation rate impact on future value
@@ -425,7 +424,6 @@ export class EnhancedPredictionModel {
       interestRateImpact = Math.max(0.90, 1 - (rateDifference * 0.02));
       economicMultiplier *= interestRateImpact;
       
-      console.log(`🏦 Interest rate impact: ${features.interestRate}% (vs ${baseRate}% base) = ${(interestRateImpact * 100).toFixed(1)}% multiplier`);
     }
 
     // Economic outlook adjustment
@@ -437,7 +435,6 @@ export class EnhancedPredictionModel {
       }[features.economicOutlook.marketSentiment] || 1.00;
       
       economicMultiplier *= sentimentMultiplier;
-      console.log(`📈 Market sentiment: ${features.economicOutlook.marketSentiment} = ${(sentimentMultiplier * 100).toFixed(1)}% multiplier`);
     }
 
     return {
@@ -569,11 +566,6 @@ export class EnhancedPredictionModel {
       tenYear: Math.round(predictedValue * Math.pow(1 + inflationAdjustedGrowthRate, 10))
     };
 
-    console.log(`📊 Future projections with ${(inflationAdjustedGrowthRate * 100).toFixed(1)}% annual growth (inflation-adjusted)`);
-    console.log(`   1 year: £${projections.oneYear.toLocaleString()}`);
-    console.log(`   3 years: £${projections.threeYear.toLocaleString()}`);
-    console.log(`   5 years: £${projections.fiveYear.toLocaleString()}`);
-    console.log(`   10 years: £${projections.tenYear.toLocaleString()}`);
 
     return projections;
   }

@@ -26,11 +26,6 @@ export async function POST(req: NextRequest) {
   const { userId, priceId, email } = await req.json();
 
   // Debug logs
-  console.log('Using Stripe secret key:', process.env.STRIPE_SECRET_KEY);
-  console.log('Allowed price IDs:', ALLOWED_PRICE_IDS);
-  console.log('Requested priceId:', priceId);
-  console.log('Elite yearly price ID:', process.env.NEXT_PUBLIC_STRIPE_ELITE_YEARLY_PRICE_ID);
-  console.log('All env:', JSON.stringify(process.env, null, 2));
 
   if (!userId || !priceId) {
     return NextResponse.json({ error: 'Missing userId or priceId' }, { status: 400 });

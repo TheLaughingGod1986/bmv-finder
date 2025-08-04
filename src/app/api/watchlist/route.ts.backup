@@ -221,7 +221,6 @@ export async function GET(request: NextRequest) {
     
     // If Supabase is not configured, return mock data + captured properties
     if (!supabase) {
-      console.log('Supabase not configured, returning mock data + captured properties');
       const allProperties = [...mockWatchlistData, ...capturedProperties];
       return NextResponse.json({
         success: true,
@@ -243,7 +242,6 @@ export async function GET(request: NextRequest) {
           userId = user.id;
         }
       } catch (authError) {
-        console.log('Auth error, using default user ID:', authError);
       }
     }
 
@@ -291,7 +289,6 @@ export async function POST(request: NextRequest) {
       };
       
       capturedProperties.push(newProperty);
-      console.log('Added captured property to in-memory storage:', newProperty.title);
       
       return NextResponse.json({
         success: true,

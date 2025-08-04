@@ -142,9 +142,7 @@ export default function MobileFeatures() {
       const { outcome } = await deferredPrompt.userChoice;
       
       if (outcome === 'accepted') {
-        console.log('User accepted the install prompt');
       } else {
-        console.log('User dismissed the install prompt');
       }
     } catch (error) {
       console.error('Error installing PWA:', error);

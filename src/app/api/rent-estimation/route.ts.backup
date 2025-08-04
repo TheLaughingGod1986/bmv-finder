@@ -221,7 +221,6 @@ async function getElasticsearchRent(postcode: string, propertyType: string, bedr
       }
     };
 
-    console.log('Attempting to fetch rental data from Elasticsearch...');
     
     const response = await esClient.search({
       index: 'rental-data',
@@ -254,7 +253,6 @@ async function getElasticsearchRent(postcode: string, propertyType: string, bedr
       };
     }
     
-    console.log('No Elasticsearch rental data found, using fallback calculation');
     return null;
     
   } catch (error) {

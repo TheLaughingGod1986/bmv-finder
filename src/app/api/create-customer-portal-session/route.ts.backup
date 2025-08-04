@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
   try {
     // Get the access token from the Authorization header
     const authHeader = req.headers.get('authorization');
-    console.log('Authorization header:', authHeader);
     const token = authHeader?.replace('Bearer ', '');
 
     // Use the token to get the user

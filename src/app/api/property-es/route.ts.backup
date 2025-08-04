@@ -5,7 +5,6 @@ export async function POST(req: NextRequest) {
   try {
     const { searchTerm, page = 1, pageSize = 20 } = await req.json();
 
-    console.log('[property-es] Incoming searchTerm:', searchTerm);
 
     if (!searchTerm) {
       return NextResponse.json({ error: 'Search term is required' }, { status: 400 });
@@ -13,7 +12,6 @@ export async function POST(req: NextRequest) {
 
     // Normalize input: remove extra spaces and uppercase
     let normalizedInput = searchTerm.trim().toUpperCase();
-    console.log('[property-es] Normalized input:', normalizedInput);
 
     // If input is a 6 or 7 character string with no space, insert a space before the last 3 chars
     const compactPostcodePattern = /^[A-Z]{1,2}[0-9][A-Z0-9]?[0-9][A-Z]{2}$/i;
@@ -72,7 +70,6 @@ export async function POST(req: NextRequest) {
       canAggregate = true;
     }
 
-    console.log('[property-es] Final ES query:', JSON.stringify(query, null, 2));
 
     // Pagination logic
     const safePage = Math.max(1, parseInt(page, 10) || 1);
@@ -92,7 +89,6 @@ export async function POST(req: NextRequest) {
           ]
         });
         const hits = result.hits.hits.map(hit => hit._source as Record<string, unknown>);
-        console.log(`[property-es] ES returned ${hits.length} hits (postcode search)`);
         return NextResponse.json({
           data: hits,
           totalCount: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total ?? hits.length,
@@ -137,7 +133,6 @@ export async function POST(req: NextRequest) {
 
         const buckets = (result.aggregations?.deduped_properties as any)?.buckets || [];
         const hits = buckets.map((bucket: any) => bucket.most_recent_sale.hits.hits[0]._source);
-        console.log(`[property-es] ES returned ${hits.length} hits (aggregate search)`);
         return NextResponse.json({
           data: hits,
           totalCount: hits.length,
@@ -156,7 +151,6 @@ export async function POST(req: NextRequest) {
         });
 
         const hits = result.hits.hits.map(hit => hit._source as Record<string, unknown>);
-        console.log(`[property-es] ES returned ${hits.length} hits (fallback search)`);
         return NextResponse.json({
           data: hits,
           totalCount: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total ?? hits.length,

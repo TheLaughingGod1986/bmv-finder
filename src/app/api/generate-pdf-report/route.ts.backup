@@ -86,7 +86,6 @@ export async function POST(req: NextRequest) {
           return NextResponse.json({ error: 'Elite membership verification failed' }, { status: 403 });
         }
         
-        console.log('Elite member PDF request verified:', userId);
       } catch (error) {
         console.error('Error verifying Elite membership:', error);
         return NextResponse.json({ error: 'Failed to verify Elite membership' }, { status: 500 });

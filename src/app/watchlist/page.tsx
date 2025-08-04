@@ -245,7 +245,12 @@ export default function WatchlistPage() {
       
       // Notes and status
       user_notes: property.user_notes || '',
-      status: property.status || 'active'
+      status: property.status || 'active',
+      
+      // Offer tracking
+      offer_amount: property.offer_amount || 0,
+      offer_date: property.offer_date || '',
+      offer_status: property.offer_status || 'pending'
     });
   };
 
@@ -318,7 +323,12 @@ export default function WatchlistPage() {
       
       // Notes and status
       user_notes: '',
-      status: 'active'
+      status: 'active',
+      
+      // Offer tracking
+      offer_amount: 0,
+      offer_date: '',
+      offer_status: 'pending' as 'pending' | 'accepted' | 'rejected'
     });
   };
 
@@ -1607,6 +1617,35 @@ export default function WatchlistPage() {
                                        <div className="text-xl font-bold text-blue-700 mb-1">
                                          {formatPrice(offerAnalysis.recommendedOffer)}
                                        </div>
+                                       
+                                       {/* Current Offer Status - Show if under offer */}
+                                       {item.status === 'under_offer' && item.offer_amount && (
+                                         <div className="mt-3 p-2 bg-red-50 rounded border border-red-200">
+                                           <div className="text-xs text-red-700 font-medium mb-1">📋 Your Offer:</div>
+                                           <div className="flex justify-between text-sm">
+                                             <span className="text-red-600">Amount:</span>
+                                             <span className="font-bold text-red-800">{formatPrice(item.offer_amount)}</span>
+                                           </div>
+                                           {item.offer_date && (
+                                             <div className="flex justify-between text-xs text-red-600">
+                                               <span>Date:</span>
+                                               <span>{formatDate(item.offer_date)}</span>
+                                             </div>
+                                           )}
+                                           {item.offer_status && (
+                                             <div className="flex justify-between text-xs text-red-600">
+                                               <span>Status:</span>
+                                               <span className={`font-medium ${
+                                                 item.offer_status === 'accepted' ? 'text-green-600' :
+                                                 item.offer_status === 'rejected' ? 'text-red-600' :
+                                                 'text-yellow-600'
+                                               }`}>
+                                                 {item.offer_status.charAt(0).toUpperCase() + item.offer_status.slice(1)}
+                                               </span>
+                                             </div>
+                                           )}
+                                         </div>
+                                       )}
                                        <div className="text-xs text-gray-500 mb-2">
                                          {offerAnalysis.negotiationBuffer}% below asking price
                                        </div>
@@ -2768,6 +2807,49 @@ Best regards,
                             />
                           </div>
                         </div>
+
+                        {/* Offer Tracking - Only show when status is "under_offer" */}
+                        {editForm.status === 'under_offer' && (
+                          <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                            <h4 className="text-sm font-semibold text-red-800 mb-3">📋 Offer Details</h4>
+                            <div className="grid grid-cols-3 gap-3 mb-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Offer Amount (£)</label>
+                                <input
+                                  type="number"
+                                  value={editForm.offer_amount}
+                                  onChange={(e) => setEditForm(prev => ({ ...prev, offer_amount: parseInt(e.target.value) || 0 }))}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                  placeholder="0"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Offer Date</label>
+                                <input
+                                  type="date"
+                                  value={editForm.offer_date}
+                                  onChange={(e) => setEditForm(prev => ({ ...prev, offer_date: e.target.value }))}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Offer Status</label>
+                                <select
+                                  value={editForm.offer_status}
+                                  onChange={(e) => setEditForm(prev => ({ ...prev, offer_status: e.target.value as 'pending' | 'accepted' | 'rejected' }))}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="accepted">Accepted</option>
+                                  <option value="rejected">Rejected</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div className="text-xs text-red-600 bg-red-100 p-2 rounded border border-red-200">
+                              💡 <strong>Tip:</strong> When you set status to "Under Offer", you can track your offer details here. Update the offer status when you receive a response from the vendor.
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex space-x-3 mt-6">

@@ -244,11 +244,8 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     
     // Use guid, paon, or a combination as the key
     const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
-    console.log('🔍 Looking for indicator with key:', propertyKey);
-    console.log('🔍 Available indicators:', Object.keys(priceIndicators));
     
     const indicator = priceIndicators[propertyKey];
-    console.log('🔍 Found indicator:', indicator);
     
     if (!indicator) return null;
 
@@ -257,7 +254,6 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     const bmvScore = indicator.bmvScore;
     
     if (!bmvCategory || bmvScore === undefined) {
-      console.log('🔍 No BMV data available');
       return null;
     }
     
@@ -336,7 +332,6 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
         // Prepare properties with correct field mapping
         const propertiesForApi = soldPrices.map(property => {
           const bedrooms = (property.epc_bedrooms && property.epc_bedrooms > 0 ? Math.round(property.epc_bedrooms) : undefined) || (property.bedrooms && property.bedrooms > 0 ? Math.round(property.bedrooms) : undefined);
-          console.log('DEBUG: Sending property to API:', { paon: property.paon, postcode: property.postcode, epc_bedrooms: property.epc_bedrooms, bedrooms: property.bedrooms, final_bedrooms: bedrooms });
           return {
             id: property.guid || property.paon || `${property.paon}-${property.postcode}`,
             postcode: property.postcode,
@@ -354,22 +349,17 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
         
         if (response.ok) {
           const data = await response.json();
-          console.log('🔍 Price indicators API response:', data);
           const indicatorsMap: { [key: string]: any } = {};
           data.forEach((indicator: any) => {
             // Map the indicator to the correct property key
             const propertyKey = indicator.propertyId;
-            console.log('🔍 Mapping indicator:', { propertyKey, indicator });
             
             // Only add to map if it has valid data (not an error)
             if (indicator.percentage !== undefined && !indicator.error) {
               indicatorsMap[propertyKey] = indicator;
-              console.log('🔍 Added to map:', propertyKey, indicator);
             } else {
-              console.log('🔍 Skipped indicator due to error or missing percentage:', indicator);
             }
           });
-          console.log('🔍 Final indicators map:', indicatorsMap);
           setPriceIndicators(indicatorsMap);
         }
       } catch (error) {

@@ -200,9 +200,6 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         rental_income: (formData.monthlyRent || 0) * 12, // Also update annual rental income
       };
       
-      console.log('Updating property with data:', updateData);
-      console.log('Property ID:', property.id);
-      console.log('Supabase client:', supabase ? 'Available' : 'Not available');
       
       if (!supabase) {
         throw new Error('Supabase client not available');
@@ -210,8 +207,6 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
       
       // Check if user is authenticated
       const { data: { user }, error: authError } = await supabase.auth.getUser();
-      console.log('Current user:', user);
-      console.log('Auth error:', authError);
       
       if (authError || !user) {
         throw new Error('User not authenticated');
@@ -223,8 +218,6 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         .eq('id', property.id)
         .select();
       
-      console.log('Update response data:', data);
-      console.log('Update response error:', error);
 
       if (error) {
         console.error('Error updating property:', error);

@@ -256,7 +256,7 @@ export default function MobileFeatures() {
             ) : (
               <div className="text-center">
                 <p className="text-blue-100 text-sm mb-2">
-                  Use "Add to Home Screen" in your browser menu
+                  Use &ldquo;Add to Home Screen&rdquo; in your browser menu
                 </p>
                 <div className="flex items-center justify-center gap-2 text-blue-100 text-xs">
                   <AlertCircle className="w-4 h-4" />

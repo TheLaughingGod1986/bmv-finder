@@ -19,7 +19,6 @@ export async function GET() {
     
     // If Supabase is not configured, return mock data
     if (!supabase) {
-      console.log('Supabase not configured, returning mock properties data');
       return NextResponse.json({
         success: true,
         count: 0,
@@ -66,7 +65,6 @@ export async function POST(request: NextRequest) {
     // Get request body
     const propertyData = await request.json();
     
-    console.log('BMV Finder API: Received property capture request:', propertyData);
     
     if (!propertyData || !propertyData.title) {
       return NextResponse.json({ error: 'Invalid property data - title is required' }, { 
@@ -82,14 +80,12 @@ export async function POST(request: NextRequest) {
     // Ensure price exists, default to 0 if not provided
     if (!propertyData.price) {
       propertyData.price = '£0';
-      console.log('BMV Finder API: No price provided, defaulting to £0');
     }
 
     const supabase = createSupabaseClient();
     
     // If Supabase is not configured, return mock success
     if (!supabase) {
-      console.log('Supabase not configured, returning mock capture success');
       
       // Create a mock property object
       const mockProperty = {
@@ -130,10 +126,8 @@ export async function POST(request: NextRequest) {
         });
         
         if (watchlistResponse.ok) {
-          console.log('BMV Finder API: Property also added to watchlist');
         }
       } catch (watchlistError) {
-        console.log('BMV Finder API: Failed to add to watchlist:', watchlistError);
       }
       
       return NextResponse.json({
@@ -160,15 +154,11 @@ export async function POST(request: NextRequest) {
         
         if (!error && user) {
           userId = user.id;
-          console.log('BMV Finder API: Using authenticated user ID:', userId);
         } else {
-          console.log('BMV Finder API: Invalid token, using default user ID');
         }
       } catch (authError) {
-        console.log('BMV Finder API: Auth error, using default user ID:', authError);
       }
     } else {
-      console.log('BMV Finder API: No authorization header, using default user ID');
     }
 
     // Check if property already exists for this user and URL (excluding deleted properties)
@@ -181,7 +171,6 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (existingProperty.data) {
-      console.log('BMV Finder API: Property already exists, updating instead');
       
       // Update existing property with new data
       const { data, error } = await supabase
@@ -217,7 +206,6 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      console.log('BMV Finder API: Property updated successfully:', data);
 
       return NextResponse.json({
         success: true,
@@ -267,7 +255,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    console.log('BMV Finder API: Property captured successfully:', data);
 
     return NextResponse.json({
       success: true,
@@ -300,7 +287,6 @@ export async function PUT(request: NextRequest) {
     
     // If Supabase is not configured, return mock success
     if (!supabase) {
-      console.log('Supabase not configured, returning mock update success');
       return NextResponse.json({
         success: true,
         message: 'Property updated successfully (mock)',
@@ -315,7 +301,6 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'ID is required' }, { status: 400 });
     }
 
-    console.log('BMV Finder API: Updating property:', { id, ...updateData });
 
     const updateFields: any = {
       updated_at: new Date().toISOString()
@@ -343,7 +328,6 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to update property: ' + error.message }, { status: 500 });
     }
 
-    console.log('BMV Finder API: Property updated successfully:', data);
 
     return NextResponse.json({
       success: true,
@@ -363,7 +347,6 @@ export async function DELETE(request: NextRequest) {
     
     // If Supabase is not configured, return mock success
     if (!supabase) {
-      console.log('Supabase not configured, returning mock delete success');
       return NextResponse.json({
         success: true,
         message: 'Property deleted successfully (mock)'
@@ -377,7 +360,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Property ID is required' }, { status: 400 });
     }
 
-    console.log('BMV Finder API: Deleting property:', id);
 
     const { error } = await supabase
       .from('watchlist')
@@ -389,7 +371,6 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to delete property' }, { status: 500 });
     }
 
-    console.log('BMV Finder API: Property deleted successfully:', id);
 
     return NextResponse.json({
       success: true,
@@ -420,11 +401,9 @@ function extractPrice(priceString: string | number): number {
   
   if (priceMatch) {
     const extractedPrice = parseFloat(priceMatch[1]);
-    console.log('BMV Finder API: Extracted price:', extractedPrice, 'from:', priceString);
     return extractedPrice;
   }
   
-  console.log('BMV Finder API: Could not extract price from:', priceString);
   return 0;
 }
 

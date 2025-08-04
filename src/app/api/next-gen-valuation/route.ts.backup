@@ -15,15 +15,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('🔍 Starting next-gen valuation:', { postcode, number });
 
     // 1. Get property enrichment data (EPC data)
     const propertyData = await getPropertyEnrichmentData(postcode, number);
-    console.log('✅ Property enrichment data:', propertyData ? 'Found' : 'Not found');
 
     // 2. Get sold prices for the property
     const soldPrices = await getSoldPrices(postcode, number);
-    console.log('✅ Sold prices found:', soldPrices.length);
 
     // 3. Build features for the valuation model
     const features: NextGenValuationFeatures = {

@@ -71,7 +71,6 @@ export async function POST(req: NextRequest) {
     const { priceIdToTier, PDF_REPORT_PRICE_ID } = getPriceIdToTier();
 
     // Log the incoming event for debugging
-    console.log('Received Stripe event:', event.type, JSON.stringify(event, null, 2));
 
     // Handle Stripe events
     switch (event.type) {
@@ -108,7 +107,6 @@ export async function POST(req: NextRequest) {
                 canceled_at: subscription.canceled_at,
                 userId: userId,
               };
-              console.log('DEBUG: Saving billing_metadata for checkout.session.completed:', JSON.stringify(billing_metadata, null, 2));
               const supabaseAdmin = getSupabaseAdmin();
               await supabaseAdmin.from('profiles').update({ tier, billing_metadata }).eq('id', userId);
             }
@@ -147,7 +145,6 @@ export async function POST(req: NextRequest) {
               canceled_at: subscription.canceled_at,
               userId: userId,
             };
-            console.log('DEBUG: Saving billing_metadata for customer.subscription.updated:', JSON.stringify(billing_metadata, null, 2));
             const supabaseAdmin = getSupabaseAdmin();
             await supabaseAdmin.from('profiles').update({ tier, billing_metadata }).eq('id', userId);
           }
@@ -172,14 +169,12 @@ export async function POST(req: NextRequest) {
       case 'invoice.payment_failed': {
         try {
           // Optionally handle payment failures
-          console.log('Payment failed event received');
         } catch (error: any) {
           console.error('Error handling invoice.payment_failed:', error);
         }
         break;
       }
       default: {
-        console.log(`Unhandled event type: ${event.type}`);
       }
     }
 
