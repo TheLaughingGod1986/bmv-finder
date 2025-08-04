@@ -73,6 +73,13 @@ interface WatchlistItem {
   market_trend?: string;
   days_on_market?: number;
   custom_rental_estimate?: number;
+  mortgage_type?: string;
+  mortgage_rate?: number;
+  mortgage_term?: number;
+  // Offer tracking
+  offer_amount?: number;
+  offer_date?: string;
+  offer_status?: 'pending' | 'accepted' | 'rejected';
 }
 
 export default function WatchlistPage() {
@@ -119,7 +126,12 @@ export default function WatchlistPage() {
     
     // Notes and status
     user_notes: '',
-    status: 'active'
+    status: 'active',
+    
+    // Offer tracking
+    offer_amount: 0,
+    offer_date: '',
+    offer_status: 'pending' as 'pending' | 'accepted' | 'rejected'
   });
 
   useEffect(() => {
@@ -226,6 +238,11 @@ export default function WatchlistPage() {
       property_condition: property.property_condition || 'Good',
       days_on_market: property.days_on_market || 0,
       
+      // Mortgage settings
+      mortgage_type: property.mortgage_type || 'Interest-Only',
+      mortgage_rate: property.mortgage_rate || 4.5,
+      mortgage_term: property.mortgage_term || 25,
+      
       // Notes and status
       user_notes: property.user_notes || '',
       status: property.status || 'active'
@@ -294,6 +311,11 @@ export default function WatchlistPage() {
       property_condition: 'Good',
       days_on_market: 0,
       
+      // Mortgage settings
+      mortgage_type: 'Interest-Only',
+      mortgage_rate: 4.5,
+      mortgage_term: 25,
+      
       // Notes and status
       user_notes: '',
       status: 'active'
@@ -332,8 +354,9 @@ export default function WatchlistPage() {
       
       // Mortgage calculations
       const mortgageAmount = purchasePrice - deposit;
-      const interestRate = 0.045; // 4.5% default interest rate
-      const mortgageTerm = 25; // 25 years
+      const interestRate = (property.mortgage_rate || 4.5) / 100; // Convert percentage to decimal
+      const mortgageTerm = property.mortgage_term || 25; // 25 years default
+      const mortgageType = property.mortgage_type || 'Interest-Only'; // Default to interest-only
       
       // Interest-only mortgage calculation
       const monthlyInterestOnly = mortgageAmount * (interestRate / 12);
@@ -343,9 +366,8 @@ export default function WatchlistPage() {
       const numberOfPayments = mortgageTerm * 12;
       const monthlyRepayment = mortgageAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
       
-      // Default to repayment mortgage
-      const monthlyMortgagePayment = monthlyRepayment;
-      const mortgageType = 'Repayment'; // Can be made configurable later
+      // Use the property's mortgage type setting
+      const monthlyMortgagePayment = mortgageType === 'Interest-Only' ? monthlyInterestOnly : monthlyRepayment;
       
       // Simplified monthly expenses (more realistic)
       const managementFee = monthlyRent * 0.08; // 8% management fee (reduced from 10%)
@@ -415,7 +437,7 @@ export default function WatchlistPage() {
         monthlyInterestOnly: 0,
         monthlyRepayment: 0,
         monthlyMortgagePayment: 0,
-        mortgageType: 'Repayment',
+        mortgageType: 'Interest-Only',
         managementFee: 0,
         insuranceCost: 0,
         maintenanceReserve: 0,
@@ -2571,6 +2593,45 @@ Best regards,
                                 <option value="Poor">Poor</option>
                                 <option value="Needs Work">Needs Work</option>
                               </select>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Mortgage Settings */}
+                        <div className="bg-indigo-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-indigo-800 mb-3">Mortgage Settings</h4>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Mortgage Type</label>
+                              <select
+                                value={editForm.mortgage_type}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mortgage_type: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="Interest-Only">Interest-Only</option>
+                                <option value="Repayment">Repayment</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Interest Rate (%)</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={editForm.mortgage_rate}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mortgage_rate: parseFloat(e.target.value) || 4.5 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="4.5"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Term (Years)</label>
+                              <input
+                                type="number"
+                                value={editForm.mortgage_term}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mortgage_term: parseInt(e.target.value) || 25 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="25"
+                              />
                             </div>
                           </div>
                         </div>

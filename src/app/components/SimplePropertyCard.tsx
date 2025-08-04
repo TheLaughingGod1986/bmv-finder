@@ -56,11 +56,9 @@ export default function SimplePropertyCard({ property, onEdit, onSold, onRemove 
       fetch(`/api/postcode-lookup?postcode=${encodeURIComponent(postcode)}`)
         .then(response => response.json())
         .then(data => {
-          console.log('Postcode lookup response for', postcode, ':', data);
           if (data.street) {
             setStreetName(data.street);
           } else {
-            console.log('No valid street name found for', postcode, 'using fallback');
             // Use a more descriptive fallback instead of just "Street"
             setStreetName('Unknown Street Name');
           }
@@ -192,7 +190,6 @@ export default function SimplePropertyCard({ property, onEdit, onSold, onRemove 
     ? property.monthlyRent - (property.monthlyMortgagePayment || 0) - (property.monthlyExpenses || 0) - (property.monthlyAgentFee || 0) - (property.monthlyInsurance || 0)
     : null;
 
-  console.log('Calculated monthly profit:', monthlyProfit);
   
   const equity = calculateEquity(property.currentValue, property.mortgageBalance, property.depositAmount, property.purchasePrice);
   const ownershipPercentage = calculateOwnershipPercentage(equity, property.currentValue);

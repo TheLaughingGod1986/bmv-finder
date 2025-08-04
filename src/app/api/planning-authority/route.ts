@@ -87,7 +87,6 @@ export async function GET(request: NextRequest) {
     // Extract postcode area (first part before space)
     const postcodeArea = postcode.split(' ')[0];
 
-    console.log(`Fetching planning authority data for postcode area: ${postcodeArea}`);
 
     // Search for planning authority data
     const response = await esClient.search({

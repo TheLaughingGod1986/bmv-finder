@@ -34,7 +34,6 @@ async function getHPIData(region: string): Promise<HpiRecord[]> {
   try {
     // Convert region name to HPI data format
     const hpiRegion = convertRegionToHpiFormat(region);
-    console.log(`🔍 Fetching HPI data for region: ${region} -> ${hpiRegion}`);
     
     const response = await esClient.search({
       index: 'house_price_index',
@@ -46,7 +45,6 @@ async function getHPIData(region: string): Promise<HpiRecord[]> {
     });
     
     const hpiData = response.hits.hits.map((hit: any) => hit._source as HpiRecord);
-    console.log(`🔍 Found ${hpiData.length} HPI records for ${hpiRegion}`);
     return hpiData;
   } catch (error) {
     console.error('Error fetching HPI data:', error);
@@ -326,7 +324,6 @@ async function calculateMarketGrowth(region: string, comps: any[]): Promise<{ gr
       latestYoY 
     };
   } catch (error) {
-    console.log('Error calculating market growth:', error);
     return { growth: null, latestYoY: null };
   }
 }
@@ -342,7 +339,6 @@ export async function POST(request: NextRequest) {
 
     const normalizedPostcode = formatPostcode(postcode);
     const mappedPropertyType = mapPropertyType(propertyType);
-    console.log('🔍 Enhanced What Should I Pay:', { postcode: normalizedPostcode, propertyType: mappedPropertyType, bedrooms, plotSize, epcRating, condition, searchRadius });
 
     // Build basic search query (without EPC filters)
     const must: any[] = [
@@ -362,7 +358,6 @@ export async function POST(request: NextRequest) {
           postcode: `${postcodePrefix}*` 
         } 
       });
-      console.log(`🔍 Searching within radius: ${searchRadius}km, using postcode prefix: ${postcodePrefix}`);
     }
 
     const filter: any[] = [];
@@ -389,7 +384,6 @@ export async function POST(request: NextRequest) {
       ]
     };
 
-    console.log('🔍 Basic search query:', JSON.stringify(searchBody, null, 2));
 
     // Search for properties in the regular properties index first
     const response = await esClient.search({
@@ -398,11 +392,8 @@ export async function POST(request: NextRequest) {
     });
 
     const properties = response.hits.hits.map(hit => hit._source as any);
-    console.log(`🔍 Found ${properties.length} properties with basic criteria`);
-    console.log('🔍 First property:', properties[0]);
 
     if (properties.length === 0) {
-      console.log('🔍 No properties found in initial search');
       return NextResponse.json({ error: 'No properties found matching your criteria' }, { status: 404 });
     }
 
@@ -439,7 +430,6 @@ export async function POST(request: NextRequest) {
             new_build: property.old_new === 'Y'
           };
         } catch (error) {
-          console.log('Error enriching property with EPC data:', error);
           return {
             ...property,
             epc_bedrooms: null,
@@ -475,7 +465,6 @@ export async function POST(request: NextRequest) {
       filteredProperties = filteredProperties.filter(p => p.energy_efficient);
     }
 
-    console.log(`🔍 After EPC filtering: ${filteredProperties.length} properties`);
 
     if (filteredProperties.length === 0) {
       return NextResponse.json({ error: 'No properties found matching your enhanced criteria' }, { status: 404 });
@@ -559,7 +548,6 @@ export async function POST(request: NextRequest) {
 
     // Get recent sales count for ALL property types in the postcode (considering radius)
     const twentyFourMonthsAgo = format(new Date(Date.now() - 24 * 30 * 24 * 60 * 60 * 1000), 'yyyy-MM-dd');
-    console.log(`🔍 Looking for recent sales since: ${twentyFourMonthsAgo}`);
     
     let recentSalesQuery: any = {
       bool: {
@@ -593,7 +581,6 @@ export async function POST(request: NextRequest) {
     const recentSalesCount = typeof recentSalesResponse.hits.total === 'number' 
       ? recentSalesResponse.hits.total 
       : recentSalesResponse.hits.total.value;
-    console.log(`🔍 Found ${recentSalesCount} recent sales in ${searchRadius > 0 ? `${normalizedPostcode.split(' ')[0]}*` : normalizedPostcode} since ${twentyFourMonthsAgo}`);
 
     // Calculate additional market insights
     const priceRange = {

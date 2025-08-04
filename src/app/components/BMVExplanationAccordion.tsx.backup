@@ -190,7 +190,7 @@ export default function BMVExplanationAccordion({ className = '' }: BMVExplanati
                    <li>• <strong>Gray badges (4.0-6.9):</strong> Fair market value</li>
                    <li>• <strong>Red badges (1.0-3.9):</strong> Overpriced properties</li>
                    <li>• <strong>Market trends</strong> help predict future value changes</li>
-                   <li>• Higher deal scores don't guarantee profit - always do your own research</li>
+                   <li>• Higher deal scores don&apos;t guarantee profit - always do your own research</li>
                    <li>• Consider why a property is below market value (condition, location, etc.)</li>
                  </ul>
                </div>

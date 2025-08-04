@@ -15,27 +15,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('🤖 Starting ML-enhanced valuation:', { postcode, number });
 
     // 1. Get property enrichment data (EPC data)
     const propertyData = await getPropertyEnrichmentData(postcode, number);
-    console.log('✅ Property enrichment data:', propertyData ? 'Found' : 'Not found');
 
     // 2. Get sold prices for the property
     const soldPrices = await getSoldPrices(postcode, number);
-    console.log('✅ Sold prices found:', soldPrices.length);
 
     // 3. Get HPI data for the region
     const hpiData = await getHPIData(postcode);
-    console.log('✅ HPI data found:', hpiData.length);
 
     // 4. Get comparable sales
     const comparables = await getComparableSales(postcode, number, propertyData);
-    console.log('✅ Comparable sales found:', comparables.length);
 
     // 5. Get external signals
     const externalSignals = await getExternalSignals(postcode, propertyData);
-    console.log('✅ External signals collected');
 
     // 6. Build features for the ML valuation model
     const features: MLValuationFeatures = {

@@ -8,7 +8,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing postcode or number' }, { status: 400 });
     }
     // Log the submission
-    console.log('User submitted missing data:', { postcode, number, floor_area_m2, epc_rating, bedrooms });
     // Upsert to properties-enhanced index
     const docId = `${postcode.replace(/\s+/g, '').toUpperCase()}_${number}`;
     const body: { floor_area_m2?: number; epc_rating?: string; bedrooms?: number } = {};

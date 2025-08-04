@@ -340,7 +340,6 @@ class DataQualityMonitor {
     }
 
     // Log alert
-    console.log(`Data Quality Alert (${alert.severity}):`, alertMessage);
   }
 
   // Get total records count

@@ -59,6 +59,8 @@
 - ✅ Added mortgage type indicator - Shows whether calculations use interest-only or repayment mortgage
 - ✅ Enhanced property editing - Comprehensive edit form with all property fields (basic details, agent info, investment analysis, refurbishment, status & notes)
 - ✅ Fixed double pound sign display - Removed redundant £ symbols in mortgage options comparison
+- ✅ Added mortgage configuration to edit form - Users can now set mortgage type, rate, and term
+- ✅ Changed default mortgage type to Interest-Only - Updated calculations to use Interest-Only as standard
 
 ## 📋 **CURRENT TASKS**
 

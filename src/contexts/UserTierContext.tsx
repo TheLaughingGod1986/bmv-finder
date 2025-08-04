@@ -103,7 +103,6 @@ export function UserTierProvider({ children }: { children: React.ReactNode }) {
       setCurrentTier(newTier);
       setShowUpgradePrompt(false);
       // In a real app, this would integrate with payment processing
-      console.log(`Upgrading to ${newTier.name} tier`);
     }
   };
 

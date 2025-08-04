@@ -114,7 +114,6 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    console.log(`[recent-sales] Found ${recentSales.length} recent sales for ${postcode}`);
 
     return NextResponse.json({
       success: true,

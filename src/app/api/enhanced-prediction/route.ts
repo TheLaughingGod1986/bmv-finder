@@ -23,7 +23,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log('🔮 Starting enhanced property prediction with inflation:', { postcode, number });
 
     // Get enhanced property features with inflation data
     const features = await EnhancedPredictionModel.getEnhancedFeatures(postcode, number);

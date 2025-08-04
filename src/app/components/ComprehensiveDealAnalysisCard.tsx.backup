@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from './SimpleCard';
 import { 
   Home, 
@@ -247,7 +247,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
   const { showToast } = useToast();
   const [errorState, setError] = useState<any>(null);
 
-  const fetchComprehensiveData = async () => {
+  const fetchComprehensiveData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Fetch comprehensive valuation data
@@ -293,13 +293,13 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
       setIsLoading(false);
       if (onAnalysisComplete) onAnalysisComplete();
     }
-  };
+  }, [postcode, houseNumber, onAnalysisComplete]);
 
   useEffect(() => {
     if (postcode && houseNumber) {
       fetchComprehensiveData();
     }
-  }, [postcode, houseNumber]);
+  }, [postcode, houseNumber, fetchComprehensiveData]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {

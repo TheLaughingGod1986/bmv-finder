@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     
     // If Supabase is not configured, return mock count
     if (!supabase) {
-      console.log('Supabase not configured, returning mock count');
       return NextResponse.json({
         count: 3, // Mock count from our mock data
         tier: 'premium',

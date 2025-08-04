@@ -18,7 +18,6 @@ export async function GET(request: NextRequest) {
 
     const data = await response.json();
     
-    console.log('External API response for postcode', postcode, ':', data);
     
     if (data.result) {
       // Try to get street name from various sources
@@ -47,10 +46,8 @@ export async function GET(request: NextRequest) {
         region: data.result.region || 'Unknown Region'
       };
       
-      console.log('Returning result for postcode', postcode, ':', result);
       return NextResponse.json(result);
     } else {
-      console.log('No result found for postcode', postcode);
       return NextResponse.json({ error: 'No data found for postcode' }, { status: 404 });
     }
   } catch (error) {

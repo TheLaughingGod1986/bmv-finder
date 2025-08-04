@@ -176,7 +176,6 @@ export default function PortfolioTrackerPage() {
   const loadPortfolioData = useCallback(async () => {
     if (!user || !supabase) {
       // Use demo data for unauthenticated users
-      console.log('Using demo portfolio data for unauthenticated user');
       setPortfolioProperties(demoPortfolioData);
       setDataError(null);
       setIsLoading(false);
@@ -200,10 +199,8 @@ export default function PortfolioTrackerPage() {
         setPortfolioProperties([]);
       } else {
         // Map database snake_case fields to interface camelCase fields
-        console.log('Raw properties from database:', properties);
         
         const mappedProperties = (properties || []).map(property => {
-          console.log('Property monthly_rent from DB:', property.monthly_rent);
           return {
             id: property.id,
             address: property.address,
@@ -241,7 +238,6 @@ export default function PortfolioTrackerPage() {
           };
         });
         
-        console.log('Mapped properties:', mappedProperties);
         
         setPortfolioProperties(mappedProperties);
         setDataError(null);
