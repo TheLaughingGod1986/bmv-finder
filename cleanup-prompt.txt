@@ -1,0 +1,64 @@
+# Cursor Agent Cleanup Prompt
+
+Perform a full audit and safe cleanup of this Next.js codebase. Follow best practices and avoid breaking existing functionality.
+
+## Scope:
+
+### 1. Identify and remove unused:
+- Imports (check for unused React imports, utilities, etc.)
+- Variables and constants (especially in components and hooks)
+- Components (in components/, app/, or pages/) that are never imported
+- Pages or API routes (if clearly unused and not referenced)
+- Tailwind classes that are never applied
+- Unused environment variables or configuration
+
+### 2. Refactor and simplify:
+- Repeated logic in React components and hooks
+- Duplicated utility functions (extract to lib/ or utils/)
+- API route handlers with redundant logic (extract shared logic to a service layer)
+- Similar component patterns that can be consolidated
+- Repeated styling patterns that can be extracted to reusable components
+
+### 3. Modernize and normalize structure:
+- Use consistent folder and naming conventions
+- Merge similar layouts into _app.tsx or layout.tsx where appropriate
+- DRY up page-level and global logic across the App and Pages Router
+- If legacy getServerSideProps or getStaticProps usage is outdated, recommend modern alternatives (but don't change yet)
+- Ensure consistent file organization and imports
+
+### 4. SSR/CSR awareness:
+- Ensure no SSR logic runs on the client or vice versa
+- Flag any suspicious fetch or state logic that might break hydration
+- Check for proper use of 'use client' directives
+- Verify proper data fetching patterns
+
+### 5. Tailwind & CSS:
+- Clean up unused Tailwind classes
+- Remove redundant inline styles or conflicting styles where class-based styling exists
+- Consolidate similar styling patterns
+- Ensure consistent color usage and spacing
+
+### 6. Safety guardrails:
+- Don't apply breaking changes without confirmation
+- Flag risky refactors or deletions for manual review
+- Output a clear summary of everything changed or recommended
+- Preserve all existing functionality
+- Keep all environment variables and configuration intact
+
+### 7. Performance optimizations:
+- Identify potential performance bottlenecks
+- Suggest optimizations for large components
+- Check for unnecessary re-renders
+- Optimize bundle size where possible
+
+### 8. Code quality improvements:
+- Fix any obvious linting issues
+- Improve code readability
+- Add missing TypeScript types where needed
+- Ensure consistent error handling patterns
+
+## Output Requirements:
+1. Provide a detailed summary of all changes made
+2. List any files that were deleted or significantly modified
+3. Flag any potential issues or areas that need manual review
+4. Suggest follow-up improvements for future PRs

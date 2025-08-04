@@ -21,6 +21,18 @@ let userData = {
   capturedCount: 0
 };
 
+// Save user data to storage
+async function saveUserData() {
+  try {
+    await chrome.storage.local.set({
+      userData: userData,
+      isAuthenticated: userData.isAuthenticated
+    });
+  } catch (error) {
+    console.error('Error saving user data:', error);
+  }
+}
+
 // Load user data and capture limits
 async function loadUserData() {
   try {
@@ -34,12 +46,13 @@ async function loadUserData() {
         isAuthenticated: true
       };
     } else {
-      // Demo data for unauthenticated users
+      // Demo data for unauthenticated users - preserve existing capture limit if set
+      const currentLimit = userData.captureLimit || 5;
       userData = {
         isAuthenticated: false,
         name: 'Demo User',
         membership: 'Free Plan',
-        captureLimit: 5,
+        captureLimit: currentLimit,
         capturedCount: 0
       };
     }
@@ -97,28 +110,34 @@ function updateUserInterface() {
     signInButton.disabled = false;
   }
   
-  // Update capture limits
+  // Update capture limits - use the actual property count, not userData.capturedCount
   const currentCount = parseInt(propertyCount.textContent) || 0;
   const limit = userData.captureLimit;
   
-  captureLimit.textContent = `${currentCount} / ${limit}`;
-  
-  // Update progress bar
-  const progressPercentage = limit > 0 ? Math.min((currentCount / limit) * 100, 100) : 0;
-  progressFill.style.width = `${progressPercentage}%`;
-  
-  // Change progress bar color based on usage
-  if (progressPercentage >= 90) {
-    progressFill.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
-  } else if (progressPercentage >= 75) {
-    progressFill.style.background = 'linear-gradient(135deg, #F39C12 0%, #E67E22 100%)';
+  // Handle unlimited case
+  if (limit === -1) {
+    captureLimit.textContent = `${currentCount} / Unlimited`;
+    progressFill.style.width = '0%';
   } else {
-    progressFill.style.background = 'linear-gradient(135deg, #2980b9 0%, #3498db 100%)';
-  }
-  
-  // Show upgrade prompt if approaching limit
-  if (progressPercentage >= 80 && !userData.isAuthenticated) {
-    showUpgradePrompt();
+    captureLimit.textContent = `${currentCount} / ${limit}`;
+    
+    // Update progress bar
+    const progressPercentage = limit > 0 ? Math.min((currentCount / limit) * 100, 100) : 0;
+    progressFill.style.width = `${progressPercentage}%`;
+    
+    // Change progress bar color based on usage
+    if (progressPercentage >= 90) {
+      progressFill.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
+    } else if (progressPercentage >= 75) {
+      progressFill.style.background = 'linear-gradient(135deg, #F39C12 0%, #E67E22 100%)';
+    } else {
+      progressFill.style.background = 'linear-gradient(135deg, #2980b9 0%, #3498db 100%)';
+    }
+    
+    // Show upgrade prompt if approaching limit
+    if (progressPercentage >= 80 && !userData.isAuthenticated) {
+      showUpgradePrompt();
+    }
   }
 }
 
@@ -187,7 +206,8 @@ clearAllButton.addEventListener('click', async () => {
   if (confirm('Are you sure you want to clear all captured properties? This action cannot be undone.')) {
     try {
       await chrome.storage.local.set({ capturedProperties: [] });
-      loadCapturedProperties();
+      // Reload properties to update the display
+      await loadCapturedProperties();
       console.log('All properties cleared');
     } catch (error) {
       console.error('Error clearing properties:', error);
@@ -219,40 +239,39 @@ function setDemoUser(membershipType) {
       isAuthenticated: true,
       name: 'John Doe',
       membership: 'Free Plan',
-      captureLimit: 5,
-      capturedCount: 3
+      captureLimit: 5
     },
     mid: {
       isAuthenticated: true,
       name: 'Sarah Smith',
       membership: 'Mid-Tier Plan',
-      captureLimit: 50,
-      capturedCount: 12
+      captureLimit: 50
     },
     premium: {
       isAuthenticated: true,
       name: 'Mike Johnson',
       membership: 'Premium Plan',
-      captureLimit: -1, // Unlimited
-      capturedCount: 42
+      captureLimit: -1 // Unlimited
     },
     demo: {
       isAuthenticated: false,
       name: 'Demo User',
       membership: 'Free Plan',
-      captureLimit: 5,
-      capturedCount: 0
+      captureLimit: 5
     }
   };
   
-  userData = { ...userData, ...demoUsers[membershipType] };
-  updateUserInterface();
+  // Preserve the current property count when switching demo modes
+  const currentPropertyCount = parseInt(propertyCount.textContent) || 0;
   
-  // Update capture limit display for unlimited
-  if (userData.captureLimit === -1) {
-    captureLimit.textContent = `${userData.capturedCount} / Unlimited`;
-    progressFill.style.width = '0%';
-  }
+  userData = { 
+    ...userData, 
+    ...demoUsers[membershipType],
+    capturedCount: currentPropertyCount // Use actual property count, not demo count
+  };
+  
+  updateUserInterface();
+  saveUserData(); // Save the new user data to storage
 }
 
 // Add demo buttons for testing (remove in production)

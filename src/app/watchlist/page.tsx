@@ -1001,7 +1001,7 @@ export default function WatchlistPage() {
                 </div>
                 <button 
                   onClick={() => {
-                    const banner = document.querySelector('[data-demo-banner]');
+                    const banner = document.querySelector('[data-demo-banner]') as HTMLElement;
                     if (banner) banner.style.display = 'none';
                   }}
                   className="flex-shrink-0 text-blue-400 hover:text-blue-600"

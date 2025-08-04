@@ -675,7 +675,7 @@ export default function PortfolioTrackerPage() {
                 </div>
                 <button 
                   onClick={() => {
-                    const banner = document.querySelector('[data-demo-portfolio-banner]');
+                    const banner = document.querySelector('[data-demo-portfolio-banner]') as HTMLElement;
                     if (banner) banner.style.display = 'none';
                   }}
                   className="flex-shrink-0 text-blue-400 hover:text-blue-600"

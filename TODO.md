@@ -54,6 +54,38 @@
 - **✅ Market Recommendations** - Buy/Sell/Monitor recommendations
 - **✅ Market Volatility Assessment** - Risk level evaluation
 
+### **🔌 Chrome Extension & Property Capture**
+- **✅ Chrome Extension Development** - Complete extension with popup, content scripts, and background service
+- **✅ Property Data Extraction** - Automated extraction from Rightmove, Zoopla, OnTheMarket, and PrimeLocation
+- **✅ User Authentication Integration** - Extension connects to user accounts and membership tiers
+- **✅ Capture Limits & Progress** - Visual progress bars and limits based on membership tier
+- **✅ Demo Mode Support** - Extension works with demo data when not authenticated
+- **✅ Property Image Extraction** - Captures property images with fallback to UK property images
+- **✅ Enhanced Data Extraction** - Bedrooms, bathrooms, property type, address, and price extraction
+- **✅ Real-time Property Preview** - Shows captured property details before saving
+- **✅ Error Handling & Validation** - Comprehensive error handling with user-friendly messages
+
+### **📱 Demo Data & User Experience**
+- **✅ Demo Portfolio System** - Complete demo portfolio with realistic UK property data
+- **✅ Demo Watchlist** - Authentic UK properties with proper addresses and pricing
+- **✅ Clear Demo Messaging** - Prominent banners and badges indicating demo content
+- **✅ UK Property Authenticity** - All demo properties use authentic UK locations and architectural styles
+- **✅ Diverse UK Locations** - Properties spread across Manchester, Birmingham, London, Bristol, Edinburgh, Bath, Cheltenham, Leeds, Liverpool, Cardiff
+- **✅ UK Property Images** - All images show authentic UK architectural styles (brick construction, period features)
+- **✅ Realistic UK Pricing** - Market-appropriate prices for different UK regions and property types
+- **✅ UK Estate Agents** - Real UK estate agent names and phone numbers with correct area codes
+
+### **🎯 Investment Analysis & Portfolio Management**
+- **✅ Comprehensive Investment Metrics** - ROI, yield, payback period, mortgage calculations
+- **✅ Mortgage Options** - Interest-only and repayment mortgage calculations
+- **✅ Expense Management** - Management fees, insurance, maintenance, void periods
+- **✅ Profit Analysis** - Gross/net monthly/annual profit calculations
+- **✅ Growth Predictions** - 10-year growth potential based on location and property type
+- **✅ Deal Quality Assessment** - Scoring system for investment opportunities
+- **✅ Professional Offer Generation** - Copy-ready offer messages and negotiation strategies
+- **✅ Portfolio Comparison** - Side-by-side comparison of multiple properties
+- **✅ Demo Portfolio Tracking** - Full portfolio management with demo data
+
 ## 🔧 **RECENT FIXES & IMPROVEMENTS**
 
 ### **🎯 User Access Control & Conversion Optimization**
@@ -80,6 +112,19 @@
 - **✅ Improved Property Matching** - More accurate address matching for all properties
 - **✅ Enhanced Data Extraction** - Better property type mapping and data handling
 - **✅ Conservative Valuation Models** - Applied to all properties, not just special cases
+
+### **🔌 Chrome Extension & Demo Data Enhancements**
+- **✅ Chrome Extension User Authentication** - Added user login status, membership information, and capture limits to extension popup
+- **✅ Demo Portfolio with Clear Messaging** - Created comprehensive demo portfolio with prominent demo indicators
+- **✅ UK Property Authenticity** - Updated all demo properties to use authentic UK locations and architectural styles
+- **✅ Diverse UK Locations** - Spread properties across 10+ UK cities (Manchester, Birmingham, London, Bristol, Edinburgh, Bath, Cheltenham, Leeds, Liverpool, Cardiff)
+- **✅ UK Property Images** - Replaced American-style houses with authentic UK property images (brick construction, period features)
+- **✅ Realistic UK Pricing** - Market-appropriate prices for different UK regions and property types
+- **✅ UK Estate Agents** - Real UK estate agent names with correct area codes and phone numbers
+- **✅ Demo Messaging System** - Clear banners, badges, and indicators showing demo content
+- **✅ Portfolio Demo Features** - Full portfolio management with demo data and investment analysis
+- **✅ Chrome Extension Demo Mode** - Extension works seamlessly with demo data when not authenticated
+- **✅ Capture Limit Persistence** - Fixed issue where clearing properties would reset capture limit - limit now persists correctly
 
 ### **📊 Valuation Model Improvements**
 - **✅ Sales Comparison** - 15% conservative reduction applied to all comparable sales
@@ -627,13 +672,13 @@ Applied the home page design system to the Portfolio Tracker page, creating a co
 
 ### Core Extension Files
 - [x] `chrome-extension/manifest.json` - Extension configuration and permissions
-- [x] `chrome-extension/popup.html` - User interface for extension popup
-- [x] `chrome-extension/popup.css` - Styling for extension popup
-- [x] `chrome-extension/popup.js` - Interactive logic for popup functionality
-- [x] `chrome-extension/content.js` - Property data extraction from real estate websites
-- [x] `chrome-extension/background.js` - Authentication and background operations
-- [x] `chrome-extension/content.css` - Styling for injected content
-- [x] `chrome-extension/README.md` - Comprehensive documentation
+- [x] `chrome-extension/popup.html` - User interface for extension popup with user authentication and capture limits
+- [x] `chrome-extension/popup.css` - Styling for extension popup with responsive design
+- [x] `chrome-extension/popup.js` - Interactive logic for popup functionality with demo mode support
+- [x] `chrome-extension/content.js` - Property data extraction from real estate websites with enhanced UK property detection
+- [x] `chrome-extension/background.js` - Authentication and background operations with API integration
+- [x] `chrome-extension/content.css` - Styling for injected content with professional design
+- [x] `chrome-extension/README.md` - Comprehensive documentation and setup guide
 
 ### Backend API Routes
 - [x] `src/app/api/auth/verify/route.ts` - JWT token verification for extension
@@ -641,21 +686,24 @@ Applied the home page design system to the Portfolio Tracker page, creating a co
 - [x] `src/app/api/watchlist/add/route.ts` - Add captured properties to watchlist
 - [x] `src/app/api/watchlist/count/route.ts` - Get watchlist count with paywall
 - [x] `src/app/api/watchlist/add-to-portfolio/route.ts` - Add watchlist properties to portfolio
+- [x] `src/app/api/properties/capture/route.ts` - Property capture API with demo mode support
 
 ### Database & Migrations
 - [x] `supabase/migrations/20250127000007_create_watchlist_table.sql` - Watchlist table creation
 - [x] `supabase/migrations/20250127000008_add_watchlist_status.sql` - Add watchlist status to portfolio
 
 ### Frontend Pages
-- [x] `src/app/watchlist/page.tsx` - Watchlist management interface
+- [x] `src/app/watchlist/page.tsx` - Watchlist management interface with demo data and clear messaging
 - [x] `src/app/legal/page.tsx` - Terms, Privacy Policy, and Disclaimer
 - [x] `src/app/extension-welcome/page.tsx` - Extension introduction and setup guide
+- [x] `src/app/portfolio-tracker/page.tsx` - Portfolio tracker with demo portfolio and investment analysis
 
 ### Portfolio Integration
 - [x] Updated portfolio tracker to include "Watchlist" tab
 - [x] Properties added from Chrome extension appear in portfolio watchlist
 - [x] Cross-linking between watchlist and portfolio pages
 - [x] Status management for watchlist properties in portfolio
+- [x] Demo portfolio with realistic UK property data and investment metrics
 
 ### Chrome Extension UI Improvements
 - [x] Moved capture button from floating position to under property details
@@ -674,6 +722,11 @@ Applied the home page design system to the Portfolio Tracker page, creating a co
 - [x] Added fallback text pattern matching for property details
 - [x] Enhanced postcode and address extraction from page content
 - [x] Better bedroom and bathroom detection from multiple sources
+- [x] User authentication status display in extension popup
+- [x] Membership tier information and capture limits
+- [x] Progress bars showing capture usage and limits
+- [x] Demo mode support with clear indicators
+- [x] Sign-in button integration with authentication flow
 
 # TODO List
 
@@ -685,18 +738,24 @@ Applied the home page design system to the Portfolio Tracker page, creating a co
 - [x] Handle duplicate property URLs gracefully in capture API
 - [x] Test watchlist functionality with new duplicate handling
 - [x] Fix webpack build corruption and module resolution errors
+- [x] Add user authentication and membership display to Chrome extension
+- [x] Create demo portfolio with clear messaging
+- [x] Update demo data to use authentic UK properties and locations
+- [x] Replace American-style property images with UK architectural styles
 
 ### Medium Priority
 - [ ] Optimize rent estimation performance
-- [ ] Add more property sources to Chrome extension
+- [ ] Add more property sources to Chrome extension (PrimeLocation, OnTheMarket)
 - [x] Implement property comparison features
 - [ ] Add bulk property operations
+- [ ] Enhance Chrome extension with more property details extraction
 
 ### Low Priority
 - [ ] Add property image gallery
 - [ ] Implement property alerts
 - [ ] Add export functionality
 - [ ] Create property analytics dashboard
+- [ ] Add more UK property types (bungalows, townhouses, etc.)
 
 ## Completed Tasks
 
@@ -764,3 +823,34 @@ Applied the home page design system to the Portfolio Tracker page, creating a co
 - API endpoints should be monitored for performance
 - Database queries should be optimized for large datasets
 - User feedback should be collected for UI improvements 
+
+## 🎉 **RECENT MAJOR ACCOMPLISHMENTS**
+
+### **🔌 Chrome Extension Enhancement (Latest)**
+- **✅ User Authentication Integration** - Added complete user login status, membership information, and capture limits to extension popup
+- **✅ Demo Mode Support** - Extension works seamlessly with demo data when not authenticated
+- **✅ Progress Tracking** - Visual progress bars showing capture usage and limits
+- **✅ Membership Tiers** - Clear display of Free (5 captures), Mid-Tier (50 captures), Premium (unlimited)
+- **✅ Sign-in Integration** - Direct sign-in button that opens authentication page
+- **✅ Upgrade Prompts** - Smart notifications when approaching capture limits
+
+### **📱 Demo Data & UK Authenticity (Latest)**
+- **✅ Complete Demo Portfolio** - Full portfolio management with realistic UK property data
+- **✅ UK Property Authenticity** - All demo properties use authentic UK locations and architectural styles
+- **✅ Diverse UK Locations** - Properties spread across 10+ UK cities (Manchester, Birmingham, London, Bristol, Edinburgh, Bath, Cheltenham, Leeds, Liverpool, Cardiff)
+- **✅ UK Property Images** - Replaced American-style houses with authentic UK property images (brick construction, period features)
+- **✅ Realistic UK Pricing** - Market-appropriate prices for different UK regions and property types
+- **✅ Clear Demo Messaging** - Prominent banners, badges, and indicators showing demo content
+- **✅ Investment Analysis** - Complete investment metrics with ROI, yield, mortgage calculations, and profit analysis
+
+### **🎯 Investment Analysis Features (Latest)**
+- **✅ Comprehensive Investment Metrics** - ROI, yield, payback period, mortgage calculations
+- **✅ Mortgage Options** - Interest-only and repayment mortgage calculations
+- **✅ Expense Management** - Management fees, insurance, maintenance, void periods
+- **✅ Profit Analysis** - Gross/net monthly/annual profit calculations
+- **✅ Growth Predictions** - 10-year growth potential based on location and property type
+- **✅ Deal Quality Assessment** - Scoring system for investment opportunities
+- **✅ Professional Offer Generation** - Copy-ready offer messages and negotiation strategies
+- **✅ Portfolio Comparison** - Side-by-side comparison of multiple properties
+
+The BMV Finder system now provides a **comprehensive property investment platform** with professional-grade analysis, authentic UK property data, and seamless Chrome extension integration for property capture and portfolio management. 
