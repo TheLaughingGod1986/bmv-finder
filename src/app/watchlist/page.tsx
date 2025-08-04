@@ -2406,6 +2406,172 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                   </div>
                 </div>
               )}
+
+              {/* Offer History & Recommendations */}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2">
+                  <span>📊</span>
+                  Offer History & Recommendations
+                </h4>
+                
+                {(() => {
+                  const currentOffer = editForm.offer_amount || 0;
+                  const currentOfferDate = editForm.offer_date || '';
+                  const currentOfferStatus = editForm.offer_status || 'pending';
+                  const askingPrice = editForm.price;
+                  const offerAnalysis = getRecommendedOffer({
+                    ...editForm,
+                    price: askingPrice,
+                    title: editForm.title,
+                    address: editForm.address,
+                    bedrooms: editForm.bedrooms,
+                    bathrooms: editForm.bathrooms,
+                    property_type: editForm.property_type,
+                    postcode: editForm.postcode
+                  } as WatchlistItem);
+                  
+                  const getNextOfferRecommendation = () => {
+                    if (currentOfferStatus === 'rejected') {
+                      // If rejected, suggest a slightly higher offer
+                      const rejectionDiscount = (askingPrice - currentOffer) / askingPrice;
+                      if (rejectionDiscount > 0.15) {
+                        // If we offered more than 15% below asking, try 10% below
+                        return Math.round(askingPrice * 0.90);
+                      } else if (rejectionDiscount > 0.10) {
+                        // If we offered more than 10% below asking, try 8% below
+                        return Math.round(askingPrice * 0.92);
+                      } else {
+                        // If we offered close to asking, try 5% below
+                        return Math.round(askingPrice * 0.95);
+                      }
+                    } else if (currentOfferStatus === 'counter_offer') {
+                      // If counter offer, suggest meeting in the middle
+                      const counterOffer = Math.round((currentOffer + askingPrice) / 2);
+                      return counterOffer;
+                    } else {
+                      // If pending or accepted, show recommended offer
+                      return offerAnalysis.recommendedOffer;
+                    }
+                  };
+                  
+                  const nextOffer = getNextOfferRecommendation();
+                  const daysSinceOffer = currentOfferDate ? Math.floor((Date.now() - new Date(currentOfferDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+                  
+                  return (
+                    <div className="space-y-4">
+                      {/* Current Offer Summary */}
+                      {currentOffer > 0 && (
+                        <div className="bg-white rounded-lg p-3 border border-purple-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-700">Current Offer</span>
+                            <span className={`text-xs px-2 py-1 rounded-full ${
+                              currentOfferStatus === 'accepted' ? 'bg-green-100 text-green-800' :
+                              currentOfferStatus === 'rejected' ? 'bg-red-100 text-red-800' :
+                              currentOfferStatus === 'counter_offer' ? 'bg-orange-100 text-orange-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {currentOfferStatus.charAt(0).toUpperCase() + currentOfferStatus.slice(1)}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-gray-600">Amount:</span>
+                              <span className="font-semibold text-gray-800 ml-1">{formatPrice(currentOffer)}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Date:</span>
+                              <span className="font-semibold text-gray-800 ml-1">{currentOfferDate || 'Not set'}</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">% Below Asking:</span>
+                              <span className="font-semibold text-gray-800 ml-1">{((askingPrice - currentOffer) / askingPrice * 100).toFixed(1)}%</span>
+                            </div>
+                            <div>
+                              <span className="text-gray-600">Days Since:</span>
+                              <span className="font-semibold text-gray-800 ml-1">{daysSinceOffer}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Next Offer Recommendation */}
+                      <div className="bg-white rounded-lg p-3 border border-purple-200">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm font-medium text-gray-700">Recommended Next Offer</span>
+                          <span className="text-xs text-purple-600 font-medium">
+                            {currentOfferStatus === 'rejected' ? 'After Rejection' :
+                             currentOfferStatus === 'counter_offer' ? 'Counter Strategy' :
+                             'Initial Offer'}
+                          </span>
+                        </div>
+                        <div className="text-center mb-3">
+                          <div className="text-2xl font-bold text-purple-700">{formatPrice(nextOffer)}</div>
+                          <div className="text-xs text-gray-600">
+                            {((askingPrice - nextOffer) / askingPrice * 100).toFixed(1)}% below asking price
+                          </div>
+                        </div>
+                        
+                        {/* Recommendation Logic */}
+                        <div className="text-xs text-gray-600 space-y-1">
+                          {currentOfferStatus === 'rejected' && (
+                            <div className="bg-red-50 p-2 rounded border border-red-100">
+                              <strong>Rejection Strategy:</strong> 
+                              {currentOffer > 0 && (
+                                <span> Your previous offer of {formatPrice(currentOffer)} was rejected. 
+                                {daysSinceOffer > 7 ? ' Consider waiting a few more days before following up.' : ' Follow up in 3-5 days.'}</span>
+                              )}
+                            </div>
+                          )}
+                          
+                          {currentOfferStatus === 'counter_offer' && (
+                            <div className="bg-orange-50 p-2 rounded border border-orange-100">
+                              <strong>Counter Offer Strategy:</strong> 
+                              <span> Vendor countered. Consider meeting in the middle or offering {formatPrice(Math.round(nextOffer * 0.98))} as a final offer.</span>
+                            </div>
+                          )}
+                          
+                          {currentOfferStatus === 'pending' && daysSinceOffer > 3 && (
+                            <div className="bg-yellow-50 p-2 rounded border border-yellow-100">
+                              <strong>Follow-up Reminder:</strong> 
+                              <span> It's been {daysSinceOffer} days since your offer. Consider following up with the agent.</span>
+                            </div>
+                          )}
+                          
+                          {currentOfferStatus === 'pending' && daysSinceOffer <= 3 && (
+                            <div className="bg-blue-50 p-2 rounded border border-blue-100">
+                              <strong>Waiting Period:</strong> 
+                              <span> Give the vendor time to respond. Follow up after 3-5 days if no response.</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Market Context */}
+                      <div className="bg-white rounded-lg p-3 border border-purple-200">
+                        <div className="text-sm font-medium text-gray-700 mb-2">Market Context</div>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div>
+                            <span className="text-gray-600">Asking Price:</span>
+                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(askingPrice)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Recommended:</span>
+                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(offerAnalysis.recommendedOffer)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Fair Value:</span>
+                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(offerAnalysis.recommendedOffer * 1.05)}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Max Offer:</span>
+                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(offerAnalysis.recommendedOffer * 1.08)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
             </div>
             
             <div className="flex gap-3 mt-6">
