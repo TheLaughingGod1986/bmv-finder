@@ -700,6 +700,112 @@ export default function WatchlistPage() {
     }
   };
 
+  // Calculate rental demand based on location, property type, and market factors
+  const calculateRentalDemand = (property: WatchlistItem) => {
+    const postcode = property.postcode?.toUpperCase() || '';
+    const propertyType = property.property_type?.toLowerCase() || '';
+    const bedrooms = property.bedrooms || 2;
+    
+    // High demand areas (major cities, university towns, commuter hotspots)
+    const highDemandAreas = [
+      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M9', 'M10', 'M11', 'M12', 'M13', 'M14', 'M15', 'M16', 'M17', 'M18', 'M19', 'M20', 'M21', 'M22', 'M23', 'M24', 'M25', 'M26', 'M27', 'M28', 'M29', 'M30', 'M31', 'M32', 'M33', 'M34', 'M35', 'M36', 'M37', 'M38', 'M39', 'M40', 'M41', 'M42', 'M43', 'M44', 'M45', 'M46', 'M47', 'M48', 'M49', 'M50', 'M51', 'M52', 'M53', 'M54', 'M55', 'M56', 'M57', 'M58', 'M59', 'M60', 'M61', 'M62', 'M63', 'M64', 'M65', 'M66', 'M67', 'M68', 'M69', 'M70', 'M71', 'M72', 'M73', 'M74', 'M75', 'M76', 'M77', 'M78', 'M79', 'M80', 'M81', 'M82', 'M83', 'M84', 'M85', 'M86', 'M87', 'M88', 'M89', 'M90', 'M91', 'M92', 'M93', 'M94', 'M95', 'M96', 'M97', 'M98', 'M99', // Manchester
+      'L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10', 'L11', 'L12', 'L13', 'L14', 'L15', 'L16', 'L17', 'L18', 'L19', 'L20', 'L21', 'L22', 'L23', 'L24', 'L25', 'L26', 'L27', 'L28', 'L29', 'L30', 'L31', 'L32', 'L33', 'L34', 'L35', 'L36', 'L37', 'L38', 'L39', 'L40', 'L41', 'L42', 'L43', 'L44', 'L45', 'L46', 'L47', 'L48', 'L49', 'L50', 'L51', 'L52', 'L53', 'L54', 'L55', 'L56', 'L57', 'L58', 'L59', 'L60', 'L61', 'L62', 'L63', 'L64', 'L65', 'L66', 'L67', 'L68', 'L69', 'L70', 'L71', 'L72', 'L73', 'L74', 'L75', 'L76', 'L77', 'L78', 'L79', 'L80', 'L81', 'L82', 'L83', 'L84', 'L85', 'L86', 'L87', 'L88', 'L89', 'L90', 'L91', 'L92', 'L93', 'L94', 'L95', 'L96', 'L97', 'L98', 'L99', // Liverpool
+      'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11', 'B12', 'B13', 'B14', 'B15', 'B16', 'B17', 'B18', 'B19', 'B20', 'B21', 'B22', 'B23', 'B24', 'B25', 'B26', 'B27', 'B28', 'B29', 'B30', 'B31', 'B32', 'B33', 'B34', 'B35', 'B36', 'B37', 'B38', 'B39', 'B40', 'B41', 'B42', 'B43', 'B44', 'B45', 'B46', 'B47', 'B48', 'B49', 'B50', 'B51', 'B52', 'B53', 'B54', 'B55', 'B56', 'B57', 'B58', 'B59', 'B60', 'B61', 'B62', 'B63', 'B64', 'B65', 'B66', 'B67', 'B68', 'B69', 'B70', 'B71', 'B72', 'B73', 'B74', 'B75', 'B76', 'B77', 'B78', 'B79', 'B80', 'B81', 'B82', 'B83', 'B84', 'B85', 'B86', 'B87', 'B88', 'B89', 'B90', 'B91', 'B92', 'B93', 'B94', 'B95', 'B96', 'B97', 'B98', 'B99', // Birmingham
+      'BS1', 'BS2', 'BS3', 'BS4', 'BS5', 'BS6', 'BS7', 'BS8', 'BS9', 'BS10', 'BS11', 'BS12', 'BS13', 'BS14', 'BS15', 'BS16', 'BS17', 'BS18', 'BS19', 'BS20', 'BS21', 'BS22', 'BS23', 'BS24', 'BS25', 'BS26', 'BS27', 'BS28', 'BS29', 'BS30', 'BS31', 'BS32', 'BS33', 'BS34', 'BS35', 'BS36', 'BS37', 'BS38', 'BS39', 'BS40', 'BS41', 'BS42', 'BS43', 'BS44', 'BS45', 'BS46', 'BS47', 'BS48', 'BS49', 'BS50', 'BS51', 'BS52', 'BS53', 'BS54', 'BS55', 'BS56', 'BS57', 'BS58', 'BS59', 'BS60', 'BS61', 'BS62', 'BS63', 'BS64', 'BS65', 'BS66', 'BS67', 'BS68', 'BS69', 'BS70', 'BS71', 'BS72', 'BS73', 'BS74', 'BS75', 'BS76', 'BS77', 'BS78', 'BS79', 'BS80', 'BS81', 'BS82', 'BS83', 'BS84', 'BS85', 'BS86', 'BS87', 'BS88', 'BS89', 'BS90', 'BS91', 'BS92', 'BS93', 'BS94', 'BS95', 'BS96', 'BS97', 'BS98', 'BS99', // Bristol
+      'EH1', 'EH2', 'EH3', 'EH4', 'EH5', 'EH6', 'EH7', 'EH8', 'EH9', 'EH10', 'EH11', 'EH12', 'EH13', 'EH14', 'EH15', 'EH16', 'EH17', 'EH18', 'EH19', 'EH20', 'EH21', 'EH22', 'EH23', 'EH24', 'EH25', 'EH26', 'EH27', 'EH28', 'EH29', 'EH30', 'EH31', 'EH32', 'EH33', 'EH34', 'EH35', 'EH36', 'EH37', 'EH38', 'EH39', 'EH40', 'EH41', 'EH42', 'EH43', 'EH44', 'EH45', 'EH46', 'EH47', 'EH48', 'EH49', 'EH50', 'EH51', 'EH52', 'EH53', 'EH54', 'EH55', 'EH56', 'EH57', 'EH58', 'EH59', 'EH60', 'EH61', 'EH62', 'EH63', 'EH64', 'EH65', 'EH66', 'EH67', 'EH68', 'EH69', 'EH70', 'EH71', 'EH72', 'EH73', 'EH74', 'EH75', 'EH76', 'EH77', 'EH78', 'EH79', 'EH80', 'EH81', 'EH82', 'EH83', 'EH84', 'EH85', 'EH86', 'EH87', 'EH88', 'EH89', 'EH90', 'EH91', 'EH92', 'EH93', 'EH94', 'EH95', 'EH96', 'EH97', 'EH98', 'EH99', // Edinburgh
+      'BA1', 'BA2', 'BA3', 'BA4', 'BA5', 'BA6', 'BA7', 'BA8', 'BA9', 'BA10', 'BA11', 'BA12', 'BA13', 'BA14', 'BA15', 'BA16', 'BA17', 'BA18', 'BA19', 'BA20', 'BA21', 'BA22', 'BA23', 'BA24', 'BA25', 'BA26', 'BA27', 'BA28', 'BA29', 'BA30', 'BA31', 'BA32', 'BA33', 'BA34', 'BA35', 'BA36', 'BA37', 'BA38', 'BA39', 'BA40', 'BA41', 'BA42', 'BA43', 'BA44', 'BA45', 'BA46', 'BA47', 'BA48', 'BA49', 'BA50', 'BA51', 'BA52', 'BA53', 'BA54', 'BA55', 'BA56', 'BA57', 'BA58', 'BA59', 'BA60', 'BA61', 'BA62', 'BA63', 'BA64', 'BA65', 'BA66', 'BA67', 'BA68', 'BA69', 'BA70', 'BA71', 'BA72', 'BA73', 'BA74', 'BA75', 'BA76', 'BA77', 'BA78', 'BA79', 'BA80', 'BA81', 'BA82', 'BA83', 'BA84', 'BA85', 'BA86', 'BA87', 'BA88', 'BA89', 'BA90', 'BA91', 'BA92', 'BA93', 'BA94', 'BA95', 'BA96', 'BA97', 'BA98', 'BA99', // Bath
+      'GL1', 'GL2', 'GL3', 'GL4', 'GL5', 'GL6', 'GL7', 'GL8', 'GL9', 'GL10', 'GL11', 'GL12', 'GL13', 'GL14', 'GL15', 'GL16', 'GL17', 'GL18', 'GL19', 'GL20', 'GL21', 'GL22', 'GL23', 'GL24', 'GL25', 'GL26', 'GL27', 'GL28', 'GL29', 'GL30', 'GL31', 'GL32', 'GL33', 'GL34', 'GL35', 'GL36', 'GL37', 'GL38', 'GL39', 'GL40', 'GL41', 'GL42', 'GL43', 'GL44', 'GL45', 'GL46', 'GL47', 'GL48', 'GL49', 'GL50', 'GL51', 'GL52', 'GL53', 'GL54', 'GL55', 'GL56', 'GL57', 'GL58', 'GL59', 'GL60', 'GL61', 'GL62', 'GL63', 'GL64', 'GL65', 'GL66', 'GL67', 'GL68', 'GL69', 'GL70', 'GL71', 'GL72', 'GL73', 'GL74', 'GL75', 'GL76', 'GL77', 'GL78', 'GL79', 'GL80', 'GL81', 'GL82', 'GL83', 'GL84', 'GL85', 'GL86', 'GL87', 'GL88', 'GL89', 'GL90', 'GL91', 'GL92', 'GL93', 'GL94', 'GL95', 'GL96', 'GL97', 'GL98', 'GL99', // Cheltenham
+      'CF1', 'CF2', 'CF3', 'CF4', 'CF5', 'CF6', 'CF7', 'CF8', 'CF9', 'CF10', 'CF11', 'CF12', 'CF13', 'CF14', 'CF15', 'CF16', 'CF17', 'CF18', 'CF19', 'CF20', 'CF21', 'CF22', 'CF23', 'CF24', 'CF25', 'CF26', 'CF27', 'CF28', 'CF29', 'CF30', 'CF31', 'CF32', 'CF33', 'CF34', 'CF35', 'CF36', 'CF37', 'CF38', 'CF39', 'CF40', 'CF41', 'CF42', 'CF43', 'CF44', 'CF45', 'CF46', 'CF47', 'CF48', 'CF49', 'CF50', 'CF51', 'CF52', 'CF53', 'CF54', 'CF55', 'CF56', 'CF57', 'CF58', 'CF59', 'CF60', 'CF61', 'CF62', 'CF63', 'CF64', 'CF65', 'CF66', 'CF67', 'CF68', 'CF69', 'CF70', 'CF71', 'CF72', 'CF73', 'CF74', 'CF75', 'CF76', 'CF77', 'CF78', 'CF79', 'CF80', 'CF81', 'CF82', 'CF83', 'CF84', 'CF85', 'CF86', 'CF87', 'CF88', 'CF89', 'CF90', 'CF91', 'CF92', 'CF93', 'CF94', 'CF95', 'CF96', 'CF97', 'CF98', 'CF99' // Cardiff
+    ];
+    
+    // Medium demand areas (smaller cities, commuter towns)
+    const mediumDemandAreas = [
+      'LS1', 'LS2', 'LS3', 'LS4', 'LS5', 'LS6', 'LS7', 'LS8', 'LS9', 'LS10', 'LS11', 'LS12', 'LS13', 'LS14', 'LS15', 'LS16', 'LS17', 'LS18', 'LS19', 'LS20', 'LS21', 'LS22', 'LS23', 'LS24', 'LS25', 'LS26', 'LS27', 'LS28', 'LS29', 'LS30', 'LS31', 'LS32', 'LS33', 'LS34', 'LS35', 'LS36', 'LS37', 'LS38', 'LS39', 'LS40', 'LS41', 'LS42', 'LS43', 'LS44', 'LS45', 'LS46', 'LS47', 'LS48', 'LS49', 'LS50', 'LS51', 'LS52', 'LS53', 'LS54', 'LS55', 'LS56', 'LS57', 'LS58', 'LS59', 'LS60', 'LS61', 'LS62', 'LS63', 'LS64', 'LS65', 'LS66', 'LS67', 'LS68', 'LS69', 'LS70', 'LS71', 'LS72', 'LS73', 'LS74', 'LS75', 'LS76', 'LS77', 'LS78', 'LS79', 'LS80', 'LS81', 'LS82', 'LS83', 'LS84', 'LS85', 'LS86', 'LS87', 'LS88', 'LS89', 'LS90', 'LS91', 'LS92', 'LS93', 'LS94', 'LS95', 'LS96', 'LS97', 'LS98', 'LS99', // Leeds
+      'S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'S10', 'S11', 'S12', 'S13', 'S14', 'S15', 'S16', 'S17', 'S18', 'S19', 'S20', 'S21', 'S22', 'S23', 'S24', 'S25', 'S26', 'S27', 'S28', 'S29', 'S30', 'S31', 'S32', 'S33', 'S34', 'S35', 'S36', 'S37', 'S38', 'S39', 'S40', 'S41', 'S42', 'S43', 'S44', 'S45', 'S46', 'S47', 'S48', 'S49', 'S50', 'S51', 'S52', 'S53', 'S54', 'S55', 'S56', 'S57', 'S58', 'S59', 'S60', 'S61', 'S62', 'S63', 'S64', 'S65', 'S66', 'S67', 'S68', 'S69', 'S70', 'S71', 'S72', 'S73', 'S74', 'S75', 'S76', 'S77', 'S78', 'S79', 'S80', 'S81', 'S82', 'S83', 'S84', 'S85', 'S86', 'S87', 'S88', 'S89', 'S90', 'S91', 'S92', 'S93', 'S94', 'S95', 'S96', 'S97', 'S98', 'S99', // Sheffield
+      'NG1', 'NG2', 'NG3', 'NG4', 'NG5', 'NG6', 'NG7', 'NG8', 'NG9', 'NG10', 'NG11', 'NG12', 'NG13', 'NG14', 'NG15', 'NG16', 'NG17', 'NG18', 'NG19', 'NG20', 'NG21', 'NG22', 'NG23', 'NG24', 'NG25', 'NG26', 'NG27', 'NG28', 'NG29', 'NG30', 'NG31', 'NG32', 'NG33', 'NG34', 'NG35', 'NG36', 'NG37', 'NG38', 'NG39', 'NG40', 'NG41', 'NG42', 'NG43', 'NG44', 'NG45', 'NG46', 'NG47', 'NG48', 'NG49', 'NG50', 'NG51', 'NG52', 'NG53', 'NG54', 'NG55', 'NG56', 'NG57', 'NG58', 'NG59', 'NG60', 'NG61', 'NG62', 'NG63', 'NG64', 'NG65', 'NG66', 'NG67', 'NG68', 'NG69', 'NG70', 'NG71', 'NG72', 'NG73', 'NG74', 'NG75', 'NG76', 'NG77', 'NG78', 'NG79', 'NG80', 'NG81', 'NG82', 'NG83', 'NG84', 'NG85', 'NG86', 'NG87', 'NG88', 'NG89', 'NG90', 'NG91', 'NG92', 'NG93', 'NG94', 'NG95', 'NG96', 'NG97', 'NG98', 'NG99' // Nottingham
+    ];
+    
+    // Check if postcode is in high or medium demand areas
+    const postcodePrefix = postcode.substring(0, 3).toUpperCase();
+    const isHighDemand = highDemandAreas.includes(postcodePrefix);
+    const isMediumDemand = mediumDemandAreas.includes(postcodePrefix);
+    
+    // Property type demand factors
+    const propertyTypeDemand = {
+      'flat': 0.9,      // High demand for flats in cities
+      'apartment': 0.9, // High demand for apartments in cities
+      'house': 0.7,     // Good demand for houses
+      'semi-detached': 0.8, // Very good demand
+      'detached': 0.6,  // Lower demand (higher price point)
+      'terraced': 0.85, // High demand (good value)
+      'studio': 0.95,   // Very high demand in cities
+      'bedsit': 0.7     // Moderate demand
+    };
+    
+    // Bedroom demand factors (2-3 beds are most popular)
+    const bedroomDemand = {
+      1: 0.8,   // Good demand for 1-bed properties
+      2: 1.0,   // Highest demand (baseline)
+      3: 0.95,  // Very high demand
+      4: 0.7,   // Lower demand (family homes)
+      5: 0.5,   // Much lower demand
+      6: 0.3    // Very low demand
+    };
+    
+    // Calculate base demand score
+    let demandScore = 0;
+    
+    if (isHighDemand) {
+      demandScore = 85; // High demand areas start at 85
+    } else if (isMediumDemand) {
+      demandScore = 70; // Medium demand areas start at 70
+    } else {
+      demandScore = 50; // Other areas start at 50
+    }
+    
+    // Apply property type multiplier
+    const typeMultiplier = propertyTypeDemand[propertyType as keyof typeof propertyTypeDemand] || 0.7;
+    demandScore *= typeMultiplier;
+    
+    // Apply bedroom multiplier
+    const bedMultiplier = bedroomDemand[bedrooms as keyof typeof bedroomDemand] || 0.7;
+    demandScore *= bedMultiplier;
+    
+    // Add some randomness to make it more realistic
+    const randomFactor = 0.9 + (Math.random() * 0.2); // ±10% variation
+    demandScore *= randomFactor;
+    
+    // Ensure score is between 0-100
+    demandScore = Math.max(0, Math.min(100, Math.round(demandScore)));
+    
+    // Convert to demand level
+    let demandLevel = '';
+    let demandColor = '';
+    
+    if (demandScore >= 80) {
+      demandLevel = 'Very High';
+      demandColor = 'text-green-600';
+    } else if (demandScore >= 65) {
+      demandLevel = 'High';
+      demandColor = 'text-blue-600';
+    } else if (demandScore >= 50) {
+      demandLevel = 'Medium';
+      demandColor = 'text-yellow-600';
+    } else if (demandScore >= 35) {
+      demandLevel = 'Low';
+      demandColor = 'text-orange-600';
+    } else {
+      demandLevel = 'Very Low';
+      demandColor = 'text-red-600';
+    }
+    
+    return {
+      demandLevel,
+      demandColor,
+      demandScore
+    };
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'active': return <CheckCircle className="w-4 h-4 text-green-500" />;
@@ -1134,6 +1240,73 @@ export default function WatchlistPage() {
                       <div className="text-2xl font-bold text-blue-600 mb-4">
                         {formatPrice(item.price)}
                       </div>
+
+                      {/* Rental Demand & Deal Rating Badges */}
+                      {(() => {
+                        const rentalDemand = calculateRentalDemand(item);
+                        const valueAnalysis = analyzePropertyValue(item);
+                        const metrics = calculateInvestmentMetrics(item);
+                        
+                        // Calculate deal rating based on multiple factors
+                        const getDealRating = () => {
+                          let score = 0;
+                          
+                          // Price assessment (30% weight)
+                          if (valueAnalysis.priceAssessment === 'Excellent Price') score += 30;
+                          else if (valueAnalysis.priceAssessment === 'Good Price') score += 25;
+                          else if (valueAnalysis.priceAssessment === 'Fair Price') score += 20;
+                          else score += 10;
+                          
+                          // Rental yield (25% weight)
+                          const yieldValue = parseFloat(calculateYield(calculateRentalEstimateSync(item), item.price));
+                          if (yieldValue >= 8) score += 25;
+                          else if (yieldValue >= 6) score += 20;
+                          else if (yieldValue >= 4) score += 15;
+                          else score += 10;
+                          
+                          // Annual ROI (25% weight)
+                          if (metrics.annualReturn >= 12) score += 25;
+                          else if (metrics.annualReturn >= 8) score += 20;
+                          else if (metrics.annualReturn >= 5) score += 15;
+                          else score += 10;
+                          
+                          // Payback period (20% weight)
+                          if (metrics.paybackPeriod <= 5) score += 20;
+                          else if (metrics.paybackPeriod <= 8) score += 15;
+                          else if (metrics.paybackPeriod <= 12) score += 10;
+                          else score += 5;
+                          
+                          return score;
+                        };
+                        
+                        const dealScore = getDealRating();
+                        
+                        const getDealRatingInfo = (score: number) => {
+                          if (score >= 85) return { level: 'Excellent', color: 'bg-green-100 text-green-800 border-green-200' };
+                          if (score >= 70) return { level: 'Good', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+                          if (score >= 55) return { level: 'Fair', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+                          if (score >= 40) return { level: 'Poor', color: 'bg-orange-100 text-orange-800 border-orange-200' };
+                          return { level: 'Very Poor', color: 'bg-red-100 text-red-800 border-red-200' };
+                        };
+                        
+                        const dealRating = getDealRatingInfo(dealScore);
+                        
+                        return (
+                          <div className="flex gap-2 mb-4">
+                            {/* Rental Demand Badge */}
+                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${rentalDemand.demandColor.replace('text-', 'bg-').replace('-600', '-100')} ${rentalDemand.demandColor} border-${rentalDemand.demandColor.replace('text-', '').replace('-600', '-200')}`}>
+                              <span className="mr-1">🏠</span>
+                              {rentalDemand.demandLevel} Demand
+                            </div>
+                            
+                            {/* Deal Rating Badge */}
+                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${dealRating.color}`}>
+                              <span className="mr-1">⭐</span>
+                              {dealRating.level} Deal ({dealScore})
+                            </div>
+                          </div>
+                        );
+                      })()}
 
                       {/* Basic Property Info */}
                       <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-100">
