@@ -47,7 +47,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
     };
     
     checkAuth();
-  }, [propertyData.address, propertyData.postcode, propertyData.houseNumber, checkIfInPortfolio]);
+  }, [propertyData.address, propertyData.postcode, propertyData.houseNumber]);
 
   const checkIfInPortfolio = async (token: string) => {
     try {
