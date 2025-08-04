@@ -108,8 +108,16 @@ export default function DealCalculator() {
   // Authentication and portfolio loading
   useEffect(() => {
     const getUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      setUser(data.user);
+      if (!supabase) {
+        console.warn('Supabase client not initialized');
+        return;
+      }
+      try {
+        const { data } = await supabase.auth.getUser();
+        setUser(data.user);
+      } catch (error) {
+        console.error('Error getting user:', error);
+      }
     };
     getUser();
   }, []);
