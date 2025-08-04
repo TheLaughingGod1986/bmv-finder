@@ -105,6 +105,8 @@ export default function WatchlistPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
   const [editingProperty, setEditingProperty] = useState<string | null>(null);
+  const [comparisonMode, setComparisonMode] = useState(false);
+  const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [editForm, setEditForm] = useState<EditForm>({
     title: '',
     price: 0,
@@ -393,6 +395,25 @@ export default function WatchlistPage() {
       }
       return newSet;
     });
+  };
+
+  const toggleComparisonMode = () => {
+    setComparisonMode(!comparisonMode);
+    if (comparisonMode) {
+      setSelectedProperties([]);
+    }
+  };
+
+  const togglePropertySelection = (propertyId: string) => {
+    setSelectedProperties(prev => 
+      prev.includes(propertyId) 
+        ? prev.filter(id => id !== propertyId)
+        : [...prev, propertyId]
+    );
+  };
+
+  const isPropertySelected = (propertyId: string) => {
+    return selectedProperties.includes(propertyId);
   };
 
   const getRefurbishmentRecommendations = (property: WatchlistItem) => {
@@ -918,6 +939,18 @@ export default function WatchlistPage() {
                     {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                   
+                  <button
+                    onClick={toggleComparisonMode}
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                      comparisonMode 
+                        ? 'bg-blue-600 text-white shadow-lg' 
+                        : 'text-gray-700 bg-gray-100 hover:bg-gray-200'
+                    }`}
+                  >
+                    <Target className="w-4 h-4" />
+                    {comparisonMode ? 'Exit Compare' : 'Compare'}
+                  </button>
+                  
                   <div className="flex items-center gap-2">
                     <select
                       value={sortBy}
@@ -1079,6 +1112,17 @@ export default function WatchlistPage() {
 
                     {/* Property Content */}
                     <div className="p-6">
+                      {comparisonMode && (
+                        <div className="flex items-center gap-2 mb-2">
+                          <input
+                            type="checkbox"
+                            checked={isPropertySelected(item.id)}
+                            onChange={() => togglePropertySelection(item.id)}
+                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                          />
+                          <span className="text-sm text-gray-600">Select for comparison</span>
+                        </div>
+                      )}
                       <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
                         {item.title}
                       </h3>
@@ -1416,6 +1460,160 @@ export default function WatchlistPage() {
                   </motion.div>
                 ))}
               </div>
+            )}
+
+            {/* Comparison View */}
+            {comparisonMode && selectedProperties.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mt-8"
+              >
+                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-2xl font-bold text-gray-900">
+                      Property Comparison ({selectedProperties.length} selected)
+                    </h3>
+                    <button
+                      onClick={() => setSelectedProperties([])}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                    >
+                      Clear Selection
+                    </button>
+                  </div>
+                  
+                  {/* Deal Summary */}
+                  {(() => {
+                    const assessments = selectedProperties.map(propertyId => {
+                      const property = watchlist.find(p => p.id === propertyId);
+                      if (!property) return null;
+                      return { 
+                        ...analyzePropertyValue(property), 
+                        property,
+                        metrics: calculateInvestmentMetrics(property),
+                        growth: analyzeGrowthPotential(property)
+                      };
+                    }).filter(Boolean);
+
+                    if (assessments.length === 0) return null;
+
+                    // Find the best deal based on various metrics
+                    const bestROI = assessments.reduce((best, current) => 
+                      current.metrics.annualReturn > best.metrics.annualReturn ? current : best
+                    );
+                    
+                    const bestPaybackPeriod = assessments.reduce((best, current) => 
+                      current.metrics.paybackPeriod < best.metrics.paybackPeriod ? current : best
+                    );
+                    
+                    const bestGrowth = assessments.reduce((best, current) => 
+                      parseFloat(current.growth.tenYearGrowth) > parseFloat(best.growth.tenYearGrowth) ? current : best
+                    );
+                    
+                    const averageROI = Math.round(assessments.reduce((sum, a) => sum + a.metrics.annualReturn, 0) / assessments.length);
+                    
+                    return (
+                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                          <span className="mr-2">📊</span> Deal Comparison Summary
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                          <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
+                            <div className="text-2xl font-bold text-green-600">{bestROI.metrics.annualReturn.toFixed(1)}%</div>
+                            <div className="text-sm text-gray-600">Best Annual ROI</div>
+                            <div className="text-xs text-gray-500 mt-1">{bestROI.property.title.substring(0, 25)}...</div>
+                          </div>
+                          <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                            <div className="text-2xl font-bold text-green-600">{bestPaybackPeriod.metrics.paybackPeriod.toFixed(1)}y</div>
+                            <div className="text-sm text-gray-600">Fastest Payback</div>
+                            <div className="text-xs text-gray-500 mt-1">{bestPaybackPeriod.property.title.substring(0, 25)}...</div>
+                          </div>
+                          <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                            <div className="text-2xl font-bold text-purple-600">{bestGrowth.growth.tenYearGrowth}%</div>
+                            <div className="text-sm text-gray-600">Best Growth Potential</div>
+                            <div className="text-xs text-gray-500 mt-1">{bestGrowth.property.title.substring(0, 25)}...</div>
+                          </div>
+                          <div className="text-center p-3 bg-white rounded-lg border border-orange-200">
+                            <div className="text-2xl font-bold text-orange-600">{formatPrice(bestROI.metrics.netAnnualProfit)}</div>
+                            <div className="text-sm text-gray-600">Best Annual Profit</div>
+                            <div className="text-xs text-gray-500 mt-1">{bestROI.property.title.substring(0, 25)}...</div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                  
+                  {/* Detailed Comparison Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 px-4 font-semibold text-gray-900">Property</th>
+                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Price</th>
+                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Yield</th>
+                          <th className="text-center py-3 px-4 font-semibold text-gray-900">ROI</th>
+                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Payback</th>
+                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Growth</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedProperties.map(propertyId => {
+                          const property = watchlist.find(p => p.id === propertyId);
+                          if (!property) return null;
+                          const metrics = calculateInvestmentMetrics(property);
+                          const growth = analyzeGrowthPotential(property);
+                          const yieldPercentage = calculateYield(calculateRentalEstimateSync(property), property.price);
+                          
+                          return (
+                            <tr key={propertyId} className="border-b border-gray-100 hover:bg-gray-50">
+                              <td className="py-3 px-4">
+                                <div>
+                                  <div className="font-medium text-gray-900">{property.title.substring(0, 30)}...</div>
+                                  <div className="text-xs text-gray-500">{property.address}</div>
+                                </div>
+                              </td>
+                              <td className="text-center py-3 px-4 font-semibold text-gray-900">
+                                {formatPrice(property.price)}
+                              </td>
+                              <td className="text-center py-3 px-4">
+                                <span className={`font-semibold ${
+                                  parseFloat(yieldPercentage) >= 6 ? 'text-green-600' :
+                                  parseFloat(yieldPercentage) >= 4 ? 'text-yellow-600' :
+                                  'text-red-600'
+                                }`}>
+                                  {yieldPercentage}%
+                                </span>
+                              </td>
+                              <td className="text-center py-3 px-4">
+                                <span className={`font-semibold ${
+                                  metrics.annualReturn >= 8 ? 'text-green-600' :
+                                  metrics.annualReturn >= 5 ? 'text-yellow-600' :
+                                  'text-red-600'
+                                }`}>
+                                  {metrics.annualReturn.toFixed(1)}%
+                                </span>
+                              </td>
+                              <td className="text-center py-3 px-4 font-semibold text-gray-900">
+                                {metrics.paybackPeriod.toFixed(1)}y
+                              </td>
+                              <td className="text-center py-3 px-4">
+                                <span className={`font-semibold ${
+                                  parseFloat(growth.tenYearGrowth) >= 50 ? 'text-green-600' :
+                                  parseFloat(growth.tenYearGrowth) >= 30 ? 'text-yellow-600' :
+                                  'text-red-600'
+                                }`}>
+                                  {growth.tenYearGrowth}%
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </motion.div>
             )}
           </motion.div>
         </div>
