@@ -10,7 +10,7 @@ export default function PostcodeResearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // TODO: Implement ONS API fetch logic here
+  // Note: ONS API integration planned for future development
   // Example endpoint: https://developer.ons.gov.uk/ (ONS UK Economic Data API)
 
   const handleSearch = async (e: React.FormEvent) => {
@@ -19,7 +19,7 @@ export default function PostcodeResearchPage() {
     setLoading(true);
     setError("");
     setData(null);
-    // TODO: Fetch ONS data for the postcode
+    // Note: ONS data fetching will be implemented in future development
     // setData(fetchedData);
     setLoading(false);
   };

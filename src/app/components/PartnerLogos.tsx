@@ -18,7 +18,7 @@ export default function PartnerLogos() {
           </div>
         ))}
       </div>
-      {/* TODO: Replace with real SVG logos for each partner/press outlet */}
+
     </section>
   );
 } 
