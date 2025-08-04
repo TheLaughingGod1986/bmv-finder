@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
+import { useToast } from '../components/ToastProvider';
 import { 
   Home as HomeIcon, 
   Eye as EyeIcon, 
@@ -95,6 +96,7 @@ interface EditForm {
 
 export default function WatchlistPage() {
   const router = useRouter();
+  const { showToast } = useToast();
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -815,6 +817,165 @@ export default function WatchlistPage() {
     }
   };
 
+  // Copy professional offer to clipboard
+  const copyProfessionalOffer = async (property: WatchlistItem) => {
+    const offerAnalysis = getRecommendedOffer(property);
+    const valueAnalysis = analyzePropertyValue(property);
+    const metrics = calculateInvestmentMetrics(property);
+    const rentalDemand = calculateRentalDemand(property);
+    
+    const offerText = `PROFESSIONAL PROPERTY OFFER
+
+Property: ${property.title}
+Address: ${property.address}
+Asking Price: ${formatPrice(property.price)}
+
+RECOMMENDED OFFER: ${formatPrice(offerAnalysis.recommendedOffer)}
+(${offerAnalysis.negotiationBuffer}% below asking price)
+
+INVESTMENT ANALYSIS:
+• Price Assessment: ${valueAnalysis.priceAssessment}
+• Fair Value: ${formatPrice(valueAnalysis.fairValue)}
+• Rental Yield: ${calculateYield(calculateRentalEstimateSync(property), property.price)}%
+• Annual ROI: ${metrics.annualReturn.toFixed(1)}%
+• Monthly Cash Flow: ${formatPrice(metrics.monthlyCashFlow)}
+• Payback Period: ${metrics.paybackPeriod.toFixed(1)} years
+• Rental Demand: ${rentalDemand.demandLevel}
+
+PROPERTY DETAILS:
+• ${property.bedrooms} bedroom${property.bedrooms !== 1 ? 's' : ''}, ${property.bathrooms} bathroom${property.bathrooms !== 1 ? 's' : ''}
+• Property Type: ${property.property_type}
+• Tenure: ${property.tenure}
+
+OFFER TERMS:
+• Offer Amount: ${formatPrice(offerAnalysis.recommendedOffer)}
+• Subject to: Survey, Mortgage, and Legal Checks
+• Completion: Within 8-12 weeks
+• Chain Status: No chain
+
+This offer is based on comprehensive market analysis and investment metrics.`;
+
+    try {
+      await navigator.clipboard.writeText(offerText);
+      showToast({
+        type: 'success',
+        title: 'Offer Copied!',
+        message: 'Professional offer copied to clipboard'
+      });
+    } catch (error) {
+      console.error('Failed to copy offer:', error);
+      showToast({
+        type: 'error',
+        title: 'Copy Failed',
+        message: 'Failed to copy offer to clipboard'
+      });
+    }
+  };
+
+  // Generate negotiation strategy
+  const generateNegotiationStrategy = (property: WatchlistItem) => {
+    const offerAnalysis = getRecommendedOffer(property);
+    const valueAnalysis = analyzePropertyValue(property);
+    const metrics = calculateInvestmentMetrics(property);
+    const rentalDemand = calculateRentalDemand(property);
+    const daysOnMarket = property.days_on_market || 0;
+    
+    let strategy = `NEGOTIATION STRATEGY FOR ${property.title.toUpperCase()}
+
+CURRENT MARKET POSITION:
+• Asking Price: ${formatPrice(property.price)}
+• Days on Market: ${daysOnMarket} days
+• Price Assessment: ${valueAnalysis.priceAssessment}
+• Rental Demand: ${rentalDemand.demandLevel}
+
+RECOMMENDED APPROACH:`;
+
+    // Strategy based on market conditions
+    if (daysOnMarket > 60) {
+      strategy += `
+🎯 AGGRESSIVE NEGOTIATION (Property on market >60 days)
+• Start with: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 0.95))} (5% below recommended)
+• Target: ${formatPrice(offerAnalysis.recommendedOffer)}
+• Maximum: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.05))}
+
+TACTICS:
+• Emphasize time on market as leverage
+• Highlight any needed repairs/updates
+• Offer quick completion to sweeten deal
+• Be prepared to walk away if price doesn't move`;
+    } else if (daysOnMarket > 30) {
+      strategy += `
+🎯 MODERATE NEGOTIATION (Property on market 30-60 days)
+• Start with: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 0.97))} (3% below recommended)
+• Target: ${formatPrice(offerAnalysis.recommendedOffer)}
+• Maximum: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.03))}
+
+TACTICS:
+• Present market analysis to justify offer
+• Show comparable properties
+• Offer flexible completion date
+• Be patient but firm on price`;
+    } else {
+      strategy += `
+🎯 CONSERVATIVE NEGOTIATION (Property on market <30 days)
+• Start with: ${formatPrice(offerAnalysis.recommendedOffer)}
+• Target: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.02))}
+• Maximum: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.05))}
+
+TACTICS:
+• Present strong financial position
+• Offer quick decision and completion
+• Emphasize no chain status
+• Be prepared to move quickly`;
+    }
+
+    strategy += `
+
+KEY TALKING POINTS:
+• Investment potential: ${metrics.annualReturn.toFixed(1)}% annual return
+• Rental income: ${formatPrice(calculateRentalEstimateSync(property))}/month
+• Market demand: ${rentalDemand.demandLevel} rental demand
+• Fair value assessment: ${formatPrice(valueAnalysis.fairValue)}
+
+NEGOTIATION TIMELINE:
+• Week 1: Submit initial offer
+• Week 2: Follow up and negotiate
+• Week 3: Finalize terms
+• Week 4-8: Complete transaction
+
+Remember: Stay professional, be prepared with data, and know your walk-away price.`;
+
+    // Create a modal or alert with the strategy
+    const strategyWindow = window.open('', '_blank', 'width=600,height=800');
+    if (strategyWindow) {
+      strategyWindow.document.write(`
+        <html>
+          <head>
+            <title>Negotiation Strategy - ${property.title}</title>
+            <style>
+              body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+              .header { background: #3B82F6; color: white; padding: 20px; margin: -20px -20px 20px -20px; }
+              .section { margin: 20px 0; padding: 15px; border-left: 4px solid #3B82F6; background: #f8fafc; }
+              .highlight { background: #fef3c7; padding: 10px; border-radius: 5px; margin: 10px 0; }
+              .tactics { background: #dbeafe; padding: 15px; border-radius: 5px; margin: 15px 0; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>🎯 Negotiation Strategy</h1>
+              <h2>${property.title}</h2>
+            </div>
+            <pre style="white-space: pre-wrap; font-family: inherit;">${strategy}</pre>
+          </body>
+        </html>
+      `);
+      strategyWindow.document.close();
+    } else {
+      // Fallback to alert if popup is blocked
+      alert('Negotiation strategy generated! Check your popup blocker if the window didn\'t open.');
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -1454,11 +1615,17 @@ export default function WatchlistPage() {
                                 
                                 {/* Action Buttons */}
                                 <div className="flex gap-3">
-                                  <button className="flex-1 py-3 px-4 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                                  <button 
+                                    onClick={() => copyProfessionalOffer(item)}
+                                    className="flex-1 py-3 px-4 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                                  >
                                     <span>📄</span>
                                     Copy Professional Offer
                                   </button>
-                                  <button className="flex-1 py-3 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2">
+                                  <button 
+                                    onClick={() => generateNegotiationStrategy(item)}
+                                    className="flex-1 py-3 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                                  >
                                     <span>🎯</span>
                                     Generate Strategy
                                   </button>
