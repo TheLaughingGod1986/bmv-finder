@@ -1367,7 +1367,7 @@ export default function WatchlistPage() {
                                   </div>
                                 </div>
                               </div>
-                            </div>
+                            )}
                           </div>
                         );
                       })()}
