@@ -54,6 +54,9 @@
 - ✅ Cleaned up UI duplication - Removed duplicate "10-Year Growth" and "Projected Value" sections
 - ✅ Removed unnecessary "active" badges from property cards for cleaner UI
 - ✅ Redesigned investment analysis for better UX - Key metrics first, collapsible details, cleaner layout
+- ✅ Improved UI flow - Moved Price Assessment and Fair Value into Recommended Offer card for better logical grouping
+- ✅ Removed GitHub link from footer to prevent source code access
+- ✅ Added mortgage type indicator - Shows whether calculations use interest-only or repayment mortgage
 
 ## 📋 **CURRENT TASKS**
 

@@ -279,6 +279,7 @@ export default function WatchlistPage() {
       
       // Default to repayment mortgage
       const monthlyMortgagePayment = monthlyRepayment;
+      const mortgageType = 'Repayment'; // Can be made configurable later
       
       // Simplified monthly expenses (more realistic)
       const managementFee = monthlyRent * 0.08; // 8% management fee (reduced from 10%)
@@ -316,6 +317,7 @@ export default function WatchlistPage() {
         monthlyInterestOnly,
         monthlyRepayment,
         monthlyMortgagePayment,
+        mortgageType,
         // Expenses
         managementFee,
         insuranceCost,
@@ -347,6 +349,7 @@ export default function WatchlistPage() {
         monthlyInterestOnly: 0,
         monthlyRepayment: 0,
         monthlyMortgagePayment: 0,
+        mortgageType: 'Repayment',
         managementFee: 0,
         insuranceCost: 0,
         maintenanceReserve: 0,
@@ -1492,23 +1495,27 @@ export default function WatchlistPage() {
                                     );
                                   })()}
                                   
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Price Assessment:</span>
-                                    <span className={`font-semibold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
-                                      {valueAnalysis.priceAssessment}
-                                    </span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Fair Value:</span>
-                                    <span className="font-semibold text-gray-800">
-                                      {formatPrice(valueAnalysis.fairValue)}
-                                    </span>
-                                  </div>
-                                  
                                                                      <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-200">
                                      <div className="text-center">
                                        <div className="text-xs text-gray-600 mb-1">🎯 RECOMMENDED OFFER</div>
+                                       
+                                       {/* Price Analysis Context */}
+                                       <div className="grid grid-cols-2 gap-3 mb-3 text-xs">
+                                         <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
+                                           <span className="text-gray-600">Price Assessment:</span>
+                                           <span className={`font-semibold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                             {valueAnalysis.priceAssessment}
+                                           </span>
+                                         </div>
+                                         <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
+                                           <span className="text-gray-600">Fair Value:</span>
+                                           <span className="font-semibold text-gray-800">
+                                             {formatPrice(valueAnalysis.fairValue)}
+                                           </span>
+                                         </div>
+                                       </div>
+                                       
+                                       {/* Recommended Offer */}
                                        <div className="text-xl font-bold text-blue-700 mb-1">
                                          {formatPrice(offerAnalysis.recommendedOffer)}
                                        </div>
@@ -1645,6 +1652,14 @@ Best regards,
                                     </div>
                                   </div>
                                   
+                                  {/* Mortgage Type Indicator */}
+                                  <div className="flex justify-center mb-3">
+                                    <span className="inline-flex items-center px-3 py-1 text-xs font-medium bg-purple-100 text-purple-800 rounded-full border border-purple-200">
+                                      <span className="mr-1">🏠</span>
+                                      {metrics.mortgageType} Mortgage
+                                    </span>
+                                  </div>
+                                  
                                   {/* Quick Cash Flow */}
                                   <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
                                     <span className="text-sm text-gray-600">Monthly Cash Flow:</span>
@@ -1700,7 +1715,7 @@ Best regards,
                                       <h5 className="text-xs font-semibold text-gray-700 mb-2">Monthly Expenses</h5>
                                       <div className="grid grid-cols-2 gap-2 text-xs">
                                         <div className="flex justify-between p-2 bg-purple-50 rounded">
-                                          <span className="text-gray-600">Mortgage:</span>
+                                          <span className="text-gray-600">Mortgage ({metrics.mortgageType}):</span>
                                           <span className="font-medium text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</span>
                                         </div>
                                         <div className="flex justify-between p-2 bg-blue-50 rounded">
@@ -1714,6 +1729,21 @@ Best regards,
                                         <div className="flex justify-between p-2 bg-green-50 rounded">
                                           <span className="text-gray-600">Maintenance:</span>
                                           <span className="font-medium text-green-600">{formatPrice(metrics.maintenanceReserve)}</span>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Mortgage Comparison */}
+                                      <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                        <div className="text-xs text-gray-600 mb-1">Mortgage Options:</div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-500">Interest-Only:</span>
+                                            <span className="font-medium text-blue-600">£{formatPrice(metrics.monthlyInterestOnly)}</span>
+                                          </div>
+                                          <div className="flex justify-between">
+                                            <span className="text-gray-500">Repayment:</span>
+                                            <span className="font-medium text-purple-600">£{formatPrice(metrics.monthlyRepayment)}</span>
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
