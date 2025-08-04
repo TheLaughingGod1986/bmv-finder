@@ -247,7 +247,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
   const { showToast } = useToast();
   const [errorState, setError] = useState<any>(null);
 
-  const fetchComprehensiveData = async () => {
+  const fetchComprehensiveData = useCallback(async () => {
     setIsLoading(true);
     try {
       // Fetch comprehensive valuation data
@@ -293,7 +293,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
       setIsLoading(false);
       if (onAnalysisComplete) onAnalysisComplete();
     }
-  };
+  }, [postcode, houseNumber, onAnalysisComplete]);
 
   useEffect(() => {
     if (postcode && houseNumber) {

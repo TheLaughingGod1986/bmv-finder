@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   ChartBarIcon,
   UserGroupIcon,
@@ -90,7 +90,7 @@ export default function BusinessIntelligenceDashboard() {
   const [selectedMetric, setSelectedMetric] = useState('searches');
 
   // Mock data - replace with real API calls
-  const mockMetrics: BusinessMetrics = {
+  const mockMetrics = useMemo((): BusinessMetrics => ({
     users: {
       total: 1247,
       active: 892,
@@ -126,7 +126,7 @@ export default function BusinessIntelligenceDashboard() {
         { area: 'Liverpool', growth: 7.2, volume: 1234 }
       ]
     }
-  };
+  }), []);
 
   const mockTimeSeriesData: Record<string, TimeSeriesData[]> = {
     searches: [
