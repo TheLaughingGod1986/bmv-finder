@@ -712,45 +712,52 @@ export default function WatchlistPage() {
                     </div>
 
                     {/* Financial Summary Card */}
-                    <div className="mb-6 p-4 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 shadow-sm">
-                      <div className="flex items-center gap-2 mb-4">
-                        <span className="text-2xl">💰</span>
-                        <h4 className="text-lg font-bold text-gray-800">Investment Summary</h4>
+                    <div className="mb-6 p-6 bg-gradient-to-br from-slate-50 to-white rounded-xl border border-slate-200 shadow-lg">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg">
+                          <span className="text-2xl text-white">💰</span>
+                        </div>
+                        <div>
+                          <h4 className="text-xl font-bold text-gray-800">Investment Summary</h4>
+                          <p className="text-sm text-gray-600">Complete financial analysis and projections</p>
+                        </div>
                       </div>
                       
                       {/* Mortgage Type */}
-                      <div className="flex items-center gap-2 mb-4 p-3 bg-white rounded-lg border border-gray-200">
-                        <span className="text-lg">🏠</span>
+                      <div className="flex items-center gap-3 mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 shadow-sm">
+                        <div className="p-2 bg-blue-100 rounded-lg">
+                          <span className="text-lg">🏠</span>
+                        </div>
                         <div>
-                          <div className="text-xs text-gray-500 font-medium">Mortgage Type</div>
-                          <div className="text-sm font-semibold text-gray-800">{item.mortgage_type || 'Interest-Only Mortgage'}</div>
+                          <div className="text-xs text-blue-600 font-semibold uppercase tracking-wide">Mortgage Type</div>
+                          <div className="text-base font-bold text-gray-800">{item.mortgage_type || 'Interest-Only Mortgage'}</div>
                         </div>
                       </div>
                       
-                      {/* Key Metrics Compact */}
-                      <div className="grid grid-cols-2 gap-2 mb-4">
-                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-500 font-medium mb-1">Total Investment</div>
-                          <div className="text-base font-bold text-gray-800 leading-tight">
-                            {formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}
-                          </div>
-                        </div>
-                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-500 font-medium mb-1">Annual Return</div>
-                          <div className="text-base font-bold text-green-600 leading-tight">
+                      {/* Key Performance Metrics */}
+                      <div className="grid grid-cols-2 gap-3 mb-4">
+                        <div className="flex flex-col p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 shadow-sm">
+                          <div className="text-xs text-green-600 font-medium mb-1">Annual Return</div>
+                          <div className="text-lg font-bold text-green-700 leading-tight">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
                         </div>
-                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-500 font-medium mb-1">Monthly Profit</div>
-                          <div className="text-base font-bold text-blue-600 leading-tight">
+                        <div className="flex flex-col p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 shadow-sm">
+                          <div className="text-xs text-blue-600 font-medium mb-1">Monthly Profit</div>
+                          <div className="text-lg font-bold text-blue-700 leading-tight">
                             {formatPrice(metrics.netAnnualProfit / 12)}
                           </div>
                         </div>
-                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-500 font-medium mb-1">Cash-on-Cash</div>
-                          <div className="text-base font-bold text-purple-600 leading-tight">
+                        <div className="flex flex-col p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 shadow-sm">
+                          <div className="text-xs text-purple-600 font-medium mb-1">Cash-on-Cash</div>
+                          <div className="text-lg font-bold text-purple-700 leading-tight">
                             {metrics.annualROI.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="flex flex-col p-3 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg border border-orange-200 shadow-sm">
+                          <div className="text-xs text-orange-600 font-medium mb-1">Payback Period</div>
+                          <div className="text-lg font-bold text-orange-700 leading-tight">
+                            {metrics.paybackPeriod.toFixed(1)}y
                           </div>
                         </div>
                       </div>
@@ -904,7 +911,7 @@ export default function WatchlistPage() {
                     </div>
 
                     {/* Accordion Sections */}
-                    <div className="space-y-4">
+                    <div className="space-y-3">
                       {/* Quick Metrics Section */}
                       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
                         <button 
@@ -913,10 +920,10 @@ export default function WatchlistPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold">QUICK METRICS</span>
+                              <span className="text-white font-semibold text-sm">📊 QUICK METRICS</span>
                             </div>
                             <ChevronDownIcon 
-                              className={`w-5 h-5 text-white transition-transform ${
+                              className={`w-4 h-4 text-white transition-transform ${
                                 expandedSections.has('quick-metrics') ? 'rotate-180' : ''
                               }`}
                             />
@@ -954,10 +961,10 @@ export default function WatchlistPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold">MONTHLY CASH FLOW</span>
+                              <span className="text-white font-semibold text-sm">💸 MONTHLY CASH FLOW</span>
                             </div>
                             <ChevronDownIcon 
-                              className={`w-5 h-5 text-white transition-transform ${
+                              className={`w-4 h-4 text-white transition-transform ${
                                 expandedSections.has('monthly-cash-flow') ? 'rotate-180' : ''
                               }`}
                             />
@@ -995,10 +1002,10 @@ export default function WatchlistPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold">GROWTH PROJECTIONS</span>
+                              <span className="text-white font-semibold text-sm">📈 GROWTH PROJECTIONS</span>
                             </div>
                             <ChevronDownIcon 
-                              className={`w-5 h-5 text-white transition-transform ${
+                              className={`w-4 h-4 text-white transition-transform ${
                                 expandedSections.has('growth-projections') ? 'rotate-180' : ''
                               }`}
                             />
@@ -1042,10 +1049,10 @@ export default function WatchlistPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold">RECOMMENDED OFFER</span>
+                              <span className="text-white font-semibold text-sm">🎯 RECOMMENDED OFFER</span>
                             </div>
                             <ChevronDownIcon 
-                              className={`w-5 h-5 text-white transition-transform ${
+                              className={`w-4 h-4 text-white transition-transform ${
                                 expandedSections.has('recommended-offer') ? 'rotate-180' : ''
                               }`}
                             />
@@ -1071,44 +1078,7 @@ export default function WatchlistPage() {
                         )}
                       </div>
 
-                      {/* Investment Summary Section */}
-                      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
-                        <button 
-                          onClick={() => toggleSection('investment-summary')}
-                          className="w-full bg-gradient-to-r from-violet-600 to-violet-700 px-4 py-3 text-left hover:from-violet-700 hover:to-violet-800 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold">INVESTMENT SUMMARY</span>
-                            </div>
-                            <ChevronDownIcon 
-                              className={`w-5 h-5 text-white transition-transform ${
-                                expandedSections.has('investment-summary') ? 'rotate-180' : ''
-                              }`}
-                            />
-                          </div>
-                        </button>
-                        {expandedSections.has('investment-summary') && (
-                          <div className="p-4 bg-white border-t border-gray-200">
-                            <div className="space-y-3 text-sm">
-                              <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                                <span className="text-gray-700 font-medium">Total Investment:</span>
-                                <span className="font-bold text-blue-600">{formatPrice(metrics.totalCost)}</span>
-                              </div>
-                              <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                                <span className="text-gray-700 font-medium">Annual Profit:</span>
-                                <span className={`font-bold ${metrics.netAnnualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                  {formatPrice(metrics.netAnnualProfit)}
-                                </span>
-                              </div>
-                              <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
-                                <span className="text-gray-700 font-medium">Deal Score:</span>
-                                <span className="font-bold text-purple-600">{assessment.score}/100</span>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
+
 
                       {/* Detailed Breakdown Section */}
                       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
@@ -1118,10 +1088,10 @@ export default function WatchlistPage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-2">
-                              <span className="text-white font-semibold">DETAILED BREAKDOWN</span>
+                              <span className="text-white font-semibold text-sm">📋 DETAILED BREAKDOWN</span>
                             </div>
                             <ChevronDownIcon 
-                              className={`w-5 h-5 text-white transition-transform ${
+                              className={`w-4 h-4 text-white transition-transform ${
                                 expandedBreakdowns.has(item.id) ? 'rotate-180' : ''
                               }`}
                             />
