@@ -796,14 +796,21 @@ export default function WatchlistPage() {
                               return (
                                 <>
                                   {/* Major Costs */}
-                                  <div className="grid grid-cols-2 gap-2 mb-3">
-                                    <div className="flex justify-between p-2 bg-blue-50 rounded border">
-                                      <span className="text-gray-700 font-medium text-xs">🏦 Deposit (25%):</span>
-                                      <span className="font-bold text-blue-600 text-xs">{formatPrice(costs.deposit)}</span>
+                                  <div className="bg-blue-50 rounded p-2 mb-2">
+                                    <div className="text-xs font-semibold text-gray-700 mb-1">💰 Major Costs</div>
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Deposit (25%):</span>
+                                        <span className="font-medium">{formatPrice(costs.deposit)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Stamp Duty:</span>
+                                        <span className="font-medium">{formatPrice(costs.stampDuty)}</span>
+                                      </div>
                                     </div>
-                                    <div className="flex justify-between p-2 bg-purple-50 rounded border">
-                                      <span className="text-gray-700 font-medium text-xs">💰 Stamp Duty:</span>
-                                      <span className="font-bold text-purple-600 text-xs">{formatPrice(costs.stampDuty)}</span>
+                                    <div className="flex justify-between text-xs font-semibold border-t border-blue-200 pt-1 mt-1">
+                                      <span className="text-blue-700">Subtotal:</span>
+                                      <span className="font-bold text-blue-700">{formatPrice(costs.deposit + costs.stampDuty)}</span>
                                     </div>
                                   </div>
                                   
@@ -832,6 +839,10 @@ export default function WatchlistPage() {
                                         <span className="font-medium">{formatPrice(costs.searchesFees)}</span>
                                       </div>
                                     </div>
+                                    <div className="flex justify-between text-xs font-semibold border-t border-gray-300 pt-1 mt-1">
+                                      <span className="text-gray-700">Subtotal:</span>
+                                      <span className="font-bold text-gray-700">{formatPrice(costs.legalFees + costs.surveyFees + costs.mortgageFees + costs.landRegistryFees + costs.searchesFees)}</span>
+                                    </div>
                                   </div>
                                   
                                   {/* Safety Certificates */}
@@ -850,6 +861,10 @@ export default function WatchlistPage() {
                                         <span className="text-gray-600">Energy Performance:</span>
                                         <span className="font-medium">{formatPrice(costs.energyPerformanceCertificate)}</span>
                                       </div>
+                                    </div>
+                                    <div className="flex justify-between text-xs font-semibold border-t border-green-200 pt-1 mt-1">
+                                      <span className="text-green-700">Subtotal:</span>
+                                      <span className="font-bold text-green-700">{formatPrice(costs.gasSafetyCertificate + costs.electricalSafetyCertificate + costs.energyPerformanceCertificate)}</span>
                                     </div>
                                   </div>
                                   
@@ -874,6 +889,10 @@ export default function WatchlistPage() {
                                         <span className="font-medium">{formatPrice(costs.landlordInsurance)}</span>
                                       </div>
                                     </div>
+                                    <div className="flex justify-between text-xs font-semibold border-t border-orange-200 pt-1 mt-1">
+                                      <span className="text-orange-700">Subtotal:</span>
+                                      <span className="font-bold text-orange-700">{formatPrice(costs.fireSafetyAssessment + costs.legionellaRiskAssessment + costs.asbestosSurvey + costs.landlordInsurance)}</span>
+                                    </div>
                                   </div>
                                   
                                   {/* Setup Costs */}
@@ -897,8 +916,17 @@ export default function WatchlistPage() {
                                         <span className="font-medium">{formatPrice(costs.contingencyFund)}</span>
                                       </div>
                                     </div>
+                                    <div className="flex justify-between text-xs font-semibold border-t border-yellow-200 pt-1 mt-1">
+                                      <span className="text-yellow-700">Subtotal:</span>
+                                      <span className="font-bold text-yellow-700">{formatPrice(costs.refurbishmentCost + costs.furnitureAndAppliances + costs.marketingAndLettingFees + costs.contingencyFund)}</span>
+                                    </div>
                                   </div>
                                   
+                                  {/* Total Investment Cost */}
+                                  <div className="flex justify-between p-3 bg-gradient-to-r from-gray-100 to-gray-200 rounded-lg border-2 border-gray-300 mt-3">
+                                    <span className="font-bold text-gray-800 text-sm">💼 TOTAL INVESTMENT COST:</span>
+                                    <span className="font-bold text-gray-800 text-lg">{formatPrice(costs.totalInvestmentCost)}</span>
+                                  </div>
 
                                 </>
                               );
