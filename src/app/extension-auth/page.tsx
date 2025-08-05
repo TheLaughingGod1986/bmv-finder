@@ -14,10 +14,11 @@ function ExtensionAuthContent() {
       try {
         // Get the extension callback URL from query params
         const extensionCallback = searchParams.get('extension_callback');
+        const messageParam = searchParams.get('message');
         
         if (!supabase) {
           setStatus('error');
-          setMessage('Authentication service not configured');
+          setMessage('Authentication service not configured. Please contact support.');
           return;
         }
 
@@ -26,22 +27,38 @@ function ExtensionAuthContent() {
         
         if (error || !session) {
           setStatus('error');
-          setMessage('No active session found. Please sign in first.');
+          setMessage('No active session found. Please sign in to your BMV Finder account first.');
           return;
         }
 
         // If we have a session and extension callback, redirect with token
         if (extensionCallback) {
           const token = session.access_token;
-          const redirectUrl = `${extensionCallback}?token=${encodeURIComponent(token)}`;
+          const user = session.user;
+          
+          // Create a more complete user data object
+          const userData = {
+            isAuthenticated: true,
+            name: user.user_metadata?.full_name || user.email || 'User',
+            email: user.email,
+            membership: 'Free Plan', // Will be updated by the extension
+            captureLimit: 5,
+            capturedCount: 0
+          };
+          
+          // Encode the data for the extension
+          const encodedToken = encodeURIComponent(token);
+          const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+          
+          const redirectUrl = `${extensionCallback}?token=${encodedToken}&userData=${encodedUserData}`;
           
           setStatus('success');
           setMessage('Authentication successful! Redirecting to extension...');
           
-          // Redirect to extension with token
+          // Redirect to extension with token and user data
           setTimeout(() => {
             window.location.href = redirectUrl;
-          }, 2000);
+          }, 1500);
         } else {
           setStatus('error');
           setMessage('No extension callback URL provided');
@@ -98,11 +115,17 @@ function ExtensionAuthContent() {
               onClick={() => window.location.href = '/auth'}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Sign In
+              Sign In to BMV Finder
+            </button>
+            <button
+              onClick={() => window.location.href = '/auth?signup=true'}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Create Account
             </button>
             <button
               onClick={() => window.close()}
-              className="w-full bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400 transition-colors"
+              className="w-full bg-gray-500 text-white py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors"
             >
               Close
             </button>
@@ -122,19 +145,8 @@ function ExtensionAuthContent() {
 export default function ExtensionAuthPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center">
-          <div className="mb-6">
-            <div className="text-4xl mb-4">🏠</div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              BMV Finder Extension
-            </h1>
-            <p className="text-gray-600">Loading...</p>
-          </div>
-          <div className="flex justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          </div>
-        </div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
       </div>
     }>
       <ExtensionAuthContent />

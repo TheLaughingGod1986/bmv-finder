@@ -23,6 +23,51 @@ let userData = {
   capturedCount: 0
 };
 
+// Handle authentication callback from extension-auth page
+function handleAuthCallback() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  const userDataParam = urlParams.get('userData');
+  
+  if (token && userDataParam) {
+    try {
+      // Parse the user data
+      const parsedUserData = JSON.parse(decodeURIComponent(userDataParam));
+      
+      // Store the authentication data
+      chrome.storage.local.set({
+        authToken: token,
+        userData: parsedUserData,
+        isAuthenticated: true
+      }, () => {
+        console.log('BMV Finder: Authentication data stored successfully');
+        
+        // Update the current user data
+        userData = {
+          ...userData,
+          ...parsedUserData,
+          isAuthenticated: true
+        };
+        
+        // Update the UI
+        updateUserInterface();
+        loadCapturedProperties();
+        
+        // Clear the URL parameters
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        // Show success message
+        showMessage('Successfully signed in!', true);
+      });
+      
+    } catch (error) {
+      console.error('BMV Finder: Error parsing user data:', error);
+      showError('Authentication failed. Please try again.');
+    }
+  }
+}
+
 // Save user data to storage
 async function saveUserData() {
   try {
@@ -102,56 +147,51 @@ async function loadUserData() {
           });
           
           if (response.ok) {
-            const userInfo = await response.json();
+            const membershipData = await response.json();
             userData = {
-              isAuthenticated: true,
-              name: userInfo.user?.name || 'Authenticated User',
-              membership: userInfo.membership || 'Free Plan',
-              captureLimit: userInfo.captureLimit || 5,
-              capturedCount: 0
+              ...userData,
+              ...membershipData,
+              isAuthenticated: true
             };
-            
-            // Save the user data for future use
-            await chrome.storage.local.set({ 
-              userData: userData,
-              isAuthenticated: true 
-            });
+            await saveUserData();
           } else {
             // Token is invalid, clear it
             await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-            throw new Error('Invalid token');
+            userData = {
+              isAuthenticated: false,
+              name: 'Not Signed In',
+              membership: 'Free Plan',
+              captureLimit: 5,
+              capturedCount: 0
+            };
           }
-        } catch (apiError) {
-          console.error('Error validating token:', apiError);
-          // For now, don't clear the token on network errors
-          // Just fall back to demo mode
-          throw new Error('Token validation failed');
+        } catch (error) {
+          console.error('Error validating token:', error);
+          // Clear invalid token
+          await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+          userData = {
+            isAuthenticated: false,
+            name: 'Not Signed In',
+            membership: 'Free Plan',
+            captureLimit: 5,
+            capturedCount: 0
+          };
         }
       }
-    } else if (authResult.isAuthenticated && authResult.userData) {
-      // Fallback to cached data
-      userData = {
-        ...userData,
-        ...authResult.userData,
-        isAuthenticated: true
-      };
     } else {
-      // Demo data for unauthenticated users - preserve existing capture limit if set
-      const currentLimit = userData.captureLimit || 5;
+      // No token found, ensure we're in unauthenticated state
       userData = {
         isAuthenticated: false,
         name: 'Not Signed In',
         membership: 'Free Plan',
-        captureLimit: currentLimit,
+        captureLimit: 5,
         capturedCount: 0
       };
     }
     
     updateUserInterface();
-    
   } catch (error) {
     console.error('Error loading user data:', error);
-    // Set to demo mode on error
     userData = {
       isAuthenticated: false,
       name: 'Not Signed In',
@@ -399,6 +439,26 @@ function showError(message) {
   `;
 }
 
+function showMessage(message, isSuccess = false) {
+  const messageDiv = document.createElement('div');
+  messageDiv.className = 'empty-state';
+  messageDiv.style.color = isSuccess ? '#5DA271' : '#E74C3C';
+  messageDiv.innerHTML = `${isSuccess ? '✅' : '⚠️'} ${message}`;
+  
+  propertiesList.innerHTML = '';
+  propertiesList.appendChild(messageDiv);
+  
+  // Auto-remove success messages after 3 seconds
+  if (isSuccess) {
+    setTimeout(() => {
+      if (messageDiv.parentNode) {
+        messageDiv.remove();
+        loadCapturedProperties(); // Refresh the properties list
+      }
+    }, 3000);
+  }
+}
+
 // Handle sign-in button click
 signInButton.addEventListener('click', async () => {
   if (!userData.isAuthenticated) {
@@ -444,6 +504,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('BMV Finder: Popup DOM loaded');
   
   try {
+    // Handle authentication callback first
+    handleAuthCallback();
+    
     // Clear any cached demo data first
     const clearedDemoData = await clearCachedDemoData();
     if (clearedDemoData) {
