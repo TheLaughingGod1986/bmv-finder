@@ -646,9 +646,9 @@ export default function WatchlistPage() {
                       <div className="bg-white rounded-lg border border-gray-200 p-3">
                         <h5 className="font-semibold text-gray-800 mb-3 text-base">Monthly Cash Flow</h5>
                         <div className="space-y-2 text-sm">
-                          <div className="flex justify-between items-center p-1.5 bg-green-100 rounded-lg">
+                          <div className="flex justify-between items-center p-1.5 bg-green-200 rounded-lg border border-green-300">
                             <span className="text-gray-700 font-medium text-xs">+ Rental Income:</span>
-                            <span className="font-bold text-green-600 text-base">+{formatPrice(metrics.rentalEstimate)}</span>
+                            <span className="font-bold text-green-700 text-base">+{formatPrice(metrics.rentalEstimate)}</span>
                           </div>
                           <div className="flex justify-between items-center p-1.5 bg-red-50 rounded-lg">
                             <span className="text-gray-700 font-medium text-xs">- Mortgage Payment:</span>
