@@ -79,7 +79,7 @@ export default function WatchlistPage() {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['cost-breakdown']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const [editingProperty, setEditingProperty] = useState<string | null>(null);
 
   useEffect(() => {
@@ -157,14 +157,11 @@ export default function WatchlistPage() {
   };
 
   const toggleSection = (sectionId: string) => {
-    console.log('Toggling section:', sectionId);
     const newExpanded = new Set(expandedSections);
     if (newExpanded.has(sectionId)) {
       newExpanded.delete(sectionId);
-      console.log('Closing section:', sectionId);
     } else {
       newExpanded.add(sectionId);
-      console.log('Opening section:', sectionId);
     }
     setExpandedSections(newExpanded);
   };
@@ -793,10 +790,7 @@ export default function WatchlistPage() {
                         </button>
                         
                         {expandedSections.has('cost-breakdown') && (
-                          <div className="space-y-2 text-sm border-t pt-3" style={{ border: '2px solid red' }}>
-                            <div style={{ background: 'yellow', padding: '4px', marginBottom: '8px' }}>
-                              DEBUG: Cost breakdown is expanded
-                            </div>
+                          <div className="space-y-2 text-sm border-t pt-3">
                             {(() => {
                               const costs = calculateDetailedCostBreakdown(item);
                               return (
