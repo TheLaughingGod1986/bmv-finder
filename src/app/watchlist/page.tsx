@@ -681,6 +681,10 @@ export default function WatchlistPage() {
                         {/* Property Details */}
                         <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
                           <div className="flex items-center gap-1">
+                            <span className="text-gray-500">💰</span>
+                            <span className="font-bold text-blue-600">{formatPrice(item.price)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
                             <span className="text-gray-500">🛏️</span>
                             <span className="font-medium">{item.bedrooms} bed</span>
                           </div>
@@ -1233,6 +1237,10 @@ export default function WatchlistPage() {
                       
                       {/* Property Details */}
                       <div className="flex items-center gap-3 text-xs text-gray-600 mb-3">
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">💰</span>
+                          <span className="font-bold text-blue-600">{formatPrice(property.price)}</span>
+                        </div>
                         <div className="flex items-center gap-1">
                           <span className="text-gray-500">🛏️</span>
                           <span className="font-medium">{property.bedrooms} bed</span>
