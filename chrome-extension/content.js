@@ -130,6 +130,40 @@ window.bmvFinderForceInject = function() {
   injectButton();
 };
 
+// Add a global test capture function
+window.bmvFinderTestCapture = function() {
+  console.log('BMV Finder: === TEST CAPTURE TRIGGERED ===');
+  const testProperty = {
+    title: 'Test Property - 4 bed detached house',
+    price: '£475,000',
+    address: 'Test Street, Test City, TE1 1ST',
+    description: 'This is a test property for debugging',
+    bedrooms: 4,
+    bathrooms: 2,
+    propertyType: 'Detached House',
+    tenure: 'Freehold',
+    postcode: 'TE1 1ST',
+    original_url: window.location.href,
+    source: 'test',
+    agent_name: 'Test Agent',
+    agent_phone: '01234 567890',
+    images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop&crop=center']
+  };
+  
+  // Send to background script
+  chrome.runtime.sendMessage({
+    action: 'captureProperty',
+    data: testProperty
+  }, function(response) {
+    console.log('BMV Finder: Test capture response:', response);
+    if (response && response.success) {
+      alert('Test property captured successfully! Check your watchlist.');
+    } else {
+      alert('Test capture failed: ' + (response?.error || 'Unknown error'));
+    }
+  });
+};
+
 // Extract property data based on the site
 function extractPropertyData() {
   const hostname = window.location.hostname;
