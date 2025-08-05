@@ -172,6 +172,7 @@ export default function WatchlistPage() {
   };
 
   const calculateYield = (monthlyRent: number, price: number) => {
+    if (price <= 0) return '0.0';
     return ((monthlyRent * 12) / price * 100).toFixed(1);
   };
 
@@ -220,13 +221,13 @@ export default function WatchlistPage() {
 
   const calculateInvestmentMetrics = (property: WatchlistItem) => {
     const rentalEstimate = calculateRentalEstimateSync(property);
-    const yieldPercentage = parseFloat(calculateYield(rentalEstimate, property.price));
+    const yieldPercentage = property.price > 0 ? parseFloat(calculateYield(rentalEstimate, property.price)) : 0;
     const totalCost = property.price + (property.refurbishment_cost || 0);
     const annualRent = rentalEstimate * 12;
-    const annualROI = (annualRent / totalCost) * 100;
+    const annualROI = totalCost > 0 ? (annualRent / totalCost) * 100 : 0;
     const netAnnualProfit = annualRent - (totalCost * 0.045); // Assuming 4.5% mortgage rate
-    const realProfitMargin = (netAnnualProfit / totalCost) * 100;
-    const paybackPeriod = totalCost / netAnnualProfit;
+    const realProfitMargin = totalCost > 0 ? (netAnnualProfit / totalCost) * 100 : 0;
+    const paybackPeriod = netAnnualProfit > 0 ? totalCost / netAnnualProfit : 0;
 
     return {
       rentalEstimate,
