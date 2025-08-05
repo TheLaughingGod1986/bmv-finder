@@ -10,6 +10,7 @@ import ScrollToTop from './components/ScrollToTop';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Footer from './components/Footer';
 import { SearchLimitProvider } from './components/SearchLimitContext';
+import { MockAuthProvider } from './components/MockAuthProvider';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -190,21 +191,23 @@ export default function RootLayout({
           Skip to main content
         </a>
         <SupabaseUserProvider>
-          <SearchLimitProvider>
-            <ClientNavigation />
-            <main 
-              id="main-content" 
-              tabIndex={-1} 
-              className="min-h-screen bg-neutral-light relative"
-            >
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </main>
-            <Footer />
-            <ScrollToTop />
-            <PWAInstallPrompt />
-          </SearchLimitProvider>
+          <MockAuthProvider>
+            <SearchLimitProvider>
+              <ClientNavigation />
+              <main 
+                id="main-content" 
+                tabIndex={-1} 
+                className="min-h-screen bg-neutral-light relative"
+              >
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </main>
+              <Footer />
+              <ScrollToTop />
+              <PWAInstallPrompt />
+            </SearchLimitProvider>
+          </MockAuthProvider>
         </SupabaseUserProvider>
         <Analytics />
         <SpeedInsights />
