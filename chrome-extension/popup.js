@@ -98,7 +98,7 @@ async function loadUserData() {
       const currentLimit = userData.captureLimit || 5;
       userData = {
         isAuthenticated: false,
-        name: 'Demo User',
+        name: 'Not Signed In',
         membership: 'Free Plan',
         captureLimit: currentLimit,
         capturedCount: 0
@@ -112,7 +112,7 @@ async function loadUserData() {
     // Set to demo mode on error
     userData = {
       isAuthenticated: false,
-      name: 'Demo User',
+      name: 'Not Signed In',
       membership: 'Free Plan',
       captureLimit: 5,
       capturedCount: 0
@@ -308,7 +308,7 @@ signOutButton.addEventListener('click', async () => {
     await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
     userData = {
       isAuthenticated: false,
-      name: 'Demo User',
+      name: 'Not Signed In',
       membership: 'Free Plan',
       captureLimit: 5,
       capturedCount: 0
