@@ -3,11 +3,14 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
+import AuthModal from '../components/AuthModal';
 
 function ExtensionAuthContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Authenticating...');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -74,6 +77,12 @@ function ExtensionAuthContent() {
     handleAuth();
   }, [searchParams]);
 
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false);
+    // Re-check authentication status after successful login
+    handleAuth();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full text-center">
@@ -115,13 +124,19 @@ function ExtensionAuthContent() {
               <strong>How it works:</strong> First sign in to your BMV Finder account, then return to the extension to capture properties.
             </div>
             <button
-              onClick={() => window.location.href = '/'}
+              onClick={() => {
+                setAuthMode('login');
+                setIsAuthModalOpen(true);
+              }}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Sign In to BMV Finder
             </button>
             <button
-              onClick={() => window.location.href = '/?signup=true'}
+              onClick={() => {
+                setAuthMode('register');
+                setIsAuthModalOpen(true);
+              }}
               className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
             >
               Create Account
@@ -141,6 +156,13 @@ function ExtensionAuthContent() {
           </div>
         )}
       </div>
+      
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={handleAuthSuccess}
+        defaultMode={authMode}
+      />
     </div>
   );
 }
