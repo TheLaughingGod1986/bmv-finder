@@ -12,68 +12,68 @@ function ExtensionAuthContent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
 
-  useEffect(() => {
-    const handleAuth = async () => {
-      try {
-        // Get the extension callback URL from query params
-        const extensionCallback = searchParams.get('extension_callback');
-        const messageParam = searchParams.get('message');
-        
-        if (!supabase) {
-          setStatus('error');
-          setMessage('Authentication service not configured. Please contact support.');
-          return;
-        }
-
-        // Get the current session
-        const { data: { session }, error } = await supabase.auth.getSession();
-        
-        if (error || !session) {
-          setStatus('error');
-          setMessage('You need to sign in to your BMV Finder account first. Click "Sign In to BMV Finder" below to create an account or sign in.');
-          return;
-        }
-
-        // If we have a session and extension callback, redirect with token
-        if (extensionCallback) {
-          const token = session.access_token;
-          const user = session.user;
-          
-          // Create a more complete user data object
-          const userData = {
-            isAuthenticated: true,
-            name: user.user_metadata?.full_name || user.email || 'User',
-            email: user.email,
-            membership: 'Free Plan', // Will be updated by the extension
-            captureLimit: 5,
-            capturedCount: 0
-          };
-          
-          // Encode the data for the extension
-          const encodedToken = encodeURIComponent(token);
-          const encodedUserData = encodeURIComponent(JSON.stringify(userData));
-          
-          const redirectUrl = `${extensionCallback}?token=${encodedToken}&userData=${encodedUserData}`;
-          
-          setStatus('success');
-          setMessage('Authentication successful! Redirecting to extension...');
-          
-          // Redirect to extension with token and user data
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 1500);
-        } else {
-          setStatus('error');
-          setMessage('No extension callback URL provided');
-        }
-        
-      } catch (error) {
-        console.error('Extension auth error:', error);
+  const handleAuth = async () => {
+    try {
+      // Get the extension callback URL from query params
+      const extensionCallback = searchParams.get('extension_callback');
+      const messageParam = searchParams.get('message');
+      
+      if (!supabase) {
         setStatus('error');
-        setMessage('Authentication failed. Please try again.');
+        setMessage('Authentication service not configured. Please contact support.');
+        return;
       }
-    };
 
+      // Get the current session
+      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      if (error || !session) {
+        setStatus('error');
+        setMessage('You need to sign in to your BMV Finder account first. Click "Sign In to BMV Finder" below to create an account or sign in.');
+        return;
+      }
+
+      // If we have a session and extension callback, redirect with token
+      if (extensionCallback) {
+        const token = session.access_token;
+        const user = session.user;
+        
+        // Create a more complete user data object
+        const userData = {
+          isAuthenticated: true,
+          name: user.user_metadata?.full_name || user.email || 'User',
+          email: user.email,
+          membership: 'Free Plan', // Will be updated by the extension
+          captureLimit: 5,
+          capturedCount: 0
+        };
+        
+        // Encode the data for the extension
+        const encodedToken = encodeURIComponent(token);
+        const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+        
+        const redirectUrl = `${extensionCallback}?token=${encodedToken}&userData=${encodedUserData}`;
+        
+        setStatus('success');
+        setMessage('Authentication successful! Redirecting to extension...');
+        
+        // Redirect to extension with token and user data
+        setTimeout(() => {
+          window.location.href = redirectUrl;
+        }, 1500);
+      } else {
+        setStatus('error');
+        setMessage('No extension callback URL provided');
+      }
+      
+    } catch (error) {
+      console.error('Extension auth error:', error);
+      setStatus('error');
+      setMessage('Authentication failed. Please try again.');
+    }
+  };
+
+  useEffect(() => {
     handleAuth();
   }, [searchParams]);
 
