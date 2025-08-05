@@ -854,28 +854,7 @@ export default function WatchlistPage() {
                         )}
                       </div>
 
-                      {/* Monthly Cash Flow Breakdown */}
-                      <div className="bg-white rounded-lg border border-gray-200 p-3">
-                        <h5 className="font-semibold text-gray-800 mb-3 text-base">Monthly Cash Flow</h5>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between items-center p-1.5 bg-green-200 rounded-lg border border-green-300">
-                            <span className="text-gray-700 font-medium text-xs">+ Rental Income:</span>
-                            <span className="font-bold text-green-700 text-base">+{formatPrice(metrics.rentalEstimate)}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-1.5 bg-red-50 rounded-lg">
-                            <span className="text-gray-700 font-medium text-xs">- Mortgage Payment:</span>
-                            <span className="font-bold text-red-600 text-base">-{formatPrice(metrics.totalCost * 0.045 / 12)}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-1.5 bg-red-50 rounded-lg">
-                            <span className="text-gray-700 font-medium text-xs">- Other Expenses:</span>
-                            <span className="font-bold text-red-600 text-base">-{formatPrice(metrics.rentalEstimate * 0.15)}</span>
-                          </div>
-                          <div className="flex justify-between items-center p-2 bg-blue-50 rounded-lg border-t border-blue-200">
-                            <span className="font-semibold text-gray-800 text-sm">= Net Cash Flow:</span>
-                            <span className="font-bold text-blue-600 text-lg">= {formatPrice(metrics.netAnnualProfit / 12)}</span>
-                          </div>
-                        </div>
-                      </div>
+
                     </div>
 
                     {/* Accordion Sections */}
@@ -915,6 +894,47 @@ export default function WatchlistPage() {
                               <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-100">
                                 <span className="text-gray-700 font-medium">Payback Period:</span>
                                 <span className="font-bold text-orange-600">{metrics.paybackPeriod.toFixed(1)}y</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Monthly Cash Flow Section */}
+                      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
+                        <button 
+                          onClick={() => toggleSection('monthly-cash-flow')}
+                          className="w-full bg-gradient-to-r from-green-600 to-green-700 px-4 py-3 text-left hover:from-green-700 hover:to-green-800 transition-colors"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-white font-semibold">MONTHLY CASH FLOW</span>
+                            </div>
+                            <ChevronDownIcon 
+                              className={`w-5 h-5 text-white transition-transform ${
+                                expandedSections.has('monthly-cash-flow') ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </div>
+                        </button>
+                        {expandedSections.has('monthly-cash-flow') && (
+                          <div className="p-4 bg-white border-t border-gray-200">
+                            <div className="space-y-3 text-sm">
+                              <div className="flex justify-between items-center p-3 bg-green-100 rounded-lg border border-green-200 shadow-sm">
+                                <span className="text-gray-700 font-medium">+ Rental Income:</span>
+                                <span className="font-bold text-green-700">+{formatPrice(metrics.rentalEstimate)}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100 shadow-sm">
+                                <span className="text-gray-700 font-medium">- Mortgage Payment:</span>
+                                <span className="font-bold text-red-600">-{formatPrice(metrics.totalCost * 0.045 / 12)}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100 shadow-sm">
+                                <span className="text-gray-700 font-medium">- Other Expenses:</span>
+                                <span className="font-bold text-red-600">-{formatPrice(metrics.rentalEstimate * 0.15)}</span>
+                              </div>
+                              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-t-2 border-blue-200 shadow-sm">
+                                <span className="font-semibold text-gray-800">= Net Cash Flow:</span>
+                                <span className="font-bold text-blue-600 text-lg">= {formatPrice(metrics.netAnnualProfit / 12)}</span>
                               </div>
                             </div>
                           </div>
