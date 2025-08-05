@@ -675,7 +675,7 @@ export default function WatchlistPage() {
                           </div>
                         )}
                         <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                          {item.title}
+                          {item.address}
                         </h3>
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                           <MapPinIcon className="w-4 h-4" />
@@ -1131,7 +1131,7 @@ export default function WatchlistPage() {
                         
                         <button
                           onClick={() => {
-                            const offerText = `Hi, I'm interested in ${item.title} at ${item.address}. Based on my analysis, I'd like to make a professional offer of ${formatPrice(item.price * 0.92)}. I'm a serious buyer with financing in place and can move quickly. Please let me know if you'd like to discuss this further.`;
+                            const offerText = `Hi, I'm interested in the property at ${item.address}. Based on my analysis, I'd like to make a professional offer of ${formatPrice(item.price * 0.92)}. I'm a serious buyer with financing in place and can move quickly. Please let me know if you'd like to discuss this further.`;
                             navigator.clipboard.writeText(offerText);
                             showToast({ type: 'success', title: 'Professional offer copied to clipboard' });
                           }}
@@ -1143,7 +1143,7 @@ export default function WatchlistPage() {
                         
                         <button
                           onClick={() => {
-                            const strategyText = `Negotiation Strategy for ${item.title}:\n\n1. Start with ${formatPrice(item.price * 0.88)} (12% below asking)\n2. Highlight: ${assessment.reasons.join(', ')}\n3. Emphasize quick closing and cash offer\n4. Be prepared to go up to ${formatPrice(item.price * 0.95)} if needed\n5. Use market data to justify offer`;
+                            const strategyText = `Negotiation Strategy for ${item.address}:\n\n1. Start with ${formatPrice(item.price * 0.88)} (12% below asking)\n2. Highlight: ${assessment.reasons.join(', ')}\n3. Emphasize quick closing and cash offer\n4. Be prepared to go up to ${formatPrice(item.price * 0.95)} if needed\n5. Use market data to justify offer`;
                             navigator.clipboard.writeText(strategyText);
                             showToast({ type: 'success', title: 'Negotiation strategy copied to clipboard' });
                           }}
@@ -1205,7 +1205,7 @@ export default function WatchlistPage() {
                       className="bg-gray-50 rounded-xl p-4 border-2 border-blue-200"
                     >
                       <h4 className="font-semibold text-gray-900 line-clamp-2 mb-3">
-                        {property.title}
+                        {property.address}
                       </h4>
                       
                       {/* Basic Metrics */}
