@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     // Use NEXT_PUBLIC_BASE_URL or fallback to NEXT_PUBLIC_APP_URL or current deployment URL
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
                     process.env.NEXT_PUBLIC_APP_URL || 
-                    'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app';
+                    'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app';
     
     if (!baseUrl || (!baseUrl.startsWith('http://') && !baseUrl.startsWith('https://'))) {
       return NextResponse.json({ error: 'Base URL must be set in your environment and start with http:// or https://' }, { status: 500 });

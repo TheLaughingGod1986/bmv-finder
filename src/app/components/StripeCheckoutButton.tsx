@@ -36,6 +36,11 @@ export default function StripeCheckoutButton({
         body: JSON.stringify({ userId, priceId }),
       });
       
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || `HTTP ${res.status}: ${res.statusText}`);
+      }
+      
       const data = await res.json();
       
       if (data.url) {
@@ -48,12 +53,30 @@ export default function StripeCheckoutButton({
       } else {
         throw new Error(data.error || "Failed to start checkout.");
       }
-          } catch (error: unknown) {
-              // Checkout error
+    } catch (error: unknown) {
+      console.error('Stripe checkout error:', error);
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to start checkout. Please try again.';
+      
+      if (error instanceof Error) {
+        if (error.message.includes('STRIPE_SECRET_KEY')) {
+          errorMessage = 'Payment system configuration error. Please contact support.';
+        } else if (error.message.includes('Invalid priceId')) {
+          errorMessage = 'Invalid subscription plan. Please refresh the page and try again.';
+        } else if (error.message.includes('Missing userId')) {
+          errorMessage = 'Authentication required. Please sign in and try again.';
+        } else if (error.message.includes('HTTP 500')) {
+          errorMessage = 'Payment system temporarily unavailable. Please try again in a few minutes.';
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       showToast({
         type: 'error',
         title: 'Checkout Error',
-        message: (error as Error).message || 'Failed to start checkout. Please try again.'
+        message: errorMessage
       });
     } finally {
       setLoading(false);
