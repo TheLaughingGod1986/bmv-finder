@@ -43,6 +43,7 @@ const nextConfig = {
       'via.placeholder.com',
       // Property website image domains
       'st.zoocdn.com',                    // Zoopla images
+      'cdn.prod.zoopla.co.uk',            // Zoopla CDN (production)
       'media.rightmove.co.uk',            // Rightmove images
       'images.zoopla.co.uk',              // Zoopla images (alternative)
       'media.onthemarket.com',            // OnTheMarket images
@@ -63,6 +64,12 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'st.zoocdn.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'cdn.prod.zoopla.co.uk',
         port: '',
         pathname: '/**',
       },
