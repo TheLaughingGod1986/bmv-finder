@@ -1,7 +1,7 @@
 # Live OAuth Redirect Fix
 
 ## Problem
-When logging in on your live site (https://bmvfinder.com), you're being redirected to `localhost:3000` instead of staying on the live domain.
+When logging in on your live site (https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/), you're being redirected to `localhost:3000` instead of staying on the live domain.
 
 ## Root Cause
 OAuth redirect URLs in Supabase and Google Cloud Console are still pointing to localhost instead of your live domain.
@@ -16,12 +16,12 @@ OAuth redirect URLs in Supabase and Google Cloud Console are still pointing to l
 4. **Update these settings**:
 
 ```
-Site URL: https://bmvfinder.com
+Site URL: https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app
 
 Redirect URLs (add these):
-- https://bmvfinder.com/auth/callback
-- https://bmvfinder.com/account
-- https://bmvfinder.com/
+- https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/auth/callback
+- https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/account
+- https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/
 ```
 
 ### Step 2: Update Google OAuth Settings
@@ -33,7 +33,7 @@ Redirect URLs (add these):
 5. **Add these Authorized redirect URIs**:
 
 ```
-https://bmvfinder.com/auth/callback
+https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/auth/callback
 https://qrxcfmbkdfhv2c4xyv3csy.supabase.co/auth/v1/callback
 ```
 
@@ -44,7 +44,7 @@ https://qrxcfmbkdfhv2c4xyv3csy.supabase.co/auth/v1/callback
 Make sure your live environment (Vercel) has the correct environment variable:
 
 ```
-NEXT_PUBLIC_APP_URL=https://bmvfinder.com
+NEXT_PUBLIC_APP_URL=https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app
 ```
 
 ### Step 4: Redeploy Your Application
@@ -56,9 +56,9 @@ After updating the OAuth settings:
 
 ### Step 5: Test the Fix
 
-1. **Go to your live site**: https://bmvfinder.com
+1. **Go to your live site**: https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/
 2. **Try logging in** with Google
-3. **You should now be redirected to**: `https://bmvfinder.com/auth/callback`
+3. **You should now be redirected to**: `https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/auth/callback`
 4. **Instead of**: `localhost:3000`
 
 ## Expected Result
@@ -68,6 +68,7 @@ After these changes:
 - ✅ Authentication completes successfully
 - ✅ User stays on live site
 - ✅ No more localhost redirects
+- ✅ Works with Vercel preview deployment
 
 ## Troubleshooting
 
