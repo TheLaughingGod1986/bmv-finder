@@ -454,6 +454,16 @@ function showMessage(message, isSuccess) {
 // Check authentication status before capturing
 async function checkAuthenticationStatus() {
   try {
+    // Check if chrome API is available
+    if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) {
+      console.error('BMV Finder: Chrome storage API not available');
+      return { 
+        isAuthenticated: false, 
+        hasToken: false,
+        message: 'Extension not properly loaded. Please refresh the page and try again.'
+      };
+    }
+
     const result = await chrome.storage.local.get(['authToken', 'isAuthenticated', 'userData']);
     
     // Check if user is properly authenticated with valid data
@@ -484,6 +494,12 @@ async function checkAuthenticationStatus() {
 
 // Simple function to create and inject button
 function injectButton() {
+  // Check if Chrome extension APIs are available
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.storage) {
+    console.error('BMV Finder: Chrome extension APIs not available');
+    return;
+  }
+
   // Only inject on property pages
   if (!isPropertyPage()) {
     return;
@@ -601,36 +617,71 @@ function injectButton() {
     const propertyData = extractPropertyData();
     
     // Send to background script
-    chrome.runtime.sendMessage({
-      action: 'captureProperty',
-      data: propertyData
-    }, function(response) {
-      if (response && response.success) {
-        // Show success state
-        button.innerHTML = '<span style="font-size: 14px;">✅</span> Captured!';
-        button.style.background = 'linear-gradient(135deg, #5DA271 0%, #3B755D 100%)';
-        showMessage('Property captured successfully!', true);
-        
-        // Reset after 2 seconds
-        setTimeout(function() {
-          button.innerHTML = originalText;
-          button.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2C6E91 100%)';
-          button.style.cursor = 'pointer';
-        }, 2000);
-      } else {
-        // Show error state
-        button.innerHTML = '<span style="font-size: 14px;">❌</span> Error';
-        button.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
-        showMessage('Failed to capture property. Please try again.', false);
-        
-        // Reset after 3 seconds
-        setTimeout(function() {
-          button.innerHTML = originalText;
-          button.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2C6E91 100%)';
-          button.style.cursor = 'pointer';
-        }, 3000);
+    try {
+      if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+        throw new Error('Chrome runtime API not available');
       }
-    });
+
+      chrome.runtime.sendMessage({
+        action: 'captureProperty',
+        data: propertyData
+      }, function(response) {
+        if (chrome.runtime.lastError) {
+          console.error('BMV Finder: Runtime error:', chrome.runtime.lastError);
+          // Show error state
+          button.innerHTML = '<span style="font-size: 14px;">❌</span> Error';
+          button.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
+          showMessage('Extension communication error. Please refresh and try again.', false);
+          
+          // Reset after 3 seconds
+          setTimeout(function() {
+            button.innerHTML = originalText;
+            button.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2C6E91 100%)';
+            button.style.cursor = 'pointer';
+          }, 3000);
+          return;
+        }
+
+        if (response && response.success) {
+          // Show success state
+          button.innerHTML = '<span style="font-size: 14px;">✅</span> Captured!';
+          button.style.background = 'linear-gradient(135deg, #5DA271 0%, #3B755D 100%)';
+          showMessage('Property captured successfully!', true);
+          
+          // Reset after 2 seconds
+          setTimeout(function() {
+            button.innerHTML = originalText;
+            button.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2C6E91 100%)';
+            button.style.cursor = 'pointer';
+          }, 2000);
+        } else {
+          // Show error state
+          button.innerHTML = '<span style="font-size: 14px;">❌</span> Error';
+          button.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
+          showMessage('Failed to capture property. Please try again.', false);
+          
+          // Reset after 3 seconds
+          setTimeout(function() {
+            button.innerHTML = originalText;
+            button.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2C6E91 100%)';
+            button.style.cursor = 'pointer';
+          }, 3000);
+        }
+      });
+    } catch (error) {
+      console.error('BMV Finder: Error sending message:', error);
+      // Show error state
+      button.innerHTML = '<span style="font-size: 14px;">❌</span> Error';
+      button.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
+      showMessage('Extension error. Please refresh the page and try again.', false);
+      
+      // Reset after 3 seconds
+      setTimeout(function() {
+        button.innerHTML = originalText;
+        button.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2C6E91 100%)';
+        button.style.cursor = 'pointer';
+      }, 3000);
+    }
   };
   
   // Add buttons to container
@@ -649,15 +700,27 @@ function injectButton() {
   }
 }
 
-// Run injection once when script loads
-injectButton();
+// Function to safely inject button with retry logic
+function safeInjectButton() {
+  // Check if Chrome APIs are available
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.storage) {
+    console.log('BMV Finder: Chrome APIs not ready, retrying in 1 second...');
+    setTimeout(safeInjectButton, 1000);
+    return;
+  }
+  
+  injectButton();
+}
+
+// Run injection with safety checks
+safeInjectButton();
 
 // Also run when DOM is ready
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', injectButton);
+  document.addEventListener('DOMContentLoaded', safeInjectButton);
 }
 
 // Also run on window load
-window.addEventListener('load', injectButton);
+window.addEventListener('load', safeInjectButton);
 
 console.log('BMV Finder: Content script setup complete'); 
