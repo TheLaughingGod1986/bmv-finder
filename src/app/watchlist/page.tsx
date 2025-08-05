@@ -599,65 +599,68 @@ export default function WatchlistPage() {
                     </div>
 
                     {/* Financial Summary Card */}
-                    <div className="mb-6 p-4 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 shadow-sm">
-                      <div className="flex items-center gap-2 mb-3">
-                        <span className="text-2xl">💰</span>
-                        <h4 className="font-bold text-gray-800">Investment Summary</h4>
+                    <div className="mb-6 p-6 bg-gradient-to-br from-gray-50 to-white rounded-xl border border-gray-200 shadow-sm">
+                      <div className="flex items-center gap-3 mb-6">
+                        <span className="text-3xl">💰</span>
+                        <h4 className="text-xl font-bold text-gray-800">Investment Summary</h4>
                       </div>
                       
                       {/* Key Metrics Row */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-                        <div className="text-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-lg font-bold text-gray-800">
+                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-xl font-bold text-gray-800 mb-1">
                             {formatPrice(metrics.totalCost)}
                           </div>
-                          <div className="text-xs text-gray-600 font-medium">Total Investment</div>
+                          <div className="text-sm text-gray-600 font-medium">Total Investment</div>
                         </div>
-                        <div className="text-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-lg font-bold text-green-600">
+                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-xl font-bold text-green-600 mb-1">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
-                          <div className="text-xs text-gray-600 font-medium">Annual Return</div>
+                          <div className="text-sm text-gray-600 font-medium">Annual Return</div>
                         </div>
-                        <div className="text-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-lg font-bold text-blue-600">
+                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-xl font-bold text-blue-600 mb-1">
                             {formatPrice(metrics.netAnnualProfit / 12)}
                           </div>
-                          <div className="text-xs text-gray-600 font-medium">Monthly Profit</div>
+                          <div className="text-sm text-gray-600 font-medium">Monthly Profit</div>
                         </div>
-                        <div className="text-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-lg font-bold text-purple-600">
+                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-xl font-bold text-purple-600 mb-1">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
-                          <div className="text-xs text-gray-600 font-medium">Cash-on-Cash</div>
+                          <div className="text-sm text-gray-600 font-medium">Cash-on-Cash</div>
                         </div>
                       </div>
 
                       {/* Mortgage Type */}
-                      <div className="flex items-center gap-2 mb-4 text-sm text-gray-600">
-                        <span className="text-lg">🏠</span>
-                        <span className="font-medium">{item.mortgage_type || 'Interest-Only Mortgage'}</span>
+                      <div className="flex items-center gap-3 mb-6 p-4 bg-white rounded-lg border border-gray-200">
+                        <span className="text-2xl">🏠</span>
+                        <div>
+                          <div className="text-sm text-gray-500 font-medium">Mortgage Type</div>
+                          <div className="text-base font-semibold text-gray-800">{item.mortgage_type || 'Interest-Only Mortgage'}</div>
+                        </div>
                       </div>
 
                       {/* Monthly Cash Flow Breakdown */}
-                      <div className="bg-white rounded-lg border border-gray-200 p-3">
-                        <h5 className="font-semibold text-gray-800 mb-2">Monthly Cash Flow</h5>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">+ Rental Income:</span>
-                            <span className="font-bold text-green-600">+{formatPrice(metrics.rentalEstimate)}</span>
+                      <div className="bg-white rounded-lg border border-gray-200 p-4">
+                        <h5 className="font-semibold text-gray-800 mb-4 text-lg">Monthly Cash Flow</h5>
+                        <div className="space-y-4 text-sm">
+                          <div className="flex justify-between items-center p-2 bg-green-50 rounded-lg">
+                            <span className="text-gray-700 font-medium">+ Rental Income:</span>
+                            <span className="font-bold text-green-600 text-lg">+{formatPrice(metrics.rentalEstimate)}</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">- Mortgage Payment:</span>
-                            <span className="font-bold text-red-600">-{formatPrice(metrics.totalCost * 0.045 / 12)}</span>
+                          <div className="flex justify-between items-center p-2 bg-red-50 rounded-lg">
+                            <span className="text-gray-700 font-medium">- Mortgage Payment:</span>
+                            <span className="font-bold text-red-600 text-lg">-{formatPrice(metrics.totalCost * 0.045 / 12)}</span>
                           </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-gray-600">- Other Expenses:</span>
-                            <span className="font-bold text-red-600">-{formatPrice(metrics.rentalEstimate * 0.15)}</span>
+                          <div className="flex justify-between items-center p-2 bg-red-50 rounded-lg">
+                            <span className="text-gray-700 font-medium">- Other Expenses:</span>
+                            <span className="font-bold text-red-600 text-lg">-{formatPrice(metrics.rentalEstimate * 0.15)}</span>
                           </div>
-                          <div className="flex justify-between items-center pt-2 border-t border-gray-100">
-                            <span className="font-semibold text-gray-800">= Net Cash Flow:</span>
-                            <span className="font-bold text-blue-600">= {formatPrice(metrics.netAnnualProfit / 12)}</span>
+                          <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border-t-2 border-blue-200">
+                            <span className="font-semibold text-gray-800 text-base">= Net Cash Flow:</span>
+                            <span className="font-bold text-blue-600 text-xl">= {formatPrice(metrics.netAnnualProfit / 12)}</span>
                           </div>
                         </div>
                       </div>
