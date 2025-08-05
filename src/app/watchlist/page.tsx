@@ -241,6 +241,79 @@ export default function WatchlistPage() {
     };
   };
 
+  const calculateDetailedCostBreakdown = (property: WatchlistItem) => {
+    const purchasePrice = property.price;
+    const deposit = purchasePrice * 0.25; // 25% deposit
+    
+    // Stamp Duty Land Tax (SDLT) calculation
+    let stampDuty = 0;
+    if (purchasePrice <= 250000) {
+      stampDuty = purchasePrice * 0.03; // 3% for additional properties
+    } else if (purchasePrice <= 925000) {
+      stampDuty = 7500 + (purchasePrice - 250000) * 0.08; // 3% on first 250k, 8% on remainder
+    } else if (purchasePrice <= 1500000) {
+      stampDuty = 67500 + (purchasePrice - 925000) * 0.13; // 3% on first 250k, 8% on next 675k, 13% on remainder
+    } else {
+      stampDuty = 150000 + (purchasePrice - 1500000) * 0.15; // 3% on first 250k, 8% on next 675k, 13% on next 575k, 15% on remainder
+    }
+    
+    // Legal and compliance costs
+    const legalFees = 1500; // Conveyancing fees
+    const surveyFees = 500; // Building survey
+    const mortgageFees = 1000; // Mortgage arrangement fees
+    const landRegistryFees = 200; // Land registry fees
+    const searchesFees = 300; // Local authority searches
+    
+    // Gas and electrical safety certificates
+    const gasSafetyCertificate = 80; // Annual gas safety check
+    const electricalSafetyCertificate = 200; // EICR (Electrical Installation Condition Report)
+    const energyPerformanceCertificate = 80; // EPC certificate
+    
+    // Additional compliance costs
+    const fireSafetyAssessment = 150; // Fire risk assessment
+    const legionellaRiskAssessment = 100; // Legionella risk assessment
+    const asbestosSurvey = 300; // Asbestos survey (if needed)
+    const landlordInsurance = 300; // Annual landlord insurance
+    
+    // Refurbishment costs
+    const refurbishmentCost = property.refurbishment_cost || 0;
+    
+    // Additional setup costs
+    const furnitureAndAppliances = 2000; // Basic furniture and appliances
+    const marketingAndLettingFees = 500; // Letting agent fees
+    const contingencyFund = 1000; // Contingency for unexpected costs
+    
+    const totalSetupCosts = legalFees + surveyFees + mortgageFees + landRegistryFees + searchesFees +
+                           gasSafetyCertificate + electricalSafetyCertificate + energyPerformanceCertificate +
+                           fireSafetyAssessment + legionellaRiskAssessment + asbestosSurvey + landlordInsurance +
+                           furnitureAndAppliances + marketingAndLettingFees + contingencyFund;
+    
+    const totalInvestmentCost = deposit + stampDuty + refurbishmentCost + totalSetupCosts;
+    
+    return {
+      deposit,
+      stampDuty,
+      legalFees,
+      surveyFees,
+      mortgageFees,
+      landRegistryFees,
+      searchesFees,
+      gasSafetyCertificate,
+      electricalSafetyCertificate,
+      energyPerformanceCertificate,
+      fireSafetyAssessment,
+      legionellaRiskAssessment,
+      asbestosSurvey,
+      landlordInsurance,
+      refurbishmentCost,
+      furnitureAndAppliances,
+      marketingAndLettingFees,
+      contingencyFund,
+      totalSetupCosts,
+      totalInvestmentCost
+    };
+  };
+
   const calculateGrowthProjections = (property: WatchlistItem) => {
     // Calculate rental estimate for this function
     const rentalEstimate = calculateRentalEstimateSync(property);
@@ -618,9 +691,9 @@ export default function WatchlistPage() {
                       {/* Key Metrics Compact */}
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-500 font-medium mb-1">Investment Cost</div>
+                          <div className="text-xs text-gray-500 font-medium mb-1">Total Investment</div>
                           <div className="text-base font-bold text-gray-800 leading-tight">
-                            {formatPrice((item.price * 0.25) + (item.refurbishment_cost || 0) + 5000)}
+                            {formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}
                           </div>
                         </div>
                         <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -641,6 +714,144 @@ export default function WatchlistPage() {
                             {metrics.annualROI.toFixed(1)}%
                           </div>
                         </div>
+                      </div>
+
+                      {/* Detailed Cost Breakdown */}
+                      <div className="bg-white rounded-lg border border-gray-200 p-3 mb-3">
+                        <button 
+                          onClick={() => toggleSection('cost-breakdown')}
+                          className="w-full text-left"
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <h5 className="font-semibold text-gray-800 text-base">📋 Investment Cost Breakdown</h5>
+                            <ChevronDownIcon 
+                              className={`w-4 h-4 text-gray-600 transition-transform ${
+                                expandedSections.has('cost-breakdown') ? 'rotate-180' : ''
+                              }`}
+                            />
+                          </div>
+                        </button>
+                        
+                        {expandedSections.has('cost-breakdown') && (
+                          <div className="space-y-2 text-sm border-t pt-3">
+                            {(() => {
+                              const costs = calculateDetailedCostBreakdown(item);
+                              return (
+                                <>
+                                  {/* Major Costs */}
+                                  <div className="grid grid-cols-2 gap-2 mb-3">
+                                    <div className="flex justify-between p-2 bg-blue-50 rounded border">
+                                      <span className="text-gray-700 font-medium text-xs">🏦 Deposit (25%):</span>
+                                      <span className="font-bold text-blue-600 text-xs">{formatPrice(costs.deposit)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-2 bg-purple-50 rounded border">
+                                      <span className="text-gray-700 font-medium text-xs">💰 Stamp Duty:</span>
+                                      <span className="font-bold text-purple-600 text-xs">{formatPrice(costs.stampDuty)}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Legal & Professional Fees */}
+                                  <div className="bg-gray-50 rounded p-2 mb-2">
+                                    <div className="text-xs font-semibold text-gray-700 mb-1">⚖️ Legal & Professional Fees</div>
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Conveyancing:</span>
+                                        <span className="font-medium">{formatPrice(costs.legalFees)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Building Survey:</span>
+                                        <span className="font-medium">{formatPrice(costs.surveyFees)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Mortgage Fees:</span>
+                                        <span className="font-medium">{formatPrice(costs.mortgageFees)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Land Registry:</span>
+                                        <span className="font-medium">{formatPrice(costs.landRegistryFees)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Searches:</span>
+                                        <span className="font-medium">{formatPrice(costs.searchesFees)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Safety Certificates */}
+                                  <div className="bg-green-50 rounded p-2 mb-2">
+                                    <div className="text-xs font-semibold text-gray-700 mb-1">🔒 Safety Certificates</div>
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Gas Safety:</span>
+                                        <span className="font-medium">{formatPrice(costs.gasSafetyCertificate)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Electrical Safety:</span>
+                                        <span className="font-medium">{formatPrice(costs.electricalSafetyCertificate)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Energy Performance:</span>
+                                        <span className="font-medium">{formatPrice(costs.energyPerformanceCertificate)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Additional Compliance */}
+                                  <div className="bg-orange-50 rounded p-2 mb-2">
+                                    <div className="text-xs font-semibold text-gray-700 mb-1">📋 Additional Compliance</div>
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Fire Safety Assessment:</span>
+                                        <span className="font-medium">{formatPrice(costs.fireSafetyAssessment)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Legionella Assessment:</span>
+                                        <span className="font-medium">{formatPrice(costs.legionellaRiskAssessment)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Asbestos Survey:</span>
+                                        <span className="font-medium">{formatPrice(costs.asbestosSurvey)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Landlord Insurance:</span>
+                                        <span className="font-medium">{formatPrice(costs.landlordInsurance)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Setup Costs */}
+                                  <div className="bg-yellow-50 rounded p-2 mb-2">
+                                    <div className="text-xs font-semibold text-gray-700 mb-1">🏠 Setup Costs</div>
+                                    <div className="space-y-1">
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Refurbishment:</span>
+                                        <span className="font-medium">{formatPrice(costs.refurbishmentCost)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Furniture & Appliances:</span>
+                                        <span className="font-medium">{formatPrice(costs.furnitureAndAppliances)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Marketing & Letting:</span>
+                                        <span className="font-medium">{formatPrice(costs.marketingAndLettingFees)}</span>
+                                      </div>
+                                      <div className="flex justify-between text-xs">
+                                        <span className="text-gray-600">Contingency Fund:</span>
+                                        <span className="font-medium">{formatPrice(costs.contingencyFund)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Total */}
+                                  <div className="flex justify-between p-2 bg-gray-100 rounded border-t-2 border-gray-300">
+                                    <span className="font-semibold text-gray-800 text-sm">💼 TOTAL INVESTMENT:</span>
+                                    <span className="font-bold text-gray-800 text-sm">{formatPrice(costs.totalInvestmentCost)}</span>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
 
                       {/* Monthly Cash Flow Breakdown */}
@@ -1012,7 +1223,7 @@ export default function WatchlistPage() {
                         <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Investment Cost:</span>
-                            <span className="font-semibold">{formatPrice((property.price * 0.25) + (property.refurbishment_cost || 0) + 5000)}</span>
+                            <span className="font-semibold">{formatPrice(calculateDetailedCostBreakdown(property).totalInvestmentCost)}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Payback Period:</span>
