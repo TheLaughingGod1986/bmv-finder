@@ -6,6 +6,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "prep:cleanup": "bash scripts/cleanup.sh",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",

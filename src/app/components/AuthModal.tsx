@@ -113,10 +113,16 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
     }
     
     try {
+      // Force the correct redirect URL for Vercel deployment
+      const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || 
+        (window.location.hostname.includes('vercel.app') 
+          ? window.location.origin 
+          : 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app');
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || window.location.origin}/auth/callback`,
+          redirectTo: `${redirectUrl}/auth/callback`,
         },
       });
       if (error) throw error;
