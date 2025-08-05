@@ -350,18 +350,14 @@ function extractPropertyData() {
       }
     }
     
-    // Select the best price
+    // Select the best price - prioritize by selector specificity, not value
     if (allPrices.length > 0) {
-      // Sort by value (highest first) and remove duplicates
+      // Remove duplicates by value
       const uniquePrices = allPrices.filter((item, index, self) => 
         index === self.findIndex(t => t.value === item.value)
       );
       
-      uniquePrices.sort((a, b) => b.value - a.value);
       console.log('BMV Finder: All collected prices:', uniquePrices);
-      
-      // Prioritize prices from more specific selectors
-      let selectedPrice = uniquePrices[0];
       
       // Define selector priority (most specific first)
       const selectorPriority = [
@@ -387,7 +383,8 @@ function extractPropertyData() {
         'div'  // Generic selectors last
       ];
       
-      // Find the price from the most specific selector
+      // Find the price from the most specific selector (don't sort by value)
+      let selectedPrice = null;
       for (const prioritySelector of selectorPriority) {
         const priorityPrice = uniquePrices.find(p => p.selector === prioritySelector);
         if (priorityPrice) {
@@ -397,8 +394,17 @@ function extractPropertyData() {
         }
       }
       
+      // If no price found from priority selectors, use the first reasonable one
+      if (!selectedPrice) {
+        const reasonablePrices = uniquePrices.filter(p => p.value > 50000 && p.value < 1000000);
+        if (reasonablePrices.length > 0) {
+          selectedPrice = reasonablePrices[0];
+          console.log('BMV Finder: Selected reasonable price as fallback:', selectedPrice.price);
+        }
+      }
+      
       // Sanity check: Don't select obviously wrong prices
-      if (selectedPrice.value > 1000000) {
+      if (selectedPrice && selectedPrice.value > 1000000) {
         console.log('BMV Finder: Rejecting obviously wrong price:', selectedPrice.price, 'looking for alternative...');
         
         // Find the next best price that's reasonable
@@ -409,8 +415,10 @@ function extractPropertyData() {
         }
       }
       
-      propertyData.price = selectedPrice.price;
-      console.log('BMV Finder: Selected Zoopla price:', propertyData.price, 'from:', selectedPrice.selector);
+      if (selectedPrice) {
+        propertyData.price = selectedPrice.price;
+        console.log('BMV Finder: Selected Zoopla price:', propertyData.price, 'from:', selectedPrice.selector);
+      }
     }
     
     // Extract address/title - try multiple selectors
@@ -449,89 +457,100 @@ function extractPropertyData() {
       if (propertyData.address) break;
     }
     
-    // Extract images for Zoopla
-    const imageSelectors = [
-      // Most specific selectors first
-      '[data-testid="property-image"]',
-      '[data-testid="main-image"]',
-      '[data-testid="hero-image"]',
-      '.css-1tppcjb-Image',
-      '.property-header__image',
-      '.property-details__image',
-      '.listing-image',
-      '.property-image',
-      '.main-image',
-      '.hero-image',
-      // Gallery images
-      '.gallery-image',
-      '.photo-gallery img',
-      '.property-gallery img',
-      // More specific selectors
-      'img[data-testid*="image"]',
-      'img[data-testid*="photo"]',
-      'img[class*="property"]',
-      'img[class*="listing"]',
-      'img[class*="main"]',
-      'img[class*="hero"]',
-      // Avoid generic images
-      'img[src*="zoopla"]:not([src*="logo"]):not([src*="icon"])',
-      'img[alt*="property"]:not([alt*="street"]):not([alt*="view"])',
-      'img[alt*="house"]:not([alt*="street"]):not([alt*="view"])',
-      'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"])',
-      'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"])'
-    ];
+    // Helper function to filter out logos and non-property images
+function isValidPropertyImage(img) {
+  const src = img.src || '';
+  const alt = img.alt || '';
+  const className = img.className || '';
+  
+  // Skip if it's clearly a logo or agent image
+  if (src.includes('logo') || src.includes('icon') || src.includes('halifax') || 
+      src.includes('agent') || src.includes('brand') || src.includes('partner')) {
+    return false;
+  }
+  
+  // Skip if alt text indicates it's not a property photo
+  if (alt.toLowerCase().includes('logo') || alt.toLowerCase().includes('agent') || 
+      alt.toLowerCase().includes('brand') || alt.toLowerCase().includes('partner')) {
+    return false;
+  }
+  
+  // Skip if class name indicates it's not a property photo
+  if (className.toLowerCase().includes('logo') || className.toLowerCase().includes('agent') || 
+      className.toLowerCase().includes('brand') || className.toLowerCase().includes('partner')) {
+    return false;
+  }
+  
+  // Must be an actual image URL
+  return src.startsWith('http') && (src.includes('.jpg') || src.includes('.jpeg') || 
+         src.includes('.png') || src.includes('.webp') || src.includes('.gif'));
+}
+
+// Extract images for Zoopla
+const imageSelectors = [
+  // Most specific selectors first - prioritize actual property photos
+  '[data-testid="property-image"]',
+  '[data-testid="main-image"]',
+  '[data-testid="hero-image"]',
+  '.css-1tppcjb-Image',
+  '.property-header__image',
+  '.property-details__image',
+  '.listing-image',
+  '.property-image',
+  '.main-image',
+  '.hero-image',
+  // Gallery images
+  '.gallery-image',
+  '.photo-gallery img',
+  '.property-gallery img',
+  // More specific selectors
+  'img[data-testid*="image"]',
+  'img[data-testid*="photo"]',
+  'img[class*="property"]',
+  'img[class*="listing"]',
+  'img[class*="main"]',
+  'img[class*="hero"]',
+  // Avoid generic images and logos
+  'img[src*="zoopla"]:not([src*="logo"]):not([src*="icon"]):not([src*="halifax"]):not([src*="agent"])',
+  'img[alt*="property"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+  'img[alt*="house"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+  'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+  'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])'
+];
     
     for (const selector of imageSelectors) {
       const elements = document.querySelectorAll(selector);
       console.log('BMV Finder: Found', elements.length, 'image elements for Zoopla selector:', selector);
       
       for (const element of elements) {
-        const imgSrc = element.getAttribute('src');
-        const imgAlt = element.getAttribute('alt') || '';
-        
-        // Skip if no src or if it's a placeholder/logo/icon
-        if (!imgSrc || 
-            imgSrc.includes('placeholder') || 
-            imgSrc.includes('logo') || 
-            imgSrc.includes('icon') ||
-            imgSrc.includes('avatar') ||
-            imgSrc.includes('profile')) {
-          continue;
-        }
-        
-        // Skip street views, building exteriors, and generic images
-        if (imgAlt.toLowerCase().includes('street') || 
-            imgAlt.toLowerCase().includes('view') ||
-            imgAlt.toLowerCase().includes('exterior') ||
-            imgAlt.toLowerCase().includes('building') ||
-            imgAlt.toLowerCase().includes('outside') ||
-            imgAlt.toLowerCase().includes('front') ||
-            imgAlt.toLowerCase().includes('back') ||
-            imgAlt.toLowerCase().includes('garden') ||
-            imgAlt.toLowerCase().includes('driveway') ||
-            imgAlt.toLowerCase().includes('parking')) {
-          console.log('BMV Finder: Skipping street/exterior image:', imgAlt);
-          continue;
-        }
-        
-        // Prefer interior images
-        if (imgAlt.toLowerCase().includes('bedroom') || 
-            imgAlt.toLowerCase().includes('living') ||
-            imgAlt.toLowerCase().includes('kitchen') ||
-            imgAlt.toLowerCase().includes('bathroom') ||
-            imgAlt.toLowerCase().includes('interior') ||
-            imgAlt.toLowerCase().includes('inside')) {
-          propertyData.images.unshift(imgSrc); // Add to beginning for priority
-          console.log('BMV Finder: Found priority interior image:', imgSrc, 'alt:', imgAlt);
-        } else if (imgSrc.startsWith('http') && imgSrc.includes('zoopla')) {
-          propertyData.images.push(imgSrc);
-          console.log('BMV Finder: Found Zoopla image:', imgSrc, 'alt:', imgAlt);
+        if (element.tagName === 'IMG' && isValidPropertyImage(element)) {
+          const imgSrc = element.getAttribute('src');
+          if (imgSrc && !images.includes(imgSrc)) {
+            images.push(imgSrc);
+            console.log('BMV Finder: Found valid Zoopla property image:', imgSrc.substring(0, 100));
+          }
         }
       }
-      
-      // Limit to first 3 images
-      if (propertyData.images.length >= 3) break;
     }
+    
+    // If no images found with selectors, try a broader search but still filter
+    if (images.length === 0) {
+      console.log('BMV Finder: No images found with selectors, trying broader search...');
+      const allImages = document.querySelectorAll('img');
+      for (const img of allImages) {
+        if (isValidPropertyImage(img)) {
+          const src = img.src;
+          if (src && !images.includes(src)) {
+            images.push(src);
+            console.log('BMV Finder: Found property image via broad search:', src.substring(0, 100));
+          }
+        }
+      }
+    }
+    
+    // Limit to first 3 images
+    propertyData.images = images.slice(0, 3);
+    console.log('BMV Finder: Final Zoopla images:', propertyData.images);
   }
   
   // Rightmove extraction
@@ -658,12 +677,12 @@ function extractPropertyData() {
       'img[class*="listing"]',
       'img[class*="main"]',
       'img[class*="hero"]',
-      // Avoid generic images
-      'img[src*="rightmove"]:not([src*="logo"]):not([src*="icon"])',
-      'img[alt*="property"]:not([alt*="street"]):not([alt*="view"])',
-      'img[alt*="house"]:not([alt*="street"]):not([alt*="view"])',
-      'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"])',
-      'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"])'
+      // Avoid generic images and logos
+      'img[src*="rightmove"]:not([src*="logo"]):not([src*="icon"]):not([src*="agent"])',
+      'img[alt*="property"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+      'img[alt*="house"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+      'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+      'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])'
     ];
     
     for (const selector of imageSelectors) {
