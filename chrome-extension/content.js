@@ -109,6 +109,27 @@ function debugPageInfo() {
 // Make debug function available globally
 window.bmvFinderDebug = debugPageInfo;
 
+// Add a global test function
+window.bmvFinderTest = function() {
+  console.log('BMV Finder: === MANUAL TEST TRIGGERED ===');
+  console.log('BMV Finder: Current URL:', window.location.href);
+  console.log('BMV Finder: Current Title:', document.title);
+  console.log('BMV Finder: Is Property Page:', isPropertyPage());
+  
+  if (isPropertyPage()) {
+    console.log('BMV Finder: This should be a property page!');
+    testCurrentPageExtraction();
+  } else {
+    console.log('BMV Finder: This is NOT a property page. Go to a property listing on Zoopla, Rightmove, etc.');
+  }
+};
+
+// Add a global force injection function for testing
+window.bmvFinderForceInject = function() {
+  console.log('BMV Finder: === FORCE INJECTION TRIGGERED ===');
+  injectButton();
+};
+
 // Extract property data based on the site
 function extractPropertyData() {
   const hostname = window.location.hostname;
