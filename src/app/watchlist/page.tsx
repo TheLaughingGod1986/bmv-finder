@@ -776,9 +776,9 @@ export default function WatchlistPage() {
                       
                       <button 
                         onClick={() => toggleSection('cost-breakdown')}
-                        className="w-full text-left"
+                        className="w-full text-left bg-gradient-to-r from-slate-100 to-gray-100 hover:from-slate-200 hover:to-gray-200 rounded-lg border border-gray-200 p-3 transition-colors"
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center justify-between">
                           <h5 className="font-semibold text-gray-800 text-base">📋 Detailed Cost Breakdown</h5>
                           <ChevronDownIcon 
                             className={`w-4 h-4 text-gray-600 transition-transform ${
