@@ -1973,6 +1973,7 @@ Best regards,
                   })}
                 </div>
               )}
+              )}
 
             {/* Comparison View */}
             {comparisonMode && selectedProperties.length > 0 && (
