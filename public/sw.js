@@ -21,14 +21,28 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
-  // Only handle same-origin requests to avoid CORS issues
-  if (!event.request.url.startsWith(self.location.origin)) {
-    // For external requests (like images from Zoopla), just pass through
+  const url = new URL(event.request.url);
+  
+  // Completely ignore external requests (cross-origin)
+  if (url.origin !== self.location.origin) {
+    console.log('SW: Ignoring external request:', url.href);
     return;
   }
-
+  
   // Only handle GET requests
   if (event.request.method !== 'GET') {
+    return;
+  }
+  
+  // Ignore image requests to avoid CORS issues
+  if (event.request.destination === 'image') {
+    console.log('SW: Ignoring image request:', url.href);
+    return;
+  }
+  
+  // Ignore requests to external domains
+  if (url.hostname !== self.location.hostname) {
+    console.log('SW: Ignoring cross-origin request:', url.href);
     return;
   }
 

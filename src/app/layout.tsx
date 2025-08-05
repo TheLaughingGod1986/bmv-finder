@@ -181,6 +181,32 @@ export default function RootLayout({
             }
           })
         }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Unregister old service workers to clear CORS issues
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('Unregistered old service worker');
+                  }
+                });
+                
+                // Register new service worker
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-neutral-100 text-primary-700 leading-relaxed`}>
         {/* Skip to main content link for accessibility */}
@@ -213,21 +239,6 @@ export default function RootLayout({
         <SpeedInsights />
         
         {/* Service Worker Registration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                    })
-                    .catch(function(registrationError) {
-                    });
-                });
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );
