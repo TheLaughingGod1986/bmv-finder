@@ -7,9 +7,5 @@
     "api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "hooks": {
-    "preDeploy": "npm run lint && npm run type-check",
-    "postDeploy": "echo 'Deployment completed successfully'"
   }
 }

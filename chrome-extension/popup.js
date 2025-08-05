@@ -36,10 +36,41 @@ async function saveUserData() {
 // Load user data and capture limits
 async function loadUserData() {
   try {
-    // Check if user is authenticated (in a real app, this would check with your backend)
-    const authResult = await chrome.storage.local.get(['userData', 'isAuthenticated']);
+    // First check local storage for cached auth data
+    const authResult = await chrome.storage.local.get(['userData', 'isAuthenticated', 'authToken']);
     
-    if (authResult.isAuthenticated && authResult.userData) {
+    if (authResult.authToken) {
+      // Try to validate the token with the main application
+      try {
+        const response = await fetch('https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/api/user/membership', {
+          headers: {
+            'Authorization': `Bearer ${authResult.authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const userInfo = await response.json();
+          userData = {
+            isAuthenticated: true,
+            name: userInfo.name || 'Authenticated User',
+            membership: userInfo.membership || 'Free Plan',
+            captureLimit: userInfo.captureLimit || 5,
+            capturedCount: 0
+          };
+        } else {
+          // Token is invalid, clear it
+          await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+          throw new Error('Invalid token');
+        }
+      } catch (apiError) {
+        console.error('Error validating token:', apiError);
+        // Token validation failed, clear it
+        await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+        throw new Error('Token validation failed');
+      }
+    } else if (authResult.isAuthenticated && authResult.userData) {
+      // Fallback to cached data
       userData = {
         ...userData,
         ...authResult.userData,
@@ -61,6 +92,15 @@ async function loadUserData() {
     
   } catch (error) {
     console.error('Error loading user data:', error);
+    // Set to demo mode on error
+    userData = {
+      isAuthenticated: false,
+      name: 'Demo User',
+      membership: 'Free Plan',
+      captureLimit: 5,
+      capturedCount: 0
+    };
+    updateUserInterface();
   }
 }
 
@@ -227,8 +267,17 @@ function showError(message) {
 // Handle sign-in button click
 signInButton.addEventListener('click', () => {
   if (!userData.isAuthenticated) {
-    // Open sign-in page in new tab
-    chrome.tabs.create({ url: 'https://bmv-finder.com/auth' });
+    // Open sign-in page in new tab with your live deployment URL
+    // Include a callback parameter to return to the extension
+    const callbackUrl = chrome.runtime.getURL('popup.html');
+    const authUrl = `https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth?extension_callback=${encodeURIComponent(callbackUrl)}`;
+    chrome.tabs.create({ url: authUrl });
+  } else {
+    // If already signed in, allow sign out
+    if (confirm('Do you want to sign out?')) {
+      chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+      loadUserData();
+    }
   }
 });
 
@@ -307,9 +356,38 @@ function addDemoButtons() {
   document.body.appendChild(demoDiv);
 }
 
+// Function to handle authentication callback
+async function handleAuthCallback() {
+  // Check if we're returning from an auth flow
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  const error = urlParams.get('error');
+  
+  if (token) {
+    // Store the auth token
+    await chrome.storage.local.set({ 
+      authToken: token,
+      isAuthenticated: true 
+    });
+    
+    // Reload user data with the new token
+    await loadUserData();
+    
+    // Clear the URL parameters
+    window.history.replaceState({}, document.title, window.location.pathname);
+    
+    console.log('BMV Finder: Authentication successful');
+  } else if (error) {
+    console.error('BMV Finder: Authentication error:', error);
+    // Clear any existing auth data
+    await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+  }
+}
+
 // Load properties when popup opens
 document.addEventListener('DOMContentLoaded', () => {
   console.log('BMV Finder: Popup DOM loaded, loading properties');
+  handleAuthCallback(); // Check for auth callback first
   loadCapturedProperties();
   loadUserData(); // Load user data on popup open
   addDemoButtons(); // Add demo buttons on popup open
