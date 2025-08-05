@@ -606,28 +606,28 @@ export default function WatchlistPage() {
                       </div>
                       
                       {/* Key Metrics Compact */}
-                      <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-600 font-medium">Investment Cost</div>
-                          <div className="text-lg font-bold text-gray-800">
+                      <div className="grid grid-cols-2 gap-2 mb-4">
+                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="text-xs text-gray-500 font-medium mb-1">Investment Cost</div>
+                          <div className="text-base font-bold text-gray-800 leading-tight">
                             {formatPrice((item.price * 0.25) + (item.refurbishment_cost || 0) + 5000)}
                           </div>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-600 font-medium">Annual Return</div>
-                          <div className="text-lg font-bold text-green-600">
+                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="text-xs text-gray-500 font-medium mb-1">Annual Return</div>
+                          <div className="text-base font-bold text-green-600 leading-tight">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-600 font-medium">Monthly Profit</div>
-                          <div className="text-lg font-bold text-blue-600">
+                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="text-xs text-gray-500 font-medium mb-1">Monthly Profit</div>
+                          <div className="text-base font-bold text-blue-600 leading-tight">
                             {formatPrice(metrics.netAnnualProfit / 12)}
                           </div>
                         </div>
-                        <div className="flex justify-between items-center p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                          <div className="text-xs text-gray-600 font-medium">Cash-on-Cash</div>
-                          <div className="text-lg font-bold text-purple-600">
+                        <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <div className="text-xs text-gray-500 font-medium mb-1">Cash-on-Cash</div>
+                          <div className="text-base font-bold text-purple-600 leading-tight">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
                         </div>
