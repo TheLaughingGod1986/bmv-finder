@@ -605,31 +605,31 @@ export default function WatchlistPage() {
                         <h4 className="text-xl font-bold text-gray-800">Investment Summary</h4>
                       </div>
                       
-                      {/* Key Metrics Row */}
-                      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="text-xl font-bold text-gray-800 mb-1">
+                      {/* Key Metrics Stacked */}
+                      <div className="space-y-3 mb-6">
+                        <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-sm text-gray-600 font-medium">Total Investment</div>
+                          <div className="text-xl font-bold text-gray-800">
                             {formatPrice(metrics.totalCost)}
                           </div>
-                          <div className="text-sm text-gray-600 font-medium">Total Investment</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="text-xl font-bold text-green-600 mb-1">
+                        <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-sm text-gray-600 font-medium">Annual Return</div>
+                          <div className="text-xl font-bold text-green-600">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-600 font-medium">Annual Return</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="text-xl font-bold text-blue-600 mb-1">
+                        <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-sm text-gray-600 font-medium">Monthly Profit</div>
+                          <div className="text-xl font-bold text-blue-600">
                             {formatPrice(metrics.netAnnualProfit / 12)}
                           </div>
-                          <div className="text-sm text-gray-600 font-medium">Monthly Profit</div>
                         </div>
-                        <div className="text-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-                          <div className="text-xl font-bold text-purple-600 mb-1">
+                        <div className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                          <div className="text-sm text-gray-600 font-medium">Cash-on-Cash</div>
+                          <div className="text-xl font-bold text-purple-600">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
-                          <div className="text-sm text-gray-600 font-medium">Cash-on-Cash</div>
                         </div>
                       </div>
 
