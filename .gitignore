@@ -53,6 +53,9 @@ recent-sales-indexing.log
 github-actions
 github-actions.pub
 
+# Local storage files
+watchlist-storage.json
+
 # Sentry Config File
 .env.sentry-build-plugin
 *.csv
