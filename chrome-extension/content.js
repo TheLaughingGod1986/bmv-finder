@@ -794,6 +794,20 @@ function showMessage(message, isSuccess) {
   }, 3000);
 }
 
+// Check authentication status before capturing
+async function checkAuthenticationStatus() {
+  try {
+    const result = await chrome.storage.local.get(['authToken', 'isAuthenticated']);
+    return {
+      isAuthenticated: result.isAuthenticated || false,
+      hasToken: !!result.authToken
+    };
+  } catch (error) {
+    console.error('BMV Finder: Error checking auth status:', error);
+    return { isAuthenticated: false, hasToken: false };
+  }
+}
+
 // Simple function to create and inject button
 function injectButton() {
   console.log('BMV Finder: Injecting button...');
@@ -881,11 +895,23 @@ function injectButton() {
   };
   
   // Add click handler
-  button.onclick = function(e) {
+  button.onclick = async function(e) {
     e.preventDefault();
     e.stopPropagation();
     
     console.log('BMV Finder: Button clicked!');
+    
+    // Check authentication status first
+    const authStatus = await checkAuthenticationStatus();
+    
+    if (!authStatus.isAuthenticated) {
+      showMessage('Please sign in to your BMV Finder account first!', false);
+      // Open sign-in page
+      chrome.tabs.create({ 
+        url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth' 
+      });
+      return;
+    }
     
     // Show loading state
     const originalText = this.innerHTML;
