@@ -945,6 +945,7 @@ export default function WatchlistPage() {
                   
                   const metrics = calculateInvestmentMetrics(property);
                   const assessment = assessDealQuality(property);
+                  const growthProjections = calculateGrowthProjections(property);
                   
                   return (
                     <div
@@ -954,7 +955,9 @@ export default function WatchlistPage() {
                       <h4 className="font-semibold text-gray-900 line-clamp-2 mb-3">
                         {property.title}
                       </h4>
-                      <div className="space-y-2 text-sm">
+                      
+                      {/* Basic Metrics */}
+                      <div className="space-y-2 text-sm mb-4">
                         <div className="flex justify-between">
                           <span className="text-gray-600">Price:</span>
                           <span className="font-semibold">{formatPrice(property.price)}</span>
@@ -968,8 +971,89 @@ export default function WatchlistPage() {
                           <span className="font-semibold text-blue-600">{metrics.annualROI.toFixed(1)}%</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Rating:</span>
-                          <span className="font-semibold text-purple-600">{assessment.overallRating}</span>
+                          <span className="text-gray-600">Monthly Profit:</span>
+                          <span className="font-semibold text-blue-600">{formatPrice(metrics.netAnnualProfit / 12)}</span>
+                        </div>
+                      </div>
+
+                      {/* Deal Assessment */}
+                      <div className="mb-4">
+                        <h5 className="font-semibold text-gray-800 mb-2 text-sm">Deal Assessment:</h5>
+                        <div className="bg-white rounded-lg p-3 border border-gray-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-gray-600">Overall Rating:</span>
+                            <span className={`font-bold text-sm ${
+                              assessment.overallRating === 'Excellent' ? 'text-green-600' :
+                              assessment.overallRating === 'Very Good' ? 'text-blue-600' :
+                              assessment.overallRating === 'Good' ? 'text-purple-600' :
+                              assessment.overallRating === 'Fair' ? 'text-orange-600' :
+                              'text-red-600'
+                            }`}>
+                              {assessment.overallRating} ({assessment.score}/100)
+                            </span>
+                          </div>
+                          
+                          {/* Assessment Details */}
+                          <div className="space-y-1">
+                            {assessment.reasons.map((reason, index) => (
+                              <div key={index} className="flex items-center gap-2 text-xs">
+                                <span className="text-blue-500">✓</span>
+                                <span className="text-gray-700">{reason}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Investment Details */}
+                      <div className="mb-4">
+                        <h5 className="font-semibold text-gray-800 mb-2 text-sm">Investment Details:</h5>
+                        <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Investment Cost:</span>
+                            <span className="font-semibold">{formatPrice((property.price * 0.25) + (property.refurbishment_cost || 0) + 5000)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Payback Period:</span>
+                            <span className="font-semibold">{metrics.paybackPeriod.toFixed(1)} years</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Profit Margin:</span>
+                            <span className="font-semibold text-green-600">{metrics.realProfitMargin.toFixed(1)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Cash-on-Cash:</span>
+                            <span className="font-semibold text-purple-600">{metrics.annualROI.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Growth Projections */}
+                      <div>
+                        <h5 className="font-semibold text-gray-800 mb-2 text-sm">Growth Projections:</h5>
+                        <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-1 text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Conservative Growth:</span>
+                            <span className="font-semibold text-orange-600">+{growthProjections.conservativeGrowth}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Optimistic Growth:</span>
+                            <span className="font-semibold text-green-600">+{growthProjections.optimisticGrowth}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Market Trend:</span>
+                            <span className={`font-semibold ${
+                              growthProjections.marketTrend === 'Growing' ? 'text-green-600' : 
+                              growthProjections.marketTrend === 'Declining' ? 'text-red-600' : 'text-blue-600'
+                            }`}>{growthProjections.marketTrend}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Rental Demand:</span>
+                            <span className={`font-semibold ${
+                              growthProjections.rentalDemand === 'High' ? 'text-green-600' : 
+                              growthProjections.rentalDemand === 'Low' ? 'text-red-600' : 'text-orange-600'
+                            }`}>{growthProjections.rentalDemand}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
