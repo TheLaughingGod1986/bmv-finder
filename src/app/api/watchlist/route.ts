@@ -2,7 +2,32 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // In-memory storage for captured properties (for development without Supabase)
+// This will persist for the lifetime of the server process
 let capturedProperties: any[] = [];
+
+// Try to load from a simple file-based storage for persistence
+const fs = require('fs');
+const path = require('path');
+const storageFile = path.join(process.cwd(), 'watchlist-storage.json');
+
+// Load existing data on startup
+try {
+  if (fs.existsSync(storageFile)) {
+    const data = fs.readFileSync(storageFile, 'utf8');
+    capturedProperties = JSON.parse(data);
+  }
+} catch (error) {
+  console.log('No existing watchlist storage found, starting fresh');
+}
+
+// Helper function to save to file
+const saveToFile = () => {
+  try {
+    fs.writeFileSync(storageFile, JSON.stringify(capturedProperties, null, 2));
+  } catch (error) {
+    console.error('Failed to save watchlist data:', error);
+  }
+};
 
 const mockWatchlistData = [
   {
@@ -289,6 +314,7 @@ export async function POST(request: NextRequest) {
       };
       
       capturedProperties.push(newProperty);
+      saveToFile(); // Save to file for persistence
       
       return NextResponse.json({
         success: true,
@@ -319,5 +345,144 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Watchlist POST error:', error);
     return NextResponse.json({ error: 'Failed to add property to watchlist' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  try {
+    const supabase = createSupabaseClient();
+    
+    // If Supabase is not configured, update in-memory storage
+    if (!supabase) {
+      const updateData = await request.json();
+      const { id, ...updateFields } = updateData;
+      
+      if (!id) {
+        return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+      }
+      
+      // Find and update the property in both mock data and captured properties
+      let updatedProperty = null;
+      
+      // Update in mock data
+      const mockIndex = mockWatchlistData.findIndex(p => p.id === id);
+      if (mockIndex !== -1) {
+        mockWatchlistData[mockIndex] = {
+          ...mockWatchlistData[mockIndex],
+          ...updateFields,
+          updated_at: new Date().toISOString()
+        };
+        updatedProperty = mockWatchlistData[mockIndex];
+      }
+      
+      // Update in captured properties
+      const capturedIndex = capturedProperties.findIndex(p => p.id === id);
+      if (capturedIndex !== -1) {
+        capturedProperties[capturedIndex] = {
+          ...capturedProperties[capturedIndex],
+          ...updateFields,
+          updated_at: new Date().toISOString()
+        };
+        updatedProperty = capturedProperties[capturedIndex];
+      }
+      
+      if (!updatedProperty) {
+        return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      }
+      
+      saveToFile(); // Save to file for persistence
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Property updated successfully (mock)',
+        property: updatedProperty
+      });
+    }
+    
+    // If Supabase is configured, use the real database
+    const updateData = await request.json();
+    const { id, ...updateFields } = updateData;
+    
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+    
+    const { data, error } = await supabase
+      .from('watchlist')
+      .update({
+        ...updateFields,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Watchlist update error:', error);
+      return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Property updated successfully',
+      property: data
+    });
+    
+  } catch (error) {
+    console.error('Watchlist PUT error:', error);
+    return NextResponse.json({ error: 'Failed to update property' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const supabase = createSupabaseClient();
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ error: 'ID is required' }, { status: 400 });
+    }
+    
+    // If Supabase is not configured, delete from in-memory storage
+    if (!supabase) {
+      // Remove from mock data
+      const mockIndex = mockWatchlistData.findIndex(p => p.id === id);
+      if (mockIndex !== -1) {
+        mockWatchlistData.splice(mockIndex, 1);
+      }
+      
+      // Remove from captured properties
+      const capturedIndex = capturedProperties.findIndex(p => p.id === id);
+      if (capturedIndex !== -1) {
+        capturedProperties.splice(capturedIndex, 1);
+        saveToFile(); // Save to file for persistence
+      }
+      
+      return NextResponse.json({
+        success: true,
+        message: 'Property deleted successfully (mock)'
+      });
+    }
+    
+    // If Supabase is configured, use the real database
+    const { error } = await supabase
+      .from('watchlist')
+      .delete()
+      .eq('id', id);
+      
+    if (error) {
+      console.error('Watchlist delete error:', error);
+      return NextResponse.json({ error: 'Failed to delete property' }, { status: 500 });
+    }
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Property deleted successfully'
+    });
+    
+  } catch (error) {
+    console.error('Watchlist DELETE error:', error);
+    return NextResponse.json({ error: 'Failed to delete property' }, { status: 500 });
   }
 } 

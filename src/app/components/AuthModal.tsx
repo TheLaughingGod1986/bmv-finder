@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
+import { useMockAuth } from './MockAuthProvider';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,6 +20,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Use mock auth when Supabase is not available
+  const mockAuth = useMockAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,8 +30,15 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
     setError(null);
 
     if (!supabase) {
-      setError('Authentication service is not configured');
-      setIsLoading(false);
+      // Use mock authentication
+      try {
+        await mockAuth.login(email, password);
+        onClose();
+      } catch (error: any) {
+        setError('Login failed. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -89,16 +100,29 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
     setError(null);
     
     if (!supabase) {
-      setError('Authentication service is not configured. Please contact support.');
-      setIsLoading(false);
+      // Use mock Google authentication
+      try {
+        await mockAuth.loginWithGoogle();
+        onClose();
+      } catch (error: any) {
+        setError('Google login failed. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
     
     try {
+      // Force the correct redirect URL for Vercel deployment
+      const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || 
+        (window.location.hostname.includes('vercel.app') 
+          ? window.location.origin 
+          : 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app');
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${redirectUrl}/auth/callback`,
         },
       });
       if (error) throw error;
@@ -145,9 +169,9 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
               {/* Social Login Buttons */}
               <div className="space-y-3 mb-6">
                 {!supabase && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-                    <p className="text-yellow-800 text-sm">
-                      <strong>Demo Mode:</strong> Authentication is not configured. You can test the interface, but login features won't work.
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-blue-800 text-sm">
+                      <strong>Demo Mode:</strong> Using mock authentication. You can test all features with demo login.
                     </p>
                   </div>
                 )}

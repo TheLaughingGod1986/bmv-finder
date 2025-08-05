@@ -82,11 +82,87 @@ function debugPageInfo() {
     }
   });
   
+  // Debug image extraction
+  console.log('BMV Finder: === IMAGE DEBUG ===');
+  const allImages = document.querySelectorAll('img');
+  console.log(`BMV Finder: Found ${allImages.length} total images on page`);
+  
+  allImages.forEach((img, index) => {
+    const src = img.getAttribute('src');
+    const alt = img.getAttribute('alt') || '';
+    const className = img.getAttribute('class') || '';
+    const dataTestId = img.getAttribute('data-testid') || '';
+    
+    if (src && src.startsWith('http') && !src.includes('logo') && !src.includes('icon')) {
+      console.log(`BMV Finder: Image ${index}:`, {
+        src: src.substring(0, 100),
+        alt: alt.substring(0, 50),
+        class: className.substring(0, 50),
+        dataTestId: dataTestId
+      });
+    }
+  });
+  
   console.log('BMV Finder: === END DEBUG ===');
 }
 
 // Make debug function available globally
 window.bmvFinderDebug = debugPageInfo;
+
+// Add a global test function
+window.bmvFinderTest = function() {
+  console.log('BMV Finder: === MANUAL TEST TRIGGERED ===');
+  console.log('BMV Finder: Current URL:', window.location.href);
+  console.log('BMV Finder: Current Title:', document.title);
+  console.log('BMV Finder: Is Property Page:', isPropertyPage());
+  
+  if (isPropertyPage()) {
+    console.log('BMV Finder: This should be a property page!');
+    testCurrentPageExtraction();
+  } else {
+    console.log('BMV Finder: This is NOT a property page. Go to a property listing on Zoopla, Rightmove, etc.');
+  }
+};
+
+// Add a global force injection function for testing
+window.bmvFinderForceInject = function() {
+  console.log('BMV Finder: === FORCE INJECTION TRIGGERED ===');
+  injectButton();
+};
+
+// Add a global test capture function
+window.bmvFinderTestCapture = function() {
+  console.log('BMV Finder: === TEST CAPTURE TRIGGERED ===');
+  const testProperty = {
+    title: 'Test Property - 4 bed detached house',
+    price: '£475,000',
+    address: 'Test Street, Test City, TE1 1ST',
+    description: 'This is a test property for debugging',
+    bedrooms: 4,
+    bathrooms: 2,
+    propertyType: 'Detached House',
+    tenure: 'Freehold',
+    postcode: 'TE1 1ST',
+    original_url: window.location.href,
+    source: 'test',
+    agent_name: 'Test Agent',
+    agent_phone: '01234 567890',
+    images: ['https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&h=300&fit=crop&crop=center']
+  };
+  
+  // Send to background script
+  chrome.runtime.sendMessage({
+    action: 'captureProperty',
+    data: testProperty
+  }, function(response) {
+    console.log('BMV Finder: Test capture response:', response);
+    if (response && response.success) {
+      alert('Test property captured successfully! Check your watchlist.');
+    } else {
+      alert('Test capture failed: ' + (response?.error || 'Unknown error'));
+    }
+  });
+};
 
 // Extract property data based on the site
 function extractPropertyData() {
@@ -274,18 +350,14 @@ function extractPropertyData() {
       }
     }
     
-    // Select the best price
+    // Select the best price - prioritize by selector specificity, not value
     if (allPrices.length > 0) {
-      // Sort by value (highest first) and remove duplicates
+      // Remove duplicates by value
       const uniquePrices = allPrices.filter((item, index, self) => 
         index === self.findIndex(t => t.value === item.value)
       );
       
-      uniquePrices.sort((a, b) => b.value - a.value);
       console.log('BMV Finder: All collected prices:', uniquePrices);
-      
-      // Prioritize prices from more specific selectors
-      let selectedPrice = uniquePrices[0];
       
       // Define selector priority (most specific first)
       const selectorPriority = [
@@ -311,7 +383,8 @@ function extractPropertyData() {
         'div'  // Generic selectors last
       ];
       
-      // Find the price from the most specific selector
+      // Find the price from the most specific selector (don't sort by value)
+      let selectedPrice = null;
       for (const prioritySelector of selectorPriority) {
         const priorityPrice = uniquePrices.find(p => p.selector === prioritySelector);
         if (priorityPrice) {
@@ -321,8 +394,17 @@ function extractPropertyData() {
         }
       }
       
+      // If no price found from priority selectors, use the first reasonable one
+      if (!selectedPrice) {
+        const reasonablePrices = uniquePrices.filter(p => p.value > 50000 && p.value < 1000000);
+        if (reasonablePrices.length > 0) {
+          selectedPrice = reasonablePrices[0];
+          console.log('BMV Finder: Selected reasonable price as fallback:', selectedPrice.price);
+        }
+      }
+      
       // Sanity check: Don't select obviously wrong prices
-      if (selectedPrice.value > 1000000) {
+      if (selectedPrice && selectedPrice.value > 1000000) {
         console.log('BMV Finder: Rejecting obviously wrong price:', selectedPrice.price, 'looking for alternative...');
         
         // Find the next best price that's reasonable
@@ -333,8 +415,10 @@ function extractPropertyData() {
         }
       }
       
-      propertyData.price = selectedPrice.price;
-      console.log('BMV Finder: Selected Zoopla price:', propertyData.price, 'from:', selectedPrice.selector);
+      if (selectedPrice) {
+        propertyData.price = selectedPrice.price;
+        console.log('BMV Finder: Selected Zoopla price:', propertyData.price, 'from:', selectedPrice.selector);
+      }
     }
     
     // Extract address/title - try multiple selectors
@@ -373,36 +457,100 @@ function extractPropertyData() {
       if (propertyData.address) break;
     }
     
-    // Extract images for Zoopla
-    const imageSelectors = [
-      '[data-testid="property-image"]',
-      '.css-1tppcjb-Image',
-      '.property-header__image',
-      '.property-details__image',
-      '.listing-image',
-      '.property-image',
-      'img[src*="zoopla"]',
-      'img[alt*="property"]',
-      'img[alt*="house"]',
-      'img[alt*="apartment"]',
-      'img[alt*="flat"]'
-    ];
+    // Helper function to filter out logos and non-property images
+function isValidPropertyImage(img) {
+  const src = img.src || '';
+  const alt = img.alt || '';
+  const className = img.className || '';
+  
+  // Skip if it's clearly a logo or agent image
+  if (src.includes('logo') || src.includes('icon') || src.includes('halifax') || 
+      src.includes('agent') || src.includes('brand') || src.includes('partner')) {
+    return false;
+  }
+  
+  // Skip if alt text indicates it's not a property photo
+  if (alt.toLowerCase().includes('logo') || alt.toLowerCase().includes('agent') || 
+      alt.toLowerCase().includes('brand') || alt.toLowerCase().includes('partner')) {
+    return false;
+  }
+  
+  // Skip if class name indicates it's not a property photo
+  if (className.toLowerCase().includes('logo') || className.toLowerCase().includes('agent') || 
+      className.toLowerCase().includes('brand') || className.toLowerCase().includes('partner')) {
+    return false;
+  }
+  
+  // Must be an actual image URL
+  return src.startsWith('http') && (src.includes('.jpg') || src.includes('.jpeg') || 
+         src.includes('.png') || src.includes('.webp') || src.includes('.gif'));
+}
+
+// Extract images for Zoopla
+const imageSelectors = [
+  // Most specific selectors first - prioritize actual property photos
+  '[data-testid="property-image"]',
+  '[data-testid="main-image"]',
+  '[data-testid="hero-image"]',
+  '.css-1tppcjb-Image',
+  '.property-header__image',
+  '.property-details__image',
+  '.listing-image',
+  '.property-image',
+  '.main-image',
+  '.hero-image',
+  // Gallery images
+  '.gallery-image',
+  '.photo-gallery img',
+  '.property-gallery img',
+  // More specific selectors
+  'img[data-testid*="image"]',
+  'img[data-testid*="photo"]',
+  'img[class*="property"]',
+  'img[class*="listing"]',
+  'img[class*="main"]',
+  'img[class*="hero"]',
+  // Avoid generic images and logos
+  'img[src*="zoopla"]:not([src*="logo"]):not([src*="icon"]):not([src*="halifax"]):not([src*="agent"])',
+  'img[alt*="property"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+  'img[alt*="house"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+  'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+  'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])'
+];
     
     for (const selector of imageSelectors) {
       const elements = document.querySelectorAll(selector);
       console.log('BMV Finder: Found', elements.length, 'image elements for Zoopla selector:', selector);
       
       for (const element of elements) {
-        const imgSrc = element.getAttribute('src');
-        if (imgSrc && imgSrc.startsWith('http') && !imgSrc.includes('placeholder')) {
-          propertyData.images.push(imgSrc);
-          console.log('BMV Finder: Found Zoopla image:', imgSrc);
+        if (element.tagName === 'IMG' && isValidPropertyImage(element)) {
+          const imgSrc = element.getAttribute('src');
+          if (imgSrc && !images.includes(imgSrc)) {
+            images.push(imgSrc);
+            console.log('BMV Finder: Found valid Zoopla property image:', imgSrc.substring(0, 100));
+          }
         }
       }
-      
-      // Limit to first 3 images
-      if (propertyData.images.length >= 3) break;
     }
+    
+    // If no images found with selectors, try a broader search but still filter
+    if (images.length === 0) {
+      console.log('BMV Finder: No images found with selectors, trying broader search...');
+      const allImages = document.querySelectorAll('img');
+      for (const img of allImages) {
+        if (isValidPropertyImage(img)) {
+          const src = img.src;
+          if (src && !images.includes(src)) {
+            images.push(src);
+            console.log('BMV Finder: Found property image via broad search:', src.substring(0, 100));
+          }
+        }
+      }
+    }
+    
+    // Limit to first 3 images
+    propertyData.images = images.slice(0, 3);
+    console.log('BMV Finder: Final Zoopla images:', propertyData.images);
   }
   
   // Rightmove extraction
@@ -507,17 +655,34 @@ function extractPropertyData() {
     
     // Extract images
     const imageSelectors = [
+      // Most specific selectors first
       '[data-testid="property-image"]',
+      '[data-testid="main-image"]',
+      '[data-testid="hero-image"]',
       '.propertyCard-img',
       '.property-header__image',
       '.property-details__image',
       '.listing-image',
       '.property-image',
-      'img[src*="rightmove"]',
-      'img[alt*="property"]',
-      'img[alt*="house"]',
-      'img[alt*="apartment"]',
-      'img[alt*="flat"]'
+      '.main-image',
+      '.hero-image',
+      // Gallery images
+      '.gallery-image',
+      '.photo-gallery img',
+      '.property-gallery img',
+      // More specific selectors
+      'img[data-testid*="image"]',
+      'img[data-testid*="photo"]',
+      'img[class*="property"]',
+      'img[class*="listing"]',
+      'img[class*="main"]',
+      'img[class*="hero"]',
+      // Avoid generic images and logos
+      'img[src*="rightmove"]:not([src*="logo"]):not([src*="icon"]):not([src*="agent"])',
+      'img[alt*="property"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+      'img[alt*="house"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+      'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])',
+      'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"]):not([alt*="logo"]):not([alt*="agent"])'
     ];
     
     for (const selector of imageSelectors) {
@@ -526,9 +691,45 @@ function extractPropertyData() {
       
       for (const element of elements) {
         const imgSrc = element.getAttribute('src');
-        if (imgSrc && imgSrc.startsWith('http') && !imgSrc.includes('placeholder')) {
+        const imgAlt = element.getAttribute('alt') || '';
+        
+        // Skip if no src or if it's a placeholder/logo/icon
+        if (!imgSrc || 
+            imgSrc.includes('placeholder') || 
+            imgSrc.includes('logo') || 
+            imgSrc.includes('icon') ||
+            imgSrc.includes('avatar') ||
+            imgSrc.includes('profile')) {
+          continue;
+        }
+        
+        // Skip street views, building exteriors, and generic images
+        if (imgAlt.toLowerCase().includes('street') || 
+            imgAlt.toLowerCase().includes('view') ||
+            imgAlt.toLowerCase().includes('exterior') ||
+            imgAlt.toLowerCase().includes('building') ||
+            imgAlt.toLowerCase().includes('outside') ||
+            imgAlt.toLowerCase().includes('front') ||
+            imgAlt.toLowerCase().includes('back') ||
+            imgAlt.toLowerCase().includes('garden') ||
+            imgAlt.toLowerCase().includes('driveway') ||
+            imgAlt.toLowerCase().includes('parking')) {
+          console.log('BMV Finder: Skipping street/exterior image:', imgAlt);
+          continue;
+        }
+        
+        // Prefer interior images
+        if (imgAlt.toLowerCase().includes('bedroom') || 
+            imgAlt.toLowerCase().includes('living') ||
+            imgAlt.toLowerCase().includes('kitchen') ||
+            imgAlt.toLowerCase().includes('bathroom') ||
+            imgAlt.toLowerCase().includes('interior') ||
+            imgAlt.toLowerCase().includes('inside')) {
+          propertyData.images.unshift(imgSrc); // Add to beginning for priority
+          console.log('BMV Finder: Found priority interior image:', imgSrc, 'alt:', imgAlt);
+        } else if (imgSrc.startsWith('http') && imgSrc.includes('rightmove')) {
           propertyData.images.push(imgSrc);
-          console.log('BMV Finder: Found Rightmove image:', imgSrc);
+          console.log('BMV Finder: Found Rightmove image:', imgSrc, 'alt:', imgAlt);
         }
       }
       
@@ -794,6 +995,38 @@ function showMessage(message, isSuccess) {
   }, 3000);
 }
 
+// Check authentication status before capturing
+async function checkAuthenticationStatus() {
+  try {
+    const result = await chrome.storage.local.get(['authToken', 'isAuthenticated', 'userData']);
+    
+    // Check if user is properly authenticated with valid data
+    const isAuthenticated = result.isAuthenticated && result.authToken && result.userData;
+    
+    if (!isAuthenticated) {
+      console.log('BMV Finder: User not authenticated - cannot capture properties');
+      return { 
+        isAuthenticated: false, 
+        hasToken: false,
+        message: 'You must sign in to capture properties. Properties are only viewable in your account watchlist.'
+      };
+    }
+    
+    return { 
+      isAuthenticated: true, 
+      hasToken: true,
+      userData: result.userData
+    };
+  } catch (error) {
+    console.error('BMV Finder: Error checking auth status:', error);
+    return { 
+      isAuthenticated: false, 
+      hasToken: false,
+      message: 'Authentication check failed. Please sign in again.'
+    };
+  }
+}
+
 // Simple function to create and inject button
 function injectButton() {
   console.log('BMV Finder: Injecting button...');
@@ -881,11 +1114,32 @@ function injectButton() {
   };
   
   // Add click handler
-  button.onclick = function(e) {
+  button.onclick = async function(e) {
     e.preventDefault();
     e.stopPropagation();
     
     console.log('BMV Finder: Button clicked!');
+    
+    // Check authentication status first
+    const authStatus = await checkAuthenticationStatus();
+    
+    if (!authStatus.isAuthenticated) {
+      showMessage(authStatus.message, false);
+      // Open sign-in page with clear messaging
+      chrome.tabs.create({ 
+        url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth?message=signin_required' 
+      });
+      return;
+    }
+    
+    // Verify user has a valid account
+    if (!authStatus.userData || !authStatus.userData.name || authStatus.userData.name === 'Not Signed In') {
+      showMessage('Please sign in with a valid account to capture properties.', false);
+      chrome.tabs.create({ 
+        url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth?message=invalid_account' 
+      });
+      return;
+    }
     
     // Show loading state
     const originalText = this.innerHTML;

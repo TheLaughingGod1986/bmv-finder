@@ -10,6 +10,7 @@ import ScrollToTop from './components/ScrollToTop';
 import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Footer from './components/Footer';
 import { SearchLimitProvider } from './components/SearchLimitContext';
+import { MockAuthProvider } from './components/MockAuthProvider';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -180,6 +181,32 @@ export default function RootLayout({
             }
           })
         }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              // Unregister old service workers to clear CORS issues
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                  for(let registration of registrations) {
+                    registration.unregister();
+                    console.log('Unregistered old service worker');
+                  }
+                });
+                
+                // Register new service worker
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js')
+                    .then(function(registration) {
+                      console.log('SW registered: ', registration);
+                    })
+                    .catch(function(registrationError) {
+                      console.log('SW registration failed: ', registrationError);
+                    });
+                });
+              }
+            `,
+          }}
+        />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-neutral-100 text-primary-700 leading-relaxed`}>
         {/* Skip to main content link for accessibility */}
@@ -190,41 +217,28 @@ export default function RootLayout({
           Skip to main content
         </a>
         <SupabaseUserProvider>
-          <SearchLimitProvider>
-            <ClientNavigation />
-            <main 
-              id="main-content" 
-              tabIndex={-1} 
-              className="min-h-screen bg-neutral-light relative"
-            >
-              <ToastProvider>
-                {children}
-              </ToastProvider>
-            </main>
-            <Footer />
-            <ScrollToTop />
-            <PWAInstallPrompt />
-          </SearchLimitProvider>
+          <MockAuthProvider>
+            <SearchLimitProvider>
+              <ClientNavigation />
+              <main 
+                id="main-content" 
+                tabIndex={-1} 
+                className="min-h-screen bg-neutral-light relative"
+              >
+                <ToastProvider>
+                  {children}
+                </ToastProvider>
+              </main>
+              <Footer />
+              <ScrollToTop />
+              <PWAInstallPrompt />
+            </SearchLimitProvider>
+          </MockAuthProvider>
         </SupabaseUserProvider>
         <Analytics />
         <SpeedInsights />
         
         {/* Service Worker Registration */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                    })
-                    .catch(function(registrationError) {
-                    });
-                });
-              }
-            `,
-          }}
-        />
       </body>
     </html>
   );

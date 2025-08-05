@@ -6,6 +6,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
+    "prep:cleanup": "bash scripts/cleanup.sh",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -25,6 +26,7 @@
     "deploy:production": "./scripts/deploy-production.sh",
     "deploy:core": "./scripts/deploy-core.sh",
     "deploy:staging": "vercel --yes",
+    "deploy:verify": "./scripts/deploy-verify-retry.sh",
     "setup": "./scripts/setup-env.sh",
     "setup:infrastructure": "./scripts/setup-production-infrastructure.sh",
     "setup:monitoring": "./scripts/setup-monitoring.sh",
@@ -82,7 +84,7 @@
     "@types/react": "^19.1.8",
     "autoprefixer": "^10.4.14",
     "npm-force-resolutions": "^0.0.10",
-    "sharp": "^0.34.2",
+    "sharp": "^0.34.3",
     "tailwindcss": "^3.4.3",
     "typescript": "^5.8.3"
   }

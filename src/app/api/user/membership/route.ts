@@ -48,6 +48,9 @@ export async function GET(request: NextRequest) {
 
     // Determine user tier
     let tier = 'free';
+    let captureLimit = 5; // Default for free users
+    let membership = 'Free Plan';
+    
     let features = {
       canSaveProperties: false,
       canAccessWatchlist: false,
@@ -62,6 +65,8 @@ export async function GET(request: NextRequest) {
       
       switch (tier) {
         case 'premium':
+          captureLimit = -1; // Unlimited
+          membership = 'Premium Plan';
           features = {
             canSaveProperties: true,
             canAccessWatchlist: true,
@@ -72,6 +77,8 @@ export async function GET(request: NextRequest) {
           };
           break;
         case 'mid-term':
+          captureLimit = 50;
+          membership = 'Mid-Tier Plan';
           features = {
             canSaveProperties: true,
             canAccessWatchlist: true,
@@ -83,6 +90,8 @@ export async function GET(request: NextRequest) {
           break;
         case 'free':
         default:
+          captureLimit = 5;
+          membership = 'Free Plan';
           features = {
             canSaveProperties: false,
             canAccessWatchlist: false,
@@ -109,6 +118,8 @@ export async function GET(request: NextRequest) {
       tier: tier,
       authenticated: true,
       features: features,
+      captureLimit: captureLimit,
+      membership: membership,
       user: {
         id: user.id,
         email: user.email,

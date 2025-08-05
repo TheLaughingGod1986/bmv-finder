@@ -50,7 +50,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Create the portal session
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+    // Use NEXT_PUBLIC_BASE_URL or fallback to NEXT_PUBLIC_APP_URL or current deployment URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 
+                    process.env.NEXT_PUBLIC_APP_URL || 
+                    'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app';
     const stripe = getStripe();
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
