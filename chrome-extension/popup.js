@@ -166,14 +166,27 @@ async function loadUserData() {
 // Load and display captured properties
 async function loadCapturedProperties() {
   try {
+    // If user is not authenticated, show no properties
+    if (!userData.isAuthenticated) {
+      propertyCount.textContent = '0';
+      lastCapture.textContent = 'Never';
+      propertiesList.innerHTML = '<div class="empty-state">Sign in to capture and view properties</div>';
+      return;
+    }
+    
     const result = await chrome.storage.local.get(['capturedProperties']);
     const properties = result.capturedProperties || [];
     
-    // Update stats
-    propertyCount.textContent = properties.length;
+    // Filter properties for the current user only
+    const userProperties = properties.filter(property => 
+      property.userId === userData.name || !property.userId // Include legacy properties without userId
+    );
     
-    if (properties.length > 0) {
-      const lastProperty = properties[properties.length - 1];
+    // Update stats
+    propertyCount.textContent = userProperties.length;
+    
+    if (userProperties.length > 0) {
+      const lastProperty = userProperties[userProperties.length - 1];
       const lastCaptureDate = new Date(lastProperty.capturedAt);
       lastCapture.textContent = lastCaptureDate.toLocaleDateString() + ' ' + lastCaptureDate.toLocaleTimeString();
     } else {
@@ -184,7 +197,7 @@ async function loadCapturedProperties() {
     updateUserInterface();
     
     // Display properties
-    displayProperties(properties);
+    displayProperties(userProperties);
     
   } catch (error) {
     console.error('Error loading properties:', error);
@@ -218,6 +231,15 @@ function updateUserInterface() {
   
   // Update capture limits - use the actual property count, not userData.capturedCount
   const currentCount = parseInt(propertyCount.textContent) || 0;
+  
+  // For unauthenticated users, show 0 limit
+  if (!userData.isAuthenticated) {
+    captureLimit.textContent = '0 / 0';
+    progressFill.style.width = '0%';
+    progressFill.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
+    return;
+  }
+  
   const limit = userData.captureLimit;
   
   // Handle unlimited case
@@ -241,7 +263,7 @@ function updateUserInterface() {
     }
     
     // Show upgrade prompt if approaching limit
-    if (progressPercentage >= 80 && !userData.isAuthenticated) {
+    if (progressPercentage >= 80) {
       showUpgradePrompt();
     }
   }
@@ -302,6 +324,11 @@ function showUpgradePrompt() {
 }
 
 function displayProperties(properties) {
+  if (!userData.isAuthenticated) {
+    propertiesList.innerHTML = '<div class="empty-state">Sign in to capture and view properties</div>';
+    return;
+  }
+  
   if (properties.length === 0) {
     propertiesList.innerHTML = '<div class="empty-state">No properties captured yet. Visit a property page and click "Capture Property" to get started!</div>';
     return;
@@ -338,12 +365,25 @@ function displayProperties(properties) {
 
 // Clear all properties
 clearAllButton.addEventListener('click', async () => {
-  if (confirm('Are you sure you want to clear all captured properties? This action cannot be undone.')) {
+  if (!userData.isAuthenticated) {
+    showMessage('You must be signed in to manage properties', false);
+    return;
+  }
+  
+  if (confirm('Are you sure you want to clear all your captured properties? This action cannot be undone.')) {
     try {
-      await chrome.storage.local.set({ capturedProperties: [] });
+      const result = await chrome.storage.local.get(['capturedProperties']);
+      const allProperties = result.capturedProperties || [];
+      
+      // Only clear properties for the current user
+      const otherUserProperties = allProperties.filter(property => 
+        property.userId !== userData.name && property.userId // Keep properties from other users
+      );
+      
+      await chrome.storage.local.set({ capturedProperties: otherUserProperties });
       // Reload properties to update the display
       await loadCapturedProperties();
-      console.log('All properties cleared');
+      console.log('User properties cleared');
     } catch (error) {
       console.error('Error clearing properties:', error);
       showError('Failed to clear properties');
