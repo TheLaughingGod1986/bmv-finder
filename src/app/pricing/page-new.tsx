@@ -165,7 +165,7 @@ export default function PricingPageNew() {
           
           {/* Billing Toggle */}
           <div className="flex items-center justify-center gap-4 mb-8">
-            <span className={`text-sm font-medium ${billingInterval === 'monthly' ? 'text-primary-blue-dark' : 'text-primary-green-dark'}`}>
+            <span className={`text-sm font-medium ${billingInterval === 'monthly' ? 'text-gray-900 bg-blue-100 px-3 py-1 rounded-md' : 'text-gray-600'}`}>
               Monthly
             </span>
             <button
@@ -180,9 +180,9 @@ export default function PricingPageNew() {
                 }`}
               />
             </button>
-            <span className={`text-sm font-medium ${billingInterval === 'yearly' ? 'text-primary-blue-dark' : 'text-primary-green-dark'}`}>
+            <span className={`text-sm font-medium ${billingInterval === 'yearly' ? 'text-gray-900 bg-blue-100 px-3 py-1 rounded-md' : 'text-gray-600'}`}>
               Yearly
-              <span className="ml-1 text-xs bg-primary-green text-white px-2 py-1 rounded-full">Save 17%</span>
+              <span className="ml-1 text-xs bg-green-600 text-white px-2 py-1 rounded-full">Save 17%</span>
             </span>
           </div>
         </div>

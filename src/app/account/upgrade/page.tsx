@@ -582,7 +582,7 @@ const UpgradePage = () => {
             onClick={() => setBillingInterval('monthly')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               billingInterval === 'monthly'
-                ? 'bg-white text-gray-900 shadow-sm'
+                ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
@@ -592,7 +592,7 @@ const UpgradePage = () => {
             onClick={() => setBillingInterval('yearly')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               billingInterval === 'yearly'
-                ? 'bg-white text-gray-900 shadow-sm'
+                ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
                 : 'text-gray-600 hover:text-gray-900'
             }`}
           >
