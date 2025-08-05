@@ -965,14 +965,18 @@ export default function WatchlistPage() {
                                 <span className="font-bold text-blue-600">{formatPrice(metrics.rentalEstimate)}</span>
                               </div>
                               <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-100">
+                                <span className="text-gray-700 font-medium">Monthly Profit:</span>
+                                <span className="font-bold text-green-600">{formatPrice(metrics.netAnnualProfit / 12)}</span>
+                              </div>
+                              <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-100">
                                 <span className="text-gray-700 font-medium">Annual ROI:</span>
-                                <span className="font-bold text-green-600">{metrics.annualROI.toFixed(1)}%</span>
+                                <span className="font-bold text-purple-600">{metrics.annualROI.toFixed(1)}%</span>
                               </div>
                               <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-100">
                                 <span className="text-gray-700 font-medium">Profit Margin:</span>
-                                <span className="font-bold text-purple-600">{metrics.realProfitMargin.toFixed(1)}%</span>
+                                <span className="font-bold text-indigo-600">{metrics.realProfitMargin.toFixed(1)}%</span>
                               </div>
-                              <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-100">
+                              <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-100 col-span-2">
                                 <span className="text-gray-700 font-medium">Payback Period:</span>
                                 <span className="font-bold text-orange-600">{metrics.paybackPeriod.toFixed(1)}y</span>
                               </div>
