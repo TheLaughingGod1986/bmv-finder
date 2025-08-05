@@ -23,16 +23,15 @@ import {
   UserGroupIcon,
   SparklesIcon,
   HomeIcon,
-  SearchIcon,
+  MagnifyingGlassIcon,
   CalculatorIcon,
-  FileTextIcon,
-  DownloadIcon,
+  DocumentTextIcon,
+  ArrowDownTrayIcon,
   BellIcon,
-  SettingsIcon,
+  Cog6ToothIcon,
   CreditCardIcon,
   ClockIcon,
-  TrendingUpIcon,
-  BarChart3Icon,
+  ChartBarIcon,
   TargetIcon,
   AwardIcon,
   ZapIcon,
@@ -262,7 +261,7 @@ export default function AccountPage() {
                   <h3 className="text-lg font-semibold mb-3">Demo Features Available:</h3>
                   <div className="grid md:grid-cols-3 gap-4 text-sm">
                     <div className="flex items-center gap-2">
-                      <SearchIcon className="w-5 h-5 text-accent-gold" />
+                      <MagnifyingGlassIcon className="w-5 h-5 text-accent-gold" />
                       <span>Sample usage data</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -270,7 +269,7 @@ export default function AccountPage() {
                       <span>Achievement system</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <SettingsIcon className="w-5 h-5 text-accent-gold" />
+                      <Cog6ToothIcon className="w-5 h-5 text-accent-gold" />
                       <span>Interface testing</span>
                     </div>
                   </div>
@@ -297,7 +296,7 @@ export default function AccountPage() {
                 <p className="text-sm font-medium text-gray-600">Searches This Month</p>
                 <p className="text-2xl font-bold text-primary-blue">{usageData.searchesThisMonth}</p>
               </div>
-              <SearchIcon className="w-8 h-8 text-primary-blue" />
+                              <MagnifyingGlassIcon className="w-8 h-8 text-primary-blue" />
             </div>
           </div>
           
@@ -525,7 +524,7 @@ export default function AccountPage() {
             <div className="space-y-4">
               <Link href="/search">
                 <span className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <SearchIcon className="w-6 h-6 text-primary-blue" />
+                  <MagnifyingGlassIcon className="w-6 h-6 text-primary-blue" />
                   <div>
                     <h3 className="font-semibold text-gray-900">Search Properties</h3>
                     <p className="text-sm text-gray-600">Find your next investment</p>
@@ -558,7 +557,7 @@ export default function AccountPage() {
               
               <Link href="/market-analysis">
                 <span className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
-                  <TrendingUpIcon className="w-6 h-6 text-primary-blue" />
+                  <ChartBarIcon className="w-6 h-6 text-primary-blue" />
                   <div>
                     <h3 className="font-semibold text-gray-900">Market Analysis</h3>
                     <p className="text-sm text-gray-600">View market trends</p>
@@ -648,7 +647,7 @@ export default function AccountPage() {
             </a>
             <Link href="/help">
               <span className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors">
-                <FileTextIcon className="w-5 h-5" />
+                <DocumentTextIcon className="w-5 h-5" />
                 Help Center
               </span>
             </Link>

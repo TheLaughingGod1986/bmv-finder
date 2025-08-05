@@ -686,11 +686,57 @@ export default function WatchlistPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    try {
+      return new Date(dateString).toLocaleDateString('en-GB');
+    } catch {
+      return 'Invalid date';
+    }
+  };
+
+  // Validate image URL
+  const isValidImageUrl = (url: string): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    
+    // Check if URL is valid
+    try {
+      new URL(url);
+    } catch {
+      return false;
+    }
+    
+    // Check if it's an image URL
+    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
+    const hasImageExtension = imageExtensions.some(ext => url.toLowerCase().includes(ext));
+    
+    // Check if it's from a known property website
+    const knownDomains = [
+      'zoopla.co.uk',
+      'rightmove.co.uk',
+      'onthemarket.com',
+      'primelocation.com',
+      'st.zoocdn.com',
+      'media.rightmove.co.uk',
+      'images.zoopla.co.uk',
+      'media.onthemarket.com',
+      'media.primelocation.com'
+    ];
+    
+    const hasKnownDomain = knownDomains.some(domain => url.includes(domain));
+    
+    return hasImageExtension || hasKnownDomain;
+  };
+
+  // Get valid image URL
+  const getValidImageUrl = (images: string[]): string | null => {
+    if (!images || !Array.isArray(images)) return null;
+    
+    for (const imageUrl of images) {
+      if (isValidImageUrl(imageUrl)) {
+        return imageUrl;
+      }
+    }
+    
+    return null;
   };
 
   const getSourceIcon = (source: string) => {
@@ -1328,39 +1374,47 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                   >
                     {/* Property Image */}
                     <div className="relative h-48 bg-gray-200">
-                      {item.images && item.images.length > 0 ? (
-                        <Image
-                          src={item.images[0]}
-                          alt={item.title}
-                          width={400}
-                          height={300}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `
-                                <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
-                                  <div class="text-center">
-                                    <div class="text-4xl mb-2">🏠</div>
-                                    <div class="text-sm text-gray-500 font-medium">${item.property_type || 'Property'}</div>
-                                    <div class="text-xs text-gray-400">${item.bedrooms || 0} bed${item.bedrooms !== 1 ? 's' : ''}</div>
+                      {(() => {
+                        const validImageUrl = getValidImageUrl(item.images);
+                        return validImageUrl ? (
+                          <Image
+                            src={validImageUrl}
+                            alt={item.title}
+                            width={400}
+                            height={300}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              console.log('BMV Finder: Image failed to load:', validImageUrl);
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.innerHTML = `
+                                  <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+                                    <div class="text-center">
+                                      <div class="text-4xl mb-2">🏠</div>
+                                      <div class="text-sm text-gray-500 font-medium">${item.property_type || 'Property'}</div>
+                                      <div class="text-xs text-gray-400">${item.bedrooms || 0} bed${item.bedrooms !== 1 ? 's' : ''}</div>
+                                    </div>
                                   </div>
-                                </div>
-                              `;
-                            }
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
-                          <div className="text-center">
-                            <div className="text-4xl mb-2">🏠</div>
-                            <div className="text-sm text-gray-500 font-medium">{item.property_type || 'Property'}</div>
-                            <div className="text-xs text-gray-400">{item.bedrooms || 0} bed{item.bedrooms !== 1 ? 's' : ''}</div>
+                                `;
+                              }
+                            }}
+                            onLoad={(e) => {
+                              console.log('BMV Finder: Image loaded successfully:', validImageUrl);
+                            }}
+                            unoptimized={true}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+                            <div className="text-center">
+                              <div className="text-4xl mb-2">🏠</div>
+                              <div className="text-sm text-gray-500 font-medium">{item.property_type || 'Property'}</div>
+                              <div className="text-xs text-gray-400">{item.bedrooms || 0} bed{item.bedrooms !== 1 ? 's' : ''}</div>
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        );
+                      })()}
                       
                       {/* Source Badge */}
                       <div className="absolute top-3 left-3">
