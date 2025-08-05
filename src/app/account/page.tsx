@@ -21,7 +21,30 @@ import {
   GiftIcon,
   ChartBarIcon,
   UserGroupIcon,
-  SparklesIcon
+  SparklesIcon,
+  HomeIcon,
+  SearchIcon,
+  CalculatorIcon,
+  FileTextIcon,
+  DownloadIcon,
+  BellIcon,
+  SettingsIcon,
+  CreditCardIcon,
+  ClockIcon,
+  TrendingUpIcon,
+  BarChart3Icon,
+  TargetIcon,
+  AwardIcon,
+  ZapIcon,
+  UsersIcon,
+  CheckCircleIcon,
+  ArrowRightIcon,
+  MapPinIcon,
+  PoundSterlingIcon,
+  BuildingIcon,
+  EyeIcon,
+  LockIcon,
+  PieChartIcon
 } from '@heroicons/react/24/outline';
 import TrustBadges from '../components/TrustBadges';
 import PartnerLogos from '../components/PartnerLogos';
@@ -181,354 +204,460 @@ export default function AccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-neutral-beige">
+      <Toaster position="top-center" />
+      
+      {/* Hero Section */}
       <motion.section
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative"
+        className="relative bg-gradient-to-br from-primary-blue to-primary-blue-dark text-white py-16"
       >
-        <main className="max-w-4xl mx-auto pt-8 p-4 md:p-8">
-          <Toaster position="top-center" />
-          
-          {/* Personalized Greeting */}
-          {user ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mb-8 text-center"
-            >
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                Hi{userName ? `, ${userName}` : ''}!
-              </h1>
-              <p className="text-lg text-gray-600">
-                You&apos;re currently on the <span className="font-semibold text-blue-600">{planName}</span> plan
-              </p>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="mb-8 text-center"
-            >
-              <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
-                Welcome to BMV Finder!
-              </h1>
-              <p className="text-lg text-gray-600 mb-4">
-                Demo Mode - Sign in to access your full account
-              </p>
-              <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                <p className="text-gray-700 text-sm mb-3">
-                  <strong>Demo Features Available:</strong>
-                </p>
-                <ul className="text-gray-600 text-sm space-y-1">
-                  <li>• View sample usage data and achievements</li>
-                  <li>• Explore subscription plans and features</li>
-                  <li>• Test the interface and user experience</li>
-                </ul>
-              </div>
-            </motion.div>
-          )}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            {user ? (
+              <>
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-4xl md:text-5xl font-bold mb-4"
+                >
+                  Welcome back{userName ? `, ${userName}` : ''}!
+                </motion.h1>
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-xl md:text-2xl text-blue-100 mb-6"
+                >
+                  You're on the <span className="font-semibold text-accent-gold">{planName}</span> plan
+                </motion.p>
+              </>
+            ) : (
+              <>
+                <motion.h1 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="text-4xl md:text-5xl font-bold mb-4"
+                >
+                  Welcome to BMV Finder!
+                </motion.h1>
+                <motion.p 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="text-xl md:text-2xl text-blue-100 mb-6"
+                >
+                  Demo Mode - Sign in to access your full account
+                </motion.p>
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20 max-w-2xl mx-auto"
+                >
+                  <h3 className="text-lg font-semibold mb-3">Demo Features Available:</h3>
+                  <div className="grid md:grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <SearchIcon className="w-5 h-5 text-accent-gold" />
+                      <span>Sample usage data</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <TrophyIcon className="w-5 h-5 text-accent-gold" />
+                      <span>Achievement system</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <SettingsIcon className="w-5 h-5 text-accent-gold" />
+                      <span>Interface testing</span>
+                    </div>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </div>
+        </div>
+      </motion.section>
 
-          {/* Usage Progress Section */}
-          {(derivedTier === 'free' || !user) && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-              className="mb-8 bg-gray-50 rounded-lg p-6 border border-gray-200"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                  <ChartBarIcon className="w-6 h-6 text-blue-600" />
-                  {user ? 'Your Usage This Month' : 'Sample Usage Data'}
-                </h2>
-                <span className="text-sm font-semibold text-gray-600">
-                  {usageData.lookupsUsed}/{usageData.lookupsLimit} lookups
-                </span>
+      {/* Main Content */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        
+        {/* Quick Stats Grid */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+        >
+          <div className="bg-white rounded-xl shadow-soft p-6 border border-neutral-grey hover-lift">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Searches This Month</p>
+                <p className="text-2xl font-bold text-primary-blue">{usageData.searchesThisMonth}</p>
               </div>
-              
-              {/* Progress Bar */}
-              <div className="mb-4">
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div 
-                    className={`h-3 rounded-full transition-all duration-500 ${
-                      usagePercentage >= 80 ? 'bg-red-500' : 
-                      usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-green-500'
-                    }`}
-                    style={{ width: `${usagePercentage}%` }}
-                  />
+              <SearchIcon className="w-8 h-8 text-primary-blue" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-soft p-6 border border-neutral-grey hover-lift">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Properties Saved</p>
+                <p className="text-2xl font-bold text-primary-green">{usageData.propertiesSaved}</p>
+              </div>
+              <HomeIcon className="w-8 h-8 text-primary-green" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-soft p-6 border border-neutral-grey hover-lift">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Days Active</p>
+                <p className="text-2xl font-bold text-accent-gold">{usageData.daysActive}</p>
+              </div>
+              <ClockIcon className="w-8 h-8 text-accent-gold" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-xl shadow-soft p-6 border border-neutral-grey hover-lift">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Achievements</p>
+                <p className="text-2xl font-bold text-primary-blue">{earnedAchievements.length}/{totalAchievements}</p>
+              </div>
+              <TrophyIcon className="w-8 h-8 text-primary-blue" />
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Usage Progress Section */}
+        {(derivedTier === 'free' || !user) && (
+          <motion.section
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="bg-white rounded-xl shadow-soft p-8 border border-neutral-grey mb-12"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                <ChartBarIcon className="w-8 h-8 text-primary-blue" />
+                {user ? 'Your Usage This Month' : 'Sample Usage Data'}
+              </h2>
+              <span className="text-lg font-semibold text-gray-600">
+                {usageData.lookupsUsed}/{usageData.lookupsLimit} lookups
+              </span>
+            </div>
+            
+            {/* Progress Bar */}
+            <div className="mb-6">
+              <div className="w-full bg-gray-200 rounded-full h-4">
+                <div 
+                  className={`h-4 rounded-full transition-all duration-500 ${
+                    usagePercentage >= 80 ? 'bg-red-500' : 
+                    usagePercentage >= 60 ? 'bg-yellow-500' : 'bg-primary-green'
+                  }`}
+                  style={{ width: `${usagePercentage}%` }}
+                />
+              </div>
+              <div className="flex justify-between text-sm text-gray-600 mt-2">
+                <span>{usagePercentage}% used</span>
+                {usagePercentage >= 80 && (
+                  <span className="text-red-600 font-semibold">Almost at limit!</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Upgrade CTA */}
+            {usagePercentage >= 60 && (
+              <div className="bg-gradient-to-r from-primary-blue to-primary-blue-dark rounded-xl p-6 text-white">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">Ready for unlimited access?</h3>
+                    <p className="text-blue-100">Upgrade to Pro for unlimited lookups and advanced features</p>
+                  </div>
+                  <Link href="/account/upgrade">
+                    <span className="inline-flex items-center gap-2 bg-white text-primary-blue px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                      Upgrade Now
+                      <ArrowRightIcon className="w-5 h-5" />
+                    </span>
+                  </Link>
                 </div>
-                <div className="flex justify-between text-sm text-gray-600 mt-2">
-                  <span>{usagePercentage}% used</span>
-                  {usagePercentage >= 80 && (
-                    <span className="text-red-600 font-semibold">Almost at limit!</span>
+              </div>
+            )}
+          </motion.section>
+        )}
+
+        {/* Achievements Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7 }}
+          className="bg-white rounded-xl shadow-soft p-8 border border-neutral-grey mb-12"
+        >
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+              <TrophyIcon className="w-8 h-8 text-accent-gold" />
+              Achievements
+            </h2>
+            <span className="text-lg font-semibold text-gray-600">
+              {earnedAchievements.length}/{totalAchievements} earned
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            {achievements.map((achievement) => (
+              <div
+                key={achievement.id}
+                className={`p-4 rounded-xl border transition-all duration-300 hover-lift ${
+                  achievement.earned
+                    ? 'bg-gradient-to-br from-accent-gold/10 to-yellow-100 border-accent-gold/30 text-gray-900'
+                    : 'bg-gray-50 border-gray-200 text-gray-500'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="text-3xl mb-3">{achievement.icon}</div>
+                  <h3 className="font-bold text-sm mb-2">
+                    {achievement.name}
+                  </h3>
+                  <p className="text-xs text-gray-600 leading-relaxed">
+                    {achievement.description}
+                  </p>
+                  {achievement.earned && (
+                    <div className="mt-3">
+                      <SparklesIcon className="w-5 h-5 mx-auto text-accent-gold" />
+                    </div>
                   )}
                 </div>
               </div>
-              
-              {/* Usage Stats */}
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="bg-white rounded-lg p-3 border border-gray-200">
-                  <div className="font-semibold text-gray-900">{usageData.searchesThisMonth}</div>
-                  <div className="text-gray-600">Searches this month</div>
-                </div>
-                <div className="bg-white rounded-lg p-3 border border-gray-200">
-                  <div className="font-semibold text-gray-900">{usageData.propertiesSaved}</div>
-                  <div className="text-gray-600">Properties saved</div>
-                </div>
-              </div>
-              
-              {/* Upgrade CTA */}
-              {usagePercentage >= 60 && (
-                <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-bold mb-1 text-gray-900">Ready for unlimited access?</h3>
-                      <p className="text-sm text-gray-600">Upgrade to Pro for unlimited lookups and advanced features</p>
-                    </div>
-                    <a
-                      href="/account/upgrade"
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
-                    >
-                      Upgrade Now
-                    </a>
-                  </div>
-                </div>
-              )}
-            </motion.section>
-          )}
-
-          {/* Achievements Section */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="mb-8"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-                <TrophyIcon className="w-6 h-6 text-yellow-500" />
-                Achievements
-              </h2>
-              <span className="text-sm font-semibold text-gray-600">
-                {earnedAchievements.length}/{totalAchievements} earned
+            ))}
+          </div>
+          
+          {/* Achievement Progress */}
+          <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-lg font-semibold text-gray-900">Achievement Progress</span>
+              <span className="text-lg text-gray-600">
+                {Math.round((earnedAchievements.length / totalAchievements) * 100)}% complete
               </span>
             </div>
-            
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {achievements.map((achievement) => (
-                <div
-                  key={achievement.id}
-                  className={`p-4 rounded-lg border transition-all duration-300 ${
-                    achievement.earned
-                      ? 'bg-yellow-50 border-yellow-200 text-gray-900'
-                      : 'bg-gray-50 border-gray-200 text-gray-500'
-                  }`}
-                >
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">{achievement.icon}</div>
-                    <h3 className="font-bold text-sm mb-1">
-                      {achievement.name}
-                    </h3>
-                    <p className="text-xs text-gray-600">
-                      {achievement.description}
-                    </p>
-                    {achievement.earned && (
-                      <div className="mt-2">
-                        <SparklesIcon className="w-4 h-4 mx-auto text-yellow-500" />
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-accent-gold to-yellow-500 h-3 rounded-full transition-all duration-500"
+                style={{ width: `${(earnedAchievements.length / totalAchievements) * 100}%` }}
+              />
             </div>
-            
-            {/* Achievement Progress */}
-            <div className="mt-4 bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-semibold text-gray-900">Achievement Progress</span>
-                <span className="text-sm text-gray-600">
-                  {Math.round((earnedAchievements.length / totalAchievements) * 100)}% complete
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2">
-                <div 
-                  className="bg-yellow-500 h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${(earnedAchievements.length / totalAchievements) * 100}%` }}
-                />
-              </div>
-            </div>
-          </motion.section>
+          </div>
+        </motion.section>
 
-          {/* Referral Rewards */}
-          <motion.section
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="mb-8 bg-green-50 rounded-lg p-6 border border-green-200"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <GiftIcon className="w-6 h-6 text-green-600" />
-              <h2 className="text-xl font-bold text-gray-900">Refer Friends & Earn Rewards</h2>
-            </div>
-            <p className="mb-4 text-gray-700">
-              Share BMV Finder with friends and earn exclusive rewards. Both you and your friends get benefits!
-            </p>
-            <div className="grid md:grid-cols-3 gap-4 mb-4">
-              <div className="bg-white rounded-lg p-3 border border-green-200">
-                <div className="text-2xl mb-2">🎁</div>
-                <h3 className="font-semibold mb-1 text-gray-900">Free Month</h3>
-                <p className="text-sm text-gray-600">Get 1 month free for each friend who upgrades</p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-green-200">
-                <div className="text-2xl mb-2">⭐</div>
-                <h3 className="font-semibold mb-1 text-gray-900">Exclusive Features</h3>
-                <p className="text-sm text-gray-600">Unlock premium features for referring 5+ friends</p>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-green-200">
-                <div className="text-2xl mb-2">🏆</div>
-                <h3 className="font-semibold mb-1 text-gray-900">VIP Status</h3>
-                <p className="text-sm text-gray-600">Become a VIP member with 10+ referrals</p>
-              </div>
-            </div>
-            <button className="bg-green-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors">
-              Get Referral Link
-            </button>
-          </motion.section>
-
+        {/* Current Plan & Actions */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.8 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12"
+        >
           {/* Current Plan Card */}
-          {subscriptionInfo && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="rounded-lg border border-gray-200 p-6 flex flex-col items-center mb-8 bg-gray-50 relative"
-            >
-              {/* Recommended for you badge */}
-              {user && derivedTier !== 'elite' && (
-                <span className="absolute top-4 left-4 bg-yellow-500 text-white text-xs font-bold px-3 py-1 rounded-full">Recommended for you</span>
-              )}
-              <span className="absolute top-4 right-4 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full">Current Plan</span>
-              <div className="text-lg font-bold mb-1 text-gray-900">Current Plan: {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)}</div>
-              <div className="mb-2 text-gray-600 text-center">{subscriptionInfo.tier === 'free' ? 'Basic access, limited features' : subscriptionInfo.tier === 'pro' ? 'Unlimited lookups, alerts, export, full data access' : 'All Pro features + PDF reports, bulk analysis, CRM export'}</div>
-              <div className="flex items-center gap-2 text-blue-600 font-bold text-lg mb-2">
-                {subscriptionInfo.price && subscriptionInfo.billingInterval ? (
-                  <>
-                    {subscriptionInfo.price}
-                    <span className="text-base font-normal text-gray-600">/ {subscriptionInfo.billingInterval}</span>
-                  </>
-                ) : (
-                  <>{subscriptionInfo.tier === 'free' ? '£0' : ''}</>
+          <div className="bg-white rounded-xl shadow-soft p-8 border border-neutral-grey relative">
+            <div className="absolute top-4 right-4 bg-primary-blue text-white text-sm font-bold px-3 py-1 rounded-full">
+              Current Plan
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Subscription</h2>
+            
+            {subscriptionInfo ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-lg font-semibold text-gray-900">
+                    {subscriptionInfo.tier.charAt(0).toUpperCase() + subscriptionInfo.tier.slice(1)} Plan
+                  </span>
+                  <span className="text-2xl font-bold text-primary-blue">
+                    {subscriptionInfo.price || '£0'}
+                  </span>
+                </div>
+                
+                {subscriptionInfo.renewalDate && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <CalendarIcon className="w-5 h-5" />
+                    <span>Renewal: <strong>{subscriptionInfo.renewalDate}</strong></span>
+                  </div>
+                )}
+                
+                {subscriptionInfo.cancelAtPeriodEnd && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                    <p className="text-red-700 text-sm">
+                      Your plan will change to Free on {subscriptionInfo.renewalDate}.
+                    </p>
+                  </div>
+                )}
+                
+                {canManage && (
+                  <button
+                    onClick={handleManageSubscription}
+                    disabled={managingSubscription}
+                    className={`w-full flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-colors ${
+                      managingSubscription 
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                        : 'bg-primary-blue hover:bg-primary-blue-dark text-white'
+                    }`}
+                  >
+                    <CreditCardIcon className="w-5 h-5" />
+                    {managingSubscription ? 'Opening Portal...' : 'Manage Subscription'}
+                  </button>
                 )}
               </div>
-              {/* Renewal/Expiration Date */}
-              {subscriptionInfo.renewalDate && (
-                <div className="flex items-center gap-2 text-gray-700 mb-2">
-                  <CalendarIcon className="h-5 w-5 text-blue-600" aria-hidden="true" />
-                  <span>Renewal date: <strong>{subscriptionInfo.renewalDate}</strong></span>
-                </div>
-              )}
-              {/* Scheduled Downgrade Message */}
-              {subscriptionInfo.cancelAtPeriodEnd && (
-                <div className="text-xs text-red-600 text-center mb-2">
-                  Your plan will change to Free on {subscriptionInfo.renewalDate}.
-                </div>
-              )}
-            </motion.section>
-          )}
-
-          {/* Primary CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.7 }}
-            className="flex flex-col md:flex-row gap-4 mb-6 justify-center items-center"
-          >
-            <Link href="/account/upgrade">
-              <span className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors text-lg">
-                {derivedTier === 'free' ? 'Upgrade' : 'Change Plan'}
-              </span>
-            </Link>
-            {/* Secondary CTA: Manage Subscription */}
-            {canManage && (
-              <button
-                onClick={handleManageSubscription}
-                disabled={managingSubscription}
-                className={`inline-block font-semibold py-2 px-6 rounded-lg transition-colors text-lg ${
-                  managingSubscription 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
-                    : 'bg-gray-600 hover:bg-gray-700 text-white'
-                }`}
-              >
-                {managingSubscription ? 'Opening Portal...' : 'Manage Subscription'}
-              </button>
+            ) : (
+              <div className="text-center py-8">
+                <p className="text-gray-600 mb-4">No active subscription found</p>
+                <Link href="/account/upgrade">
+                  <span className="inline-flex items-center gap-2 bg-primary-blue hover:bg-primary-blue-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors">
+                    Choose a Plan
+                    <ArrowRightIcon className="w-5 h-5" />
+                  </span>
+                </Link>
+              </div>
             )}
-          </motion.div>
-
-          {/* Upsell Section */}
-          {derivedTier === 'free' && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="mb-8 bg-gray-50 border border-gray-200 rounded-lg p-4 text-center"
-            >
-              <h2 className="text-lg font-bold mb-2 flex items-center justify-center gap-2 text-gray-900"><ArrowUpRightIcon className="h-5 w-5 text-blue-600" /> Why upgrade?</h2>
-              <ul className="text-gray-600 text-sm space-y-1 mb-2">
-                <li>Unlock unlimited lookups and full analytics</li>
-                <li>Export data and receive alerts</li>
-                <li>Access PDF reports and bulk analysis (Elite)</li>
-              </ul>
-              <Link href="/pricing">
-                <span className="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors mt-2">See All Packages</span>
-              </Link>
-            </motion.section>
-          )}
-          {derivedTier === 'pro' && (
-            <motion.section
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8 }}
-              className="mb-8 bg-gray-50 border border-gray-200 rounded-lg p-4 text-center"
-            >
-              <h2 className="text-lg font-bold mb-2 flex items-center justify-center gap-2 text-gray-900"><ArrowUpRightIcon className="h-5 w-5 text-green-600" /> Unlock Elite Features</h2>
-              <ul className="text-gray-600 text-sm space-y-1 mb-2">
-                <li>PDF reports for every property</li>
-                <li>Bulk analysis and CRM export</li>
-                <li>Priority support</li>
-              </ul>
-              <Link href="/pricing">
-                <span className="inline-block bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors mt-2">See Elite Plan</span>
-              </Link>
-            </motion.section>
-          )}
-
-          {/* Testimonial/Trust Badge */}
-          <section className="mb-8 text-center">
-            <div className="inline-flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-full px-4 py-2 mb-2">
-              <ShieldCheckIcon className="h-5 w-5 text-blue-600" />
-              <span className="font-semibold text-gray-700">Trusted by 1,000+ property investors</span>
-            </div>
-            <blockquote className="italic text-gray-600 max-w-md mx-auto mt-2">&ldquo;This platform is a game changer for property research and investment.&rdquo;</blockquote>
-          </section>
-
-          {/* Trust and Social Proof */}
-          <TrustBadges />
-          <PartnerLogos />
-          <Testimonials />
-
-          {/* Support/Help Link */}
-          <div className="text-center mb-2">
-            <a href="mailto:support@yourdomain.com" className="text-blue-600 hover:underline font-semibold">Need help? Contact support</a>
           </div>
 
-          {/* User Profile Section */}
-          <UserProfile />
-        </main>
-      </motion.section>
+          {/* Quick Actions */}
+          <div className="bg-white rounded-xl shadow-soft p-8 border border-neutral-grey">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Actions</h2>
+            <div className="space-y-4">
+              <Link href="/search">
+                <span className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <SearchIcon className="w-6 h-6 text-primary-blue" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Search Properties</h3>
+                    <p className="text-sm text-gray-600">Find your next investment</p>
+                  </div>
+                  <ArrowRightIcon className="w-5 h-5 text-gray-400 ml-auto" />
+                </span>
+              </Link>
+              
+              <Link href="/watchlist">
+                <span className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <HomeIcon className="w-6 h-6 text-primary-green" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">View Watchlist</h3>
+                    <p className="text-sm text-gray-600">Check saved properties</p>
+                  </div>
+                  <ArrowRightIcon className="w-5 h-5 text-gray-400 ml-auto" />
+                </span>
+              </Link>
+              
+              <Link href="/deal-calculator">
+                <span className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <CalculatorIcon className="w-6 h-6 text-accent-gold" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Deal Calculator</h3>
+                    <p className="text-sm text-gray-600">Calculate ROI & yields</p>
+                  </div>
+                  <ArrowRightIcon className="w-5 h-5 text-gray-400 ml-auto" />
+                </span>
+              </Link>
+              
+              <Link href="/market-analysis">
+                <span className="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors">
+                  <TrendingUpIcon className="w-6 h-6 text-primary-blue" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Market Analysis</h3>
+                    <p className="text-sm text-gray-600">View market trends</p>
+                  </div>
+                  <ArrowRightIcon className="w-5 h-5 text-gray-400 ml-auto" />
+                </span>
+              </Link>
+            </div>
+          </div>
+        </motion.section>
+
+        {/* Referral Rewards */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          className="bg-gradient-to-r from-primary-green to-primary-green-dark rounded-xl p-8 text-white mb-12"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <GiftIcon className="w-8 h-8 text-white" />
+            <h2 className="text-2xl font-bold">Refer Friends & Earn Rewards</h2>
+          </div>
+          <p className="mb-6 text-green-100">
+            Share BMV Finder with friends and earn exclusive rewards. Both you and your friends get benefits!
+          </p>
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="text-3xl mb-3">🎁</div>
+              <h3 className="font-semibold mb-2">Free Month</h3>
+              <p className="text-sm text-green-100">Get 1 month free for each friend who upgrades</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="text-3xl mb-3">⭐</div>
+              <h3 className="font-semibold mb-2">Exclusive Features</h3>
+              <p className="text-sm text-green-100">Unlock premium features for referring 5+ friends</p>
+            </div>
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="text-3xl mb-3">🏆</div>
+              <h3 className="font-semibold mb-2">VIP Status</h3>
+              <p className="text-sm text-green-100">Become a VIP member with 10+ referrals</p>
+            </div>
+          </div>
+          <button className="bg-white text-primary-green px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+            Get Referral Link
+          </button>
+        </motion.section>
+
+        {/* Trust and Social Proof */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.0 }}
+          className="text-center mb-12"
+        >
+          <div className="inline-flex items-center gap-2 bg-white rounded-full px-6 py-3 shadow-soft border border-neutral-grey mb-4">
+            <ShieldCheckIcon className="w-6 h-6 text-primary-blue" />
+            <span className="font-semibold text-gray-900">Trusted by 50,000+ property professionals</span>
+          </div>
+          <blockquote className="italic text-gray-600 max-w-2xl mx-auto text-lg">
+            &ldquo;This platform is a game changer for property research and investment.&rdquo;
+          </blockquote>
+        </motion.section>
+
+        {/* Trust Badges and Testimonials */}
+        <TrustBadges />
+        <PartnerLogos />
+        <Testimonials />
+
+        {/* Support Section */}
+        <motion.section
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.1 }}
+          className="bg-white rounded-xl shadow-soft p-8 border border-neutral-grey text-center"
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Need Help?</h2>
+          <p className="text-gray-600 mb-6">
+            Our support team is here to help you get the most out of BMV Finder
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a 
+              href="mailto:support@bmvfinder.com" 
+              className="inline-flex items-center gap-2 bg-primary-blue hover:bg-primary-blue-dark text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+            >
+              <InformationCircleIcon className="w-5 h-5" />
+              Contact Support
+            </a>
+            <Link href="/help">
+              <span className="inline-flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-3 rounded-lg font-semibold transition-colors">
+                <FileTextIcon className="w-5 h-5" />
+                Help Center
+              </span>
+            </Link>
+          </div>
+        </motion.section>
+
+        {/* User Profile Section */}
+        <UserProfile />
+      </main>
     </div>
   );
 } 
