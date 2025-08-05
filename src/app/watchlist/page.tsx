@@ -757,12 +757,23 @@ export default function WatchlistPage() {
 
                       {/* Detailed Cost Breakdown */}
                       <div className="bg-white rounded-lg border border-gray-200 p-3 mb-3">
+                        {/* Total Investment - Always Visible */}
+                        <div className="flex justify-between items-center p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200 mb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">💼</span>
+                            <span className="font-semibold text-gray-800">Total Investment Required:</span>
+                          </div>
+                          <span className="text-xl font-bold text-blue-600">
+                            {formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}
+                          </span>
+                        </div>
+                        
                         <button 
                           onClick={() => toggleSection('cost-breakdown')}
                           className="w-full text-left"
                         >
                           <div className="flex items-center justify-between mb-2">
-                            <h5 className="font-semibold text-gray-800 text-base">📋 Investment Cost Breakdown</h5>
+                            <h5 className="font-semibold text-gray-800 text-base">📋 Detailed Cost Breakdown</h5>
                             <ChevronDownIcon 
                               className={`w-4 h-4 text-gray-600 transition-transform ${
                                 expandedSections.has('cost-breakdown') ? 'rotate-180' : ''
@@ -881,11 +892,7 @@ export default function WatchlistPage() {
                                     </div>
                                   </div>
                                   
-                                  {/* Total */}
-                                  <div className="flex justify-between p-2 bg-gray-100 rounded border-t-2 border-gray-300">
-                                    <span className="font-semibold text-gray-800 text-sm">💼 TOTAL INVESTMENT:</span>
-                                    <span className="font-bold text-gray-800 text-sm">{formatPrice(costs.totalInvestmentCost)}</span>
-                                  </div>
+
                                 </>
                               );
                             })()}
