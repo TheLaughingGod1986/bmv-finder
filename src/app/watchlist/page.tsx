@@ -677,6 +677,29 @@ export default function WatchlistPage() {
                         <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
                           {item.address}
                         </h3>
+                        
+                        {/* Property Details */}
+                        <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">🛏️</span>
+                            <span className="font-medium">{item.bedrooms} bed</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">🚿</span>
+                            <span className="font-medium">{item.bathrooms} bath</span>
+                          </div>
+                          {item.total_size && (
+                            <div className="flex items-center gap-1">
+                              <span className="text-gray-500">📏</span>
+                              <span className="font-medium">{item.total_size.value} {item.total_size.unit}</span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">📋</span>
+                            <span className="font-medium">{item.tenure}</span>
+                          </div>
+                        </div>
+                        
                         <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                           <MapPinIcon className="w-4 h-4" />
                           <span className="line-clamp-1">{item.address}</span>
@@ -1207,6 +1230,28 @@ export default function WatchlistPage() {
                       <h4 className="font-semibold text-gray-900 line-clamp-2 mb-3">
                         {property.address}
                       </h4>
+                      
+                      {/* Property Details */}
+                      <div className="flex items-center gap-3 text-xs text-gray-600 mb-3">
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">🛏️</span>
+                          <span className="font-medium">{property.bedrooms} bed</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">🚿</span>
+                          <span className="font-medium">{property.bathrooms} bath</span>
+                        </div>
+                        {property.total_size && (
+                          <div className="flex items-center gap-1">
+                            <span className="text-gray-500">📏</span>
+                            <span className="font-medium">{property.total_size.value} {property.total_size.unit}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-500">📋</span>
+                          <span className="font-medium">{property.tenure}</span>
+                        </div>
+                      </div>
                       
                       {/* Basic Metrics */}
                       <div className="mb-4">
