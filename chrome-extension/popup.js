@@ -322,148 +322,17 @@ watchlistLink.addEventListener('click', () => {
   chrome.tabs.create({ url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
-// Add manual sign-in for testing (remove in production)
-function addManualSignIn() {
-  const manualSignInDiv = document.createElement('div');
-  manualSignInDiv.style.cssText = `
-    position: fixed;
-    top: 10px;
-    left: 10px;
-    background: #f0f0f0;
-    padding: 10px;
-    border-radius: 5px;
-    font-size: 12px;
-    z-index: 1000;
-  `;
+// Initialize the popup
+document.addEventListener('DOMContentLoaded', async () => {
+  console.log('BMV Finder: Popup DOM loaded');
   
-  manualSignInDiv.innerHTML = `
-    <div>Manual Sign In:</div>
-    <button onclick="setDemoUser('free')" style="margin: 2px; padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Free</button>
-    <button onclick="setDemoUser('mid')" style="margin: 2px; padding: 4px 8px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Mid</button>
-    <button onclick="setDemoUser('premium')" style="margin: 2px; padding: 4px 8px; background: #9C27B0; color: white; border: none; border-radius: 3px; cursor: pointer;">Premium</button>
-    <button onclick="setDemoUser('demo')" style="margin: 2px; padding: 4px 8px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer;">Demo</button>
-  `;
-  
-  document.body.appendChild(manualSignInDiv);
-}
-
-// Demo function to show different membership tiers (for testing)
-function setDemoUser(membershipType) {
-  const demoUsers = {
-    free: {
-      isAuthenticated: true,
-      name: 'John Doe',
-      membership: 'Free Plan',
-      captureLimit: 5
-    },
-    mid: {
-      isAuthenticated: true,
-      name: 'Sarah Smith',
-      membership: 'Mid-Tier Plan',
-      captureLimit: 50
-    },
-    premium: {
-      isAuthenticated: true,
-      name: 'Mike Johnson',
-      membership: 'Premium Plan',
-      captureLimit: -1 // Unlimited
-    },
-    demo: {
-      isAuthenticated: false,
-      name: 'Demo User',
-      membership: 'Free Plan',
-      captureLimit: 5
-    }
-  };
-  
-  // Preserve the current property count when switching demo modes
-  const currentPropertyCount = parseInt(propertyCount.textContent) || 0;
-  
-  userData = { 
-    ...userData, 
-    ...demoUsers[membershipType],
-    capturedCount: currentPropertyCount // Use actual property count, not demo count
-  };
-  
-  updateUserInterface();
-  saveUserData(); // Save the new user data to storage
-}
-
-// Add demo buttons for testing (remove in production)
-function addDemoButtons() {
-  const demoDiv = document.createElement('div');
-  demoDiv.style.cssText = `
-    position: fixed;
-    top: 10px;
-    right: 10px;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-    z-index: 1000;
-  `;
-  
-  const demoTypes = ['demo', 'free', 'mid', 'premium'];
-  demoTypes.forEach(type => {
-    const button = document.createElement('button');
-    button.textContent = type.toUpperCase();
-    button.style.cssText = `
-      font-size: 10px;
-      padding: 4px 8px;
-      background: #333;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    `;
-    button.onclick = () => setDemoUser(type);
-    demoDiv.appendChild(button);
-  });
-  
-  document.body.appendChild(demoDiv);
-}
-
-// Function to handle authentication callback
-async function handleAuthCallback() {
-  // Check if we're returning from an auth flow
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
-  const error = urlParams.get('error');
-  
-  if (token) {
-    // Store the auth token
-    await chrome.storage.local.set({ 
-      authToken: token,
-      isAuthenticated: true 
-    });
-    
-    // Reload user data with the new token
+  try {
     await loadUserData();
-    
-    // Clear the URL parameters
-    window.history.replaceState({}, document.title, window.location.pathname);
-    
-    console.log('BMV Finder: Authentication successful');
-  } else if (error) {
-    console.error('BMV Finder: Authentication error:', error);
-    // Clear any existing auth data
-    await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-  }
-}
-
-// Load properties when popup opens
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('BMV Finder: Popup DOM loaded, loading properties');
-  handleAuthCallback(); // Check for auth callback first
-  loadCapturedProperties();
-  loadUserData(); // Load user data on popup open
-  
-  // Add manual sign-in for testing (remove in production)
-  addManualSignIn();
-  
-  // Only add demo buttons in development
-  if (chrome.runtime.getManifest().version.includes('dev') || 
-      chrome.runtime.getManifest().version.includes('0.0')) {
-    addDemoButtons(); // Add demo buttons on popup open
+    await loadCapturedProperties();
+    updateUserInterface();
+  } catch (error) {
+    console.error('Error initializing popup:', error);
+    showError('Failed to load data');
   }
 });
 
