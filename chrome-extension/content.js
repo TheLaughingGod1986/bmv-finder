@@ -82,6 +82,27 @@ function debugPageInfo() {
     }
   });
   
+  // Debug image extraction
+  console.log('BMV Finder: === IMAGE DEBUG ===');
+  const allImages = document.querySelectorAll('img');
+  console.log(`BMV Finder: Found ${allImages.length} total images on page`);
+  
+  allImages.forEach((img, index) => {
+    const src = img.getAttribute('src');
+    const alt = img.getAttribute('alt') || '';
+    const className = img.getAttribute('class') || '';
+    const dataTestId = img.getAttribute('data-testid') || '';
+    
+    if (src && src.startsWith('http') && !src.includes('logo') && !src.includes('icon')) {
+      console.log(`BMV Finder: Image ${index}:`, {
+        src: src.substring(0, 100),
+        alt: alt.substring(0, 50),
+        class: className.substring(0, 50),
+        dataTestId: dataTestId
+      });
+    }
+  });
+  
   console.log('BMV Finder: === END DEBUG ===');
 }
 
@@ -375,17 +396,34 @@ function extractPropertyData() {
     
     // Extract images for Zoopla
     const imageSelectors = [
+      // Most specific selectors first
       '[data-testid="property-image"]',
+      '[data-testid="main-image"]',
+      '[data-testid="hero-image"]',
       '.css-1tppcjb-Image',
       '.property-header__image',
       '.property-details__image',
       '.listing-image',
       '.property-image',
-      'img[src*="zoopla"]',
-      'img[alt*="property"]',
-      'img[alt*="house"]',
-      'img[alt*="apartment"]',
-      'img[alt*="flat"]'
+      '.main-image',
+      '.hero-image',
+      // Gallery images
+      '.gallery-image',
+      '.photo-gallery img',
+      '.property-gallery img',
+      // More specific selectors
+      'img[data-testid*="image"]',
+      'img[data-testid*="photo"]',
+      'img[class*="property"]',
+      'img[class*="listing"]',
+      'img[class*="main"]',
+      'img[class*="hero"]',
+      // Avoid generic images
+      'img[src*="zoopla"]:not([src*="logo"]):not([src*="icon"])',
+      'img[alt*="property"]:not([alt*="street"]):not([alt*="view"])',
+      'img[alt*="house"]:not([alt*="street"]):not([alt*="view"])',
+      'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"])',
+      'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"])'
     ];
     
     for (const selector of imageSelectors) {
@@ -394,9 +432,45 @@ function extractPropertyData() {
       
       for (const element of elements) {
         const imgSrc = element.getAttribute('src');
-        if (imgSrc && imgSrc.startsWith('http') && !imgSrc.includes('placeholder')) {
+        const imgAlt = element.getAttribute('alt') || '';
+        
+        // Skip if no src or if it's a placeholder/logo/icon
+        if (!imgSrc || 
+            imgSrc.includes('placeholder') || 
+            imgSrc.includes('logo') || 
+            imgSrc.includes('icon') ||
+            imgSrc.includes('avatar') ||
+            imgSrc.includes('profile')) {
+          continue;
+        }
+        
+        // Skip street views, building exteriors, and generic images
+        if (imgAlt.toLowerCase().includes('street') || 
+            imgAlt.toLowerCase().includes('view') ||
+            imgAlt.toLowerCase().includes('exterior') ||
+            imgAlt.toLowerCase().includes('building') ||
+            imgAlt.toLowerCase().includes('outside') ||
+            imgAlt.toLowerCase().includes('front') ||
+            imgAlt.toLowerCase().includes('back') ||
+            imgAlt.toLowerCase().includes('garden') ||
+            imgAlt.toLowerCase().includes('driveway') ||
+            imgAlt.toLowerCase().includes('parking')) {
+          console.log('BMV Finder: Skipping street/exterior image:', imgAlt);
+          continue;
+        }
+        
+        // Prefer interior images
+        if (imgAlt.toLowerCase().includes('bedroom') || 
+            imgAlt.toLowerCase().includes('living') ||
+            imgAlt.toLowerCase().includes('kitchen') ||
+            imgAlt.toLowerCase().includes('bathroom') ||
+            imgAlt.toLowerCase().includes('interior') ||
+            imgAlt.toLowerCase().includes('inside')) {
+          propertyData.images.unshift(imgSrc); // Add to beginning for priority
+          console.log('BMV Finder: Found priority interior image:', imgSrc, 'alt:', imgAlt);
+        } else if (imgSrc.startsWith('http') && imgSrc.includes('zoopla')) {
           propertyData.images.push(imgSrc);
-          console.log('BMV Finder: Found Zoopla image:', imgSrc);
+          console.log('BMV Finder: Found Zoopla image:', imgSrc, 'alt:', imgAlt);
         }
       }
       
@@ -507,17 +581,34 @@ function extractPropertyData() {
     
     // Extract images
     const imageSelectors = [
+      // Most specific selectors first
       '[data-testid="property-image"]',
+      '[data-testid="main-image"]',
+      '[data-testid="hero-image"]',
       '.propertyCard-img',
       '.property-header__image',
       '.property-details__image',
       '.listing-image',
       '.property-image',
-      'img[src*="rightmove"]',
-      'img[alt*="property"]',
-      'img[alt*="house"]',
-      'img[alt*="apartment"]',
-      'img[alt*="flat"]'
+      '.main-image',
+      '.hero-image',
+      // Gallery images
+      '.gallery-image',
+      '.photo-gallery img',
+      '.property-gallery img',
+      // More specific selectors
+      'img[data-testid*="image"]',
+      'img[data-testid*="photo"]',
+      'img[class*="property"]',
+      'img[class*="listing"]',
+      'img[class*="main"]',
+      'img[class*="hero"]',
+      // Avoid generic images
+      'img[src*="rightmove"]:not([src*="logo"]):not([src*="icon"])',
+      'img[alt*="property"]:not([alt*="street"]):not([alt*="view"])',
+      'img[alt*="house"]:not([alt*="street"]):not([alt*="view"])',
+      'img[alt*="apartment"]:not([alt*="street"]):not([alt*="view"])',
+      'img[alt*="flat"]:not([alt*="street"]):not([alt*="view"])'
     ];
     
     for (const selector of imageSelectors) {
@@ -526,9 +617,45 @@ function extractPropertyData() {
       
       for (const element of elements) {
         const imgSrc = element.getAttribute('src');
-        if (imgSrc && imgSrc.startsWith('http') && !imgSrc.includes('placeholder')) {
+        const imgAlt = element.getAttribute('alt') || '';
+        
+        // Skip if no src or if it's a placeholder/logo/icon
+        if (!imgSrc || 
+            imgSrc.includes('placeholder') || 
+            imgSrc.includes('logo') || 
+            imgSrc.includes('icon') ||
+            imgSrc.includes('avatar') ||
+            imgSrc.includes('profile')) {
+          continue;
+        }
+        
+        // Skip street views, building exteriors, and generic images
+        if (imgAlt.toLowerCase().includes('street') || 
+            imgAlt.toLowerCase().includes('view') ||
+            imgAlt.toLowerCase().includes('exterior') ||
+            imgAlt.toLowerCase().includes('building') ||
+            imgAlt.toLowerCase().includes('outside') ||
+            imgAlt.toLowerCase().includes('front') ||
+            imgAlt.toLowerCase().includes('back') ||
+            imgAlt.toLowerCase().includes('garden') ||
+            imgAlt.toLowerCase().includes('driveway') ||
+            imgAlt.toLowerCase().includes('parking')) {
+          console.log('BMV Finder: Skipping street/exterior image:', imgAlt);
+          continue;
+        }
+        
+        // Prefer interior images
+        if (imgAlt.toLowerCase().includes('bedroom') || 
+            imgAlt.toLowerCase().includes('living') ||
+            imgAlt.toLowerCase().includes('kitchen') ||
+            imgAlt.toLowerCase().includes('bathroom') ||
+            imgAlt.toLowerCase().includes('interior') ||
+            imgAlt.toLowerCase().includes('inside')) {
+          propertyData.images.unshift(imgSrc); // Add to beginning for priority
+          console.log('BMV Finder: Found priority interior image:', imgSrc, 'alt:', imgAlt);
+        } else if (imgSrc.startsWith('http') && imgSrc.includes('rightmove')) {
           propertyData.images.push(imgSrc);
-          console.log('BMV Finder: Found Rightmove image:', imgSrc);
+          console.log('BMV Finder: Found Rightmove image:', imgSrc, 'alt:', imgAlt);
         }
       }
       
