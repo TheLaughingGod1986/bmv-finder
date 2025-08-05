@@ -21,6 +21,17 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
+  // Only handle same-origin requests to avoid CORS issues
+  if (!event.request.url.startsWith(self.location.origin)) {
+    // For external requests (like images from Zoopla), just pass through
+    return;
+  }
+
+  // Only handle GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then((response) => {
@@ -29,8 +40,15 @@ self.addEventListener('fetch', (event) => {
           return response;
         }
         return fetch(event.request);
-      }
-    )
+      })
+      .catch((error) => {
+        console.log('Fetch failed:', error);
+        // Return offline page for navigation requests
+        if (event.request.destination === 'document') {
+          return caches.match('/offline.html');
+        }
+        return new Response('Network error', { status: 503 });
+      })
   );
 });
 
