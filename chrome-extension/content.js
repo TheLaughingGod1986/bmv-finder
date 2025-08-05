@@ -1,5 +1,4 @@
 // BMV Finder Chrome Extension - Content Script
-console.log('BMV Finder: Content script loaded');
 
 // Check if this is a property page
 function isPropertyPage() {
@@ -51,11 +50,6 @@ function testCurrentPageExtraction() {
 
 // Debug function to show page information
 function debugPageInfo() {
-  console.log('BMV Finder: === DEBUG PAGE INFO ===');
-  console.log('BMV Finder: URL:', window.location.href);
-  console.log('BMV Finder: Title:', document.title);
-  console.log('BMV Finder: Is property page:', isPropertyPage());
-  
   // Check for common property elements
   const elementsToCheck = [
     'h1', 'h2', 'h3',
@@ -704,7 +698,6 @@ function injectButton() {
 function safeInjectButton() {
   // Check if Chrome APIs are available
   if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.storage) {
-    console.log('BMV Finder: Chrome APIs not ready, retrying in 1 second...');
     setTimeout(safeInjectButton, 1000);
     return;
   }
@@ -723,4 +716,4 @@ if (document.readyState === 'loading') {
 // Also run on window load
 window.addEventListener('load', safeInjectButton);
 
-console.log('BMV Finder: Content script setup complete'); 
+ 
