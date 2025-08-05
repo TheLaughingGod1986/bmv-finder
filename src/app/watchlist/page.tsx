@@ -8,7 +8,8 @@ import {
   MapPinIcon, 
   ArrowTopRightOnSquareIcon, 
   ChevronDownIcon,
-  XMarkIcon 
+  XMarkIcon,
+  PencilIcon
 } from '@heroicons/react/24/outline';
 import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
@@ -79,6 +80,7 @@ export default function WatchlistPage() {
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [editingProperty, setEditingProperty] = useState<string | null>(null);
 
   useEffect(() => {
     loadWatchlist();
@@ -162,6 +164,16 @@ export default function WatchlistPage() {
       newExpanded.add(sectionId);
     }
     setExpandedSections(newExpanded);
+  };
+
+  const handleEditProperty = (propertyId: string) => {
+    setEditingProperty(propertyId);
+    // For now, just show a toast - in a full implementation, this would open an edit modal
+    showToast({ 
+      type: 'info', 
+      title: 'Edit Property', 
+      message: 'Property editing feature coming soon!' 
+    });
   };
 
   const calculateRentalEstimateSync = (property: WatchlistItem) => {
@@ -1107,8 +1119,16 @@ export default function WatchlistPage() {
                         View Original Listing
                       </button>
                       
-                      {/* Professional Offer and Negotiation Strategy Buttons */}
-                      <div className="grid grid-cols-2 gap-3">
+                      {/* Edit, Professional Offer and Negotiation Strategy Buttons */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <button
+                          onClick={() => handleEditProperty(item.id)}
+                          className="py-2 px-3 bg-gradient-to-r from-amber-600 to-amber-700 text-white font-medium rounded-lg hover:from-amber-700 hover:to-amber-800 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 text-sm"
+                        >
+                          <PencilIcon className="h-4 w-4" />
+                          Edit Property
+                        </button>
+                        
                         <button
                           onClick={() => {
                             const offerText = `Hi, I'm interested in ${item.title} at ${item.address}. Based on my analysis, I'd like to make a professional offer of ${formatPrice(item.price * 0.92)}. I'm a serious buyer with financing in place and can move quickly. Please let me know if you'd like to discuss this further.`;
@@ -1118,7 +1138,7 @@ export default function WatchlistPage() {
                           className="py-2 px-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 text-sm"
                         >
                           <span className="text-sm">📄</span>
-                          Copy Professional Offer
+                          Copy Offer
                         </button>
                         
                         <button
@@ -1130,7 +1150,7 @@ export default function WatchlistPage() {
                           className="py-2 px-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 text-sm"
                         >
                           <span className="text-sm">🎯</span>
-                          Generate Negotiation Strategy
+                          Strategy
                         </button>
                       </div>
                       
