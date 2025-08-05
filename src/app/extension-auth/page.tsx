@@ -27,7 +27,7 @@ function ExtensionAuthContent() {
         
         if (error || !session) {
           setStatus('error');
-          setMessage('No active session found. Please sign in to your BMV Finder account first.');
+          setMessage('You need to sign in to your BMV Finder account first. Click "Sign In to BMV Finder" below to create an account or sign in.');
           return;
         }
 
@@ -111,14 +111,17 @@ function ExtensionAuthContent() {
 
         {status === 'error' && (
           <div className="space-y-3">
+            <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+              <strong>How it works:</strong> First sign in to your BMV Finder account, then return to the extension to capture properties.
+            </div>
             <button
-              onClick={() => window.location.href = '/auth'}
+              onClick={() => window.location.href = '/'}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
               Sign In to BMV Finder
             </button>
             <button
-              onClick={() => window.location.href = '/auth?signup=true'}
+              onClick={() => window.location.href = '/?signup=true'}
               className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
             >
               Create Account
