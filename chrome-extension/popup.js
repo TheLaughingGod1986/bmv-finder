@@ -40,34 +40,49 @@ async function loadUserData() {
     const authResult = await chrome.storage.local.get(['userData', 'isAuthenticated', 'authToken']);
     
     if (authResult.authToken) {
-      // Try to validate the token with the main application
-      try {
-        const response = await fetch('https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/api/user/membership', {
-          headers: {
-            'Authorization': `Bearer ${authResult.authToken}`,
-            'Content-Type': 'application/json'
+      // For now, use cached user data if available, otherwise validate token
+      if (authResult.userData && authResult.userData.isAuthenticated) {
+        userData = {
+          ...userData,
+          ...authResult.userData,
+          isAuthenticated: true
+        };
+      } else {
+        // Try to validate the token with the main application
+        try {
+          const response = await fetch('https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/api/user/membership', {
+            headers: {
+              'Authorization': `Bearer ${authResult.authToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const userInfo = await response.json();
+            userData = {
+              isAuthenticated: true,
+              name: userInfo.user?.name || 'Authenticated User',
+              membership: userInfo.membership || 'Free Plan',
+              captureLimit: userInfo.captureLimit || 5,
+              capturedCount: 0
+            };
+            
+            // Save the user data for future use
+            await chrome.storage.local.set({ 
+              userData: userData,
+              isAuthenticated: true 
+            });
+          } else {
+            // Token is invalid, clear it
+            await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+            throw new Error('Invalid token');
           }
-        });
-        
-        if (response.ok) {
-          const userInfo = await response.json();
-          userData = {
-            isAuthenticated: true,
-            name: userInfo.name || 'Authenticated User',
-            membership: userInfo.membership || 'Free Plan',
-            captureLimit: userInfo.captureLimit || 5,
-            capturedCount: 0
-          };
-        } else {
-          // Token is invalid, clear it
-          await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-          throw new Error('Invalid token');
+        } catch (apiError) {
+          console.error('Error validating token:', apiError);
+          // For now, don't clear the token on network errors
+          // Just fall back to demo mode
+          throw new Error('Token validation failed');
         }
-      } catch (apiError) {
-        console.error('Error validating token:', apiError);
-        // Token validation failed, clear it
-        await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-        throw new Error('Token validation failed');
       }
     } else if (authResult.isAuthenticated && authResult.userData) {
       // Fallback to cached data
@@ -281,6 +296,31 @@ signInButton.addEventListener('click', () => {
   }
 });
 
+// Add manual sign-in for testing (remove in production)
+function addManualSignIn() {
+  const manualSignInDiv = document.createElement('div');
+  manualSignInDiv.style.cssText = `
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: #f0f0f0;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 12px;
+    z-index: 1000;
+  `;
+  
+  manualSignInDiv.innerHTML = `
+    <div>Manual Sign In:</div>
+    <button onclick="setDemoUser('free')" style="margin: 2px; padding: 4px 8px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">Free</button>
+    <button onclick="setDemoUser('mid')" style="margin: 2px; padding: 4px 8px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">Mid</button>
+    <button onclick="setDemoUser('premium')" style="margin: 2px; padding: 4px 8px; background: #9C27B0; color: white; border: none; border-radius: 3px; cursor: pointer;">Premium</button>
+    <button onclick="setDemoUser('demo')" style="margin: 2px; padding: 4px 8px; background: #FF9800; color: white; border: none; border-radius: 3px; cursor: pointer;">Demo</button>
+  `;
+  
+  document.body.appendChild(manualSignInDiv);
+}
+
 // Demo function to show different membership tiers (for testing)
 function setDemoUser(membershipType) {
   const demoUsers = {
@@ -390,7 +430,15 @@ document.addEventListener('DOMContentLoaded', () => {
   handleAuthCallback(); // Check for auth callback first
   loadCapturedProperties();
   loadUserData(); // Load user data on popup open
-  addDemoButtons(); // Add demo buttons on popup open
+  
+  // Add manual sign-in for testing (remove in production)
+  addManualSignIn();
+  
+  // Only add demo buttons in development
+  if (chrome.runtime.getManifest().version.includes('dev') || 
+      chrome.runtime.getManifest().version.includes('0.0')) {
+    addDemoButtons(); // Add demo buttons on popup open
+  }
 });
 
 // Listen for storage changes to update the popup
