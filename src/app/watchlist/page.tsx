@@ -605,6 +605,15 @@ export default function WatchlistPage() {
                         <h4 className="text-lg font-bold text-gray-800">Investment Summary</h4>
                       </div>
                       
+                      {/* Mortgage Type */}
+                      <div className="flex items-center gap-2 mb-4 p-3 bg-white rounded-lg border border-gray-200">
+                        <span className="text-lg">🏠</span>
+                        <div>
+                          <div className="text-xs text-gray-500 font-medium">Mortgage Type</div>
+                          <div className="text-sm font-semibold text-gray-800">{item.mortgage_type || 'Interest-Only Mortgage'}</div>
+                        </div>
+                      </div>
+                      
                       {/* Key Metrics Compact */}
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         <div className="flex flex-col p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm">
@@ -630,15 +639,6 @@ export default function WatchlistPage() {
                           <div className="text-base font-bold text-purple-600 leading-tight">
                             {metrics.annualROI.toFixed(1)}%
                           </div>
-                        </div>
-                      </div>
-
-                      {/* Mortgage Type */}
-                      <div className="flex items-center gap-2 mb-4 p-3 bg-white rounded-lg border border-gray-200">
-                        <span className="text-lg">🏠</span>
-                        <div>
-                          <div className="text-xs text-gray-500 font-medium">Mortgage Type</div>
-                          <div className="text-sm font-semibold text-gray-800">{item.mortgage_type || 'Interest-Only Mortgage'}</div>
                         </div>
                       </div>
 
