@@ -165,7 +165,7 @@ export default function Navigation() {
                     className={cn(
                       'flex items-center gap-2 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all duration-300 text-sm font-medium',
                       isActive(item.href) 
-                        ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200 shadow-sm' 
+                        ? 'bg-blue-100 text-blue-900 border border-blue-200 shadow-sm' 
                         : 'text-gray-600 hover:text-gray-900 hover:shadow-sm'
                     )}
                     aria-label={item.name}
@@ -251,7 +251,7 @@ export default function Navigation() {
                       className={cn(
                         'flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-gray-50 transition-all duration-200 touch-target',
                         isActive(item.href) 
-                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 border border-blue-200' 
+                          ? 'bg-blue-100 text-blue-900 border border-blue-200' 
                           : 'text-gray-600'
                       )}
                       aria-label={item.name}

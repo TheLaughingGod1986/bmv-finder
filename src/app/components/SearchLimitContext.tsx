@@ -21,8 +21,8 @@ export function SearchLimitProvider({ children }: { children: ReactNode }) {
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Only call useUser hook if supabase is available
-  const user = supabase ? useUser() : null;
+  // Always call useUser hook, but handle the case where supabase might not be available
+  const user = useUser();
 
   // Load search count from localStorage on mount
   useEffect(() => {
