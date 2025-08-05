@@ -409,7 +409,7 @@ function extractPropertyData() {
 }
 
 // Show success/error message
-function showMessage(message, isSuccess) {
+function showMessage(message, isSuccess, isHTML = false) {
   // Remove any existing messages
   const existingMessage = document.getElementById('bmv-message');
   if (existingMessage) {
@@ -418,7 +418,13 @@ function showMessage(message, isSuccess) {
   
   const messageDiv = document.createElement('div');
   messageDiv.id = 'bmv-message';
-  messageDiv.textContent = message;
+  
+  if (isHTML) {
+    messageDiv.innerHTML = message;
+  } else {
+    messageDiv.textContent = message;
+  }
+  
   messageDiv.style.cssText = `
     position: fixed;
     top: 80px;
@@ -432,17 +438,30 @@ function showMessage(message, isSuccess) {
     font-size: 14px;
     font-weight: bold;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    max-width: 300px;
+    max-width: 350px;
+    line-height: 1.4;
   `;
+  
+  // Style links within the message
+  const links = messageDiv.querySelectorAll('a');
+  links.forEach(link => {
+    link.style.cssText = `
+      color: white;
+      text-decoration: underline;
+      font-weight: bold;
+      margin: 0 4px;
+    `;
+  });
   
   document.body.appendChild(messageDiv);
   
-  // Remove after 3 seconds
+  // Remove after 5 seconds for messages with links, 3 seconds for others
+  const timeout = isHTML ? 5000 : 3000;
   setTimeout(function() {
     if (messageDiv.parentNode) {
       messageDiv.parentNode.removeChild(messageDiv);
     }
-  }, 3000);
+  }, timeout);
 }
 
 // Check authentication status before capturing
@@ -454,7 +473,8 @@ async function checkAuthenticationStatus() {
       return { 
         isAuthenticated: false, 
         hasToken: false,
-        message: 'Extension not properly loaded. Please refresh the page and try again.'
+        message: 'Extension not properly loaded. Please refresh the page and try again.',
+        needsRefresh: true
       };
     }
 
@@ -584,20 +604,32 @@ function injectButton() {
     const authStatus = await checkAuthenticationStatus();
     
     if (!authStatus.isAuthenticated) {
-      showMessage(authStatus.message, false);
-      // Open sign-in page with clear messaging
-      chrome.tabs.create({ 
-        url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?message=signin_required' 
-      });
+      if (authStatus.needsRefresh) {
+        const messageWithLinks = `
+          ${authStatus.message}<br><br>
+          <a href="#" onclick="window.location.reload(); return false;">Refresh Page</a> | 
+          <a href="#" onclick="chrome.tabs.create({url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?message=signin_required'}); return false;">Sign In</a>
+        `;
+        showMessage(messageWithLinks, false, true);
+      } else {
+        const messageWithLinks = `
+          ${authStatus.message}<br><br>
+          <a href="#" onclick="chrome.tabs.create({url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?message=signin_required'}); return false;">Sign In</a> | 
+          <a href="#" onclick="chrome.tabs.create({url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?message=register_required'}); return false;">Register</a>
+        `;
+        showMessage(messageWithLinks, false, true);
+      }
       return;
     }
     
     // Verify user has a valid account
     if (!authStatus.userData || !authStatus.userData.name || authStatus.userData.name === 'Not Signed In') {
-      showMessage('Please sign in with a valid account to capture properties.', false);
-      chrome.tabs.create({ 
-        url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?message=invalid_account' 
-      });
+      const messageWithLinks = `
+        Please sign in with a valid account to capture properties.<br><br>
+        <a href="#" onclick="chrome.tabs.create({url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?message=invalid_account'}); return false;">Sign In</a> | 
+        <a href="#" onclick="chrome.tabs.create({url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?message=register_required'}); return false;">Register</a>
+      `;
+      showMessage(messageWithLinks, false, true);
       return;
     }
     
