@@ -139,7 +139,7 @@ async function loadUserData() {
       } else {
         // Try to validate the token with the main application
         try {
-          const response = await fetch('https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/api/user/membership', {
+          const response = await fetch('https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/api/user/membership', {
             headers: {
               'Authorization': `Bearer ${authResult.authToken}`,
               'Content-Type': 'application/json'
@@ -351,7 +351,7 @@ function showUpgradePrompt() {
                 color: #333; 
                 font-size: 12px;">
       <strong>🚀 Upgrade to capture more properties!</strong><br>
-      <a href="https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
+      <a href="https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
          style="color: #3A7CA5; text-decoration: none; font-weight: bold;">
         View Plans →
       </a>
@@ -468,7 +468,7 @@ signInButton.addEventListener('click', async () => {
     // Open sign-in page in new tab with your live deployment URL
     // Include a callback parameter to return to the extension
     const callbackUrl = chrome.runtime.getURL('popup.html');
-    const authUrl = `https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth?extension_callback=${encodeURIComponent(callbackUrl)}`;
+    const authUrl = `https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?extension_callback=${encodeURIComponent(callbackUrl)}`;
     chrome.tabs.create({ url: authUrl });
   } else {
     // If already signed in, allow sign out
@@ -496,7 +496,7 @@ signOutButton.addEventListener('click', async () => {
 
 // Handle watchlist link click
 watchlistLink.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/watchlist' });
+  chrome.tabs.create({ url: 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 // Initialize the popup
