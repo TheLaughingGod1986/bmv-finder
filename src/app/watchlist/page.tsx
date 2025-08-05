@@ -1610,7 +1610,7 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                         return (
                           <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
                             {/* Growth Projections */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
                               {/* Header */}
                               <button 
                                 onClick={() => toggleSection('growth-projections')}
@@ -1657,7 +1657,7 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                             </div>
                             
                             {/* Recommended Offer Section */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
                               {/* Header */}
                               <button 
                                 onClick={() => toggleSection('recommended-offer')}
@@ -1727,7 +1727,7 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                             </div>
                             
                             {/* Investment Summary */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
                               {/* Header */}
                               <button 
                                 onClick={() => toggleSection('investment-summary')}
@@ -1808,21 +1808,21 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                         const metrics = calculateInvestmentMetrics(item);
                         const isExpanded = expandedBreakdowns.has(item.id);
                         return (
-                          <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
-                            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                              <button 
-                                onClick={() => toggleBreakdown(item.id)}
-                                className="flex items-center justify-between w-full hover:bg-gray-100 transition-colors"
-                              >
+                          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
+                            <button 
+                              onClick={() => toggleBreakdown(item.id)}
+                              className="w-full bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 text-left hover:from-gray-700 hover:to-gray-800 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <div className="w-5 h-5 bg-gradient-to-r from-green-500 via-red-500 to-blue-500 rounded"></div>
-                                  <h4 className="text-sm font-semibold text-gray-800">View Detailed Breakdown</h4>
+                                  <span className="text-white\">📊</span>
+                                  <h4 className="text-sm font-bold text-white\">DETAILED BREAKDOWN</h4>
                                 </div>
-                                <div className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+                                <div className={`text-white transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
                                   <ChevronDown className="w-4 h-4" />
                                 </div>
-                              </button>
-                            </div>
+                              </div>
+                            </button>
                             
                             {isExpanded && (
                               <div className="p-4 space-y-4">
@@ -1907,7 +1907,7 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                         );
                       })()}
 
-                      <div className="space-y-2">
+                      <div className="space-y-4">
                         <button
                           onClick={() => window.open(item.original_url, '_blank')}
                           className="w-full py-2 px-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"

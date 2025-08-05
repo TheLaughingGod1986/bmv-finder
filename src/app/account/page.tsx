@@ -31,19 +31,7 @@ import {
   Cog6ToothIcon,
   CreditCardIcon,
   ClockIcon,
-  ChartBarIcon,
-  TargetIcon,
-  AwardIcon,
-  ZapIcon,
-  UsersIcon,
-  CheckCircleIcon,
-  ArrowRightIcon,
-  MapPinIcon,
-  PoundSterlingIcon,
-  BuildingIcon,
-  EyeIcon,
-  LockIcon,
-  PieChartIcon
+  ArrowRightIcon
 } from '@heroicons/react/24/outline';
 import TrustBadges from '../components/TrustBadges';
 import PartnerLogos from '../components/PartnerLogos';
