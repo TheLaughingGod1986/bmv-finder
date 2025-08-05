@@ -3,6 +3,12 @@
   "name": "BMV Finder Property Capture",
   "version": "1.0.0",
   "description": "Capture property data from real estate websites and add to your personalized watchlist",
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
   "permissions": [
     "activeTab",
     "storage",
@@ -38,6 +44,12 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "BMV Finder Property Capture"
+    "default_title": "BMV Finder Property Capture",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
   }
 } 
