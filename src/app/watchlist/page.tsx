@@ -1169,22 +1169,25 @@ export default function WatchlistPage() {
                       </h4>
                       
                       {/* Basic Metrics */}
-                      <div className="space-y-2 text-sm mb-4">
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Price:</span>
-                          <span className="font-semibold">{formatPrice(property.price)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Yield:</span>
-                          <span className="font-semibold text-green-600">{metrics.yield}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">ROI:</span>
-                          <span className="font-semibold text-blue-600">{metrics.annualROI.toFixed(1)}%</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-gray-600">Monthly Profit:</span>
-                          <span className="font-semibold text-blue-600">{formatPrice(metrics.netAnnualProfit / 12)}</span>
+                      <div className="mb-4">
+                        <h5 className="font-semibold text-gray-800 mb-2 text-sm">📊 Basic Metrics:</h5>
+                        <div className="bg-white rounded-lg p-3 border border-gray-200 space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Price:</span>
+                            <span className="font-semibold">{formatPrice(property.price)}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Yield:</span>
+                            <span className="font-semibold text-green-600">{metrics.yield}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">ROI:</span>
+                            <span className="font-semibold text-blue-600">{metrics.annualROI.toFixed(1)}%</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Monthly Profit:</span>
+                            <span className="font-semibold text-blue-600">{formatPrice(metrics.netAnnualProfit / 12)}</span>
+                          </div>
                         </div>
                       </div>
 
