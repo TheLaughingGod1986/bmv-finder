@@ -35,11 +35,53 @@ async function saveUserData() {
   }
 }
 
+// Clear all cached demo data
+async function clearCachedDemoData() {
+  try {
+    const result = await chrome.storage.local.get(['userData', 'isAuthenticated', 'authToken']);
+    
+    // Check for any demo data that needs to be cleared
+    const hasDemoData = result.userData && (
+      result.userData.name === 'John Doe' || 
+      result.userData.name === 'Demo User' ||
+      result.userData.name === 'Sarah Smith' ||
+      result.userData.name === 'Mike Johnson'
+    );
+    
+    if (hasDemoData) {
+      console.log('BMV Finder: Clearing all cached demo data');
+      await chrome.storage.local.remove(['userData', 'isAuthenticated', 'authToken']);
+      return true; // Indicates data was cleared
+    }
+    
+    return false; // No demo data found
+  } catch (error) {
+    console.error('Error clearing demo data:', error);
+    return false;
+  }
+}
+
 // Load user data and capture limits
 async function loadUserData() {
   try {
     // First check local storage for cached auth data
     const authResult = await chrome.storage.local.get(['userData', 'isAuthenticated', 'authToken']);
+    
+    // Clear any cached demo data that might contain "John Doe"
+    if (authResult.userData && authResult.userData.name === 'John Doe') {
+      console.log('BMV Finder: Clearing cached demo data');
+      await chrome.storage.local.remove(['userData', 'isAuthenticated', 'authToken']);
+      // Reset to clean state
+      userData = {
+        isAuthenticated: false,
+        name: 'Not Signed In',
+        membership: 'Free Plan',
+        captureLimit: 5,
+        capturedCount: 0
+      };
+      updateUserInterface();
+      return;
+    }
     
     if (authResult.authToken) {
       // For now, use cached user data if available, otherwise validate token
@@ -318,8 +360,11 @@ function showError(message) {
 }
 
 // Handle sign-in button click
-signInButton.addEventListener('click', () => {
+signInButton.addEventListener('click', async () => {
   if (!userData.isAuthenticated) {
+    // Clear any cached demo data before signing in
+    await clearCachedDemoData();
+    
     // Open sign-in page in new tab with your live deployment URL
     // Include a callback parameter to return to the extension
     const callbackUrl = chrome.runtime.getURL('popup.html');
@@ -359,6 +404,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   console.log('BMV Finder: Popup DOM loaded');
   
   try {
+    // Clear any cached demo data first
+    const clearedDemoData = await clearCachedDemoData();
+    if (clearedDemoData) {
+      console.log('BMV Finder: Demo data cleared, starting fresh');
+    }
+    
     await loadUserData();
     await loadCapturedProperties();
     updateUserInterface();

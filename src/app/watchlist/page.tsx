@@ -4,7 +4,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useToast } from '../components/ToastProvider';
 import { 
   Home as HomeIcon, 
   Eye as EyeIcon, 
@@ -12,23 +11,27 @@ import {
   Target, 
   Calculator, 
   Briefcase as BriefcaseIcon,
+  ExternalLink as ExternalLinkIcon,
+  Archive as ArchiveIcon,
+  Trash as TrashIcon,
+  BedDouble as BedDoubleIcon,
+  Bath as BathIcon,
   MapPin,
   PoundSterling,
+  Calendar,
+  Star,
   Filter,
   Search,
   X,
   Plus,
-  Clock,
-  Calendar,
-  Edit,
-  Trash2,
-  Star,
+  Edit as PencilIcon,
   CheckCircle,
-  AlertCircle,
-  ArrowUpDown,
-  ChevronDown,
-  ChevronUp
+  Check,
+  Clock
 } from 'lucide-react';
+import PredictionExplanationCard from '../components/PredictionExplanationCard';
+import { useToast } from '../components/ToastProvider';
+
 
 interface WatchlistItem {
   id: string;
@@ -53,45 +56,30 @@ interface WatchlistItem {
   status: string;
   created_at: string;
   updated_at: string;
+  total_size?: {
+    value: number;
+    unit: string;
+  } | null;
+  floor_plan_links?: Array<{
+    url: string;
+    text: string;
+  }> | null;
   refurbishment_cost?: number;
+  total_cost?: number;
   estimated_fair_value?: number;
-  custom_rental_estimate?: number;
+  fair_bid_amount?: number;
+  user_notes?: string;
   property_condition?: string;
+  market_trend?: string;
   days_on_market?: number;
+  custom_rental_estimate?: number;
   mortgage_type?: string;
   mortgage_rate?: number;
   mortgage_term?: number;
-  user_notes?: string;
+  // Offer tracking
   offer_amount?: number;
   offer_date?: string;
-  offer_status?: string;
-}
-
-interface EditForm {
-  title: string;
-  price: number;
-  address: string;
-  description: string;
-  bedrooms: number;
-  bathrooms: number;
-  property_type: string;
-  tenure: string;
-  postcode: string;
-  agent_name: string;
-  agent_phone: string;
-  refurbishment_cost: number;
-  estimated_fair_value: number;
-  custom_rental_estimate: number;
-  property_condition: string;
-  days_on_market: number;
-  mortgage_type: string;
-  mortgage_rate: number;
-  mortgage_term: number;
-  user_notes: string;
-  status: string;
-  offer_amount: number;
-  offer_date: string;
-  offer_status: string;
+  offer_status?: 'pending' | 'accepted' | 'rejected';
 }
 
 export default function WatchlistPage() {
@@ -105,12 +93,13 @@ export default function WatchlistPage() {
   const [sortBy, setSortBy] = useState('captured_at');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showFilters, setShowFilters] = useState(false);
-  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['quick-metrics']));
-  const [editingProperty, setEditingProperty] = useState<string | null>(null);
   const [comparisonMode, setComparisonMode] = useState(false);
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
-  const [editForm, setEditForm] = useState<EditForm>({
+  const [editingProperty, setEditingProperty] = useState<string | null>(null);
+  const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['quick-metrics']));
+  const [editForm, setEditForm] = useState({
+    // Basic property details
     title: '',
     price: 0,
     address: '',
@@ -120,97 +109,489 @@ export default function WatchlistPage() {
     property_type: '',
     tenure: '',
     postcode: '',
+    
+    // Agent details
     agent_name: '',
     agent_phone: '',
+    
+    // Investment analysis
     refurbishment_cost: 0,
     estimated_fair_value: 0,
     custom_rental_estimate: 0,
     property_condition: 'Good',
     days_on_market: 0,
+    
+    // Mortgage settings
     mortgage_type: 'Interest-Only',
     mortgage_rate: 4.5,
     mortgage_term: 25,
+    
+    // Notes and status
     user_notes: '',
     status: 'active',
+    
+    // Offer tracking
     offer_amount: 0,
     offer_date: '',
-    offer_status: 'pending'
+    offer_status: 'pending' as 'pending' | 'accepted' | 'rejected'
   });
-
-  const loadWatchlist = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch('/api/watchlist');
-      if (response.ok) {
-        const data = await response.json();
-        // API returns { success, count, properties } - we need the properties array
-        const properties = data.properties || data;
-        setWatchlist(Array.isArray(properties) ? properties : []);
-      } else {
-        console.error('Failed to load watchlist:', response.status);
-        setWatchlist([]);
-      }
-    } catch (error) {
-      console.error('Error loading watchlist:', error);
-      setWatchlist([]);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     loadWatchlist();
   }, []);
 
-  // Utility functions
-  const calculateRentalEstimateSync = (property: WatchlistItem): number => {
-    const baseRent = property.price * 0.004; // 4.8% annual yield
-    const bedroomMultiplier = property.bedrooms * 0.1;
-    return Math.round(baseRent * (1 + bedroomMultiplier));
+  const loadWatchlist = async () => {
+    try {
+      const response = await fetch('/api/watchlist');
+      const result = await response.json();
+
+      if (!response.ok) {
+        console.error('Error loading watchlist:', result.error);
+        return;
+      }
+
+      setWatchlist(result.properties || []);
+    } catch (error) {
+      console.error('Error loading watchlist:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const calculateYield = (rent: number, price: number): string => {
-    if (price === 0) return '0';
-    return ((rent * 12 / price) * 100).toFixed(1);
+  const updatePropertyStatus = async (id: string, status: string) => {
+    try {
+      const response = await fetch(`/api/properties/capture`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, status }),
+      });
+
+      if (!response.ok) {
+        console.error('Error updating status');
+        return;
+      }
+
+      setWatchlist(prev => 
+        prev.map(item => 
+          item.id === id ? { ...item, status } : item
+        )
+      );
+    } catch (error) {
+      console.error('Error updating status:', error);
+    }
+  };
+
+  const deleteProperty = async (id: string) => {
+    const confirmed = window.confirm('Are you sure you want to delete this property?');
+    if (!confirmed) return;
+
+    try {
+      const response = await fetch(`/api/properties/capture?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        console.error('Error deleting property');
+        return;
+      }
+
+      setWatchlist(prev => prev.filter(item => item.id !== id));
+    } catch (error) {
+      console.error('Error deleting property:', error);
+    }
+  };
+
+  const addToPortfolio = async (property: WatchlistItem) => {
+    const confirmed = window.confirm(`Add ${property.address} to your portfolio?`);
+    if (!confirmed) return;
+
+    try {
+      // For now, just show a success message since portfolio API isn't implemented yet
+      alert('Property added to portfolio successfully!');
+    } catch (error) {
+      console.error('Error adding to portfolio:', error);
+    }
+  };
+
+  const startEditing = (property: WatchlistItem) => {
+    setEditingProperty(property.id);
+    setEditForm({
+      // Basic property details
+      title: property.title || '',
+      price: property.price || 0,
+      address: property.address || '',
+      description: property.description || '',
+      bedrooms: property.bedrooms || 0,
+      bathrooms: property.bathrooms || 0,
+      property_type: property.property_type || '',
+      tenure: property.tenure || '',
+      postcode: property.postcode || '',
+      
+      // Agent details
+      agent_name: property.agent_name || '',
+      agent_phone: property.agent_phone || '',
+      
+      // Investment analysis
+      refurbishment_cost: property.refurbishment_cost || 0,
+      estimated_fair_value: property.estimated_fair_value || property.price,
+      custom_rental_estimate: property.custom_rental_estimate || calculateRentalEstimateSync(property),
+      property_condition: property.property_condition || 'Good',
+      days_on_market: property.days_on_market || 0,
+      
+      // Mortgage settings
+      mortgage_type: property.mortgage_type || 'Interest-Only',
+      mortgage_rate: property.mortgage_rate || 4.5,
+      mortgage_term: property.mortgage_term || 25,
+      
+      // Notes and status
+      user_notes: property.user_notes || '',
+      status: property.status || 'active',
+      
+      // Offer tracking
+      offer_amount: property.offer_amount || 0,
+      offer_date: property.offer_date || '',
+      offer_status: property.offer_status || 'pending'
+    });
+  };
+
+  const saveEdit = async (propertyId: string) => {
+    try {
+      // Remove custom_rental_estimate from the request for now since the column doesn't exist
+      const { custom_rental_estimate, ...updateData } = editForm;
+      
+      const response = await fetch(`/api/watchlist`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: propertyId,
+          ...updateData
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error updating property:', errorText);
+        return;
+      }
+
+      // Reload watchlist to get updated data
+      await loadWatchlist();
+      setEditingProperty(null);
+      setEditForm(prev => ({
+        ...prev,
+        refurbishment_cost: 0,
+        user_notes: '',
+        property_condition: 'Good',
+        estimated_fair_value: 0,
+        custom_rental_estimate: 0
+      }));
+    } catch (error) {
+      console.error('Error saving edit:', error);
+      alert('Failed to save changes');
+    }
+  };
+
+  const cancelEdit = () => {
+    setEditingProperty(null);
+    setEditForm({
+      // Basic property details
+      title: '',
+      price: 0,
+      address: '',
+      description: '',
+      bedrooms: 0,
+      bathrooms: 0,
+      property_type: '',
+      tenure: '',
+      postcode: '',
+      
+      // Agent details
+      agent_name: '',
+      agent_phone: '',
+      
+      // Investment analysis
+      refurbishment_cost: 0,
+      estimated_fair_value: 0,
+      custom_rental_estimate: 0,
+      property_condition: 'Good',
+      days_on_market: 0,
+      
+      // Mortgage settings
+      mortgage_type: 'Interest-Only',
+      mortgage_rate: 4.5,
+      mortgage_term: 25,
+      
+      // Notes and status
+      user_notes: '',
+      status: 'active',
+      
+      // Offer tracking
+      offer_amount: 0,
+      offer_date: '',
+      offer_status: 'pending' as 'pending' | 'accepted' | 'rejected'
+    });
   };
 
   const calculateInvestmentMetrics = (property: WatchlistItem) => {
-    const rentalEstimate = calculateRentalEstimateSync(property);
-    const yieldPercentage = parseFloat(calculateYield(rentalEstimate, property.price));
+    try {
+    const purchasePrice = property.price;
+    const deposit = purchasePrice * 0.25; // 25% deposit
+    const refurbCost = property.refurbishment_cost || 0;
+      
+      // Calculate stamp duty for Limited Company (LTD)
+      const calculateStampDutyLTD = (price: number) => {
+        if (price <= 150000) return price * 0.00; // 0% up to £150k
+        if (price <= 250000) return (price - 150000) * 0.02; // 2% on £150k-£250k
+        if (price <= 925000) return (price - 250000) * 0.05; // 5% on £250k-£925k
+        if (price <= 1500000) return (price - 925000) * 0.10; // 10% on £925k-£1.5M
+        return (price - 1500000) * 0.12; // 12% on anything above £1.5M
+      };
+      
+      const stampDutyLTD = calculateStampDutyLTD(purchasePrice);
+      const legalFees = Math.max(1500, purchasePrice * 0.01); // £1,500 minimum or 1% of purchase price
+      const surveyFees = 500; // Standard survey fee
+      const otherFees = 300; // Searches, registration, etc.
+      
+      const totalFees = stampDutyLTD + legalFees + surveyFees + otherFees;
+      const totalCost = deposit + refurbCost + totalFees;
     
-    // Calculate mortgage payment (assuming 75% LTV, 4.5% interest rate)
-    const mortgageAmount = property.price * 0.75;
-    const monthlyMortgagePayment = (mortgageAmount * 0.045) / 12;
-    
-    // Calculate monthly expenses (insurance, maintenance, etc.)
-    const monthlyExpenses = property.price * 0.01 / 12; // 1% of property value annually
-    
-    // Calculate monthly cash flow
-    const monthlyCashFlow = rentalEstimate - monthlyMortgagePayment - monthlyExpenses;
-    
-    // Calculate annual metrics
-    const annualRentalIncome = rentalEstimate * 12;
-    const annualMortgagePayment = monthlyMortgagePayment * 12;
-    const annualExpenses = monthlyExpenses * 12;
-    const netAnnualProfit = annualRentalIncome - annualMortgagePayment - annualExpenses;
-    
-    // Calculate payback period
-    const totalInvestment = property.price * 0.25; // 25% deposit
-    const paybackPeriod = totalInvestment / netAnnualProfit;
-    
-    // Calculate returns
-    const annualReturn = (netAnnualProfit / totalInvestment) * 100;
-    const cashOnCashReturn = (netAnnualProfit / totalInvestment) * 100;
+    const monthlyRent = calculateRentalEstimateSync(property);
+    const annualRent = monthlyRent * 12;
+    const annualROI = totalCost > 0 ? (annualRent / totalCost) * 100 : 0;
+      
+      // Calculate payback period (years to return on investment)
+      const paybackPeriod = annualRent > 0 ? totalCost / annualRent : 0;
+      
+      // Mortgage calculations
+      const mortgageAmount = purchasePrice - deposit;
+      const interestRate = (property.mortgage_rate || 4.5) / 100; // Convert percentage to decimal
+      const mortgageTerm = property.mortgage_term || 25; // 25 years default
+      const mortgageType = property.mortgage_type || 'Interest-Only'; // Default to interest-only
+      
+      // Interest-only mortgage calculation
+      const monthlyInterestOnly = mortgageAmount * (interestRate / 12);
+      
+      // Repayment mortgage calculation (monthly payment)
+      const monthlyRate = interestRate / 12;
+      const numberOfPayments = mortgageTerm * 12;
+      const monthlyRepayment = mortgageAmount * (monthlyRate * Math.pow(1 + monthlyRate, numberOfPayments)) / (Math.pow(1 + monthlyRate, numberOfPayments) - 1);
+      
+      // Use the property's mortgage type setting
+      const monthlyMortgagePayment = mortgageType === 'Interest-Only' ? monthlyInterestOnly : monthlyRepayment;
+      
+      // Simplified monthly expenses (more realistic)
+      const managementFee = monthlyRent * 0.08; // 8% management fee (reduced from 10%)
+      const insuranceCost = purchasePrice * 0.0005 / 12; // 0.05% of property value annually (reduced from 0.1%)
+      const maintenanceReserve = monthlyRent * 0.03; // 3% for maintenance (reduced from 5%)
+      
+      // Total monthly expenses (simplified - removed void period reserve)
+      const totalMonthlyExpenses = monthlyMortgagePayment + managementFee + insuranceCost + maintenanceReserve;
+      
+      // Monthly profit calculations
+      const grossMonthlyProfit = monthlyRent - monthlyMortgagePayment;
+      const netMonthlyProfit = monthlyRent - totalMonthlyExpenses;
+      
+      // Annual profit calculations
+      const grossAnnualProfit = grossMonthlyProfit * 12;
+      const netAnnualProfit = netMonthlyProfit * 12;
+      
+      // Real profit margin
+      const realProfitMargin = monthlyRent > 0 ? (netMonthlyProfit / monthlyRent) * 100 : 0;
+      
+      // Calculate cash-on-cash return (more meaningful for mortgage comparisons)
+      const cashOnCashReturn = totalCost > 0 ? (netMonthlyProfit * 12 / totalCost) * 100 : 0;
     
     return {
-      monthlyCashFlow,
-      monthlyMortgagePayment,
-      monthlyExpenses,
-      netAnnualProfit,
-      paybackPeriod,
-      annualReturn,
-      cashOnCashReturn,
-      totalInvestment
+      deposit,
+      refurbCost,
+        stampDutyLTD,
+        legalFees,
+        surveyFees,
+        otherFees,
+        totalFees,
+      totalCost,
+      annualRent,
+        annualROI,
+        cashOnCashReturn,
+        paybackPeriod,
+        // Mortgage details
+        mortgageAmount,
+        monthlyInterestOnly,
+        monthlyRepayment,
+        monthlyMortgagePayment,
+        mortgageType,
+        // Expenses
+        managementFee,
+        insuranceCost,
+        maintenanceReserve,
+        totalMonthlyExpenses,
+        // Profit calculations
+        grossMonthlyProfit,
+        netMonthlyProfit,
+        grossAnnualProfit,
+        netAnnualProfit,
+        realProfitMargin
+      };
+    } catch (error) {
+      console.error('Error calculating investment metrics:', error);
+      // Return default values if calculation fails
+      return {
+        deposit: 0,
+        refurbCost: 0,
+        stampDutyLTD: 0,
+        legalFees: 0,
+        surveyFees: 0,
+        otherFees: 0,
+        totalFees: 0,
+        totalCost: 0,
+        annualRent: 0,
+        annualROI: 0,
+        paybackPeriod: 0,
+        mortgageAmount: 0,
+        monthlyInterestOnly: 0,
+        monthlyRepayment: 0,
+        monthlyMortgagePayment: 0,
+        mortgageType: 'Interest-Only',
+        managementFee: 0,
+        insuranceCost: 0,
+        maintenanceReserve: 0,
+        totalMonthlyExpenses: 0,
+        grossMonthlyProfit: 0,
+        netMonthlyProfit: 0,
+        grossAnnualProfit: 0,
+        netAnnualProfit: 0,
+        realProfitMargin: 0
+      };
+    }
+  };
+
+  const getRefurbishmentRecommendations = (property: WatchlistItem) => {
+    const basePrice = property.price;
+    const bedrooms = property.bedrooms || 2; // Default to 2 if not specified
+    const condition = property.property_condition || 'Good';
+    
+    // Base refurbishment costs per bedroom
+    const baseCostPerBedroom = {
+      'Excellent': 5000,
+      'Good': 8000,
+      'Fair': 12000,
+      'Poor': 18000,
+      'Needs Work': 25000
+    };
+    
+    const baseCost = baseCostPerBedroom[condition as keyof typeof baseCostPerBedroom] || 8000;
+    
+    // Calculate recommendations based on property size and condition
+    const lowEnd = Math.round(baseCost * bedrooms * 0.7);
+    const mediumEnd = Math.round(baseCost * bedrooms * 1.0);
+    const highEnd = Math.round(baseCost * bedrooms * 1.5);
+    
+    // Adjust based on property value (higher value properties get higher quality refurbs)
+    const valueMultiplier = basePrice > 300000 ? 1.2 : basePrice > 200000 ? 1.1 : 1.0;
+    
+    return {
+      lowEnd: Math.round(lowEnd * valueMultiplier),
+      mediumEnd: Math.round(mediumEnd * valueMultiplier),
+      highEnd: Math.round(highEnd * valueMultiplier),
+      description: {
+        lowEnd: `Basic refresh: paint, flooring, minor repairs`,
+        mediumEnd: `Standard refurb: kitchen, bathroom, decor`,
+        highEnd: `Premium refurb: high-end finishes, extensions`
+      }
+    };
+  };
+
+  const assessDealQuality = (property: WatchlistItem) => {
+    const metrics = calculateInvestmentMetrics(property);
+    const monthlyRent = calculateRentalEstimateSync(property);
+    const yieldPercentage = parseFloat(calculateYield(monthlyRent, property.price));
+    
+    // Scoring system
+    let score = 0;
+    let reasons = [];
+    let overallRating = '';
+    
+    // Yield scoring (40% of total score)
+    if (yieldPercentage >= 8) {
+      score += 40;
+      reasons.push(`Excellent yield: ${yieldPercentage}%`);
+    } else if (yieldPercentage >= 6) {
+      score += 30;
+      reasons.push(`Good yield: ${yieldPercentage}%`);
+    } else if (yieldPercentage >= 4) {
+      score += 20;
+      reasons.push(`Average yield: ${yieldPercentage}%`);
+    } else {
+      score += 10;
+      reasons.push(`Low yield: ${yieldPercentage}%`);
+    }
+    
+    // ROI and Payback Period scoring (30% of total score)
+    if (metrics.annualROI >= 12 && metrics.paybackPeriod <= 3) {
+      score += 30;
+      reasons.push(`Excellent ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
+    } else if (metrics.annualROI >= 8 && metrics.paybackPeriod <= 4) {
+      score += 25;
+      reasons.push(`Good ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
+    } else if (metrics.annualROI >= 6 && metrics.paybackPeriod <= 5) {
+      score += 20;
+      reasons.push(`Average ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
+    } else {
+      score += 10;
+      reasons.push(`Low ROI: ${metrics.annualROI.toFixed(1)}% (${metrics.paybackPeriod.toFixed(1)}y payback)`);
+    }
+    
+    // Price point scoring (20% of total score)
+    if (property.price <= 150000) {
+      score += 20;
+      reasons.push('Affordable entry point');
+    } else if (property.price <= 250000) {
+      score += 15;
+      reasons.push('Mid-range price point');
+    } else if (property.price <= 400000) {
+      score += 10;
+      reasons.push('Higher price point');
+    } else {
+      score += 5;
+      reasons.push('Premium price point');
+    }
+    
+    // Property condition scoring (10% of total score)
+    const condition = property.property_condition || 'Good';
+    if (condition === 'Excellent' || condition === 'Good') {
+      score += 10;
+      reasons.push(`Good condition: ${condition}`);
+    } else if (condition === 'Fair') {
+      score += 7;
+      reasons.push(`Fair condition: ${condition}`);
+    } else {
+      score += 5;
+      reasons.push(`Needs work: ${condition}`);
+    }
+    
+    // Overall rating
+    if (score >= 85) {
+      overallRating = 'Excellent Deal';
+    } else if (score >= 70) {
+      overallRating = 'Good Deal';
+    } else if (score >= 55) {
+      overallRating = 'Average Deal';
+    } else if (score >= 40) {
+      overallRating = 'Poor Deal';
+    } else {
+      overallRating = 'Avoid';
+    }
+    
+    return {
+      score,
+      overallRating,
+      reasons,
+      yieldPercentage,
+      annualROI: metrics.annualROI,
+      paybackPeriod: metrics.paybackPeriod,
+      totalCost: metrics.totalCost
     };
   };
 
@@ -388,24 +769,21 @@ export default function WatchlistPage() {
     };
   };
 
-  const toggleBreakdown = (propertyId: string) => {
-    const newExpanded = new Set(expandedBreakdowns);
-    if (newExpanded.has(propertyId)) {
-      newExpanded.delete(propertyId);
-    } else {
-      newExpanded.add(propertyId);
-    }
-    setExpandedBreakdowns(newExpanded);
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
   };
 
-  const toggleSection = (sectionId: string) => {
-    const newExpanded = new Set(expandedSections);
-    if (newExpanded.has(sectionId)) {
-      newExpanded.delete(sectionId);
-    } else {
-      newExpanded.add(sectionId);
-    }
-    setExpandedSections(newExpanded);
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
   };
 
   const toggleComparisonMode = () => {
@@ -427,334 +805,74 @@ export default function WatchlistPage() {
     return selectedProperties.includes(propertyId);
   };
 
-  const getRefurbishmentRecommendations = (property: WatchlistItem) => {
-    const basePrice = property.price;
-    const bedrooms = property.bedrooms || 2; // Default to 2 if not specified
-    const condition = property.property_condition || 'Good';
-    
-    // Base refurbishment costs per bedroom
-    const baseCostPerBedroom = {
-      'Excellent': 5000,
-      'Good': 8000,
-      'Fair': 12000,
-      'Poor': 18000,
-      'Needs Work': 25000
-    };
-    
-    const baseCost = baseCostPerBedroom[condition as keyof typeof baseCostPerBedroom] || 8000;
-    
-    // Calculate recommendations based on property size and condition
-    const lowEnd = Math.round(baseCost * bedrooms * 0.7);
-    const mediumEnd = Math.round(baseCost * bedrooms * 1.0);
-    const highEnd = Math.round(baseCost * bedrooms * 1.5);
-    
-    // Adjust based on property value (higher value properties get higher quality refurbs)
-    const valueMultiplier = basePrice > 300000 ? 1.2 : basePrice > 200000 ? 1.1 : 1.0;
-    
-    return {
-      lowEnd: Math.round(lowEnd * valueMultiplier),
-      mediumEnd: Math.round(mediumEnd * valueMultiplier),
-      highEnd: Math.round(highEnd * valueMultiplier),
-      description: {
-        lowEnd: `Basic refresh: paint, flooring, minor repairs`,
-        mediumEnd: `Standard refurb: kitchen, bathroom, decor`,
-        highEnd: `Premium refurb: high-end finishes, extensions`
-      }
-    };
+  const toggleBreakdown = (propertyId: string) => {
+    const newExpanded = new Set(expandedBreakdowns);
+    if (newExpanded.has(propertyId)) {
+      newExpanded.delete(propertyId);
+    } else {
+      newExpanded.add(propertyId);
+    }
+    setExpandedBreakdowns(newExpanded);
   };
 
-  // Filtered and sorted watchlist
-  const filteredWatchlist = useMemo(() => {
-    if (!Array.isArray(watchlist)) return [];
-    
-    let filtered = watchlist.filter(item => {
-      const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           item.address.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
-      const matchesPrice = priceFilter === 'all' || 
-        (priceFilter === 'under-100k' && item.price < 100000) ||
-        (priceFilter === '100k-200k' && item.price >= 100000 && item.price < 200000) ||
-        (priceFilter === '200k-300k' && item.price >= 200000 && item.price < 300000) ||
-        (priceFilter === '300k-400k' && item.price >= 300000 && item.price < 400000) ||
-        (priceFilter === '400k-500k' && item.price >= 400000 && item.price < 500000) ||
-        (priceFilter === 'over-500k' && item.price >= 500000);
-      
-      return matchesSearch && matchesStatus && matchesPrice;
+  const toggleSection = (sectionId: string) => {
+    const newExpanded = new Set(expandedSections);
+    if (newExpanded.has(sectionId)) {
+      newExpanded.delete(sectionId);
+    } else {
+      newExpanded.add(sectionId);
+    }
+    setExpandedSections(newExpanded);
+  };
+
+  // Memoized rental estimates to prevent recalculation
+  const rentalEstimates = useMemo(() => {
+    const estimates: { [key: string]: number } = {};
+    watchlist.forEach(property => {
+      const baseRent = property.price * 0.008;
+      // Use property ID to generate consistent variation
+      const hash = property.id.split('').reduce((a, b) => {
+        a = ((a << 5) - a) + b.charCodeAt(0);
+        return a & a;
+      }, 0);
+      const variation = 0.9 + (Math.abs(hash) % 20) / 100; // 0.9 to 1.1 range
+      estimates[property.id] = Math.round(baseRent * variation);
     });
+    return estimates;
+  }, [watchlist]);
 
-    // Sort the filtered results
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
-      
-      switch (sortBy) {
-        case 'price':
-          aValue = a.price;
-          bValue = b.price;
-          break;
-        case 'captured_at':
-          aValue = new Date(a.captured_at).getTime();
-          bValue = new Date(b.captured_at).getTime();
-          break;
-        case 'bedrooms':
-          aValue = a.bedrooms;
-          bValue = b.bedrooms;
-          break;
-        case 'yield':
-          aValue = parseFloat(calculateYield(calculateRentalEstimateSync(a), a.price));
-          bValue = parseFloat(calculateYield(calculateRentalEstimateSync(b), b.price));
-          break;
-        case 'payback':
-          aValue = calculateInvestmentMetrics(a).paybackPeriod;
-          bValue = calculateInvestmentMetrics(b).paybackPeriod;
-          break;
-        case 'cashflow':
-          aValue = calculateInvestmentMetrics(a).monthlyCashFlow;
-          bValue = calculateInvestmentMetrics(b).monthlyCashFlow;
-          break;
-        default:
-          return 0;
-      }
-      
-      if (aValue !== bValue) {
-        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
-      }
-      
-      return 0;
-    });
-
-    return filtered;
-  }, [watchlist, searchTerm, statusFilter, priceFilter, sortBy, sortOrder]);
-
-  const deleteProperty = async (propertyId: string) => {
-    const confirmed = window.confirm('Are you sure you want to delete this property?');
-    if (!confirmed) return;
-
-    try {
-      const response = await fetch(`/api/watchlist`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: propertyId }),
-      });
-      
-      if (response.ok) {
-        await loadWatchlist();
-      } else {
-        console.error('Error deleting property:', response.status);
-      }
-    } catch (error) {
-      console.error('Error deleting property:', error);
+  const calculateRentalEstimateSync = (property: WatchlistItem) => {
+    // Use custom rental estimate if available, otherwise use calculated estimate
+    if (property.custom_rental_estimate && property.custom_rental_estimate > 0) {
+      return property.custom_rental_estimate;
     }
+    return rentalEstimates[property.id] || Math.round(property.price * 0.008);
   };
 
-  const addToPortfolio = async (property: WatchlistItem) => {
-    const confirmed = window.confirm(`Add ${property.address} to your portfolio?`);
-    if (!confirmed) return;
-
-    try {
-      // For now, just show a success message since portfolio API isn't implemented yet
-      alert('Property added to portfolio successfully!');
-    } catch (error) {
-      console.error('Error adding to portfolio:', error);
-    }
+  const calculateYield = (monthlyRent: number, price: number) => {
+    return ((monthlyRent * 12) / price * 100).toFixed(1);
   };
 
-  const startEditing = (property: WatchlistItem) => {
-    setEditingProperty(property.id);
-    
-    // Format the offer date for HTML date input (YYYY-MM-DD)
-    let formattedOfferDate = '';
-    if (property.offer_date) {
-      try {
-        const date = new Date(property.offer_date);
-        if (!isNaN(date.getTime())) {
-          formattedOfferDate = date.toISOString().split('T')[0];
-        }
-      } catch (error) {
-        console.warn('Invalid offer date format:', property.offer_date);
-      }
-    }
-    
-    setEditForm({
-      title: property.title || '',
-      price: property.price || 0,
-      address: property.address || '',
-      description: property.description || '',
-      bedrooms: property.bedrooms || 0,
-      bathrooms: property.bathrooms || 0,
-      property_type: property.property_type || '',
-      tenure: property.tenure || '',
-      postcode: property.postcode || '',
-      agent_name: property.agent_name || '',
-      agent_phone: property.agent_phone || '',
-      refurbishment_cost: property.refurbishment_cost || 0,
-      estimated_fair_value: property.estimated_fair_value || property.price,
-      custom_rental_estimate: property.custom_rental_estimate || calculateRentalEstimateSync(property),
-      property_condition: property.property_condition || 'Good',
-      days_on_market: property.days_on_market || 0,
-      mortgage_type: property.mortgage_type || 'Interest-Only',
-      mortgage_rate: property.mortgage_rate || 4.5,
-      mortgage_term: property.mortgage_term || 25,
-      user_notes: property.user_notes || '',
-      status: property.status || 'active',
-      offer_amount: property.offer_amount || 0,
-      offer_date: formattedOfferDate,
-      offer_status: property.offer_status || 'pending'
-    });
-  };
 
-  const saveEdit = async (propertyId: string) => {
-    try {
-      const { custom_rental_estimate, ...updateData } = editForm;
-      
-      const response = await fetch(`/api/watchlist`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: propertyId,
-          ...updateData
-        }),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error updating property:', errorText);
-        return;
-      }
-
-      await loadWatchlist();
-      setEditingProperty(null);
-      setEditForm({
-        title: '',
-        price: 0,
-        address: '',
-        description: '',
-        bedrooms: 0,
-        bathrooms: 0,
-        property_type: '',
-        tenure: '',
-        postcode: '',
-        agent_name: '',
-        agent_phone: '',
-        refurbishment_cost: 0,
-        estimated_fair_value: 0,
-        custom_rental_estimate: 0,
-        property_condition: 'Good',
-        days_on_market: 0,
-        mortgage_type: 'Interest-Only',
-        mortgage_rate: 4.5,
-        mortgage_term: 25,
-        user_notes: '',
-        status: 'active',
-        offer_amount: 0,
-        offer_date: '',
-        offer_status: 'pending'
-      });
-    } catch (error) {
-      console.error('Error saving edit:', error);
-      alert('Failed to save changes');
-    }
-  };
-
-  const cancelEdit = () => {
-    setEditingProperty(null);
-    setEditForm({
-      title: '',
-      price: 0,
-      address: '',
-      description: '',
-      bedrooms: 0,
-      bathrooms: 0,
-      property_type: '',
-      tenure: '',
-      postcode: '',
-      agent_name: '',
-      agent_phone: '',
-      refurbishment_cost: 0,
-      estimated_fair_value: 0,
-      custom_rental_estimate: 0,
-      property_condition: 'Good',
-      days_on_market: 0,
-      mortgage_type: 'Interest-Only',
-      mortgage_rate: 4.5,
-      mortgage_term: 25,
-      user_notes: '',
-      status: 'active',
-      offer_amount: 0,
-      offer_date: '',
-      offer_status: 'pending'
-    });
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-GB');
-    } catch {
-      return 'Invalid date';
-    }
-  };
-
-  // Validate image URL
-  const isValidImageUrl = (url: string): boolean => {
-    if (!url || typeof url !== 'string') return false;
-    
-    // Check if URL is valid
-    try {
-      new URL(url);
-    } catch {
-      return false;
-    }
-    
-    // Check if it's an image URL
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.svg'];
-    const hasImageExtension = imageExtensions.some(ext => url.toLowerCase().includes(ext));
-    
-    // Check if it's from a known property website
-    const knownDomains = [
-      'zoopla.co.uk',
-      'rightmove.co.uk',
-      'onthemarket.com',
-      'primelocation.com',
-      'st.zoocdn.com',
-      'media.rightmove.co.uk',
-      'images.zoopla.co.uk',
-      'media.onthemarket.com',
-      'media.primelocation.com'
-    ];
-    
-    const hasKnownDomain = knownDomains.some(domain => url.includes(domain));
-    
-    return hasImageExtension || hasKnownDomain;
-  };
-
-  // Get valid image URL
-  const getValidImageUrl = (images: string[]): string | null => {
-    if (!images || !Array.isArray(images)) return null;
-    
-    for (const imageUrl of images) {
-      if (isValidImageUrl(imageUrl)) {
-        return imageUrl;
-      }
-    }
-    
-    return null;
-  };
 
   const getSourceIcon = (source: string) => {
     switch (source.toLowerCase()) {
-      case 'rightmove': return '🏠';
-      case 'zoopla': return '🏘️';
-      case 'onthemarket': return '🏡';
-      default: return '📋';
+      case 'rightmove':
+        return '🏠';
+      case 'zoopla':
+        return '🏘️';
+      case 'onthemarket':
+        return '🏡';
+      default:
+        return '🏠';
     }
+  };
+
+  const getGrowthColor = (assessment: string) => {
+    if (assessment.includes('High')) return 'text-green-600';
+    if (assessment.includes('Good')) return 'text-blue-600';
+    if (assessment.includes('Moderate')) return 'text-yellow-600';
+    return 'text-orange-600';
   };
 
   // Calculate rental demand based on location, property type, and market factors
@@ -857,179 +975,56 @@ export default function WatchlistPage() {
     }
     
     return {
-      demandLevel,
-      demandColor,
-      demandScore
+      score: demandScore,
+      level: demandLevel,
+      color: demandColor,
+      factors: {
+        location: isHighDemand ? 'High Demand Area' : isMediumDemand ? 'Medium Demand Area' : 'Standard Area',
+        propertyType: propertyType.charAt(0).toUpperCase() + propertyType.slice(1),
+        bedrooms: `${bedrooms} bed`,
+        typeMultiplier: typeMultiplier,
+        bedMultiplier: bedMultiplier
+      }
     };
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return <CheckCircle className="w-4 h-4 text-green-500" />;
-      case 'pending': return <Clock className="w-4 h-4 text-yellow-500" />;
-      case 'sold': return <Star className="w-4 h-4 text-blue-500" />;
-      default: return <AlertCircle className="w-4 h-4 text-gray-500" />;
-    }
-  };
-
-  // Copy professional offer to clipboard
-  const copyProfessionalOffer = async (property: WatchlistItem) => {
-    const offerAnalysis = getRecommendedOffer(property);
-    const valueAnalysis = analyzePropertyValue(property);
-    const metrics = calculateInvestmentMetrics(property);
-    const rentalDemand = calculateRentalDemand(property);
-    
-    const offerText = `PROFESSIONAL PROPERTY OFFER
-
-Property: ${property.title}
-Address: ${property.address}
-Asking Price: ${formatPrice(property.price)}
-
-RECOMMENDED OFFER: ${formatPrice(offerAnalysis.recommendedOffer)}
-(${offerAnalysis.negotiationBuffer}% below asking price)
-
-INVESTMENT ANALYSIS:
-• Price Assessment: ${valueAnalysis.priceAssessment}
-• Fair Value: ${formatPrice(valueAnalysis.fairValue)}
-• Rental Yield: ${calculateYield(calculateRentalEstimateSync(property), property.price)}%
-• Annual ROI: ${metrics.annualReturn.toFixed(1)}%
-• Monthly Cash Flow: ${formatPrice(metrics.monthlyCashFlow)}
-• Payback Period: ${metrics.paybackPeriod.toFixed(1)} years
-• Rental Demand: ${rentalDemand.demandLevel}
-
-PROPERTY DETAILS:
-• ${property.bedrooms} bedroom${property.bedrooms !== 1 ? 's' : ''}, ${property.bathrooms} bathroom${property.bathrooms !== 1 ? 's' : ''}
-• Property Type: ${property.property_type}
-• Tenure: ${property.tenure}
-
-OFFER TERMS:
-• Offer Amount: ${formatPrice(offerAnalysis.recommendedOffer)}
-• Subject to: Survey, Mortgage, and Legal Checks
-• Completion: Within 8-12 weeks
-• Chain Status: No chain
-
-This offer is based on comprehensive market analysis and investment metrics.`;
-
-    try {
-      await navigator.clipboard.writeText(offerText);
-      showToast({
-        type: 'success',
-        title: 'Offer Copied!',
-        message: 'Professional offer copied to clipboard'
-      });
-    } catch (error) {
-      console.error('Failed to copy offer:', error);
-      showToast({
-        type: 'error',
-        title: 'Copy Failed',
-        message: 'Failed to copy offer to clipboard'
-      });
-    }
-  };
-
-  // Generate negotiation strategy
-  const generateNegotiationStrategy = (property: WatchlistItem) => {
-    const offerAnalysis = getRecommendedOffer(property);
-    const valueAnalysis = analyzePropertyValue(property);
-    const metrics = calculateInvestmentMetrics(property);
-    const rentalDemand = calculateRentalDemand(property);
-    const daysOnMarket = property.days_on_market || 0;
-    
-    let strategy = `NEGOTIATION STRATEGY FOR ${property.title.toUpperCase()}
-
-CURRENT MARKET POSITION:
-• Asking Price: ${formatPrice(property.price)}
-• Days on Market: ${daysOnMarket} days
-• Price Assessment: ${valueAnalysis.priceAssessment}
-• Rental Demand: ${rentalDemand.demandLevel}
-
-RECOMMENDED APPROACH:`;
-
-    // Strategy based on market conditions
-    if (daysOnMarket > 60) {
-      strategy += `
-🎯 AGGRESSIVE NEGOTIATION (Property on market >60 days)
-• Start with: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 0.95))} (5% below recommended)
-• Target: ${formatPrice(offerAnalysis.recommendedOffer)}
-• Maximum: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.05))}
-
-TACTICS:
-• Emphasize time on market as leverage
-• Highlight any needed repairs/updates
-• Offer quick completion to sweeten deal
-• Be prepared to walk away if price doesn't move`;
-    } else if (daysOnMarket > 30) {
-      strategy += `
-🎯 MODERATE NEGOTIATION (Property on market 30-60 days)
-• Start with: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 0.97))} (3% below recommended)
-• Target: ${formatPrice(offerAnalysis.recommendedOffer)}
-• Maximum: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.03))}
-
-TACTICS:
-• Present market analysis to justify offer
-• Show comparable properties
-• Offer flexible completion date
-• Be patient but firm on price`;
-    } else {
-      strategy += `
-🎯 CONSERVATIVE NEGOTIATION (Property on market <30 days)
-• Start with: ${formatPrice(offerAnalysis.recommendedOffer)}
-• Target: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.02))}
-• Maximum: ${formatPrice(Math.round(offerAnalysis.recommendedOffer * 1.05))}
-
-TACTICS:
-• Present strong financial position
-• Offer quick decision and completion
-• Emphasize no chain status
-• Be prepared to move quickly`;
-    }
-
-    strategy += `
-
-KEY TALKING POINTS:
-• Investment potential: ${metrics.annualReturn.toFixed(1)}% annual return
-• Rental income: ${formatPrice(calculateRentalEstimateSync(property))}/month
-• Market demand: ${rentalDemand.demandLevel} rental demand
-• Fair value assessment: ${formatPrice(valueAnalysis.fairValue)}
-
-NEGOTIATION TIMELINE:
-• Week 1: Submit initial offer
-• Week 2: Follow up and negotiate
-• Week 3: Finalize terms
-• Week 4-8: Complete transaction
-
-Remember: Stay professional, be prepared with data, and know your walk-away price.`;
-
-    // Create a modal or alert with the strategy
-    const strategyWindow = window.open('', '_blank', 'width=600,height=800');
-    if (strategyWindow) {
-      strategyWindow.document.write(`
-        <html>
-          <head>
-            <title>Negotiation Strategy - ${property.title}</title>
-            <style>
-              body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
-              .header { background: #3B82F6; color: white; padding: 20px; margin: -20px -20px 20px -20px; }
-              .section { margin: 20px 0; padding: 15px; border-left: 4px solid #3B82F6; background: #f8fafc; }
-              .highlight { background: #fef3c7; padding: 10px; border-radius: 5px; margin: 10px 0; }
-              .tactics { background: #dbeafe; padding: 15px; border-radius: 5px; margin: 15px 0; }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h1>🎯 Negotiation Strategy</h1>
-              <h2>${property.title}</h2>
-            </div>
-            <pre style="white-space: pre-wrap; font-family: inherit;">${strategy}</pre>
-          </body>
-        </html>
-      `);
-      strategyWindow.document.close();
-    } else {
-      // Fallback to alert if popup is blocked
-      alert('Negotiation strategy generated! Check your popup blocker if the window didn\'t open.');
-    }
-  };
+  const filteredWatchlist = useMemo(() => {
+    return watchlist.filter(item => {
+      const matchesSearch = item.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.title.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
+      
+      let matchesPrice = true;
+      if (priceFilter !== 'all') {
+        const price = item.price;
+        switch (priceFilter) {
+          case 'under-100k': matchesPrice = price < 100000; break;
+          case '100k-200k': matchesPrice = price >= 100000 && price < 200000; break;
+          case '200k-300k': matchesPrice = price >= 200000 && price < 300000; break;
+          case '300k-400k': matchesPrice = price >= 300000 && price < 400000; break;
+          case '400k-500k': matchesPrice = price >= 400000 && price < 500000; break;
+          case 'over-500k': matchesPrice = price >= 500000; break;
+        }
+      }
+      
+      return matchesSearch && matchesStatus && matchesPrice;
+    }).sort((a, b) => {
+      const aValue = a[sortBy as keyof WatchlistItem];
+      const bValue = b[sortBy as keyof WatchlistItem];
+      
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortOrder === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+      
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+      
+      return 0;
+    });
+  }, [watchlist, searchTerm, statusFilter, priceFilter, sortBy, sortOrder]);
 
   if (loading) {
     return (
@@ -1133,7 +1128,6 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
               <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1">
                 <div className="flex items-center justify-between mb-4">
@@ -1230,35 +1224,68 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                   }).length}
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="text-cyan-600 font-semibold">last 7 days</span>
+                  <span className="text-cyan-600 font-semibold">Last 7 days</span>
                 </div>
               </div>
             </div>
 
-            {/* Filters and Search */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 mb-8">
-              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      placeholder="Search properties..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
+            {/* Prediction Explanation Section */}
+            <div className="mb-8">
+              <PredictionExplanationCard />
+            </div>
+
+            {/* Demo Data Notification */}
+            <div data-demo-banner className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-sm font-bold">ℹ️</span>
                   </div>
                 </div>
-                
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-blue-800 mb-1">Demo Mode</h3>
+                  <p className="text-sm text-blue-700 mb-2">
+                    You're currently viewing demo data. To capture real properties and access your personal watchlist, 
+                    please <a href="/auth" className="font-semibold underline hover:text-blue-800">sign in</a> or 
+                    <a href="/pricing" className="font-semibold underline hover:text-blue-800 ml-1">upgrade your account</a>.
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-blue-600">
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                      Demo properties shown
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                      Real data when logged in
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => {
+                    const banner = document.querySelector('[data-demo-banner]') as HTMLElement;
+                    if (banner) banner.style.display = 'none';
+                  }}
+                  className="flex-shrink-0 text-blue-400 hover:text-blue-600"
+                >
+                  <span className="text-lg">×</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-8">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
                 <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-bold text-gray-900">Your Watchlist</h2>
+                  <span className="text-sm text-gray-500">({filteredWatchlist.length} properties)</span>
+                </div>
+                
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                   >
                     <Filter className="w-4 h-4" />
                     Filters
-                    {showFilters ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
                   </button>
                   
                   <button
@@ -1272,787 +1299,864 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                     <Target className="w-4 h-4" />
                     {comparisonMode ? 'Exit Compare' : 'Compare'}
                   </button>
-                  
-                  <div className="flex items-center gap-2">
-                    <select
-                      value={sortBy}
-                      onChange={(e) => setSortBy(e.target.value)}
-                      className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="captured_at">Date Added</option>
-                      <option value="price">Price</option>
-                      <option value="bedrooms">Bedrooms</option>
-                      <option value="yield">Yield</option>
-                      <option value="payback">Payback Period</option>
-                      <option value="cashflow">Monthly Cash Flow</option>
-                    </select>
-                    <button
-                      onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-                      className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <ArrowUpDown className="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
               </div>
 
               {showFilters && (
-                <div className="mt-4 pt-4 border-t border-gray-200">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-                      <select
-                        value={statusFilter}
-                        onChange={(e) => setStatusFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="all">All Status</option>
-                        <option value="active">Active</option>
-                        <option value="pending">Pending</option>
-                        <option value="sold">Sold</option>
-                      </select>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6 p-4 bg-gray-50 rounded-xl">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder="Search properties..."
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
                     </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
-                      <select
-                        value={priceFilter}
-                        onChange={(e) => setPriceFilter(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      >
-                        <option value="all">All Prices</option>
-                        <option value="under-100k">Under £100k</option>
-                        <option value="100k-200k">£100k - £200k</option>
-                        <option value="200k-300k">£200k - £300k</option>
-                        <option value="300k-400k">£300k - £400k</option>
-                        <option value="400k-500k">£400k - £500k</option>
-                        <option value="over-500k">Over £500k</option>
-                      </select>
-                    </div>
-                  </div>
                 </div>
-              )}
-            </div>
-
-            {/* Results Header */}
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Your Watchlist
-                <span className="text-sm text-gray-500 ml-2">({filteredWatchlist.length} properties)</span>
-              </h2>
-              
-              <button
-                onClick={() => router.push('/extension-welcome')}
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Get Chrome Extension
-              </button>
-            </div>
-
-            {/* Properties Grid */}
-            {filteredWatchlist.length === 0 ? (
-              <div className="text-center py-12">
-                <div className="text-6xl mb-4">🏠</div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">No properties found</h3>
-                <p className="text-gray-600 mb-6">
-                  {searchTerm || statusFilter !== 'all' || priceFilter !== 'all' 
-                    ? "Try adjusting your search or filters to see more properties."
-                    : "Start capturing properties with the BMV Finder Chrome extension to build your watchlist."
-                  }
-                </p>
-                {!searchTerm && statusFilter === 'all' && priceFilter === 'all' && (
-                  <button
-                    onClick={() => router.push('/extension-welcome')}
-                    className="inline-flex items-center px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select 
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="active">Active</option>
+                      <option value="archived">Archived</option>
+                  </select>
+                </div>
+                
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Price Range</label>
+                  <select 
+                    value={priceFilter} 
+                    onChange={(e) => setPriceFilter(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">All Prices</option>
+                      <option value="under-100k">Under £100k</option>
+                      <option value="100k-200k">£100k - £200k</option>
+                      <option value="200k-300k">£200k - £300k</option>
+                      <option value="300k-400k">£300k - £400k</option>
+                      <option value="400k-500k">£400k - £500k</option>
+                      <option value="over-500k">Over £500k</option>
+                  </select>
+                </div>
+                
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sort By</label>
+                  <select 
+                    value={sortBy} 
+                    onChange={(e) => setSortBy(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Get Chrome Extension
-                  </button>
-                )}
+                      <option value="captured_at">Date Captured</option>
+                    <option value="price">Price</option>
+                      <option value="address">Address</option>
+                      <option value="bedrooms">Bedrooms</option>
+                  </select>
+                </div>
+                      </div>
+                    )}
+
+              {filteredWatchlist.length === 0 ? (
+              <div className="text-center py-16">
+                <div className="bg-gray-50 rounded-2xl p-12">
+                    <HomeIcon className="h-20 w-20 text-gray-400 mx-auto mb-6" />
+                    <h3 className="text-2xl font-semibold text-gray-900 mb-4">No properties found</h3>
+                  <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                      {searchTerm || statusFilter !== 'all' || priceFilter !== 'all'
+                        ? "Try adjusting your filters to see more properties."
+                        : "Start capturing properties with the BMV Finder Chrome extension to build your watchlist."
+                    }
+                  </p>
+                    {searchTerm || statusFilter !== 'all' || priceFilter !== 'all' ? (
+                    <button
+                      onClick={() => {
+                        setSearchTerm('');
+                          setStatusFilter('all');
+                          setPriceFilter('all');
+                      }}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <X className="w-4 h-4" />
+                      Clear Filters
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => router.push('/extension-welcome')}
+                      className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                      Get Chrome Extension
+                    </button>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredWatchlist.map((item, index) => (
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 overflow-hidden"
-                  >
-                    {/* Property Image */}
-                    <div className="relative h-48 bg-gray-200">
-                      {(() => {
-                        const validImageUrl = getValidImageUrl(item.images);
-                        return validImageUrl ? (
-                          <Image
-                            src={validImageUrl}
-                            alt={item.title}
-                            width={400}
-                            height={300}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              console.log('BMV Finder: Image failed to load:', validImageUrl);
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.innerHTML = `
-                                  <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
-                                    <div class="text-center">
-                                      <div class="text-4xl mb-2">🏠</div>
-                                      <div class="text-sm text-gray-500 font-medium">${item.property_type || 'Property'}</div>
-                                      <div class="text-xs text-gray-400">${item.bedrooms || 0} bed${item.bedrooms !== 1 ? 's' : ''}</div>
+              ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                  {filteredWatchlist.map((item, index) => {
+                    const rentalEstimate = calculateRentalEstimateSync(item);
+                    const yieldPercentage = calculateYield(rentalEstimate, item.price);
+                    
+                    return (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.1 }}
+                        className="bg-white rounded-2xl shadow-lg border border-gray-100 hover:shadow-xl transition-all duration-200 overflow-hidden"
+                      >
+                        {item.images && item.images.length > 0 ? (
+                          <div className="relative h-48 bg-gray-200">
+                            <Image
+                              src={item.images[0]}
+                              alt={item.title}
+                              width={400}
+                              height={300}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                // Replace broken image with a placeholder
+                                const target = e.target as HTMLImageElement;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `
+                                    <div class="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+                                      <div class="text-center">
+                                        <div class="text-4xl mb-2">🏠</div>
+                                        <div class="text-sm text-gray-500 font-medium">${item.property_type || 'Property'}</div>
+                                        <div class="text-xs text-gray-400">${item.bedrooms || 0} bed${item.bedrooms !== 1 ? 's' : ''}</div>
+                                      </div>
                                     </div>
-                                  </div>
-                                `;
-                              }
-                            }}
-                            onLoad={(e) => {
-                              console.log('BMV Finder: Image loaded successfully:', validImageUrl);
-                            }}
-                            unoptimized={true}
-                          />
+                                  `;
+                                }
+                              }}
+                            />
+                            <div className="absolute top-3 left-3">
+                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
+                                {getSourceIcon(item.source)} {item.source}
+                              </span>
+                  </div>
+                            <div className="absolute top-3 right-3 flex gap-1">
+                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                Demo
+                              </span>
+                            </div>
+                          </div>
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+                          <div className="relative h-48 bg-gradient-to-br from-blue-50 to-gray-100 flex items-center justify-center">
                             <div className="text-center">
                               <div className="text-4xl mb-2">🏠</div>
                               <div className="text-sm text-gray-500 font-medium">{item.property_type || 'Property'}</div>
                               <div className="text-xs text-gray-400">{item.bedrooms || 0} bed{item.bedrooms !== 1 ? 's' : ''}</div>
                             </div>
-                          </div>
-                        );
-                      })()}
-                      
-                      {/* Source Badge */}
-                      <div className="absolute top-3 left-3">
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
-                          {getSourceIcon(item.source)} {item.source}
-                        </span>
-                      </div>
-                      
-                      {/* Status Badge */}
-                      <div className="absolute top-3 right-3">
-                        <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
-                          {item.status}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Property Content */}
-                    <div className="p-6">
-                      {comparisonMode && (
-                        <div className="flex items-center gap-2 mb-2">
-                          <input
-                            type="checkbox"
-                            checked={isPropertySelected(item.id)}
-                            onChange={() => togglePropertySelection(item.id)}
-                            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
-                          />
-                          <span className="text-sm text-gray-600">Select for comparison</span>
-                        </div>
-                      )}
-                      <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                        {item.title}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-                        <MapPin className="w-4 h-4" />
-                        <span className="line-clamp-1">{item.address}</span>
-                      </div>
-                      
-                      <div className="text-2xl font-bold text-blue-600 mb-4">
-                        {formatPrice(item.price)}
-                      </div>
-
-                      {/* Rental Demand & Deal Rating Badges */}
-                      {(() => {
-                        const rentalDemand = calculateRentalDemand(item);
-                        const valueAnalysis = analyzePropertyValue(item);
-                        const metrics = calculateInvestmentMetrics(item);
-                        
-                        // Calculate deal rating based on multiple factors
-                        const getDealRating = () => {
-                          let score = 0;
-                          
-                          // Price assessment (30% weight)
-                          if (valueAnalysis.priceAssessment === 'Excellent Price') score += 30;
-                          else if (valueAnalysis.priceAssessment === 'Good Price') score += 25;
-                          else if (valueAnalysis.priceAssessment === 'Fair Price') score += 20;
-                          else score += 10;
-                          
-                          // Rental yield (25% weight)
-                          const yieldValue = parseFloat(calculateYield(calculateRentalEstimateSync(item), item.price));
-                          if (yieldValue >= 8) score += 25;
-                          else if (yieldValue >= 6) score += 20;
-                          else if (yieldValue >= 4) score += 15;
-                          else score += 10;
-                          
-                          // Annual ROI (25% weight)
-                          if (metrics.annualReturn >= 12) score += 25;
-                          else if (metrics.annualReturn >= 8) score += 20;
-                          else if (metrics.annualReturn >= 5) score += 15;
-                          else score += 10;
-                          
-                          // Payback period (20% weight)
-                          if (metrics.paybackPeriod <= 5) score += 20;
-                          else if (metrics.paybackPeriod <= 8) score += 15;
-                          else if (metrics.paybackPeriod <= 12) score += 10;
-                          else score += 5;
-                          
-                          return score;
-                        };
-                        
-                        const dealScore = getDealRating();
-                        
-                        const getDealRatingInfo = (score: number) => {
-                          if (score >= 85) return { level: 'Excellent', color: 'bg-green-100 text-green-800 border-green-200' };
-                          if (score >= 70) return { level: 'Good', color: 'bg-blue-100 text-blue-800 border-blue-200' };
-                          if (score >= 55) return { level: 'Fair', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
-                          if (score >= 40) return { level: 'Poor', color: 'bg-orange-100 text-orange-800 border-orange-200' };
-                          return { level: 'Very Poor', color: 'bg-red-100 text-red-800 border-red-200' };
-                        };
-                        
-                        const dealRating = getDealRatingInfo(dealScore);
-                        
-                        return (
-                          <div className="flex gap-2 mb-4">
-                            {/* Rental Demand Badge */}
-                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${rentalDemand.demandColor.replace('text-', 'bg-').replace('-600', '-100')} ${rentalDemand.demandColor} border-${rentalDemand.demandColor.replace('text-', '').replace('-600', '-200')}`}>
-                              <span className="mr-1">🏠</span>
-                              {rentalDemand.demandLevel} Demand
+                            <div className="absolute top-3 left-3">
+                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-blue-600 text-white rounded-full">
+                                {getSourceIcon(item.source)} {item.source}
+                              </span>
                             </div>
-                            
-                            {/* Deal Rating Badge */}
-                            <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border ${dealRating.color}`}>
-                              <span className="mr-1">⭐</span>
-                              {dealRating.level} Deal ({dealScore})
-                            </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Basic Property Info */}
-                      <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-100">
-                        <div className="grid grid-cols-2 gap-3 text-sm">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <span className="text-lg">🛏️</span>
-                            <span className="font-medium">{item.bedrooms} bed{item.bedrooms !== 1 ? 's' : ''}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <span className="text-lg">🚿</span>
-                            <span className="font-medium">{item.bathrooms} bath{item.bathrooms !== 1 ? 's' : ''}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <span className="text-lg">🏠</span>
-                            <span className="font-medium">{item.property_type}</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <span className="text-lg">📅</span>
-                            <span className="font-medium">{formatDate(item.captured_at)}</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Quick Investment Metrics */}
-                      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
-                        <button 
-                          onClick={() => toggleSection('quick-metrics')}
-                          className="w-full bg-gradient-to-r from-purple-600 to-purple-700 px-4 py-3 text-left hover:from-purple-700 hover:to-purple-800 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-white">📊</span>
-                              <h4 className="text-sm font-bold text-white">QUICK METRICS</h4>
-                            </div>
-                            <div className={`text-white transition-transform duration-200 ${expandedSections.has('quick-metrics') ? 'rotate-180' : ''}`}>
-                              <ChevronDown className="w-4 h-4" />
-                            </div>
-                          </div>
-                        </button>
-                        {expandedSections.has('quick-metrics') && (
-                          <div className="p-4">
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                              <div className="flex justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                <span className="text-gray-600 font-medium">Yield:</span>
-                                <span className="font-bold text-purple-600">{calculateYield(calculateRentalEstimateSync(item), item.price)}%</span>
-                              </div>
-                              <div className="flex justify-between p-3 bg-purple-50 rounded-lg border border-purple-100">
-                                <span className="text-gray-600 font-medium">Monthly Rent:</span>
-                                <span className="font-bold text-purple-600">{formatPrice(calculateRentalEstimateSync(item))}</span>
-                              </div>
-                            </div>
+                            <div className="absolute top-3 right-3 flex gap-1">
+                              <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                Demo
+                              </span>
+                </div>
                           </div>
                         )}
-                      </div>
 
-                      {/* Investment Metrics */}
-                      {(() => {
-                        const metrics = calculateInvestmentMetrics(item);
-                        const growthAnalysis = analyzeGrowthPotential(item);
-                        const valueAnalysis = analyzePropertyValue(item);
-                        const offerAnalysis = getRecommendedOffer(item);
-                        
-                        const getGrowthColor = (assessment: string) => {
-                          if (assessment === 'Excellent') return 'text-green-600';
-                          if (assessment === 'Good') return 'text-blue-600';
-                          if (assessment === 'Average') return 'text-yellow-600';
-                          return 'text-red-600';
-                        };
-                        
-                        const getPriceColor = (assessment: string) => {
-                          if (assessment === 'Excellent Price') return 'text-green-600';
-                          if (assessment === 'Good Price') return 'text-blue-600';
-                          if (assessment === 'Fair Price') return 'text-yellow-600';
-                          return 'text-red-600';
-                        };
-                        
-                        return (
-                          <div className="space-y-4">
-                            {/* Growth Projections */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                              {/* Header */}
-                              <button 
-                                onClick={() => toggleSection('growth-projections')}
-                                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 px-4 py-3 text-left hover:from-blue-700 hover:to-blue-800 transition-colors"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-white">📈</span>
-                                    <h4 className="text-sm font-bold text-white">GROWTH PROJECTIONS</h4>
+                        <div className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                              {comparisonMode && (
+                                <div className="flex items-center gap-2 mb-2">
+                                  <input
+                                    type="checkbox"
+                                    checked={isPropertySelected(item.id)}
+                                    onChange={() => togglePropertySelection(item.id)}
+                                    className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+                                  />
+                                  <span className="text-sm text-gray-600">Select for comparison</span>
                                   </div>
-                                  <div className={`text-white transition-transform duration-200 ${expandedSections.has('growth-projections') ? 'rotate-180' : ''}`}>
-                                    <ChevronDown className="w-4 h-4" />
-                                  </div>
-                                </div>
-                              </button>
-                              
-                              {/* Content */}
-                              {expandedSections.has('growth-projections') && (
-                                <div className="p-4">
-                                  <div className="grid grid-cols-2 gap-3 text-xs">
-                                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                      <span className="text-gray-600 font-medium">10-Year Growth:</span>
-                                      <span className={`font-bold ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
-                                        {growthAnalysis.tenYearGrowth}%
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                      <span className="text-gray-600 font-medium">Projected Value:</span>
-                                      <span className="font-bold text-green-600">{formatPrice(growthAnalysis.projectedValue)}</span>
-                                    </div>
-                                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                      <span className="text-gray-600 font-medium">Payback Period:</span>
-                                      <span className="font-bold text-blue-600">{metrics.paybackPeriod.toFixed(1)}y</span>
-                                    </div>
-                                    <div className="flex justify-between p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                      <span className="text-gray-600 font-medium">Annual Profit:</span>
-                                      <span className={`font-bold ${metrics.netAnnualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        {formatPrice(metrics.netAnnualProfit)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
                               )}
+                              <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+                                {item.title}
+                              </h3>
+                              <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                                <MapPin className="w-4 h-4" />
+                                <span className="line-clamp-1">{item.address}</span>
+                                  </div>
+                                </div>
+                          </div>
+                              
+                          {/* Enhanced Key Metrics */}
+                          <div className="grid grid-cols-3 gap-3 mb-4">
+                            <div className="text-center p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200">
+                              <div className="text-xl font-bold text-blue-700">
+                                {formatPrice(item.price)}
+                              </div>
+                              <div className="text-xs text-blue-600 font-medium">Asking Price</div>
+                            </div>
+                            <div className="text-center p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200">
+                              <div className="text-lg font-bold text-green-700">
+                                £{rentalEstimate.toLocaleString()}
+                              </div>
+                              <div className="text-xs text-green-600 font-medium">Monthly Rent</div>
+                            </div>
+                            <div className="text-center p-3 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200">
+                              <div className={`text-lg font-bold ${
+                                parseFloat(yieldPercentage) >= 6 ? 'text-green-700' :
+                                parseFloat(yieldPercentage) >= 4 ? 'text-yellow-700' :
+                                'text-red-700'
+                              }`}>
+                                {yieldPercentage}%
+                              </div>
+                              <div className="text-xs text-purple-600 font-medium">Gross Yield</div>
+                            </div>
+                          </div>
+
+                          {/* Property Details */}
+                          <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
+                            <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                              <span className="text-gray-600">Bedrooms:</span>
+                              <span className="font-semibold text-gray-800">{item.bedrooms > 0 ? item.bedrooms : 'N/A'}</span>
+                            </div>
+                            <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                              <span className="text-gray-600">Bathrooms:</span>
+                              <span className="font-semibold text-gray-800">{item.bathrooms > 0 ? item.bathrooms : 'N/A'}</span>
                             </div>
                             
-                            {/* Recommended Offer Section */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
-                              {/* Header */}
-                              <button 
-                                onClick={() => toggleSection('recommended-offer')}
-                                className="w-full bg-gradient-to-r from-amber-600 to-amber-700 px-4 py-3 text-left hover:from-amber-700 hover:to-amber-800 transition-colors"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-white">🎯</span>
-                                    <h4 className="text-sm font-bold text-white">RECOMMENDED OFFER</h4>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-xs text-amber-100 font-medium">{offerAnalysis.negotiationBuffer}% below asking</span>
-                                    <div className={`text-white transition-transform duration-200 ${expandedSections.has('recommended-offer') ? 'rotate-180' : ''}`}>
-                                      <ChevronDown className="w-4 h-4" />
-                                    </div>
-                                  </div>
+                            {/* Rental Demand Marker */}
+                            {(() => {
+                              const rentalDemand = calculateRentalDemand(item);
+                              return (
+                                <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                                  <span className="text-gray-600">Rental Demand:</span>
+                                  <span className={`font-semibold ${rentalDemand.color}`}>
+                                    {rentalDemand.level}
+                                  </span>
                                 </div>
-                              </button>
-                              
-                              {/* Main Offer Display */}
-                              {expandedSections.has('recommended-offer') && (
-                                <div className="p-4">
-                                  <div className="text-center mb-4">
-                                    <div className="text-3xl font-bold text-amber-700 mb-2">
-                                      {formatPrice(offerAnalysis.recommendedOffer)}
-                                    </div>
-                                    <div className="text-sm text-gray-500 font-medium">
-                                      vs {formatPrice(item.price)} asking price
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Quick Analysis */}
-                                  <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-                                    <div className="flex justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                      <span className="text-gray-600 font-medium">Price Assessment:</span>
-                                      <span className={`font-bold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
-                                        {valueAnalysis.priceAssessment}
-                                      </span>
-                                    </div>
-                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                      <span className="text-gray-600 font-medium">Fair Value:</span>
-                                      <span className="font-bold text-gray-800">
-                                        {formatPrice(valueAnalysis.fairValue)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Action Buttons */}
-                                  <div className="flex gap-3">
-                                    <button 
-                                      onClick={() => copyProfessionalOffer(item)}
-                                      className="flex-1 py-3 px-4 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                      <span>📄</span>
-                                      Copy Professional Offer
-                                    </button>
-                                    <button 
-                                      onClick={() => generateNegotiationStrategy(item)}
-                                      className="flex-1 py-3 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                                    >
-                                      <span>🎯</span>
-                                      Generate Strategy
-                                    </button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
+                              );
+                            })()}
                             
-                            {/* Investment Summary */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
-                              {/* Header */}
-                              <button 
-                                onClick={() => toggleSection('investment-summary')}
-                                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3 text-left hover:from-indigo-700 hover:to-indigo-800 transition-colors"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-white">💰</span>
-                                    <h4 className="text-sm font-bold text-white">INVESTMENT SUMMARY</h4>
+                            <div className="flex justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                              <span className="text-gray-600">Property Type:</span>
+                              <span className="font-semibold text-gray-800">{item.property_type || 'N/A'}</span>
+                            </div>
+                          </div>
+                            
+                            {/* Enhanced Deal Assessment */}
+                            {(() => {
+                              const assessment = assessDealQuality(item);
+                              const getRatingColor = (rating: string) => {
+                                if (rating.includes('Excellent')) return 'text-green-600';
+                                if (rating.includes('Good')) return 'text-blue-600';
+                                if (rating.includes('Average')) return 'text-yellow-600';
+                                if (rating.includes('Poor')) return 'text-orange-600';
+                                return 'text-red-600';
+                              };
+                              
+                              // Check if this is the best deal in the current list
+                              const isBestDeal = watchlist.length > 1 && 
+                                watchlist.every(otherItem => 
+                                  otherItem.id === item.id || 
+                                  assessDealQuality(otherItem).score <= assessment.score
+                                );
+                              
+                              return (
+                                <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-200">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm font-bold text-gray-800">📊 Deal Assessment</span>
+                                      {isBestDeal && (
+                                        <span className="inline-flex items-center px-3 py-1 text-xs font-bold bg-gradient-to-r from-green-400 to-green-600 text-white rounded-full shadow-sm">
+                                          🏆 Best Deal
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="text-right">
+                                      <div className={`text-lg font-bold ${getRatingColor(assessment.overallRating)}`}>
+                                        {assessment.overallRating}
+                                      </div>
+                                      <div className="text-xs text-gray-600">Score: {assessment.score}/100</div>
+                                    </div>
                                   </div>
-                                  <div className={`text-white transition-transform duration-200 ${expandedSections.has('investment-summary') ? 'rotate-180' : ''}`}>
-                                    <ChevronDown className="w-4 h-4" />
+                                  
+                                  <div className="space-y-1">
+                                    {assessment.reasons.slice(0, 2).map((reason, index) => (
+                                      <div key={index} className="text-xs text-gray-700 flex items-center gap-1">
+                                        <span className="text-green-500">✓</span>
+                                        {reason}
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
-                              </button>
+                              );
+                            })()}
+
+                            {/* Property Valuation Analysis */}
+                            {(() => {
+                              const valueAnalysis = analyzePropertyValue(item);
+                              const offerAnalysis = getRecommendedOffer(item);
+                              let growthAnalysis;
+                              try {
+                                growthAnalysis = analyzeGrowthPotential(item);
+                              } catch (error) {
+                                console.error('Error analyzing growth potential:', error);
+                                growthAnalysis = {
+                                  tenYearGrowth: 0,
+                                  projectedValue: item.price,
+                                  growthAssessment: 'stable'
+                                };
+                              }
                               
-                              {/* Summary Content */}
-                              {expandedSections.has('investment-summary') && (
-                                <div className="p-4">
-                                  <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                      <span className="text-gray-600 font-medium">Total Investment:</span>
-                                      <span className="font-bold text-gray-800">{formatPrice(metrics.totalInvestment)}</span>
+                              const getPriceColor = (assessment: string) => {
+                                if (assessment.includes('Excellent')) return 'text-green-600';
+                                if (assessment.includes('Good')) return 'text-blue-600';
+                                if (assessment.includes('Fair')) return 'text-yellow-600';
+                                if (assessment.includes('Overpriced')) return 'text-orange-600';
+                                return 'text-red-600';
+                              };
+                              
+                              return (
+                                <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
+                                  {/* Growth & Timeline - Moved Above Recommended Offer */}
+                                  {(() => {
+                                    const metrics = calculateInvestmentMetrics(item);
+                                    return (
+                                      <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border-2 border-blue-200">
+                                    <div className="text-center mb-2">
+                                      <div className="text-xs text-gray-600 mb-1">📈 GROWTH PROJECTIONS</div>
                                     </div>
-                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                      <span className="text-gray-600 font-medium">Annual Return:</span>
-                                      <span className="font-bold text-green-600">{metrics.annualReturn.toFixed(1)}%</span>
-                                    </div>
-                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                      <span className="text-gray-600 font-medium">Monthly Profit:</span>
-                                      <span className="font-bold text-green-600">{formatPrice(metrics.monthlyCashFlow)}</span>
-                                    </div>
-                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                      <span className="text-gray-600 font-medium">Cash-on-Cash:</span>
-                                      <span className="font-bold text-blue-600">{metrics.cashOnCashReturn.toFixed(1)}%</span>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Mortgage Type Indicator */}
-                                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                    <span>🏠</span>
-                                    <span className="font-medium">{item.mortgage_type || 'Interest-Only'} Mortgage</span>
-                                  </div>
-                                  
-                                  {/* Monthly Cash Flow Breakdown */}
-                                  <div className="bg-gray-50 rounded-lg p-4 text-xs border border-gray-100">
-                                    <div className="text-center mb-3 font-bold text-gray-700 text-sm">Monthly Cash Flow</div>
-                                    <div className="space-y-2">
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-gray-600 font-medium">+ Rental Income:</span>
-                                        <span className="font-bold text-green-600">+{formatPrice(calculateRentalEstimateSync(item))}</span>
+                                    <div className="grid grid-cols-2 gap-3 text-xs">
+                                      <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
+                                        <span className="text-gray-600">10-Year Growth:</span>
+                                        <span className={`font-semibold ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
+                                          {growthAnalysis.tenYearGrowth}%
+                                        </span>
                                       </div>
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-gray-600 font-medium">- Mortgage Payment:</span>
-                                        <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyMortgagePayment)}</span>
+                                      <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
+                                        <span className="text-gray-600">Projected Value:</span>
+                                        <span className="font-semibold text-green-600">{formatPrice(growthAnalysis.projectedValue)}</span>
                                       </div>
-                                      <div className="flex justify-between items-center">
-                                        <span className="text-gray-600 font-medium">- Other Expenses:</span>
-                                        <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyExpenses)}</span>
+                                      <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
+                                        <span className="text-gray-600">Payback Period:</span>
+                                        <span className="font-semibold text-blue-600">{metrics.paybackPeriod.toFixed(1)}y</span>
                                       </div>
-                                      <div className="flex justify-between items-center border-t border-gray-300 pt-2 mt-2">
-                                        <span className="text-gray-800 font-bold">= Net Cash Flow:</span>
-                                        <span className={`font-bold text-lg ${metrics.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                          = {formatPrice(metrics.monthlyCashFlow)}
+                                      <div className="flex justify-between p-2 bg-white rounded border border-gray-100">
+                                        <span className="text-gray-600">Annual Profit:</span>
+                                        <span className={`font-semibold ${metrics.netAnnualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          {formatPrice(metrics.netAnnualProfit)}
                                         </span>
                                       </div>
                                     </div>
                                   </div>
+                                    );
+                                  })()}
+                                  
+                                                                     {/* Recommended Offer Section - Redesigned */}
+                                  <div className="mt-4 bg-white rounded-lg border border-gray-200 overflow-hidden">
+                                    {/* Header */}
+                                    <div className="bg-blue-600 px-4 py-2">
+                                      <div className="flex items-center justify-between">
+                                        <h4 className="text-sm font-bold text-white">🎯 Recommended Offer</h4>
+                                        <span className="text-xs text-white">{offerAnalysis.negotiationBuffer}% below asking</span>
+                                      </div>
+                                    </div>
+                                    
+                                    {/* Main Offer Display */}
+                                    <div className="p-4">
+                                      <div className="text-center mb-4">
+                                        <div className="text-2xl font-bold text-blue-700 mb-1">
+                                          {formatPrice(offerAnalysis.recommendedOffer)}
+                                        </div>
+                                        <div className="text-xs text-gray-500">
+                                          vs {formatPrice(item.price)} asking price
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Quick Analysis */}
+                                      <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
+                                        <div className="flex justify-between p-2 bg-blue-50 rounded border border-blue-100">
+                                          <span className="text-gray-600">Price Assessment:</span>
+                                          <span className={`font-semibold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                            {valueAnalysis.priceAssessment}
+                                          </span>
+                                        </div>
+                                        <div className="flex justify-between p-2 bg-green-50 rounded border border-green-100">
+                                          <span className="text-gray-600">Fair Value:</span>
+                                          <span className="font-semibold text-gray-800">
+                                            {formatPrice(valueAnalysis.fairValue)}
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Current Offer Status - Enhanced Display */}
+                                      {item.status === 'under_offer' && item.offer_amount && (
+                                        <div className="mb-4 p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-lg border-2 border-orange-200">
+                                          <div className="flex items-center justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                              <span className="text-sm font-bold text-orange-800">🎯 Your Active Offer</span>
+                                              <span className={`text-xs px-3 py-1 rounded-full font-bold ${
+                                                item.offer_status === 'accepted' ? 'bg-green-100 text-green-800 border border-green-300' :
+                                                item.offer_status === 'rejected' ? 'bg-red-100 text-red-800 border border-red-300' :
+                                                'bg-yellow-100 text-yellow-800 border border-yellow-300'
+                                              }`}>
+                                                {item.offer_status === 'accepted' ? '✅ Accepted' :
+                                                 item.offer_status === 'rejected' ? '❌ Rejected' :
+                                                 '⏳ Pending'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-2 gap-3 mb-3">
+                                            <div className="text-center p-2 bg-white rounded border border-orange-200">
+                                              <div className="text-lg font-bold text-orange-700">{formatPrice(item.offer_amount)}</div>
+                                              <div className="text-xs text-gray-600">Your Offer</div>
+                                            </div>
+                                            <div className="text-center p-2 bg-white rounded border border-blue-200">
+                                              <div className="text-lg font-bold text-blue-700">{formatPrice(offerAnalysis.recommendedOffer)}</div>
+                                              <div className="text-xs text-gray-600">Recommended</div>
+                                            </div>
+                                          </div>
+                                          
+                                          {item.offer_date && (
+                                            <div className="text-center p-2 bg-white rounded border border-gray-200">
+                                              <div className="text-sm font-semibold text-gray-700">Submitted: {formatDate(item.offer_date)}</div>
+                                              <div className="text-xs text-gray-500">
+                                                {item.offer_amount > offerAnalysis.recommendedOffer ? 
+                                                  `£${(item.offer_amount - offerAnalysis.recommendedOffer).toLocaleString()} above recommended` :
+                                                  item.offer_amount < offerAnalysis.recommendedOffer ?
+                                                  `£${(offerAnalysis.recommendedOffer - item.offer_amount).toLocaleString()} below recommended` :
+                                                  'Exactly at recommended price'
+                                                }
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      
+                                      {/* Action Buttons */}
+                                      <div className="space-y-2">
+                                        {/* Add Offer CTA for properties without offers */}
+                                        {item.status !== 'under_offer' && (
+                                          <button
+                                            onClick={() => startEditing(item)}
+                                            className="w-full px-3 py-3 text-sm font-bold text-white bg-gradient-to-r from-green-600 to-green-700 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 shadow-md hover:shadow-lg"
+                                          >
+                                            🎯 Make an Offer - {formatPrice(offerAnalysis.recommendedOffer)}
+                                          </button>
+                                        )}
+                                        
+                                        <button
+                                          onClick={() => {
+                                            const message = `Subject: Offer for ${item.address}
+
+Dear ${item.agent_name},
+
+I'm writing to express my interest in making an offer for the property at ${item.address}.
+
+Based on my analysis of comparable properties in the area and current market conditions, I would like to make an offer of ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)}.
+
+This offer represents:
+• ${offerAnalysis ? Math.round((offerAnalysis.recommendedOffer / item.price) * 100) : 92}% of the asking price
+• A fair market value based on recent comparable sales
+• Consideration for the property's condition and market position
+
+I'm a serious buyer and can proceed quickly with the purchase. I would appreciate the opportunity to discuss this offer and answer any questions you may have.
+
+Please let me know if you need any additional information or if you'd like to arrange a viewing.
+
+Best regards,
+[Your Name]
+[Your Phone Number]`;
+                                            
+                                            navigator.clipboard.writeText(message);
+                                            showToast({
+                                              type: 'success',
+                                              title: 'Professional Offer Template Copied!',
+                                              message: 'A comprehensive offer message has been copied to your clipboard. You can now paste it in your email to the agent.'
+                                            });
+                                          }}
+                                          className="w-full px-3 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
+                                        >
+                                          📋 Copy Professional Offer
+                                        </button>
+                                        
+                                        <button
+                                          onClick={() => {
+                                            const metrics = calculateInvestmentMetrics(item);
+                                            const strategy = `Negotiation Strategy for ${item.address}:
+
+🎯 TARGET OFFER: ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)} (${offerAnalysis ? Math.round((offerAnalysis.recommendedOffer / item.price) * 100) : 92}% of asking)
+
+📊 NEGOTIATION POINTS:
+• Comparable properties sold for ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 0.95)} - ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 1.05)} in the last 6 months
+• Property condition: ${item.property_condition || 'Good'} - may need ${formatPrice(metrics.refurbCost)} in refurbishment
+• Market position: ${(() => {
+                                             return valueAnalysis.priceAssessment.toLowerCase();
+                                           })()}
+• Days on market: ${item.days_on_market || 'Unknown'} - ${item.days_on_market > 30 ? 'Good leverage for negotiation' : 'Property may be in demand'}
+
+💰 INVESTMENT ANALYSIS:
+• Total investment needed: ${formatPrice(metrics.totalCost)}
+• Monthly mortgage payment: ${formatPrice(metrics.monthlyMortgagePayment)}
+• Gross monthly profit: ${formatPrice(metrics.grossMonthlyProfit)}
+• Net monthly profit (after all expenses): ${formatPrice(metrics.netMonthlyProfit)}
+• Annual ROI: ${metrics.annualROI.toFixed(1)}%
+• Payback period: ${metrics.paybackPeriod.toFixed(1)} years
+• Real profit margin: ${metrics.realProfitMargin.toFixed(1)}%
+
+💡 NEGOTIATION TACTICS:
+1. Start with ${formatPrice((offerAnalysis?.recommendedOffer || item.price * 0.92) * 0.95)} as initial offer
+2. Be prepared to go up to ${formatPrice(offerAnalysis?.recommendedOffer || item.price * 0.92)}
+3. Use comparable sales data to justify your offer
+4. Highlight any property issues or needed repairs
+5. Emphasize quick completion and no chain
+
+📞 AGENT CONTACT: ${item.agent_name} - ${item.agent_phone}`;
+                                             
+                                             navigator.clipboard.writeText(strategy);
+                                             showToast({
+                                               type: 'success',
+                                               title: 'Negotiation Strategy Generated!',
+                                               message: 'A detailed negotiation strategy has been copied to your clipboard. Use this to prepare for your conversation with the agent.'
+                                             });
+                                           }}
+                                           className="w-full px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors border border-gray-300"
+                                         >
+                                           🎯 Generate Negotiation Strategy
+                                       </button>
+                                     </div>
+                                   </div>
+                                  </div>
+                                  
+
                                 </div>
-                              )}
+                              );
+                            })()}
+                </div>
+
+                          {/* Investment Analysis - Streamlined */}
+                          {(() => {
+                            const metrics = calculateInvestmentMetrics(item);
+                            return (
+                              <div className="space-y-3 mb-6">
+                                {/* Key Investment Summary */}
+                                <div className="bg-gradient-to-r from-green-50 to-blue-50 rounded-lg border border-green-200 p-4">
+                                  <h4 className="text-sm font-bold text-gray-800 mb-3 flex items-center">
+                                    <span className="mr-2">💰</span> Investment Summary
+                                  </h4>
+                                  
+                                  {/* Three Key Metrics */}
+                                  <div className="grid grid-cols-3 gap-3 mb-3">
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-green-600">{formatPrice(metrics.totalCost)}</div>
+                                      <div className="text-xs text-gray-600">Total Investment</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-blue-600">{metrics.cashOnCashReturn.toFixed(1)}%</div>
+                                      <div className="text-xs text-gray-600">Cash-on-Cash Return</div>
+                                    </div>
+                                    <div className="text-center">
+                                      <div className="text-lg font-bold text-purple-600">{formatPrice(metrics.netMonthlyProfit)}</div>
+                                      <div className="text-xs text-gray-600">Monthly Profit</div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Quick Cash Flow */}
+                                  <div className="flex justify-between items-center p-2 bg-white rounded border border-gray-200">
+                                    <span className="text-sm text-gray-600">Monthly Cash Flow:</span>
+                                    <div className="text-right">
+                                      <div className="text-sm font-semibold text-green-600">+{formatPrice(calculateRentalEstimateSync(item))}</div>
+                                      <div className="text-xs text-red-600">-{formatPrice(metrics.totalMonthlyExpenses)}</div>
+                                      <div className="text-sm font-bold text-blue-600">= {formatPrice(metrics.netMonthlyProfit)}</div>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {/* Quick Breakdown - Always Visible */}
+                                <div className="bg-white rounded-lg border border-gray-200 p-3">
+                                  <div className="grid grid-cols-2 gap-3 text-xs">
+                                    <div className="flex justify-between p-2 bg-blue-50 rounded">
+                                      <span className="text-gray-600">Deposit:</span>
+                                      <span className="font-medium text-blue-600">{formatPrice(metrics.deposit)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-2 bg-orange-50 rounded">
+                                      <span className="text-gray-600">Refurb:</span>
+                                      <span className="font-medium text-orange-600">{formatPrice(metrics.refurbCost)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-2 bg-red-50 rounded">
+                                      <span className="text-gray-600">Stamp Duty:</span>
+                                      <span className="font-medium text-red-600">{formatPrice(metrics.stampDutyLTD)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-2 bg-purple-50 rounded">
+                                      <span className="text-gray-600">Mortgage ({metrics.mortgageType}):</span>
+                                      <span className="font-medium text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Investment Timeline */}
+                                  <div className="grid grid-cols-2 gap-2 mt-3">
+                                    <div className="text-center p-2 bg-yellow-50 rounded border border-yellow-200">
+                                      <div className="font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
+                                      <div className="text-gray-600">Payback Period</div>
+                                    </div>
+                                    <div className="text-center p-2 bg-indigo-50 rounded border border-indigo-200">
+                                      <div className="font-semibold text-indigo-700">{formatPrice(metrics.netAnnualProfit)}</div>
+                                      <div className="text-gray-600">Annual Profit</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })()}
+
+                          {/* Enhanced Action Buttons */}
+                          <div className="mt-6 pt-4 border-t border-gray-200">
+                            {/* Primary CTA */}
+                            <div className="mb-3">
+                              <button
+                                onClick={() => window.open(item.original_url, '_blank')}
+                                className="w-full py-3 px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                              >
+                                <ExternalLinkIcon className="h-4 w-4" />
+                                View Original Listing
+                              </button>
                             </div>
-                          </div>
-                        );
-                      })()}
-
-                      {/* Detailed Breakdown Section */}
-                      {(() => {
-                        const metrics = calculateInvestmentMetrics(item);
-                        const isExpanded = expandedBreakdowns.has(item.id);
-                        return (
-                          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
-                            <button 
-                              onClick={() => toggleBreakdown(item.id)}
-                              className="w-full bg-gradient-to-r from-gray-600 to-gray-700 px-4 py-3 text-left hover:from-gray-700 hover:to-gray-800 transition-colors"
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white\">📊</span>
-                                  <h4 className="text-sm font-bold text-white\">DETAILED BREAKDOWN</h4>
-                                </div>
-                                <div className={`text-white transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-                                  <ChevronDown className="w-4 h-4" />
-                                </div>
-                              </div>
-                            </button>
                             
-                            {isExpanded && (
-                              <div className="p-4 space-y-4">
-                                {/* Initial Investment */}
-                                <div>
-                                  <h5 className="text-xs font-semibold text-gray-700 mb-2">Initial Investment</h5>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className="bg-blue-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Deposit</div>
-                                      <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.totalInvestment)}</div>
-                                    </div>
-                                    <div className="bg-orange-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Refurbishment</div>
-                                      <div className="text-sm font-semibold text-orange-700">{formatPrice(item.refurbishment_cost || 0)}</div>
-                                    </div>
-                                    <div className="bg-red-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Stamp Duty</div>
-                                      <div className="text-sm font-semibold text-red-700">{formatPrice(Math.round(item.price * 0.02))}</div>
-                                    </div>
-                                    <div className="bg-gray-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Legal & Survey</div>
-                                      <div className="text-sm font-semibold text-gray-700">{formatPrice(4750)}</div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Monthly Expenses */}
-                                <div>
-                                  <h5 className="text-xs font-semibold text-gray-700 mb-2">Monthly Expenses</h5>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className="bg-purple-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Mortgage ({item.mortgage_type || 'Interest-Only'})</div>
-                                      <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
-                                    </div>
-                                    <div className="bg-blue-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Management</div>
-                                      <div className="text-sm font-semibold text-blue-700">{formatPrice(calculateRentalEstimateSync(item) * 0.08)}</div>
-                                    </div>
-                                    <div className="bg-orange-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Insurance</div>
-                                      <div className="text-sm font-semibold text-orange-700">{formatPrice(18)}</div>
-                                    </div>
-                                    <div className="bg-gray-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Maintenance</div>
-                                      <div className="text-sm font-semibold text-gray-700">{formatPrice(metrics.monthlyExpenses)}</div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Mortgage Options */}
-                                <div>
-                                  <h5 className="text-xs font-semibold text-gray-700 mb-2">Mortgage Options</h5>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className="bg-blue-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Interest-Only</div>
-                                      <div className="text-sm font-semibold text-blue-700">{formatPrice(metrics.monthlyMortgagePayment)}</div>
-                                    </div>
-                                    <div className="bg-purple-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Repayment</div>
-                                      <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.monthlyMortgagePayment * 1.48)}</div>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Investment Timeline */}
-                                <div>
-                                  <h5 className="text-xs font-semibold text-gray-700 mb-2">Investment Timeline</h5>
-                                  <div className="grid grid-cols-2 gap-2">
-                                    <div className="bg-yellow-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Payback Period</div>
-                                      <div className="text-sm font-semibold text-yellow-700">{metrics.paybackPeriod.toFixed(1)} years</div>
-                                    </div>
-                                    <div className="bg-purple-50 rounded p-2">
-                                      <div className="text-xs text-gray-600">Annual Profit</div>
-                                      <div className="text-sm font-semibold text-purple-700">{formatPrice(metrics.netAnnualProfit)}</div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })()}
-
-                      <div className="space-y-4">
-                        <button
-                          onClick={() => window.open(item.original_url, '_blank')}
-                          className="w-full py-2 px-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          View Original Listing
-                        </button>
-                        
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => startEditing(item)}
-                            className="flex-1 py-2 px-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                          >
-                            <Edit className="w-4 h-4 inline mr-1" />
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => deleteProperty(item.id)}
-                            className="flex-1 py-2 px-3 bg-red-100 text-red-700 font-medium rounded-lg hover:bg-red-200 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4 inline mr-1" />
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            )}
+                            {/* Secondary Actions */}
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => startEditing(item)}
+                                className="flex-1 py-2 px-3 bg-purple-100 text-purple-700 font-medium rounded-lg hover:bg-purple-200 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <span className="text-sm">✏️</span>
+                                Edit
+                              </button>
+                              
+                              <button
+                                onClick={() => updatePropertyStatus(item.id, item.status === 'active' ? 'archived' : 'active')}
+                                className="flex-1 py-2 px-3 bg-yellow-100 text-yellow-700 font-medium rounded-lg hover:bg-yellow-200 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <span className="text-sm">📁</span>
+                                {item.status === 'active' ? 'Archive' : 'Activate'}
+                              </button>
+                              
+                              <button
+                                onClick={() => addToPortfolio(item)}
+                                className="flex-1 py-2 px-3 bg-green-100 text-green-700 font-medium rounded-lg hover:bg-green-200 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <span className="text-sm">💼</span>
+                                Portfolio
+                              </button>
+                            </div>
+                            
+                            {/* Delete Button */}
+                            <div className="mt-2">
+                              <button
+                                onClick={() => deleteProperty(item.id)}
+                                className="w-full py-2 px-3 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <span className="text-sm">🗑️</span>
+                                Delete Property
+                              </button>
+                            </div>
+                  </div>
+                </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
 
             {/* Comparison View */}
             {comparisonMode && selectedProperties.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="mt-8"
-              >
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-2xl font-bold text-gray-900">
-                      Property Comparison ({selectedProperties.length} selected)
-                    </h3>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6 }}
+                  className="mt-8"
+                >
+                  <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6">
+                    
+                    {/* Demo Comparison Notification */}
+                    <div className="mb-6 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <span className="text-yellow-600 text-sm">⚠️</span>
+                        <span className="text-sm text-yellow-800 font-medium">
+                          Demo Comparison: You're comparing demo properties. 
+                          <a href="/auth" className="ml-1 underline hover:text-yellow-900">Sign in</a> to compare your real captured properties.
+                        </span>
+                      </div>
+                    </div>
+                    
+                <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-2xl font-bold text-gray-900">
+                        Property Comparison ({selectedProperties.length} selected)
+                      </h3>
                     <button
                       onClick={() => setSelectedProperties([])}
-                      className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
                     >
                       Clear Selection
                     </button>
-                  </div>
-                  
-                  {/* Deal Summary */}
-                  {(() => {
-                    const assessments = selectedProperties.map(propertyId => {
-                      const property = watchlist.find(p => p.id === propertyId);
-                      if (!property) return null;
-                      return { 
-                        ...analyzePropertyValue(property), 
-                        property,
-                        metrics: calculateInvestmentMetrics(property),
-                        growth: analyzeGrowthPotential(property)
-                      };
-                    }).filter(Boolean);
+                </div>
+                
+                    {/* Deal Summary */}
+                    {(() => {
+                      const assessments = selectedProperties.map(propertyId => {
+                    const property = watchlist.find(p => p.id === propertyId);
+                    if (!property) return null;
+                        return { ...assessDealQuality(property), property };
+                      }).filter(Boolean);
 
-                    if (assessments.length === 0) return null;
+                      if (assessments.length === 0) return null;
 
-                    // Find the best deal based on various metrics
-                    const bestROI = assessments.reduce((best, current) => 
-                      current.metrics.annualReturn > best.metrics.annualReturn ? current : best
-                    );
-                    
-                    const bestPaybackPeriod = assessments.reduce((best, current) => 
-                      current.metrics.paybackPeriod < best.metrics.paybackPeriod ? current : best
-                    );
-                    
-                    const bestGrowth = assessments.reduce((best, current) => 
-                      parseFloat(current.growth.tenYearGrowth) > parseFloat(best.growth.tenYearGrowth) ? current : best
-                    );
-                    
-                    const averageROI = Math.round(assessments.reduce((sum, a) => sum + a.metrics.annualReturn, 0) / assessments.length);
+                      // Find the best deal
+                      const bestDeal = assessments.reduce((best, current) => 
+                        current.score > best.score ? current : best
+                      );
+
+                      const averageScore = Math.round(assessments.reduce((sum, a) => sum + a.score, 0) / assessments.length);
+                      
+                      // Calculate comprehensive metrics for all selected properties
+                      const allMetrics = selectedProperties.map(propertyId => {
+                        const property = watchlist.find(p => p.id === propertyId);
+                        if (!property) return null;
+                        return calculateInvestmentMetrics(property);
+                      }).filter(Boolean);
+                      
+                      // Find best performing metrics
+                      const bestROI = allMetrics.reduce((best, current) => 
+                        current.annualROI > best.annualROI ? current : best
+                      );
+                      
+                      const bestProfitMargin = allMetrics.reduce((best, current) => 
+                        current.realProfitMargin > best.realProfitMargin ? current : best
+                      );
+                      
+                      const bestPaybackPeriod = allMetrics.reduce((best, current) => 
+                        current.paybackPeriod < best.paybackPeriod ? current : best
+                      );
                     
                     return (
-                      <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
-                        <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
-                          <span className="mr-2">📊</span> Deal Comparison Summary
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                          <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
-                            <div className="text-2xl font-bold text-green-600">{bestROI.metrics.annualReturn.toFixed(1)}%</div>
-                            <div className="text-sm text-gray-600">Best Annual ROI</div>
-                            <div className="text-xs text-gray-500 mt-1">{bestROI.property.title.substring(0, 25)}...</div>
+                        <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg border border-blue-200">
+                          <h4 className="text-lg font-semibold text-gray-900 mb-3 flex items-center">
+                            <span className="mr-2">📊</span> Deal Comparison Summary
+                          </h4>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="text-center p-3 bg-white rounded-lg border border-blue-200">
+                              <div className="text-2xl font-bold text-green-600">{bestDeal.overallRating}</div>
+                              <div className="text-sm text-gray-600">Best Overall Deal</div>
+                              <div className="text-xs text-gray-500 mt-1">{bestDeal.property.title.substring(0, 25)}...</div>
+                            </div>
+                            <div className="text-center p-3 bg-white rounded-lg border border-green-200">
+                              <div className="text-2xl font-bold text-green-600">{bestROI.annualROI.toFixed(1)}%</div>
+                              <div className="text-sm text-gray-600">Best Annual ROI</div>
+                              <div className="text-xs text-gray-500 mt-1">Total Investment: {formatPrice(bestROI.totalCost)}</div>
+                            </div>
+                            <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
+                              <div className="text-2xl font-bold text-purple-600">{bestProfitMargin.realProfitMargin.toFixed(1)}%</div>
+                              <div className="text-sm text-gray-600">Best Profit Margin</div>
+                              <div className="text-xs text-gray-500 mt-1">Net Monthly: {formatPrice(bestProfitMargin.netMonthlyProfit)}</div>
+                            </div>
+                            <div className="text-center p-3 bg-white rounded-lg border border-orange-200">
+                              <div className="text-2xl font-bold text-orange-600">{bestPaybackPeriod.paybackPeriod.toFixed(1)}y</div>
+                              <div className="text-sm text-gray-600">Fastest Payback</div>
+                              <div className="text-xs text-gray-500 mt-1">Total Investment: {formatPrice(bestPaybackPeriod.totalCost)}</div>
+                            </div>
                           </div>
-                          <div className="text-center p-3 bg-white rounded-lg border border-green-200">
-                            <div className="text-2xl font-bold text-green-600">{bestPaybackPeriod.metrics.paybackPeriod.toFixed(1)}y</div>
-                            <div className="text-sm text-gray-600">Fastest Payback</div>
-                            <div className="text-xs text-gray-500 mt-1">{bestPaybackPeriod.property.title.substring(0, 25)}...</div>
-                          </div>
-                          <div className="text-center p-3 bg-white rounded-lg border border-purple-200">
-                            <div className="text-2xl font-bold text-purple-600">{bestGrowth.growth.tenYearGrowth}%</div>
-                            <div className="text-sm text-gray-600">Best Growth Potential</div>
-                            <div className="text-xs text-gray-500 mt-1">{bestGrowth.property.title.substring(0, 25)}...</div>
-                          </div>
-                          <div className="text-center p-3 bg-white rounded-lg border border-orange-200">
-                            <div className="text-2xl font-bold text-orange-600">{formatPrice(bestROI.metrics.netAnnualProfit)}</div>
-                            <div className="text-sm text-gray-600">Best Annual Profit</div>
-                            <div className="text-xs text-gray-500 mt-1">{bestROI.property.title.substring(0, 25)}...</div>
+                          
+                          {/* Average Metrics & Actions */}
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="text-sm font-semibold text-gray-700">Average Performance</h5>
+                              <button
+                                onClick={() => addToPortfolio(bestDeal.property)}
+                                className="px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs font-medium"
+                              >
+                                Add Best Deal to Portfolio (Demo)
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-blue-600">{averageScore}/100</div>
+                                <div className="text-gray-500">Average Score</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-green-600">
+                                  {(allMetrics.reduce((sum, m) => sum + m.annualROI, 0) / allMetrics.length).toFixed(1)}%
+                                </div>
+                                <div className="text-gray-500">Avg Annual ROI</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-purple-600">
+                                  {(allMetrics.reduce((sum, m) => sum + m.realProfitMargin, 0) / allMetrics.length).toFixed(1)}%
+                                </div>
+                                <div className="text-gray-500">Avg Profit Margin</div>
+                              </div>
+                              <div className="text-center">
+                                <div className="text-lg font-bold text-orange-600">
+                                  {(allMetrics.reduce((sum, m) => sum + m.paybackPeriod, 0) / allMetrics.length).toFixed(1)}y
+                                </div>
+                                <div className="text-gray-500">Avg Payback Period</div>
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })()}
-                  
-                  {/* Detailed Comparison Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 font-semibold text-gray-900">Property</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Price</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Yield</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-900">ROI</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Payback</th>
-                          <th className="text-center py-3 px-4 font-semibold text-gray-900">Growth</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selectedProperties.map(propertyId => {
-                          const property = watchlist.find(p => p.id === propertyId);
-                          if (!property) return null;
-                          const metrics = calculateInvestmentMetrics(property);
-                          const growth = analyzeGrowthPotential(property);
-                          const yieldPercentage = calculateYield(calculateRentalEstimateSync(property), property.price);
-                          
-                          return (
-                            <tr key={propertyId} className="border-b border-gray-100 hover:bg-gray-50">
-                              <td className="py-3 px-4">
-                                <div>
-                                  <div className="font-medium text-gray-900">{property.title.substring(0, 30)}...</div>
-                                  <div className="text-xs text-gray-500">{property.address}</div>
-                                </div>
-                              </td>
-                              <td className="text-center py-3 px-4 font-semibold text-gray-900">
-                                {formatPrice(property.price)}
-                              </td>
-                              <td className="text-center py-3 px-4">
+                      );
+                    })()}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {selectedProperties.map(propertyId => {
+                        const property = watchlist.find(p => p.id === propertyId);
+                        if (!property) return null;
+
+                        const rentalEstimate = calculateRentalEstimateSync(property);
+                        const yieldPercentage = calculateYield(rentalEstimate, property.price);
+
+                        return (
+                          <div
+                            key={property.id}
+                            className="bg-gray-50 rounded-xl p-4 border-2 border-blue-200"
+                          >
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-semibold text-gray-900 line-clamp-2">
+                                {property.title}
+                              </h4>
+                              <div className="flex items-center gap-2">
+                                <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+                                  Demo
+                                </span>
+                          <button
+                            onClick={() => togglePropertySelection(property.id)}
+                                className="text-red-500 hover:text-red-700"
+                          >
+                                <X className="h-4 w-4" />
+                          </button>
+                              </div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Price:</span>
+                                <span className="font-semibold text-blue-600">
+                                  {formatPrice(property.price)}
+                                </span>
+                          </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Est. Rent:</span>
+                                <span className="font-semibold text-green-600">
+                                  £{rentalEstimate.toLocaleString()}
+                                </span>
+                          </div>
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Gross Yield:</span>
                                 <span className={`font-semibold ${
                                   parseFloat(yieldPercentage) >= 6 ? 'text-green-600' :
                                   parseFloat(yieldPercentage) >= 4 ? 'text-yellow-600' :
@@ -2060,640 +2164,720 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                                 }`}>
                                   {yieldPercentage}%
                                 </span>
-                              </td>
-                              <td className="text-center py-3 px-4">
-                                <span className={`font-semibold ${
-                                  metrics.annualReturn >= 8 ? 'text-green-600' :
-                                  metrics.annualReturn >= 5 ? 'text-yellow-600' :
-                                  'text-red-600'
-                                }`}>
-                                  {metrics.annualReturn.toFixed(1)}%
+                          </div>
+
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Bedrooms:</span>
+                                <span className="font-semibold">
+                                  {property.bedrooms > 0 ? property.bedrooms : 'N/A'}
                                 </span>
-                              </td>
-                              <td className="text-center py-3 px-4 font-semibold text-gray-900">
-                                {metrics.paybackPeriod.toFixed(1)}y
-                              </td>
-                              <td className="text-center py-3 px-4">
-                                <span className={`font-semibold ${
-                                  parseFloat(growth.tenYearGrowth) >= 50 ? 'text-green-600' :
-                                  parseFloat(growth.tenYearGrowth) >= 30 ? 'text-yellow-600' :
-                                  'text-red-600'
-                                }`}>
-                                  {growth.tenYearGrowth}%
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+                              </div>
+                              
+                              {/* Rental Demand Marker in Comparison */}
+                              {(() => {
+                                const rentalDemand = calculateRentalDemand(property);
+                                return (
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-gray-600">Rental Demand:</span>
+                                    <span className={`font-semibold ${rentalDemand.color}`}>
+                                      {rentalDemand.level}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
+                              <div className="flex justify-between text-sm">
+                                <span className="text-gray-600">Address:</span>
+                                <span className="font-semibold text-gray-800 line-clamp-1 max-w-[150px]">
+                                  {property.address}
+                            </span>
+                          </div>
+                        </div>
+                        
+                                                         {/* Deal Assessment */}
+                             {(() => {
+                               const assessment = assessDealQuality(property);
+                               const getRatingColor = (rating: string) => {
+                                 if (rating.includes('Excellent')) return 'text-green-600 bg-green-50 border-green-200';
+                                 if (rating.includes('Good')) return 'text-blue-600 bg-blue-50 border-blue-200';
+                                 if (rating.includes('Average')) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+                                 if (rating.includes('Poor')) return 'text-orange-600 bg-orange-50 border-orange-200';
+                                 return 'text-red-600 bg-red-50 border-red-200';
+                               };
+                               
+                               // Calculate best deal for comparison view
+                               const assessments = selectedProperties.map(propertyId => {
+                                 const prop = watchlist.find(p => p.id === propertyId);
+                                 if (!prop) return null;
+                                 return { ...assessDealQuality(prop), property: prop };
+                               }).filter(Boolean);
+                               
+                               const bestDeal = assessments.length > 0 ? assessments.reduce((best, current) => 
+                                 current.score > best.score ? current : best
+                               ) : null;
+                               
+                               return (
+                                 <div className="mt-4 pt-3 border-t border-gray-200">
+                                   <div className={`mb-3 p-2 rounded-lg border ${getRatingColor(assessment.overallRating)}`}>
+                                     <div className="flex justify-between items-center">
+                                       <div className="flex items-center gap-2">
+                                         {bestDeal && bestDeal.property.id === property.id && (
+                                           <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                             🏆 Best Deal
+                                           </span>
+                                         )}
+                                         <span className="text-sm font-semibold">{assessment.overallRating}</span>
+                                       </div>
+                                       <span className="text-xs font-medium">Score: {assessment.score}/100</span>
+                          </div>
+                        </div>
+                                   <div className="space-y-1 mb-3">
+                                     {assessment.reasons.slice(0, 2).map((reason, index) => (
+                                       <div key={index} className="text-xs text-gray-600">
+                                         • {reason}
+                                       </div>
+                                     ))}
+                                   </div>
+                                   <button
+                                     onClick={() => window.open(property.original_url, '_blank')}
+                                     className="w-full px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                                   >
+                                     View Original
+                                   </button>
+                                 </div>
+                               );
+                             })()}
+
+                             {/* Valuation Analysis in Comparison */}
+                             {(() => {
+                               const valueAnalysis = analyzePropertyValue(property);
+                               const offerAnalysis = getRecommendedOffer(property);
+                               let growthAnalysis;
+                               try {
+                                 growthAnalysis = analyzeGrowthPotential(property);
+                               } catch (error) {
+                                 console.error('Error analyzing growth potential:', error);
+                                 growthAnalysis = {
+                                   tenYearGrowth: 0,
+                                   projectedValue: property.price,
+                                   growthAssessment: 'stable'
+                                 };
+                               }
+                               
+                               const getPriceColor = (assessment: string) => {
+                                 if (assessment.includes('Excellent')) return 'text-green-600';
+                                 if (assessment.includes('Good')) return 'text-blue-600';
+                                 if (assessment.includes('Fair')) return 'text-yellow-600';
+                                 if (assessment.includes('Overpriced')) return 'text-orange-600';
+                                 return 'text-red-600';
+                               };
+                               
+                               return (
+                                 <div className="mt-4 pt-3 border-t border-gray-200">
+                                   <h5 className="text-sm font-semibold text-gray-800 mb-2">Valuation Analysis</h5>
+                                   <div className="space-y-2 text-xs">
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Price Assessment:</span>
+                                       <span className={`font-medium ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                         {valueAnalysis.priceAssessment}
+                                       </span>
+                                     </div>
+                                     
+                                     <div className="flex justify-between">
+                                       <span className="text-gray-600">Fair Value:</span>
+                                       <span className="font-medium text-gray-800">
+                                         {formatPrice(valueAnalysis.fairValue)}
+                                       </span>
+                                     </div>
+                                     
+                                                                            <div className="mt-2 p-2 bg-gradient-to-r from-blue-50 to-green-50 rounded border border-blue-200">
+                                         <div className="text-center">
+                                           <div className="text-xs text-gray-600 mb-1">🎯 OFFER</div>
+                                           <div className="text-sm font-bold text-blue-700 mb-1">
+                                             {formatPrice(offerAnalysis.recommendedOffer)}
+                                           </div>
+                                           <button
+                                             onClick={() => {
+                                               const message = `I'm interested in making an offer of ${formatPrice(offerAnalysis.recommendedOffer)} for this property.`;
+                                               navigator.clipboard.writeText(message);
+                                               alert('Offer message copied to clipboard!');
+                                             }}
+                                             className="w-full px-2 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700 transition-colors"
+                                           >
+                                             Copy Offer
+                                           </button>
+                                         </div>
+                                       </div>
+                                     
+
+                                   </div>
+                                 </div>
+                               );
+                             })()}
+
+                             {/* Investment Analysis in Comparison */}
+                             {(() => {
+                               const metrics = calculateInvestmentMetrics(property);
+                               const growthAnalysis = (() => {
+                                 try {
+                                   return analyzeGrowthPotential(property);
+                                 } catch (error) {
+                                   return {
+                                     tenYearGrowth: 0,
+                                     projectedValue: property.price,
+                                     growthAssessment: 'stable'
+                                   };
+                                 }
+                               })();
+                               
+                               return (
+                                 <div className="mt-4 pt-3 border-t border-gray-200">
+                                   <h5 className="text-sm font-semibold text-gray-800 mb-3 flex items-center">
+                                     <span className="mr-2">💰</span> Investment Summary
+                                   </h5>
+                                   
+                                   {/* Investment Breakdown - Show First */}
+                                   <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                                     <div className="flex justify-between p-1 bg-gray-50 rounded">
+                                       <span className="text-gray-600">Deposit:</span>
+                                       <span className="font-medium text-blue-600">{formatPrice(metrics.deposit)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-gray-50 rounded">
+                                       <span className="text-gray-600">Refurb:</span>
+                                       <span className="font-medium text-orange-600">{formatPrice(metrics.refurbCost)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-gray-50 rounded">
+                                       <span className="text-gray-600">Stamp Duty:</span>
+                                       <span className="font-medium text-red-600">{formatPrice(metrics.stampDutyLTD)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-gray-50 rounded">
+                                       <span className="text-gray-600">Legal Fees:</span>
+                                       <span className="font-medium text-gray-600">{formatPrice(metrics.legalFees)}</span>
+                                     </div>
+                                   </div>
+                                   
+                                   {/* Additional Fees in Comparison */}
+                                   <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                                     <div className="flex justify-between p-1 bg-gray-50 rounded">
+                                       <span className="text-gray-600">Survey:</span>
+                                       <span className="font-medium text-gray-600">{formatPrice(metrics.surveyFees)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-gray-50 rounded">
+                                       <span className="text-gray-600">Other:</span>
+                                       <span className="font-medium text-gray-600">{formatPrice(metrics.otherFees)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-blue-50 rounded border border-blue-200">
+                                       <span className="text-gray-600">Total Fees:</span>
+                                       <span className="font-medium text-blue-600">{formatPrice(metrics.totalFees)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-purple-50 rounded border border-purple-200">
+                                       <span className="text-gray-600">Mortgage:</span>
+                                       <span className="font-medium text-purple-600">{formatPrice(metrics.mortgageAmount)}</span>
+                                     </div>
+                                   </div>
+                                   
+                                   {/* Total Investment Summary - Show After Breakdown */}
+                                   <div className="grid grid-cols-3 gap-2 mb-3">
+                                     <div className="text-center p-2 bg-green-50 rounded border border-green-200">
+                                       <div className="text-sm font-bold text-green-600">{formatPrice(metrics.totalCost)}</div>
+                                       <div className="text-xs text-gray-500">Total Investment</div>
+                                     </div>
+                                     <div className="text-center p-2 bg-purple-50 rounded border border-purple-200">
+                                       <div className="text-sm font-bold text-purple-600">{formatPrice(metrics.monthlyMortgagePayment)}</div>
+                                       <div className="text-xs text-gray-500">Monthly Mortgage</div>
+                                     </div>
+                                     <div className="text-center p-2 bg-blue-50 rounded border border-blue-200">
+                                       <div className="text-sm font-bold text-blue-600">{metrics.annualROI.toFixed(1)}%</div>
+                                       <div className="text-xs text-gray-500">Annual ROI</div>
+                                     </div>
+                                   </div>
+                                   
+                                   {/* Cash Flow & Profit */}
+                                   <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                                     <div className="flex justify-between p-1 bg-green-50 rounded border border-green-100">
+                                       <span className="text-gray-600">Monthly Rent:</span>
+                                       <span className="font-medium text-green-600">{formatPrice(calculateRentalEstimateSync(property))}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-red-50 rounded border border-red-100">
+                                       <span className="text-gray-600">Total Expenses:</span>
+                                       <span className="font-medium text-red-600">{formatPrice(metrics.totalMonthlyExpenses)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-blue-50 rounded border border-blue-100">
+                                       <span className="text-gray-600">Net Monthly Profit:</span>
+                                       <span className={`font-medium ${metrics.netMonthlyProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                         {formatPrice(metrics.netMonthlyProfit)}
+                                       </span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-yellow-50 rounded border border-yellow-100">
+                                       <span className="text-gray-600">Profit Margin:</span>
+                                       <span className={`font-medium ${metrics.realProfitMargin >= 20 ? 'text-green-600' : metrics.realProfitMargin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+                                         {metrics.realProfitMargin.toFixed(1)}%
+                                       </span>
+                                     </div>
+                                   </div>
+                                   
+                                   {/* Growth & Timeline */}
+                                   <div className="grid grid-cols-2 gap-2 text-xs">
+                                     <div className="flex justify-between p-1 bg-white rounded border border-gray-200">
+                                       <span className="text-gray-600">10Y Growth:</span>
+                                       <span className={`font-medium ${getGrowthColor(growthAnalysis.growthAssessment)}`}>
+                                         {growthAnalysis.tenYearGrowth}%
+                                       </span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-white rounded border border-gray-200">
+                                       <span className="text-gray-600">Payback:</span>
+                                       <span className="font-medium text-blue-600">{metrics.paybackPeriod.toFixed(1)}y</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-white rounded border border-gray-200">
+                                       <span className="text-gray-600">Projected Value:</span>
+                                       <span className="font-medium text-green-600">{formatPrice(growthAnalysis.projectedValue)}</span>
+                                     </div>
+                                     <div className="flex justify-between p-1 bg-white rounded border border-gray-200">
+                                       <span className="text-gray-600">Annual Profit:</span>
+                                       <span className={`font-medium ${metrics.netAnnualProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                         {formatPrice(metrics.netAnnualProfit)}
+                                       </span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               );
+                             })()}
+                      </div>
+                    );
+                  })}
                 </div>
-              </motion.div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Edit Property Modal */}
+              {editingProperty && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                  <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div className="p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-xl font-bold text-gray-900">Edit Property</h3>
+                        <button
+                          onClick={cancelEdit}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X className="h-6 w-6" />
+                        </button>
+                      </div>
+
+                      <div className="space-y-4">
+                        {/* Basic Property Details */}
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-gray-800 mb-3">Basic Property Details</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                      <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
+                              <input
+                                type="text"
+                                value={editForm.title}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, title: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Property title"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Price (£)</label>
+                          <input
+                            type="number"
+                                value={editForm.price}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, price: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="0"
+                          />
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Address</label>
+                              <input
+                                type="text"
+                                value={editForm.address}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Property address"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Bedrooms</label>
+                              <input
+                                type="number"
+                                value={editForm.bedrooms}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, bedrooms: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Bathrooms</label>
+                              <input
+                                type="number"
+                                value={editForm.bathrooms}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, bathrooms: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Property Type</label>
+                              <select
+                                value={editForm.property_type}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, property_type: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="">Select type</option>
+                                <option value="Detached">Detached</option>
+                                <option value="Semi-Detached">Semi-Detached</option>
+                                <option value="Terraced">Terraced</option>
+                                <option value="Flat">Flat</option>
+                                <option value="Apartment">Apartment</option>
+                                <option value="Bungalow">Bungalow</option>
+                                <option value="Maisonette">Maisonette</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Tenure</label>
+                              <select
+                                value={editForm.tenure}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, tenure: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="">Select tenure</option>
+                                <option value="Freehold">Freehold</option>
+                                <option value="Leasehold">Leasehold</option>
+                                <option value="Share of Freehold">Share of Freehold</option>
+                              </select>
+                            </div>
+                            <div className="col-span-2">
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Postcode</label>
+                              <input
+                                type="text"
+                                value={editForm.postcode}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, postcode: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Postcode"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Agent Details */}
+                        <div className="bg-blue-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-blue-800 mb-3">Agent Details</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                        <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Agent Name</label>
+                              <input
+                                type="text"
+                                value={editForm.agent_name}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, agent_name: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Agent name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Agent Phone</label>
+                              <input
+                                type="text"
+                                value={editForm.agent_phone}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, agent_phone: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="Phone number"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Investment Analysis */}
+                        <div className="bg-green-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-green-800 mb-3">Investment Analysis</h4>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Rental Estimate (£)</label>
+                              <input
+                                type="number"
+                                value={editForm.custom_rental_estimate}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, custom_rental_estimate: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Estimated Fair Value (£)</label>
+                              <input
+                                type="number"
+                                value={editForm.estimated_fair_value}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, estimated_fair_value: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Days on Market</label>
+                              <input
+                                type="number"
+                                value={editForm.days_on_market}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, days_on_market: parseInt(e.target.value) || 0 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="0"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Property Condition</label>
+                          <select
+                            value={editForm.property_condition}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, property_condition: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                          >
+                            <option value="Excellent">Excellent</option>
+                            <option value="Good">Good</option>
+                            <option value="Fair">Fair</option>
+                            <option value="Poor">Poor</option>
+                            <option value="Needs Work">Needs Work</option>
+                          </select>
+                            </div>
+                          </div>
+                      </div>
+
+                        {/* Mortgage Settings */}
+                        <div className="bg-indigo-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-indigo-800 mb-3">Mortgage Settings</h4>
+                          <div className="grid grid-cols-3 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Mortgage Type</label>
+                              <select
+                                value={editForm.mortgage_type}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mortgage_type: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="Interest-Only">Interest-Only</option>
+                                <option value="Repayment">Repayment</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Interest Rate (%)</label>
+                              <input
+                                type="number"
+                                step="0.1"
+                                value={editForm.mortgage_rate}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mortgage_rate: parseFloat(e.target.value) || 4.5 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="4.5"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Term (Years)</label>
+                              <input
+                                type="number"
+                                value={editForm.mortgage_term}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mortgage_term: parseInt(e.target.value) || 25 }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                placeholder="25"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Property Description */}
+                        <div className="bg-yellow-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-yellow-800 mb-3">Property Description</h4>
+                          <textarea
+                            value={editForm.description}
+                            onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                            rows={3}
+                            className="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="Property description..."
+                          />
+                        </div>
+
+                        {/* Refurbishment Section */}
+                        <div className="bg-orange-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-orange-800 mb-3">Refurbishment & Costs</h4>
+
+                        {/* Refurbishment Recommendations */}
+                        {(() => {
+                          const property = watchlist.find(p => p.id === editingProperty);
+                          if (!property) return null;
+                          
+                          const recommendations = getRefurbishmentRecommendations({
+                            ...property,
+                            property_condition: editForm.property_condition
+                          });
+                          
+                          return (
+                              <div className="bg-white rounded-lg p-3 border border-orange-200 mb-3">
+                                <h5 className="text-xs font-semibold text-orange-700 mb-2">Refurbishment Recommendations</h5>
+                                <div className="space-y-2">
+                                <div className="flex justify-between items-center">
+                      <div>
+                                      <span className="text-xs font-medium text-green-700">Low End:</span>
+                                    <p className="text-xs text-gray-600">{recommendations.description.lowEnd}</p>
+                        </div>
+                                  <div className="text-right">
+                                      <span className="text-xs font-bold text-green-700">{formatPrice(recommendations.lowEnd)}</span>
+                                    <button
+                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.lowEnd }))}
+                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                    >
+                                      Use this
+                                    </button>
+                      </div>
+                                </div>
+                                
+                                <div className="flex justify-between items-center">
+                      <div>
+                                      <span className="text-xs font-medium text-blue-700">Medium End:</span>
+                                    <p className="text-xs text-gray-600">{recommendations.description.mediumEnd}</p>
+                        </div>
+                                  <div className="text-right">
+                                      <span className="text-xs font-bold text-blue-700">{formatPrice(recommendations.mediumEnd)}</span>
+                                    <button
+                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.mediumEnd }))}
+                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                    >
+                                      Use this
+                                    </button>
+                      </div>
+                                </div>
+                                
+                                <div className="flex justify-between items-center">
+                      <div>
+                                      <span className="text-xs font-medium text-purple-700">High End:</span>
+                                    <p className="text-xs text-gray-600">{recommendations.description.highEnd}</p>
+                        </div>
+                                  <div className="text-right">
+                                      <span className="text-xs font-bold text-purple-700">{formatPrice(recommendations.highEnd)}</span>
+                                    <button
+                                      onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.highEnd }))}
+                                      className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
+                                    >
+                                      Use this
+                                    </button>
+                      </div>
+                    </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                    
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">
+                            Refurbishment Cost (£)
+                          </label>
+                          <input
+                            type="number"
+                            value={editForm.refurbishment_cost}
+                            onChange={(e) => setEditForm(prev => ({
+                              ...prev,
+                              refurbishment_cost: parseInt(e.target.value) || 0
+                            }))}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="0"
+                          />
+                          </div>
+                          </div>
+
+                        {/* Status & Notes */}
+                        <div className="bg-purple-50 rounded-lg p-4">
+                          <h4 className="text-sm font-semibold text-purple-800 mb-3">Status & Notes</h4>
+                          <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                              <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                              <select
+                                value={editForm.status}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
+                                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                              >
+                                <option value="active">Active</option>
+                                <option value="under_offer">Under Offer</option>
+                                <option value="sold">Sold</option>
+                                <option value="withdrawn">Withdrawn</option>
+                                <option value="archived">Archived</option>
+                              </select>
+                          </div>
+                          </div>
+                        <div>
+                            <label className="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                          <textarea
+                            value={editForm.user_notes}
+                            onChange={(e) => setEditForm(prev => ({
+                              ...prev,
+                              user_notes: e.target.value
+                            }))}
+                            rows={3}
+                              className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                            placeholder="Add your notes about this property..."
+                          />
+                          </div>
+                        </div>
+
+                        {/* Offer Tracking - Only show when status is "under_offer" */}
+                        {editForm.status === 'under_offer' && (
+                          <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                            <h4 className="text-sm font-semibold text-red-800 mb-3">📋 Offer Details</h4>
+                            <div className="grid grid-cols-3 gap-3 mb-3">
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Offer Amount (£)</label>
+                                <input
+                                  type="number"
+                                  value={editForm.offer_amount}
+                                  onChange={(e) => setEditForm(prev => ({ ...prev, offer_amount: parseInt(e.target.value) || 0 }))}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                  placeholder="0"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Offer Date</label>
+                                <input
+                                  type="date"
+                                  value={editForm.offer_date}
+                                  onChange={(e) => setEditForm(prev => ({ ...prev, offer_date: e.target.value }))}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Offer Status</label>
+                                <select
+                                  value={editForm.offer_status}
+                                  onChange={(e) => setEditForm(prev => ({ ...prev, offer_status: e.target.value as 'pending' | 'accepted' | 'rejected' }))}
+                                  className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
+                                >
+                                  <option value="pending">Pending</option>
+                                  <option value="accepted">Accepted</option>
+                                  <option value="rejected">Rejected</option>
+                                </select>
+                              </div>
+                            </div>
+                            <div className="text-xs text-red-600 bg-red-100 p-2 rounded border border-red-200">
+                              💡 <strong>Tip:</strong> When you set status to "Under Offer", you can track your offer details here. Update the offer status when you receive a response from the vendor.
+                            </div>
+                          </div>
+                        )}
+                        </div>
+
+                      <div className="flex space-x-3 mt-6">
+                        <button
+                          onClick={() => saveEdit(editingProperty)}
+                          className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Save Changes
+                        </button>
+                        <button
+                          onClick={cancelEdit}
+                          className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+              </div>
             )}
+            </div>
           </motion.div>
         </div>
       </div>
-
-      {/* Edit Modal */}
-      {editingProperty && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold text-gray-900">Basic Property Details</h3>
-              <button
-                onClick={cancelEdit}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-6">
-              {/* Basic Property Details */}
-              <div className="bg-blue-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-blue-800 mb-3">Basic Property Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Title</label>
-                    <input
-                      type="text"
-                      value={editForm.title}
-                      onChange={(e) => setEditForm({...editForm, title: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Price (£)</label>
-                    <input
-                      type="number"
-                      value={editForm.price}
-                      onChange={(e) => setEditForm({...editForm, price: parseFloat(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Address</label>
-                    <input
-                      type="text"
-                      value={editForm.address}
-                      onChange={(e) => setEditForm({...editForm, address: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Bedrooms</label>
-                    <input
-                      type="number"
-                      value={editForm.bedrooms}
-                      onChange={(e) => setEditForm({...editForm, bedrooms: parseInt(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Bathrooms</label>
-                    <input
-                      type="number"
-                      value={editForm.bathrooms}
-                      onChange={(e) => setEditForm({...editForm, bathrooms: parseInt(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Property Type</label>
-                    <select
-                      value={editForm.property_type}
-                      onChange={(e) => setEditForm({...editForm, property_type: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="">Select type</option>
-                      <option value="Detached">Detached</option>
-                      <option value="Semi-Detached">Semi-Detached</option>
-                      <option value="Terraced">Terraced</option>
-                      <option value="Flat">Flat</option>
-                      <option value="Apartment">Apartment</option>
-                      <option value="Bungalow">Bungalow</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Tenure</label>
-                    <select
-                      value={editForm.tenure}
-                      onChange={(e) => setEditForm({...editForm, tenure: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="Freehold">Freehold</option>
-                      <option value="Leasehold">Leasehold</option>
-                      <option value="Share of Freehold">Share of Freehold</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Postcode</label>
-                    <input
-                      type="text"
-                      value={editForm.postcode}
-                      onChange={(e) => setEditForm({...editForm, postcode: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Agent Details */}
-              <div className="bg-green-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-green-800 mb-3">Agent Details</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Agent Name</label>
-                    <input
-                      type="text"
-                      value={editForm.agent_name}
-                      onChange={(e) => setEditForm({...editForm, agent_name: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Agent Phone</label>
-                    <input
-                      type="text"
-                      value={editForm.agent_phone}
-                      onChange={(e) => setEditForm({...editForm, agent_phone: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Investment Analysis */}
-              <div className="bg-purple-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-purple-800 mb-3">Investment Analysis</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Monthly Rental Estimate (£)</label>
-                    <input
-                      type="number"
-                      value={editForm.custom_rental_estimate}
-                      onChange={(e) => setEditForm({...editForm, custom_rental_estimate: parseFloat(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Estimated Fair Value (£)</label>
-                    <input
-                      type="number"
-                      value={editForm.estimated_fair_value}
-                      onChange={(e) => setEditForm({...editForm, estimated_fair_value: parseFloat(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Days on Market</label>
-                    <input
-                      type="number"
-                      value={editForm.days_on_market}
-                      onChange={(e) => setEditForm({...editForm, days_on_market: parseInt(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Property Condition</label>
-                    <select
-                      value={editForm.property_condition}
-                      onChange={(e) => setEditForm({...editForm, property_condition: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="Excellent">Excellent</option>
-                      <option value="Good">Good</option>
-                      <option value="Fair">Fair</option>
-                      <option value="Poor">Poor</option>
-                      <option value="Needs Work">Needs Work</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mortgage Settings */}
-              <div className="bg-indigo-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-indigo-800 mb-3">Mortgage Settings</h4>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Mortgage Type</label>
-                    <select
-                      value={editForm.mortgage_type}
-                      onChange={(e) => setEditForm({...editForm, mortgage_type: e.target.value})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="Interest-Only">Interest-Only</option>
-                      <option value="Repayment">Repayment</option>
-                      <option value="Part and Part">Part and Part</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Interest Rate (%)</label>
-                    <input
-                      type="number"
-                      step="0.1"
-                      value={editForm.mortgage_rate}
-                      onChange={(e) => setEditForm({...editForm, mortgage_rate: parseFloat(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Term (Years)</label>
-                    <input
-                      type="number"
-                      value={editForm.mortgage_term}
-                      onChange={(e) => setEditForm({...editForm, mortgage_term: parseInt(e.target.value) || 0})}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Property Description */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Property Description</label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) => setEditForm({...editForm, description: e.target.value})}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Describe the property..."
-                />
-              </div>
-
-              {/* Refurbishment Section */}
-              <div className="bg-orange-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-orange-800 mb-3">Refurbishment & Costs</h4>
-
-                {/* Refurbishment Recommendations */}
-                {(() => {
-                  const property = watchlist.find(p => p.id === editingProperty);
-                  if (!property) return null;
-                  
-                  const recommendations = getRefurbishmentRecommendations({
-                    ...property,
-                    property_condition: editForm.property_condition
-                  });
-                  
-                  return (
-                    <div className="bg-white rounded-lg p-3 border border-orange-200 mb-3">
-                      <h5 className="text-xs font-semibold text-orange-700 mb-2">Refurbishment Recommendations</h5>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="text-xs font-medium text-green-700">Low End:</span>
-                            <p className="text-xs text-gray-600">{recommendations.description.lowEnd}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-green-700">{formatPrice(recommendations.lowEnd)}</span>
-                            <button
-                              onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.lowEnd }))}
-                              className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                            >
-                              Use this
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="text-xs font-medium text-blue-700">Medium End:</span>
-                            <p className="text-xs text-gray-600">{recommendations.description.mediumEnd}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-blue-700">{formatPrice(recommendations.mediumEnd)}</span>
-                            <button
-                              onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.mediumEnd }))}
-                              className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                            >
-                              Use this
-                            </button>
-                          </div>
-                        </div>
-                        
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="text-xs font-medium text-purple-700">High End:</span>
-                            <p className="text-xs text-gray-600">{recommendations.description.highEnd}</p>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-bold text-purple-700">{formatPrice(recommendations.highEnd)}</span>
-                            <button
-                              onClick={() => setEditForm(prev => ({ ...prev, refurbishment_cost: recommendations.highEnd }))}
-                              className="block text-xs text-blue-600 hover:text-blue-800 mt-1"
-                            >
-                              Use this
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-                
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Refurbishment Cost (£)
-                  </label>
-                  <input
-                    type="number"
-                    value={editForm.refurbishment_cost}
-                    onChange={(e) => setEditForm(prev => ({
-                      ...prev,
-                      refurbishment_cost: parseInt(e.target.value) || 0
-                    }))}
-                    className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-
-              {/* Status & Notes */}
-              <div className="bg-purple-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-purple-800 mb-3">Status & Notes</h4>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
-                    <select
-                      value={editForm.status}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, status: e.target.value }))}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="active">Active</option>
-                      <option value="pending">Pending</option>
-                      <option value="sold">Sold</option>
-                      <option value="under_offer">Under Offer</option>
-                    </select>
-                  </div>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-                  <textarea
-                    value={editForm.user_notes}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, user_notes: e.target.value }))}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Add your notes about this property..."
-                  />
-                </div>
-              </div>
-
-              {/* Offer Details - Show only when status is "under_offer" */}
-              {editForm.status === 'under_offer' && (
-                <div className="bg-red-50 rounded-lg p-4">
-                  <h4 className="text-sm font-semibold text-red-800 mb-3 flex items-center gap-2">
-                    <span>📁</span>
-                    Offer Details
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Offer Amount (£)</label>
-                      <input
-                        type="number"
-                        value={editForm.offer_amount || 0}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, offer_amount: parseFloat(e.target.value) || 0 }))}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                        placeholder="0"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Offer Date</label>
-                      <input
-                        type="date"
-                        value={editForm.offer_date || ''}
-                        onChange={(e) => setEditForm(prev => ({ ...prev, offer_date: e.target.value }))}
-                        className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                        placeholder="Select date"
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="mb-3">
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Offer Status</label>
-                    <select
-                      value={editForm.offer_status || 'pending'}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, offer_status: e.target.value }))}
-                      className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500"
-                    >
-                      <option value="pending">Pending</option>
-                      <option value="accepted">Accepted</option>
-                      <option value="rejected">Rejected</option>
-                      <option value="counter_offer">Counter Offer</option>
-                    </select>
-                  </div>
-                  
-                  <div className="bg-red-100 border border-red-200 rounded p-3">
-                    <div className="flex items-start gap-2">
-                      <span className="text-red-600">💡</span>
-                      <div className="text-xs text-red-800">
-                        <strong>Tip:</strong> When you set status to "Under Offer", you can track your offer details here. Update the offer status when you receive a response from the vendor.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Offer History & Recommendations */}
-              <div className="bg-purple-50 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2">
-                  <span>📊</span>
-                  Offer History & Recommendations
-                </h4>
-                
-                {(() => {
-                  const currentOffer = editForm.offer_amount || 0;
-                  const currentOfferDate = editForm.offer_date || '';
-                  const currentOfferStatus = editForm.offer_status || 'pending';
-                  const askingPrice = editForm.price;
-                  const offerAnalysis = getRecommendedOffer({
-                    ...editForm,
-                    price: askingPrice,
-                    title: editForm.title,
-                    address: editForm.address,
-                    bedrooms: editForm.bedrooms,
-                    bathrooms: editForm.bathrooms,
-                    property_type: editForm.property_type,
-                    postcode: editForm.postcode
-                  } as WatchlistItem);
-                  
-                  const getNextOfferRecommendation = () => {
-                    if (currentOfferStatus === 'rejected') {
-                      // If rejected, suggest a slightly higher offer
-                      const rejectionDiscount = (askingPrice - currentOffer) / askingPrice;
-                      if (rejectionDiscount > 0.15) {
-                        // If we offered more than 15% below asking, try 10% below
-                        return Math.round(askingPrice * 0.90);
-                      } else if (rejectionDiscount > 0.10) {
-                        // If we offered more than 10% below asking, try 8% below
-                        return Math.round(askingPrice * 0.92);
-                      } else {
-                        // If we offered close to asking, try 5% below
-                        return Math.round(askingPrice * 0.95);
-                      }
-                    } else if (currentOfferStatus === 'counter_offer') {
-                      // If counter offer, suggest meeting in the middle
-                      const counterOffer = Math.round((currentOffer + askingPrice) / 2);
-                      return counterOffer;
-                    } else {
-                      // If pending or accepted, show recommended offer
-                      return offerAnalysis.recommendedOffer;
-                    }
-                  };
-                  
-                  const nextOffer = getNextOfferRecommendation();
-                  const daysSinceOffer = currentOfferDate ? Math.floor((Date.now() - new Date(currentOfferDate).getTime()) / (1000 * 60 * 60 * 24)) : 0;
-                  
-                  return (
-                    <div className="space-y-4">
-                      {/* Current Offer Summary */}
-                      {currentOffer > 0 && (
-                        <div className="bg-white rounded-lg p-3 border border-purple-200">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-gray-700">Current Offer</span>
-                            <span className={`text-xs px-2 py-1 rounded-full ${
-                              currentOfferStatus === 'accepted' ? 'bg-green-100 text-green-800' :
-                              currentOfferStatus === 'rejected' ? 'bg-red-100 text-red-800' :
-                              currentOfferStatus === 'counter_offer' ? 'bg-orange-100 text-orange-800' :
-                              'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {currentOfferStatus.charAt(0).toUpperCase() + currentOfferStatus.slice(1)}
-                            </span>
-                          </div>
-                          <div className="grid grid-cols-2 gap-2 text-xs">
-                            <div>
-                              <span className="text-gray-600">Amount:</span>
-                              <span className="font-semibold text-gray-800 ml-1">{formatPrice(currentOffer)}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Date:</span>
-                              <span className="font-semibold text-gray-800 ml-1">{currentOfferDate || 'Not set'}</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">% Below Asking:</span>
-                              <span className="font-semibold text-gray-800 ml-1">{((askingPrice - currentOffer) / askingPrice * 100).toFixed(1)}%</span>
-                            </div>
-                            <div>
-                              <span className="text-gray-600">Days Since:</span>
-                              <span className="font-semibold text-gray-800 ml-1">{daysSinceOffer}</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Next Offer Recommendation */}
-                      <div className="bg-white rounded-lg p-3 border border-purple-200">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm font-medium text-gray-700">Recommended Next Offer</span>
-                          <span className="text-xs text-purple-600 font-medium">
-                            {currentOfferStatus === 'rejected' ? 'After Rejection' :
-                             currentOfferStatus === 'counter_offer' ? 'Counter Strategy' :
-                             'Initial Offer'}
-                          </span>
-                        </div>
-                        <div className="text-center mb-3">
-                          <div className="text-2xl font-bold text-purple-700">{formatPrice(nextOffer)}</div>
-                          <div className="text-xs text-gray-600">
-                            {((askingPrice - nextOffer) / askingPrice * 100).toFixed(1)}% below asking price
-                          </div>
-                        </div>
-                        
-                        {/* Recommendation Logic */}
-                        <div className="text-xs text-gray-600 space-y-1">
-                          {currentOfferStatus === 'rejected' && (
-                            <div className="bg-red-50 p-2 rounded border border-red-100">
-                              <strong>Rejection Strategy:</strong> 
-                              {currentOffer > 0 && (
-                                <span> Your previous offer of {formatPrice(currentOffer)} was rejected. 
-                                {daysSinceOffer > 7 ? ' Consider waiting a few more days before following up.' : ' Follow up in 3-5 days.'}</span>
-                              )}
-                            </div>
-                          )}
-                          
-                          {currentOfferStatus === 'counter_offer' && (
-                            <div className="bg-orange-50 p-2 rounded border border-orange-100">
-                              <strong>Counter Offer Strategy:</strong> 
-                              <span> Vendor countered. Consider meeting in the middle or offering {formatPrice(Math.round(nextOffer * 0.98))} as a final offer.</span>
-                            </div>
-                          )}
-                          
-                          {currentOfferStatus === 'pending' && daysSinceOffer > 3 && (
-                            <div className="bg-yellow-50 p-2 rounded border border-yellow-100">
-                              <strong>Follow-up Reminder:</strong> 
-                              <span> It's been {daysSinceOffer} days since your offer. Consider following up with the agent.</span>
-                            </div>
-                          )}
-                          
-                          {currentOfferStatus === 'pending' && daysSinceOffer <= 3 && (
-                            <div className="bg-blue-50 p-2 rounded border border-blue-100">
-                              <strong>Waiting Period:</strong> 
-                              <span> Give the vendor time to respond. Follow up after 3-5 days if no response.</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Market Context */}
-                      <div className="bg-white rounded-lg p-3 border border-purple-200">
-                        <div className="text-sm font-medium text-gray-700 mb-2">Market Context</div>
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-gray-600">Asking Price:</span>
-                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(askingPrice)}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Recommended:</span>
-                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(offerAnalysis.recommendedOffer)}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Fair Value:</span>
-                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(offerAnalysis.recommendedOffer * 1.05)}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Max Offer:</span>
-                            <span className="font-semibold text-gray-800 ml-1">{formatPrice(offerAnalysis.recommendedOffer * 1.08)}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })()}
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => saveEdit(editingProperty)}
-                className="flex-1 py-2 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                Save Changes
-              </button>
-              <button
-                onClick={cancelEdit}
-                className="flex-1 py-2 px-4 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
