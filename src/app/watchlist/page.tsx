@@ -78,7 +78,7 @@ export default function WatchlistPage() {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [selectedProperties, setSelectedProperties] = useState<string[]>([]);
   const [expandedBreakdowns, setExpandedBreakdowns] = useState<Set<string>>(new Set());
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['quick-metrics']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadWatchlist();
