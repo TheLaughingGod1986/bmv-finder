@@ -11,6 +11,8 @@ const userMembership = document.getElementById('user-membership');
 const captureLimit = document.getElementById('capture-limit');
 const progressFill = document.getElementById('progress-fill');
 const signInButton = document.getElementById('sign-in-button');
+const signOutButton = document.getElementById('sign-out-button');
+const watchlistLink = document.querySelector('.watchlist-link');
 
 // User authentication and membership data
 let userData = {
@@ -159,10 +161,14 @@ function updateUserInterface() {
     signInButton.textContent = 'Signed In';
     signInButton.style.background = 'linear-gradient(135deg, #27AE60 0%, #2ECC71 100%)';
     signInButton.disabled = true;
+    signOutButton.style.display = 'inline-block'; // Show sign out button
+    watchlistLink.style.display = 'inline-block'; // Show watchlist link
   } else {
     signInButton.textContent = 'Sign In';
     signInButton.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2980b9 100%)';
     signInButton.disabled = false;
+    signOutButton.style.display = 'none'; // Hide sign out button
+    watchlistLink.style.display = 'none'; // Hide watchlist link
   }
   
   // Update capture limits - use the actual property count, not userData.capturedCount
@@ -209,7 +215,7 @@ function showUpgradePrompt() {
                 color: #333; 
                 font-size: 12px;">
       <strong>🚀 Upgrade to capture more properties!</strong><br>
-      <a href="https://bmv-finder.com/pricing" target="_blank" 
+      <a href="https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
          style="color: #3A7CA5; text-decoration: none; font-weight: bold;">
         View Plans →
       </a>
@@ -294,6 +300,26 @@ signInButton.addEventListener('click', () => {
       loadUserData();
     }
   }
+});
+
+// Handle sign-out button click
+signOutButton.addEventListener('click', async () => {
+  if (confirm('Are you sure you want to sign out?')) {
+    await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+    userData = {
+      isAuthenticated: false,
+      name: 'Demo User',
+      membership: 'Free Plan',
+      captureLimit: 5,
+      capturedCount: 0
+    };
+    updateUserInterface();
+  }
+});
+
+// Handle watchlist link click
+watchlistLink.addEventListener('click', () => {
+  chrome.tabs.create({ url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 // Add manual sign-in for testing (remove in production)

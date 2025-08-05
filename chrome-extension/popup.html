@@ -87,6 +87,44 @@
             opacity: 0.9;
         }
         
+        .sign-out-button {
+            background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        .sign-out-button:hover {
+            opacity: 0.9;
+        }
+        
+        .auth-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .watchlist-link {
+            background: linear-gradient(135deg, #5DA271 0%, #3B755D 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 10px;
+        }
+        
+        .watchlist-link:hover {
+            opacity: 0.9;
+        }
+        
         .capture-limits {
             display: flex;
             flex-direction: column;
@@ -248,7 +286,10 @@
                     <div class="user-membership" id="user-membership">Free Plan</div>
                 </div>
             </div>
-            <button class="sign-in-button" id="sign-in-button">Sign In</button>
+            <div class="auth-buttons">
+                <button class="sign-in-button" id="sign-in-button">Sign In</button>
+                <button class="sign-out-button" id="sign-out-button" style="display: none;">Sign Out</button>
+            </div>
         </div>
         <div class="capture-limits">
             <div class="limit-info">
@@ -279,6 +320,7 @@
     </div>
     
     <button class="clear-button" id="clear-all">Clear All Properties</button>
+    <a href="watchlist.html" class="watchlist-link" target="_blank">View Watchlist</a>
     
     <script src="popup.js"></script>
 </body>

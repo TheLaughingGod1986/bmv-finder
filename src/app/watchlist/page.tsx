@@ -1659,125 +1659,145 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                             {/* Recommended Offer Section */}
                             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                               {/* Header */}
-                              <div className="bg-gradient-to-r from-amber-600 to-amber-700 px-4 py-3">
+                              <button 
+                                onClick={() => toggleSection('recommended-offer')}
+                                className="w-full bg-gradient-to-r from-amber-600 to-amber-700 px-4 py-3 text-left hover:from-amber-700 hover:to-amber-800 transition-colors"
+                              >
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     <span className="text-white">🎯</span>
                                     <h4 className="text-sm font-bold text-white">RECOMMENDED OFFER</h4>
                                   </div>
-                                  <span className="text-xs text-amber-100 font-medium">{offerAnalysis.negotiationBuffer}% below asking</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-amber-100 font-medium">{offerAnalysis.negotiationBuffer}% below asking</span>
+                                    <div className={`text-white transition-transform duration-200 ${expandedSections.has('recommended-offer') ? 'rotate-180' : ''}`}>
+                                      <ChevronDown className="w-4 h-4" />
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
+                              </button>
                               
                               {/* Main Offer Display */}
-                              <div className="p-4">
-                                <div className="text-center mb-4">
-                                  <div className="text-3xl font-bold text-amber-700 mb-2">
-                                    {formatPrice(offerAnalysis.recommendedOffer)}
+                              {expandedSections.has('recommended-offer') && (
+                                <div className="p-4">
+                                  <div className="text-center mb-4">
+                                    <div className="text-3xl font-bold text-amber-700 mb-2">
+                                      {formatPrice(offerAnalysis.recommendedOffer)}
+                                    </div>
+                                    <div className="text-sm text-gray-500 font-medium">
+                                      vs {formatPrice(item.price)} asking price
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-gray-500 font-medium">
-                                    vs {formatPrice(item.price)} asking price
+                                  
+                                  {/* Quick Analysis */}
+                                  <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
+                                    <div className="flex justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
+                                      <span className="text-gray-600 font-medium">Price Assessment:</span>
+                                      <span className={`font-bold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
+                                        {valueAnalysis.priceAssessment}
+                                      </span>
+                                    </div>
+                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                      <span className="text-gray-600 font-medium">Fair Value:</span>
+                                      <span className="font-bold text-gray-800">
+                                        {formatPrice(valueAnalysis.fairValue)}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Action Buttons */}
+                                  <div className="flex gap-3">
+                                    <button 
+                                      onClick={() => copyProfessionalOffer(item)}
+                                      className="flex-1 py-3 px-4 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      <span>📄</span>
+                                      Copy Professional Offer
+                                    </button>
+                                    <button 
+                                      onClick={() => generateNegotiationStrategy(item)}
+                                      className="flex-1 py-3 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                      <span>🎯</span>
+                                      Generate Strategy
+                                    </button>
                                   </div>
                                 </div>
-                                
-                                {/* Quick Analysis */}
-                                <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-                                  <div className="flex justify-between p-3 bg-blue-50 rounded-lg border border-blue-100">
-                                    <span className="text-gray-600 font-medium">Price Assessment:</span>
-                                    <span className={`font-bold ${getPriceColor(valueAnalysis.priceAssessment)}`}>
-                                      {valueAnalysis.priceAssessment}
-                                    </span>
-                                  </div>
-                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                    <span className="text-gray-600 font-medium">Fair Value:</span>
-                                    <span className="font-bold text-gray-800">
-                                      {formatPrice(valueAnalysis.fairValue)}
-                                    </span>
-                                  </div>
-                                </div>
-                                
-                                {/* Action Buttons */}
-                                <div className="flex gap-3">
-                                  <button 
-                                    onClick={() => copyProfessionalOffer(item)}
-                                    className="flex-1 py-3 px-4 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-700 transition-colors flex items-center justify-center gap-2"
-                                  >
-                                    <span>📄</span>
-                                    Copy Professional Offer
-                                  </button>
-                                  <button 
-                                    onClick={() => generateNegotiationStrategy(item)}
-                                    className="flex-1 py-3 px-4 bg-white text-gray-700 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-                                  >
-                                    <span>🎯</span>
-                                    Generate Strategy
-                                  </button>
-                                </div>
-                              </div>
+                              )}
                             </div>
                             
                             {/* Investment Summary */}
                             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                               {/* Header */}
-                              <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-white">💰</span>
-                                  <h4 className="text-sm font-bold text-white">INVESTMENT SUMMARY</h4>
+                              <button 
+                                onClick={() => toggleSection('investment-summary')}
+                                className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3 text-left hover:from-indigo-700 hover:to-indigo-800 transition-colors"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-white">💰</span>
+                                    <h4 className="text-sm font-bold text-white">INVESTMENT SUMMARY</h4>
+                                  </div>
+                                  <div className={`text-white transition-transform duration-200 ${expandedSections.has('investment-summary') ? 'rotate-180' : ''}`}>
+                                    <ChevronDown className="w-4 h-4" />
+                                  </div>
                                 </div>
-                              </div>
+                              </button>
                               
                               {/* Summary Content */}
-                              <div className="p-4">
-                                <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
-                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                    <span className="text-gray-600 font-medium">Total Investment:</span>
-                                    <span className="font-bold text-gray-800">{formatPrice(metrics.totalInvestment)}</span>
+                              {expandedSections.has('investment-summary') && (
+                                <div className="p-4">
+                                  <div className="grid grid-cols-2 gap-3 mb-4 text-xs">
+                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                      <span className="text-gray-600 font-medium">Total Investment:</span>
+                                      <span className="font-bold text-gray-800">{formatPrice(metrics.totalInvestment)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                      <span className="text-gray-600 font-medium">Annual Return:</span>
+                                      <span className="font-bold text-green-600">{metrics.annualReturn.toFixed(1)}%</span>
+                                    </div>
+                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                      <span className="text-gray-600 font-medium">Monthly Profit:</span>
+                                      <span className="font-bold text-green-600">{formatPrice(metrics.monthlyCashFlow)}</span>
+                                    </div>
+                                    <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
+                                      <span className="text-gray-600 font-medium">Cash-on-Cash:</span>
+                                      <span className="font-bold text-blue-600">{metrics.cashOnCashReturn.toFixed(1)}%</span>
+                                    </div>
                                   </div>
-                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                    <span className="text-gray-600 font-medium">Annual Return:</span>
-                                    <span className="font-bold text-green-600">{metrics.annualReturn.toFixed(1)}%</span>
+                                  
+                                  {/* Mortgage Type Indicator */}
+                                  <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                                    <span>🏠</span>
+                                    <span className="font-medium">{item.mortgage_type || 'Interest-Only'} Mortgage</span>
                                   </div>
-                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                    <span className="text-gray-600 font-medium">Monthly Profit:</span>
-                                    <span className="font-bold text-green-600">{formatPrice(metrics.monthlyCashFlow)}</span>
-                                  </div>
-                                  <div className="flex justify-between p-3 bg-green-50 rounded-lg border border-green-100">
-                                    <span className="text-gray-600 font-medium">Cash-on-Cash:</span>
-                                    <span className="font-bold text-blue-600">{metrics.cashOnCashReturn.toFixed(1)}%</span>
+                                  
+                                  {/* Monthly Cash Flow Breakdown */}
+                                  <div className="bg-gray-50 rounded-lg p-4 text-xs border border-gray-100">
+                                    <div className="text-center mb-3 font-bold text-gray-700 text-sm">Monthly Cash Flow</div>
+                                    <div className="space-y-2">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-600 font-medium">+ Rental Income:</span>
+                                        <span className="font-bold text-green-600">+{formatPrice(calculateRentalEstimateSync(item))}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-600 font-medium">- Mortgage Payment:</span>
+                                        <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyMortgagePayment)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-gray-600 font-medium">- Other Expenses:</span>
+                                        <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyExpenses)}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center border-t border-gray-300 pt-2 mt-2">
+                                        <span className="text-gray-800 font-bold">= Net Cash Flow:</span>
+                                        <span className={`font-bold text-lg ${metrics.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                          = {formatPrice(metrics.monthlyCashFlow)}
+                                        </span>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
-                                
-                                {/* Mortgage Type Indicator */}
-                                <div className="flex items-center gap-2 text-sm text-gray-600 mb-4 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                  <span>🏠</span>
-                                  <span className="font-medium">{item.mortgage_type || 'Interest-Only'} Mortgage</span>
-                                </div>
-                                
-                                {/* Monthly Cash Flow Breakdown */}
-                                <div className="bg-gray-50 rounded-lg p-4 text-xs border border-gray-100">
-                                  <div className="text-center mb-3 font-bold text-gray-700 text-sm">Monthly Cash Flow</div>
-                                  <div className="space-y-2">
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-gray-600 font-medium">+ Rental Income:</span>
-                                      <span className="font-bold text-green-600">+{formatPrice(calculateRentalEstimateSync(item))}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-gray-600 font-medium">- Mortgage Payment:</span>
-                                      <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyMortgagePayment)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                      <span className="text-gray-600 font-medium">- Other Expenses:</span>
-                                      <span className="font-bold text-red-600">-{formatPrice(metrics.monthlyExpenses)}</span>
-                                    </div>
-                                    <div className="flex justify-between items-center border-t border-gray-300 pt-2 mt-2">
-                                      <span className="text-gray-800 font-bold">= Net Cash Flow:</span>
-                                      <span className={`font-bold text-lg ${metrics.monthlyCashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                        = {formatPrice(metrics.monthlyCashFlow)}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
+                              )}
                             </div>
                           </div>
                         );
