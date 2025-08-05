@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useUser } from '@supabase/auth-helpers-react';
+import { supabase } from '../../lib/supabaseClient';
 
 interface SearchLimitContextType {
   searchCount: number;
@@ -20,8 +21,8 @@ export function SearchLimitProvider({ children }: { children: ReactNode }) {
   const [isLimitReached, setIsLimitReached] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  // Always call useUser hook (Rules of Hooks requirement)
-  const user = useUser();
+  // Only call useUser hook if supabase is available
+  const user = supabase ? useUser() : null;
 
   // Load search count from localStorage on mount
   useEffect(() => {
