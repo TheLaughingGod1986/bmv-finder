@@ -28,6 +28,31 @@ async function handlePropertyCapture(propertyData, sendResponse) {
       return;
     }
     
+    // Check authentication status first
+    const authResult = await chrome.storage.local.get(['authToken', 'isAuthenticated', 'userData']);
+    const isAuthenticated = authResult.isAuthenticated && authResult.authToken && authResult.userData;
+    
+    if (!isAuthenticated) {
+      console.error('BMV Finder: User not authenticated - cannot capture properties');
+      sendResponse({
+        success: false,
+        error: 'Authentication required. Please sign in to capture properties.',
+        requiresAuth: true
+      });
+      return;
+    }
+    
+    // Verify user has a valid account
+    if (!authResult.userData || !authResult.userData.name || authResult.userData.name === 'Not Signed In') {
+      console.error('BMV Finder: Invalid user account - cannot capture properties');
+      sendResponse({
+        success: false,
+        error: 'Please sign in with a valid account to capture properties.',
+        requiresAuth: true
+      });
+      return;
+    }
+    
     // First, store locally as backup
     const result = await chrome.storage.local.get(['capturedProperties']);
     const capturedProperties = result.capturedProperties || [];
@@ -36,7 +61,8 @@ async function handlePropertyCapture(propertyData, sendResponse) {
     const newProperty = {
       ...propertyData,
       id: Date.now().toString(),
-      capturedAt: new Date().toISOString()
+      capturedAt: new Date().toISOString(),
+      userId: authResult.userData.name // Link to user account
     };
     
     capturedProperties.push(newProperty);
@@ -55,6 +81,7 @@ async function handlePropertyCapture(propertyData, sendResponse) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authResult.authToken}`
         },
         body: JSON.stringify(newProperty)
       });

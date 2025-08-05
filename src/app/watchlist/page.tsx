@@ -1608,9 +1608,9 @@ Remember: Stay professional, be prepared with data, and know your walk-away pric
                         };
                         
                         return (
-                          <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
+                          <div className="space-y-4">
                             {/* Growth Projections */}
-                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden mb-4">
+                            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
                               {/* Header */}
                               <button 
                                 onClick={() => toggleSection('growth-projections')}

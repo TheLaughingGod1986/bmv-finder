@@ -164,11 +164,14 @@ function updateUserInterface() {
     signOutButton.style.display = 'inline-block'; // Show sign out button
     watchlistLink.style.display = 'inline-block'; // Show watchlist link
   } else {
-    signInButton.textContent = 'Sign In';
-    signInButton.style.background = 'linear-gradient(135deg, #3A7CA5 0%, #2980b9 100%)';
+    signInButton.textContent = 'Sign In Required';
+    signInButton.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
     signInButton.disabled = false;
     signOutButton.style.display = 'none'; // Hide sign out button
     watchlistLink.style.display = 'none'; // Hide watchlist link
+    
+    // Show authentication requirement message
+    showAuthenticationRequirement();
   }
   
   // Update capture limits - use the actual property count, not userData.capturedCount
@@ -200,6 +203,35 @@ function updateUserInterface() {
       showUpgradePrompt();
     }
   }
+}
+
+// Show authentication requirement message
+function showAuthenticationRequirement() {
+  // Remove any existing requirement message
+  const existingMessage = document.querySelector('.auth-requirement');
+  if (existingMessage) {
+    existingMessage.remove();
+  }
+  
+  const requirementDiv = document.createElement('div');
+  requirementDiv.className = 'auth-requirement';
+  requirementDiv.innerHTML = `
+    <div style="background: linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%); 
+                border: 1px solid #FFC107;
+                border-radius: 8px; 
+                padding: 12px; 
+                margin-bottom: 15px; 
+                text-align: center; 
+                color: #856404; 
+                font-size: 12px;">
+      <strong>🔒 Authentication Required</strong><br>
+      You must sign in to capture properties. Properties are only viewable in your account watchlist.
+    </div>
+  `;
+  
+  // Insert after the user status section
+  const userStatus = document.querySelector('.user-status');
+  userStatus.parentNode.insertBefore(requirementDiv, userStatus.nextSibling);
 }
 
 // Show upgrade prompt

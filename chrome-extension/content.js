@@ -998,14 +998,32 @@ function showMessage(message, isSuccess) {
 // Check authentication status before capturing
 async function checkAuthenticationStatus() {
   try {
-    const result = await chrome.storage.local.get(['authToken', 'isAuthenticated']);
-    return {
-      isAuthenticated: result.isAuthenticated || false,
-      hasToken: !!result.authToken
+    const result = await chrome.storage.local.get(['authToken', 'isAuthenticated', 'userData']);
+    
+    // Check if user is properly authenticated with valid data
+    const isAuthenticated = result.isAuthenticated && result.authToken && result.userData;
+    
+    if (!isAuthenticated) {
+      console.log('BMV Finder: User not authenticated - cannot capture properties');
+      return { 
+        isAuthenticated: false, 
+        hasToken: false,
+        message: 'You must sign in to capture properties. Properties are only viewable in your account watchlist.'
+      };
+    }
+    
+    return { 
+      isAuthenticated: true, 
+      hasToken: true,
+      userData: result.userData
     };
   } catch (error) {
     console.error('BMV Finder: Error checking auth status:', error);
-    return { isAuthenticated: false, hasToken: false };
+    return { 
+      isAuthenticated: false, 
+      hasToken: false,
+      message: 'Authentication check failed. Please sign in again.'
+    };
   }
 }
 
@@ -1106,10 +1124,19 @@ function injectButton() {
     const authStatus = await checkAuthenticationStatus();
     
     if (!authStatus.isAuthenticated) {
-      showMessage('Please sign in to your BMV Finder account first!', false);
-      // Open sign-in page
+      showMessage(authStatus.message, false);
+      // Open sign-in page with clear messaging
       chrome.tabs.create({ 
-        url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth' 
+        url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth?message=signin_required' 
+      });
+      return;
+    }
+    
+    // Verify user has a valid account
+    if (!authStatus.userData || !authStatus.userData.name || authStatus.userData.name === 'Not Signed In') {
+      showMessage('Please sign in with a valid account to capture properties.', false);
+      chrome.tabs.create({ 
+        url: 'https://bmv-finder-git-main-bens-projects-11c93b15.vercel.app/extension-auth?message=invalid_account' 
       });
       return;
     }
