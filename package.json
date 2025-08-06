@@ -33,6 +33,8 @@
     "health:check": "curl -f ${NEXT_PUBLIC_APP_URL:-https://bmvfinder.com}/api/health-check",
     "security:audit": "npm audit --audit-level=moderate",
     "performance:test": "lighthouse ${NEXT_PUBLIC_APP_URL:-https://bmvfinder.com} --output=json --output-path=./lighthouse-report.json",
+    "analyze": "ANALYZE=true npm run build",
+    "performance:test": "node scripts/performance-test.js",
     "backup:database": "node scripts/backup-database.js",
     "monitor:status": "node scripts/monitor-status.js"
   },
@@ -79,6 +81,7 @@
     "yargs": "^18.0.0"
   },
   "devDependencies": {
+    "@next/bundle-analyzer": "^15.4.5",
     "@types/elasticsearch": "^5.0.43",
     "@types/node": "^24.0.14",
     "@types/react": "^19.1.8",

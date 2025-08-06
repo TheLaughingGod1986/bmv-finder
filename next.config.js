@@ -1,3 +1,7 @@
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Production optimizations
@@ -133,10 +137,40 @@ const nextConfig = {
       config.optimization.splitChunks = {
         chunks: 'all',
         cacheGroups: {
+          // Vendor chunks - split by package
           vendor: {
             test: /[\\/]node_modules[\\/]/,
             name: 'vendors',
             chunks: 'all',
+            priority: 10,
+          },
+          // React and related libraries
+          react: {
+            test: /[\\/]node_modules[\\/](react|react-dom)[\\/]/,
+            name: 'react',
+            chunks: 'all',
+            priority: 20,
+          },
+          // Chart libraries
+          charts: {
+            test: /[\\/]node_modules[\\/](recharts|chart\.js|react-chartjs-2)[\\/]/,
+            name: 'charts',
+            chunks: 'all',
+            priority: 15,
+          },
+          // UI libraries
+          ui: {
+            test: /[\\/]node_modules[\\/](@headlessui|@heroicons|lucide-react|framer-motion)[\\/]/,
+            name: 'ui',
+            chunks: 'all',
+            priority: 15,
+          },
+          // Utility libraries
+          utils: {
+            test: /[\\/]node_modules[\\/](date-fns|dayjs|clsx|tailwind-merge)[\\/]/,
+            name: 'utils',
+            chunks: 'all',
+            priority: 10,
           },
         },
       };
@@ -154,6 +188,7 @@ const nextConfig = {
   experimental: {
     optimizeCss: true,
     scrollRestoration: true,
+    optimizePackageImports: ['lucide-react', '@heroicons/react', 'framer-motion'],
   },
 
   // Redirects
@@ -178,5 +213,5 @@ const nextConfig = {
   },
 };
 
-module.exports = nextConfig;
+module.exports = withBundleAnalyzer(nextConfig);
 

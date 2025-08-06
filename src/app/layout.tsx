@@ -16,8 +16,9 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: 'swap',
-  preload: false, // Disable preloading to fix the warning
+  preload: true,
   fallback: ['system-ui', 'arial'],
+  adjustFontFallback: false,
 });
 
 export const metadata: Metadata = {

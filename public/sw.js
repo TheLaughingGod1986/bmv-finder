@@ -1,21 +1,36 @@
-const CACHE_NAME = 'property-intelligence-platform-v2';
-const urlsToCache = [
+const CACHE_NAME = 'property-intelligence-platform-v3';
+const STATIC_CACHE = 'static-v3';
+const DYNAMIC_CACHE = 'dynamic-v3';
+
+const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icon-192.png',
   '/icon-512.png',
   '/favicon.ico',
-  '/offline.html'
+  '/offline.html',
+  '/og-image.png'
 ];
 
-// Install event - cache resources
+const API_CACHE = [
+  '/api/health-check',
+  '/api/property-count',
+  '/api/last-update'
+];
+
+// Install event - cache static resources
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Opened cache');
-        return cache.addAll(urlsToCache);
+    Promise.all([
+      caches.open(STATIC_CACHE).then((cache) => {
+        console.log('Opened static cache');
+        return cache.addAll(STATIC_ASSETS);
+      }),
+      caches.open(DYNAMIC_CACHE).then((cache) => {
+        console.log('Opened dynamic cache');
+        return cache.addAll(API_CACHE);
       })
+    ])
   );
 });
 
