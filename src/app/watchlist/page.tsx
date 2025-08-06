@@ -86,6 +86,8 @@ export default function WatchlistPage() {
   const [showOffersOnly, setShowOffersOnly] = useState(false);
   const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
   const [currentPage, setCurrentPage] = useState(1);
+  const [editingCostBreakdown, setEditingCostBreakdown] = useState<string | null>(null);
+  const [costBreakdownData, setCostBreakdownData] = useState<{[key: string]: any}>({});
   
   const user = useUser();
   const { tier, loading: tierLoading } = useUserTier(user?.id);
@@ -459,6 +461,57 @@ export default function WatchlistPage() {
     });
   };
 
+  const handleEditCostBreakdown = (propertyId: string) => {
+    const property = watchlist.find(p => p.id === propertyId);
+    if (!property) return;
+    
+    const currentBreakdown = calculateDetailedCostBreakdown(property);
+    setCostBreakdownData({
+      ...costBreakdownData,
+      [propertyId]: {
+        deposit: currentBreakdown.deposit,
+        purchaseType: 'second_home', // Default to second home
+        legalFees: currentBreakdown.legalFees,
+        surveyFees: currentBreakdown.surveyFees,
+        mortgageFees: currentBreakdown.mortgageFees,
+        landRegistryFees: currentBreakdown.landRegistryFees,
+        searchesFees: currentBreakdown.searchesFees,
+        gasSafetyCertificate: currentBreakdown.gasSafetyCertificate,
+        electricalSafetyCertificate: currentBreakdown.electricalSafetyCertificate,
+        energyPerformanceCertificate: currentBreakdown.energyPerformanceCertificate,
+        fireSafetyAssessment: currentBreakdown.fireSafetyAssessment,
+        legionellaRiskAssessment: currentBreakdown.legionellaRiskAssessment,
+        asbestosSurvey: currentBreakdown.asbestosSurvey,
+        landlordInsurance: currentBreakdown.landlordInsurance,
+        refurbishmentCost: currentBreakdown.refurbishmentCost,
+        furnitureAndAppliances: currentBreakdown.furnitureAndAppliances,
+        marketingAndLettingFees: currentBreakdown.marketingAndLettingFees,
+        contingencyFund: currentBreakdown.contingencyFund
+      }
+    });
+    setEditingCostBreakdown(propertyId);
+  };
+
+  const handleSaveCostBreakdown = (propertyId: string) => {
+    setEditingCostBreakdown(null);
+    // The data is already saved in costBreakdownData state
+    success('Cost breakdown updated successfully');
+  };
+
+  const handleCancelCostBreakdown = () => {
+    setEditingCostBreakdown(null);
+  };
+
+  const updateCostBreakdownField = (propertyId: string, field: string, value: any) => {
+    setCostBreakdownData(prev => ({
+      ...prev,
+      [propertyId]: {
+        ...prev[propertyId],
+        [field]: value
+      }
+    }));
+  };
+
   const addOfferToHistory = () => {
     if (!newOfferEntry.amount || !newOfferEntry.date) {
       showError('Please fill in amount and date');
@@ -690,46 +743,101 @@ export default function WatchlistPage() {
     };
   };
 
-  const calculateDetailedCostBreakdown = (property: WatchlistItem) => {
-    const deposit = property.price * 0.25;
+  const calculateDetailedCostBreakdown = (property: WatchlistItem, customData?: any) => {
+    const deposit = customData?.deposit || property.price * 0.25;
+    const purchaseType = customData?.purchaseType || 'additional_property';
     
-    // Enhanced Stamp Duty calculation
+    // Enhanced Stamp Duty calculation based on purchase type
     let stampDuty = 0;
-    if (property.price <= 250000) {
-      stampDuty = property.price * 0.03; // 3% for additional properties
-    } else if (property.price <= 925000) {
-      stampDuty = 7500 + (property.price - 250000) * 0.08; // 3% on first 250k, 8% on remainder
-    } else if (property.price <= 1500000) {
-      stampDuty = 67500 + (property.price - 925000) * 0.13; // 3% on first 250k, 8% on next 675k, 13% on remainder
+    const price = property.price;
+    
+    if (purchaseType === 'first_home') {
+      // First-time buyer rates (0% up to £425k, 5% on £425k-£625k, standard rates above)
+      if (price <= 425000) {
+        stampDuty = 0;
+      } else if (price <= 625000) {
+        stampDuty = (price - 425000) * 0.05;
+      } else {
+        // Standard rates for portion above £625k
+        if (price <= 925000) {
+          stampDuty = 10000 + (price - 625000) * 0.05;
+        } else if (price <= 1500000) {
+          stampDuty = 25000 + (price - 925000) * 0.10;
+        } else {
+          stampDuty = 82500 + (price - 1500000) * 0.12;
+        }
+      }
+    } else if (purchaseType === 'own_name') {
+      // Standard rates for main residence
+      if (price <= 250000) {
+        stampDuty = 0;
+      } else if (price <= 925000) {
+        stampDuty = (price - 250000) * 0.05;
+      } else if (price <= 1500000) {
+        stampDuty = 33750 + (price - 925000) * 0.10;
+      } else {
+        stampDuty = 93750 + (price - 1500000) * 0.12;
+      }
+    } else if (purchaseType === 'second_home') {
+      // Additional property rates (3% surcharge)
+      if (price <= 250000) {
+        stampDuty = price * 0.03;
+      } else if (price <= 925000) {
+        stampDuty = 7500 + (price - 250000) * 0.08;
+      } else if (price <= 1500000) {
+        stampDuty = 67500 + (price - 925000) * 0.13;
+      } else {
+        stampDuty = 150000 + (price - 1500000) * 0.15;
+      }
+    } else if (purchaseType === 'ltd_company') {
+      // Company purchase rates (higher rates)
+      if (price <= 250000) {
+        stampDuty = price * 0.05;
+      } else if (price <= 925000) {
+        stampDuty = 12500 + (price - 250000) * 0.10;
+      } else if (price <= 1500000) {
+        stampDuty = 80000 + (price - 925000) * 0.15;
+      } else {
+        stampDuty = 166250 + (price - 1500000) * 0.17;
+      }
     } else {
-      stampDuty = 150000 + (property.price - 1500000) * 0.15; // 3% on first 250k, 8% on next 675k, 13% on next 575k, 15% on remainder
+      // Default to additional property rates
+      if (price <= 250000) {
+        stampDuty = price * 0.03;
+      } else if (price <= 925000) {
+        stampDuty = 7500 + (price - 250000) * 0.08;
+      } else if (price <= 1500000) {
+        stampDuty = 67500 + (price - 925000) * 0.13;
+      } else {
+        stampDuty = 150000 + (price - 1500000) * 0.15;
+      }
     }
     
     // Legal and compliance costs
-    const legalFees = 1500; // Conveyancing fees
-    const surveyFees = 500; // Building survey
-    const mortgageFees = 1000; // Mortgage arrangement fees
-    const landRegistryFees = 200; // Land registry fees
-    const searchesFees = 300; // Local authority searches
+    const legalFees = customData?.legalFees || 1500; // Conveyancing fees
+    const surveyFees = customData?.surveyFees || 500; // Building survey
+    const mortgageFees = customData?.mortgageFees || 1000; // Mortgage arrangement fees
+    const landRegistryFees = customData?.landRegistryFees || 200; // Land registry fees
+    const searchesFees = customData?.searchesFees || 300; // Local authority searches
     
     // Gas and electrical safety certificates
-    const gasSafetyCertificate = 80; // Annual gas safety check
-    const electricalSafetyCertificate = 200; // EICR (Electrical Installation Condition Report)
-    const energyPerformanceCertificate = 80; // EPC certificate
+    const gasSafetyCertificate = customData?.gasSafetyCertificate || 80; // Annual gas safety check
+    const electricalSafetyCertificate = customData?.electricalSafetyCertificate || 200; // EICR (Electrical Installation Condition Report)
+    const energyPerformanceCertificate = customData?.energyPerformanceCertificate || 80; // EPC certificate
     
     // Additional compliance costs
-    const fireSafetyAssessment = 150; // Fire risk assessment
-    const legionellaRiskAssessment = 100; // Legionella risk assessment
-    const asbestosSurvey = 300; // Asbestos survey (if needed)
-    const landlordInsurance = 300; // Annual landlord insurance
+    const fireSafetyAssessment = customData?.fireSafetyAssessment || 150; // Fire risk assessment
+    const legionellaRiskAssessment = customData?.legionellaRiskAssessment || 100; // Legionella risk assessment
+    const asbestosSurvey = customData?.asbestosSurvey || 300; // Asbestos survey (if needed)
+    const landlordInsurance = customData?.landlordInsurance || 300; // Annual landlord insurance
     
     // Refurbishment costs
-    const refurbishmentCost = property.refurbishment_costs?.medium || 0;
+    const refurbishmentCost = customData?.refurbishmentCost || property.refurbishment_costs?.medium || 0;
     
     // Additional setup costs
-    const furnitureAndAppliances = 2000; // Basic furniture and appliances
-    const marketingAndLettingFees = 500; // Letting agent fees
-    const contingencyFund = 1000; // Contingency for unexpected costs
+    const furnitureAndAppliances = customData?.furnitureAndAppliances || 2000; // Basic furniture and appliances
+    const marketingAndLettingFees = customData?.marketingAndLettingFees || 500; // Letting agent fees
+    const contingencyFund = customData?.contingencyFund || 1000; // Contingency for unexpected costs
     
     const totalSetupCosts = legalFees + surveyFees + mortgageFees + landRegistryFees + searchesFees +
                            gasSafetyCertificate + electricalSafetyCertificate + energyPerformanceCertificate +
@@ -1655,111 +1763,309 @@ export default function WatchlistPage() {
                       {/* Detailed Cost Breakdown */}
                       {expandedSections.has(`cost-breakdown-${item.id}`) && (
                         <div className="mb-6 p-6 bg-white rounded-lg border border-gray-200">
-                          <h4 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                            <span className="text-xl">💰</span>
-                            Investment Cost Breakdown
-                          </h4>
+                          <div className="flex items-center justify-between mb-4">
+                            <h4 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                              <span className="text-xl">💰</span>
+                              Investment Cost Breakdown
+                            </h4>
+                            {editingCostBreakdown === item.id ? (
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleSaveCostBreakdown(item.id)}
+                                  className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                                >
+                                  Save
+                                </button>
+                                <button
+                                  onClick={handleCancelCostBreakdown}
+                                  className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => handleEditCostBreakdown(item.id)}
+                                className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+                              >
+                                Edit
+                              </button>
+                            )}
+                          </div>
                           <div className="space-y-3 text-sm">
+                            {/* Purchase Type Selector (only in edit mode) */}
+                            {editingCostBreakdown === item.id && (
+                              <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 shadow-sm">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                  📋 Purchase Type (affects Stamp Duty):
+                                </label>
+                                <select
+                                  value={costBreakdownData[item.id]?.purchaseType || 'second_home'}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'purchaseType', e.target.value)}
+                                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
+                                >
+                                  <option value="first_home">First Home (0% up to £425k)</option>
+                                  <option value="own_name">Own Name (Standard rates)</option>
+                                  <option value="second_home">Second Home (3% surcharge)</option>
+                                  <option value="ltd_company">LTD Company (Higher rates)</option>
+                                </select>
+                              </div>
+                            )}
+
                             {/* Major Costs */}
                             <div className="flex justify-between items-center p-3 bg-blue-100 rounded-lg border border-blue-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🏦 Deposit (25%):</span>
-                              <span className="font-bold text-blue-700">+{formatPrice(calculateDetailedCostBreakdown(item).deposit)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.deposit || calculateDetailedCostBreakdown(item).deposit}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'deposit', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-blue-700 border border-blue-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-blue-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).deposit)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-purple-100 rounded-lg border border-purple-200 shadow-sm">
                               <span className="text-gray-700 font-medium">📋 Stamp Duty:</span>
-                              <span className="font-bold text-purple-700">+{formatPrice(calculateDetailedCostBreakdown(item).stampDuty)}</span>
+                              <span className="font-bold text-purple-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).stampDuty)}</span>
                             </div>
                             
-                            {calculateDetailedCostBreakdown(item).refurbishmentCost > 0 && (
+                            {/* Refurbishment - Always show in edit mode, conditional in view mode */}
+                            {(editingCostBreakdown === item.id || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).refurbishmentCost > 0) && (
                               <div className="flex justify-between items-center p-3 bg-orange-100 rounded-lg border border-orange-200 shadow-sm">
                                 <span className="text-gray-700 font-medium">🔨 Refurbishment:</span>
-                                <span className="font-bold text-orange-700">+{formatPrice(calculateDetailedCostBreakdown(item).refurbishmentCost)}</span>
+                                {editingCostBreakdown === item.id ? (
+                                  <input
+                                    type="number"
+                                    value={costBreakdownData[item.id]?.refurbishmentCost || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).refurbishmentCost}
+                                    onChange={(e) => updateCostBreakdownField(item.id, 'refurbishmentCost', parseFloat(e.target.value) || 0)}
+                                    className="w-24 p-1 text-right font-bold text-orange-700 border border-orange-300 rounded"
+                                  />
+                                ) : (
+                                  <span className="font-bold text-orange-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).refurbishmentCost)}</span>
+                                )}
                               </div>
                             )}
                             
                             {/* Legal & Setup Costs */}
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">⚖️ Legal Fees:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).legalFees)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.legalFees || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).legalFees}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'legalFees', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).legalFees)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🔍 Survey Fees:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).surveyFees)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.surveyFees || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).surveyFees}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'surveyFees', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).surveyFees)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🏦 Mortgage Fees:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).mortgageFees)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.mortgageFees || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).mortgageFees}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'mortgageFees', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).mortgageFees)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">📄 Land Registry:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).landRegistryFees)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.landRegistryFees || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).landRegistryFees}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'landRegistryFees', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).landRegistryFees)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🔎 Searches:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).searchesFees)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.searchesFees || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).searchesFees}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'searchesFees', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).searchesFees)}</span>
+                              )}
                             </div>
                             
                             {/* Compliance Costs */}
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🔥 Gas Safety Certificate:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).gasSafetyCertificate)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.gasSafetyCertificate || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).gasSafetyCertificate}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'gasSafetyCertificate', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).gasSafetyCertificate)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">⚡ Electrical Certificate:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).electricalSafetyCertificate)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.electricalSafetyCertificate || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).electricalSafetyCertificate}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'electricalSafetyCertificate', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).electricalSafetyCertificate)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🌱 EPC Certificate:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).energyPerformanceCertificate)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.energyPerformanceCertificate || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).energyPerformanceCertificate}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'energyPerformanceCertificate', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).energyPerformanceCertificate)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🚨 Fire Safety Assessment:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).fireSafetyAssessment)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.fireSafetyAssessment || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).fireSafetyAssessment}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'fireSafetyAssessment', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).fireSafetyAssessment)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">💧 Legionella Assessment:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).legionellaRiskAssessment)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.legionellaRiskAssessment || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).legionellaRiskAssessment}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'legionellaRiskAssessment', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).legionellaRiskAssessment)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🏗️ Asbestos Survey:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).asbestosSurvey)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.asbestosSurvey || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).asbestosSurvey}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'asbestosSurvey', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).asbestosSurvey)}</span>
+                              )}
                             </div>
                             
                             {/* Additional Costs */}
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🛡️ Landlord Insurance:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).landlordInsurance)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.landlordInsurance || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).landlordInsurance}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'landlordInsurance', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).landlordInsurance)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🪑 Furniture & Appliances:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).furnitureAndAppliances)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.furnitureAndAppliances || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).furnitureAndAppliances}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'furnitureAndAppliances', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).furnitureAndAppliances)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">📢 Marketing & Letting:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).marketingAndLettingFees)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.marketingAndLettingFees || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).marketingAndLettingFees}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'marketingAndLettingFees', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).marketingAndLettingFees)}</span>
+                              )}
                             </div>
                             
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">💰 Contingency Fund:</span>
-                              <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).contingencyFund)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.contingencyFund || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).contingencyFund}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'contingencyFund', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-gray-700 border border-gray-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).contingencyFund)}</span>
+                              )}
                             </div>
                             
                             {/* Total */}
                             <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border-t-2 border-green-200 shadow-sm">
                               <span className="font-semibold text-gray-800">= Total Investment Required:</span>
-                              <span className="font-bold text-green-600 text-lg">= {formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}</span>
+                              <span className="font-bold text-green-600 text-lg">= {formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).totalInvestmentCost)}</span>
                             </div>
                           </div>
                         </div>
