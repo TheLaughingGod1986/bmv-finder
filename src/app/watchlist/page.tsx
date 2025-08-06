@@ -3174,20 +3174,6 @@ const WatchlistPage = () => {
                 <div className="border-t border-gray-200 pt-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-3">Offer Tracking</h4>
                   <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Offer Status</label>
-                      <select
-                        value={editForm.offer_status || 'none'}
-                        onChange={(e) => setEditForm({...editForm, offer_status: e.target.value as any})}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="none">No Offer Made</option>
-                        <option value="offer_made">Offer Made</option>
-                        <option value="offer_accepted">Offer Accepted</option>
-                        <option value="offer_rejected">Offer Rejected</option>
-                      </select>
-                      </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Offer Amount (£)</label>
