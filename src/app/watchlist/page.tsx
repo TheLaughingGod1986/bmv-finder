@@ -2434,7 +2434,7 @@ const WatchlistPage = () => {
                             </div>
                             <h4 className="font-semibold text-gray-900">{property.bedrooms} bed {property.property_type.toLowerCase()}</h4>
                             <p className="text-sm text-gray-600 truncate">{property.address}</p>
-                            <div className="mt-2">
+                            <div className="mt-2 flex items-center justify-center gap-2">
                               <span className={`px-2 py-1 rounded text-xs font-semibold ${
                                 rank === 1 ? 'bg-green-100 text-green-800' :
                                 rank === 2 ? 'bg-blue-100 text-blue-800' :
@@ -2442,15 +2442,11 @@ const WatchlistPage = () => {
                               }`}>
                                 {rankLabels[rank]}
                               </span>
+                              <span className="font-semibold text-gray-900">{formatPrice(property.price)}</span>
                             </div>
                           </div>
                         
                           <div className="space-y-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-sm text-gray-600">Price:</span>
-                              <span className="font-semibold text-gray-900">{formatPrice(property.price)}</span>
-                            </div>
-                            
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-gray-600">Yield:</span>
                               <span className={`font-semibold ${metrics.yield >= 6 ? 'text-green-600' : 'text-orange-600'}`}>
