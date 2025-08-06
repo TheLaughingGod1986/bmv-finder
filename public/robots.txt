@@ -22,4 +22,14 @@ Allow: /hpi-dashboard
 Allow: /what-should-i-pay
 Allow: /portfolio-tracker
 Allow: /pricing
-Allow: /comprehensive-valuation 
+Allow: /comprehensive-valuation
+Allow: /about
+Allow: /roadmap
+Allow: /legal
+Allow: /terms
+Allow: /privacy
+Allow: /hpi-search
+Allow: /postcode-research
+Allow: /saved-searches
+Allow: /property-projects
+Allow: /watchlist 

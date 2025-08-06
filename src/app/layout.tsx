@@ -71,7 +71,8 @@ export const metadata: Metadata = {
     },
   },
   verification: {
-    google: 'your-google-verification-code',
+    // Add your Google Search Console verification code here when available
+    // google: process.env.GOOGLE_VERIFICATION_CODE,
   },
   other: {
     'mobile-web-app-capable': 'yes',
@@ -180,6 +181,32 @@ export default function RootLayout({
                   "availability": "https://schema.org/InStock"
                 }
               ]
+            }
+          })
+        }} />
+        {/* WebSite Structured Data */}
+        <script type="application/ld+json" dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "Property Intelligence Platform",
+            "url": process.env.NEXT_PUBLIC_APP_URL || "https://bmvfinder.com",
+            "description": "AI-powered property investment research platform with BMV analysis, market trends, and UK Land Registry data.",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": {
+                "@type": "EntryPoint",
+                "urlTemplate": `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/search?q={search_term_string}`
+              },
+              "query-input": "required name=search_term_string"
+            },
+            "publisher": {
+              "@type": "Organization",
+              "name": "Property Intelligence Platform",
+              "logo": {
+                "@type": "ImageObject",
+                "url": `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/icon-192.png`
+              }
             }
           })
         }} />
