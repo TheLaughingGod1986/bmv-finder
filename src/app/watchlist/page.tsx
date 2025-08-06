@@ -747,9 +747,12 @@ export default function WatchlistPage() {
     const deposit = customData?.deposit || property.price * 0.25;
     const purchaseType = customData?.purchaseType || 'additional_property';
     
-    // Enhanced Stamp Duty calculation based on purchase type
-    let stampDuty = 0;
+    // Use manually entered stamp duty if provided, otherwise calculate based on purchase type
+    let stampDuty = customData?.stampDuty || 0;
     const price = property.price;
+    
+    // Only calculate stamp duty if not manually provided
+    if (!customData?.stampDuty) {
     
     if (purchaseType === 'first_home') {
       // First-time buyer rates (0% up to £425k, 5% on £425k-£625k, standard rates above)
@@ -811,6 +814,7 @@ export default function WatchlistPage() {
       } else {
         stampDuty = 150000 + (price - 1500000) * 0.15;
       }
+    }
     }
     
     // Legal and compliance costs
@@ -1793,22 +1797,58 @@ export default function WatchlistPage() {
                             )}
                           </div>
                           <div className="space-y-3 text-sm">
-                            {/* Purchase Type Selector (only in edit mode) */}
+                            {/* Purchase Type Options (only in edit mode) */}
                             {editingCostBreakdown === item.id && (
                               <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200 shadow-sm">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                   📋 Purchase Type (affects Stamp Duty):
                                 </label>
-                                <select
-                                  value={costBreakdownData[item.id]?.purchaseType || 'second_home'}
-                                  onChange={(e) => updateCostBreakdownField(item.id, 'purchaseType', e.target.value)}
-                                  className="w-full p-2 border border-gray-300 rounded-md text-sm"
-                                >
-                                  <option value="first_home">First Home (0% up to £425k)</option>
-                                  <option value="own_name">Own Name (Standard rates)</option>
-                                  <option value="second_home">Second Home (3% surcharge)</option>
-                                  <option value="ltd_company">LTD Company (Higher rates)</option>
-                                </select>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <label className="flex items-center space-x-2">
+                                    <input
+                                      type="radio"
+                                      name={`purchaseType-${item.id}`}
+                                      value="first_home"
+                                      checked={costBreakdownData[item.id]?.purchaseType === 'first_home'}
+                                      onChange={(e) => updateCostBreakdownField(item.id, 'purchaseType', e.target.value)}
+                                      className="text-blue-600"
+                                    />
+                                    <span className="text-sm">First Home</span>
+                                  </label>
+                                  <label className="flex items-center space-x-2">
+                                    <input
+                                      type="radio"
+                                      name={`purchaseType-${item.id}`}
+                                      value="own_name"
+                                      checked={costBreakdownData[item.id]?.purchaseType === 'own_name'}
+                                      onChange={(e) => updateCostBreakdownField(item.id, 'purchaseType', e.target.value)}
+                                      className="text-blue-600"
+                                    />
+                                    <span className="text-sm">Own Name</span>
+                                  </label>
+                                  <label className="flex items-center space-x-2">
+                                    <input
+                                      type="radio"
+                                      name={`purchaseType-${item.id}`}
+                                      value="second_home"
+                                      checked={costBreakdownData[item.id]?.purchaseType === 'second_home'}
+                                      onChange={(e) => updateCostBreakdownField(item.id, 'purchaseType', e.target.value)}
+                                      className="text-blue-600"
+                                    />
+                                    <span className="text-sm">Second Home</span>
+                                  </label>
+                                  <label className="flex items-center space-x-2">
+                                    <input
+                                      type="radio"
+                                      name={`purchaseType-${item.id}`}
+                                      value="ltd_company"
+                                      checked={costBreakdownData[item.id]?.purchaseType === 'ltd_company'}
+                                      onChange={(e) => updateCostBreakdownField(item.id, 'purchaseType', e.target.value)}
+                                      className="text-blue-600"
+                                    />
+                                    <span className="text-sm">LTD Company</span>
+                                  </label>
+                                </div>
                               </div>
                             )}
 
@@ -1829,7 +1869,16 @@ export default function WatchlistPage() {
                             
                             <div className="flex justify-between items-center p-3 bg-purple-100 rounded-lg border border-purple-200 shadow-sm">
                               <span className="text-gray-700 font-medium">📋 Stamp Duty:</span>
-                              <span className="font-bold text-purple-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).stampDuty)}</span>
+                              {editingCostBreakdown === item.id ? (
+                                <input
+                                  type="number"
+                                  value={costBreakdownData[item.id]?.stampDuty || calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).stampDuty}
+                                  onChange={(e) => updateCostBreakdownField(item.id, 'stampDuty', parseFloat(e.target.value) || 0)}
+                                  className="w-24 p-1 text-right font-bold text-purple-700 border border-purple-300 rounded"
+                                />
+                              ) : (
+                                <span className="font-bold text-purple-700">+{formatPrice(calculateDetailedCostBreakdown(item, costBreakdownData[item.id]).stampDuty)}</span>
+                              )}
                             </div>
                             
                             {/* Refurbishment - Always show in edit mode, conditional in view mode */}
