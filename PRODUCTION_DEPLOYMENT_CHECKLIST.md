@@ -1,4 +1,4 @@
-# BMV Finder Production Deployment Checklist
+# Property Intelligence Platform Production Deployment Checklist
 
 ## 🚀 Pre-Deployment Checklist
 

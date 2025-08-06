@@ -29,7 +29,7 @@ function ExtensionAuthContent() {
       
       if (error || !session) {
         setStatus('error');
-        setMessage('You need to sign in to your BMV Finder account first. Click "Sign In to BMV Finder" below to create an account or sign in.');
+        setMessage('You need to sign in to your Property Intelligence Platform account first. Click "Sign In to Property Intelligence Platform" below to create an account or sign in.');
         return;
       }
 
@@ -89,7 +89,7 @@ function ExtensionAuthContent() {
         <div className="mb-6">
           <div className="text-4xl mb-4">🏠</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            BMV Finder Extension
+            Property Intelligence Platform Extension
           </h1>
           <p className="text-gray-600">
             {status === 'loading' && 'Connecting to your account...'}
@@ -121,7 +121,7 @@ function ExtensionAuthContent() {
         {status === 'error' && (
           <div className="space-y-3">
             <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-              <strong>How it works:</strong> First sign in to your BMV Finder account, then return to the extension to capture properties.
+              <strong>How it works:</strong> First sign in to your Property Intelligence Platform account, then return to the extension to capture properties.
             </div>
             <button
               onClick={() => {
@@ -130,7 +130,7 @@ function ExtensionAuthContent() {
               }}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Sign In to BMV Finder
+              Sign In to Property Intelligence Platform
             </button>
             <button
               onClick={() => {

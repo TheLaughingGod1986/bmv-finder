@@ -152,7 +152,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                 <p className="text-gray-600 mt-1">
                   {mode === 'login' 
                     ? 'Sign in to your account to continue' 
-                    : 'Join BMV Finder to get started'
+                    : 'Join Property Intelligence Platform to get started'
                   }
                 </p>
               </div>

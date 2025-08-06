@@ -338,7 +338,7 @@ export default function Home() {
     },
     {
       icon: <TrendingUp className="w-7 h-7 text-white" />,
-      title: "BMV Score Analysis",
+      title: "Investment Score Analysis",
       description: "AI-powered below market value detection with enhanced scoring algorithms",
       highlight: "Exclusive feature",
       color: "from-purple-500 to-purple-600",
@@ -370,8 +370,8 @@ export default function Home() {
     },
     {
       icon: <Eye className="w-9 h-9 text-white stroke-2" />,
-      title: "Property Watchlist",
-      description: "Save and track properties of interest with Chrome extension integration",
+            title: "Property Analyzer",
+      description: "Save and track properties of interest with advanced analysis tools",
       highlight: "New feature",
       color: "from-teal-500 to-teal-600",
       labelColor: "text-teal-700 bg-teal-100"
@@ -408,15 +408,15 @@ export default function Home() {
     "Negotiate better deals with evidence-based valuations",
     "Track your portfolio performance and investment returns",
     "Identify emerging market trends with real-time HPI data",
-    "Access professional-grade tools and Chrome extension integration",
-    "Capture properties on-the-go with our browser extension"
+            "Access professional-grade tools and advanced analytics",
+        "Track market trends and property performance"
   ];
 
   const testimonials = [
     {
       name: "Sarah Mitchell",
       role: "Property Investor",
-      content: "Found my best investment property using the BMV score. Made £45k profit in 6 months!",
+      content: "Found my best investment property using the investment score. Made £45k profit in 6 months!",
       rating: 5
     },
     {
@@ -465,7 +465,7 @@ export default function Home() {
               >
                 <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
                   <Star className="w-4 h-4 mr-2" />
-                  Trusted by 50,000+ property professionals
+                  AI-Powered Investment Research
                 </span>
               </motion.div>
 
@@ -475,9 +475,9 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
               >
-                The UK&apos;s Most Powerful
+                Property Intelligence
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                  Property Research Platform
+                  Platform
                 </span>
               </motion.h1>
 
@@ -487,7 +487,7 @@ export default function Home() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto"
               >
-                Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property decisions.
+                Access 25 million property sales, AI-powered investment analysis, and professional tools to make smarter property decisions.
               </motion.p>
 
               {/* Search Bar */}
@@ -1289,57 +1289,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Chrome Extension Highlight */}
-        <section className="py-20 bg-gradient-to-r from-green-50 to-blue-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-blue-500 rounded-full mb-6">
-                <Download className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-                Capture Properties Anywhere with Our Chrome Extension
-              </h2>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-                Install our browser extension to instantly capture properties from Rightmove, Zoopla, and other property sites directly to your watchlist.
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">1</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Install Extension</h3>
-                <p className="text-gray-600">Add our Chrome extension to your browser in seconds</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">2</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Browse Properties</h3>
-                <p className="text-gray-600">Visit any property listing on supported sites</p>
-              </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-2xl">3</span>
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Capture & Analyze</h3>
-                <p className="text-gray-600">Click our button to save and analyze the property</p>
-              </div>
-            </div>
-            
-            <div className="text-center">
-              <button
-                onClick={() => window.open('/extension-welcome', '_blank')}
-                className="inline-flex items-center gap-3 px-10 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-xl hover:shadow-2xl transform hover:scale-105 border-2 border-white/20"
-              >
-                <Download className="w-6 h-6" />
-                Get Chrome Extension
-              </button>
-              <p className="text-sm text-gray-600 mt-4 font-medium">Free to install • Works on all major property sites</p>
-            </div>
-          </div>
-        </section>
+
 
         {/* Benefits Section */}
         <section className="py-20 bg-gradient-to-r from-blue-50 to-purple-50">

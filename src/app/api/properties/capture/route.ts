@@ -126,12 +126,12 @@ export async function POST(request: NextRequest) {
         });
         
         if (watchlistResponse.ok) {
-          console.log('BMV Finder: Property also saved to watchlist storage');
+          console.log('Property Intelligence Platform: Property also saved to watchlist storage');
         } else {
-          console.error('BMV Finder: Failed to save to watchlist storage:', await watchlistResponse.text());
+          console.error('Property Intelligence Platform: Failed to save to watchlist storage:', await watchlistResponse.text());
         }
       } catch (watchlistError) {
-        console.error('BMV Finder: Error saving to watchlist storage:', watchlistError);
+        console.error('Property Intelligence Platform: Error saving to watchlist storage:', watchlistError);
       }
       
       return NextResponse.json({

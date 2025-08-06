@@ -21,7 +21,7 @@ export default function LegalPage() {
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Legal Information</h1>
             <p className="text-gray-600">
-              Important legal information about using BMV Finder
+              Important legal information about using Property Intelligence Platform
             </p>
           </div>
 
@@ -60,27 +60,27 @@ export default function LegalPage() {
                   
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">1. Acceptance of Terms</h3>
                   <p>
-                    By accessing and using BMV Finder, you accept and agree to be bound by the terms and provision of this agreement.
+                    By accessing and using Property Intelligence Platform, you accept and agree to be bound by the terms and provision of this agreement.
                   </p>
 
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">2. Use License</h3>
                   <p>
-                    Permission is granted to temporarily download one copy of BMV Finder for personal, non-commercial transitory viewing only.
+                    Permission is granted to temporarily download one copy of Property Intelligence Platform for personal, non-commercial transitory viewing only.
                   </p>
 
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">3. Disclaimer</h3>
                   <p>
-                    The materials on BMV Finder are provided on an 'as is' basis. BMV Finder makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
+                    The materials on Property Intelligence Platform are provided on an 'as is' basis. Property Intelligence Platform makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties including without limitation, implied warranties or conditions of merchantability, fitness for a particular purpose, or non-infringement of intellectual property or other violation of rights.
                   </p>
 
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">4. Limitations</h3>
                   <p>
-                    In no event shall BMV Finder or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on BMV Finder.
+                    In no event shall Property Intelligence Platform or its suppliers be liable for any damages (including, without limitation, damages for loss of data or profit, or due to business interruption) arising out of the use or inability to use the materials on Property Intelligence Platform.
                   </p>
 
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">5. Revisions and Errata</h3>
                   <p>
-                    The materials appearing on BMV Finder could include technical, typographical, or photographic errors. BMV Finder does not warrant that any of the materials on its website are accurate, complete or current.
+                    The materials appearing on Property Intelligence Platform could include technical, typographical, or photographic errors. Property Intelligence Platform does not warrant that any of the materials on its website are accurate, complete or current.
                   </p>
                 </div>
               </div>
@@ -132,7 +132,7 @@ export default function LegalPage() {
 
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">1. No Investment Advice</h3>
                   <p>
-                    The information provided by BMV Finder is for educational and informational purposes only. It is not intended to be and should not be construed as investment advice, financial advice, or any other type of advice.
+                    The information provided by Property Intelligence Platform is for educational and informational purposes only. It is not intended to be and should not be construed as investment advice, financial advice, or any other type of advice.
                   </p>
 
                   <h3 className="text-lg font-semibold text-gray-900 mt-6 mb-3">2. Risk Disclosure</h3>

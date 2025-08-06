@@ -1,8 +1,8 @@
-# 🚀 BMV Finder - Quick Production Deployment Guide
+# 🚀 Property Intelligence Platform - Quick Production Deployment Guide
 
 ## ⚡ **Fast Track to Production**
 
-This guide will get your BMV Finder platform deployed to production quickly, focusing on core functionality.
+This guide will get your Property Intelligence Platform deployed to production quickly, focusing on core functionality.
 
 ---
 

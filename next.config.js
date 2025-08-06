@@ -38,29 +38,19 @@ const nextConfig = {
 
   // Image optimization
   images: {
-    domains: [
-      'images.unsplash.com', 
-      'via.placeholder.com',
-      // Property website image domains
-      'st.zoocdn.com',                    // Zoopla images
-      'cdn.prod.zoopla.co.uk',            // Zoopla CDN (production)
-      'media.rightmove.co.uk',            // Rightmove images
-      'images.zoopla.co.uk',              // Zoopla images (alternative)
-      'media.onthemarket.com',            // OnTheMarket images
-      'media.primelocation.com',          // PrimeLocation images
-      'media.zoopla.co.uk',               // Zoopla media
-      'images.rightmove.co.uk',           // Rightmove images (alternative)
-      'zoopla-static.akamaized.net',      // Zoopla CDN
-      'rightmove-static.akamaized.net',   // Rightmove CDN
-    ],
-    formats: ['image/webp', 'image/avif'],
-    minimumCacheTTL: 60,
-    // Disable image optimization for external images to avoid CORS issues
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // Remote patterns for better external image handling
     remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'via.placeholder.com',
+        port: '',
+        pathname: '/**',
+      },
       {
         protocol: 'https',
         hostname: 'st.zoocdn.com',
@@ -99,6 +89,18 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'media.zoopla.co.uk',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.rightmove.co.uk',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'zoopla-static.akamaized.net',
         port: '',
         pathname: '/**',
@@ -110,6 +112,12 @@ const nextConfig = {
         pathname: '/**',
       },
     ],
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    // Disable image optimization for external images to avoid CORS issues
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   // Webpack configuration

@@ -664,7 +664,7 @@ export default function PortfolioTrackerPage() {
               >
                 <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
                   <TrendingUp className="w-4 h-4 mr-2" />
-                  Professional Portfolio Management
+                  Professional Investment Management
                 </span>
               </motion.div>
 
@@ -674,9 +674,9 @@ export default function PortfolioTrackerPage() {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
               >
-                Portfolio Tracker
+                Investment Portfolio
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                  Investment Management
+                  Performance Tracking & Analytics
                 </span>
               </motion.h1>
 
@@ -700,7 +700,7 @@ export default function PortfolioTrackerPage() {
                   className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <Eye className="w-5 h-5 mr-2" />
-                  View Watchlist
+                  View Property Analyzer
                 </button>
                 <button
                   onClick={handleRefreshData}

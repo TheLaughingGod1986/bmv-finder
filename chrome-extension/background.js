@@ -1,4 +1,4 @@
-console.log('BMV Finder: Background script loaded');
+console.log('Property Intelligence Platform: Background script loaded');
 
 // API configuration - use production server
 // const API_BASE_URL = 'http://localhost:3000/api'; // Local development
@@ -6,7 +6,7 @@ const API_BASE_URL = 'https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  console.log('BMV Finder: Received message:', request);
+  console.log('Property Intelligence Platform: Received message:', request);
   
   if (request.action === 'captureProperty') {
     handlePropertyCapture(request.data, sendResponse);
@@ -16,11 +16,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
 async function handlePropertyCapture(propertyData, sendResponse) {
   try {
-    console.log('BMV Finder: Capturing property:', propertyData);
+    console.log('Property Intelligence Platform: Capturing property:', propertyData);
     
     // Validate property data
     if (!propertyData || !propertyData.title) {
-      console.error('BMV Finder: Invalid property data received');
+      console.error('Property Intelligence Platform: Invalid property data received');
       sendResponse({
         success: false,
         error: 'Invalid property data - title is required'
@@ -33,7 +33,7 @@ async function handlePropertyCapture(propertyData, sendResponse) {
     const isAuthenticated = authResult.isAuthenticated && authResult.authToken && authResult.userData;
     
     if (!isAuthenticated) {
-      console.error('BMV Finder: User not authenticated - cannot capture properties');
+      console.error('Property Intelligence Platform: User not authenticated - cannot capture properties');
       sendResponse({
         success: false,
         error: 'Authentication required. Please sign in to capture properties.',
@@ -44,7 +44,7 @@ async function handlePropertyCapture(propertyData, sendResponse) {
     
     // Verify user has a valid account
     if (!authResult.userData || !authResult.userData.name || authResult.userData.name === 'Not Signed In') {
-      console.error('BMV Finder: Invalid user account - cannot capture properties');
+      console.error('Property Intelligence Platform: Invalid user account - cannot capture properties');
       sendResponse({
         success: false,
         error: 'Please sign in with a valid account to capture properties.',
@@ -69,12 +69,12 @@ async function handlePropertyCapture(propertyData, sendResponse) {
     
     // Save back to local storage
     await chrome.storage.local.set({ capturedProperties });
-    console.log('BMV Finder: Property saved to local storage');
+    console.log('Property Intelligence Platform: Property saved to local storage');
     
-    // Now send to BMV Finder API
-    console.log('BMV Finder: Sending property to API...');
-    console.log('BMV Finder: API URL:', `${API_BASE_URL}/properties/capture`);
-    console.log('BMV Finder: Property data being sent:', newProperty);
+    // Now send to Property Intelligence Platform API
+    console.log('Property Intelligence Platform: Sending property to API...');
+    console.log('Property Intelligence Platform: API URL:', `${API_BASE_URL}/properties/capture`);
+    console.log('Property Intelligence Platform: Property data being sent:', newProperty);
     
     try {
       const apiResponse = await fetch(`${API_BASE_URL}/properties/capture`, {
@@ -86,12 +86,12 @@ async function handlePropertyCapture(propertyData, sendResponse) {
         body: JSON.stringify(newProperty)
       });
       
-      console.log('BMV Finder: API response status:', apiResponse.status);
-      console.log('BMV Finder: API response headers:', Object.fromEntries(apiResponse.headers.entries()));
+      console.log('Property Intelligence Platform: API response status:', apiResponse.status);
+      console.log('Property Intelligence Platform: API response headers:', Object.fromEntries(apiResponse.headers.entries()));
       
       if (apiResponse.ok) {
         const apiData = await apiResponse.json();
-        console.log('BMV Finder: Property sent to API successfully:', apiData);
+        console.log('Property Intelligence Platform: Property sent to API successfully:', apiData);
         
         sendResponse({
           success: true,

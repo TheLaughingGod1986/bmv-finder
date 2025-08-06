@@ -60,7 +60,7 @@
 
 ### Button Not Appearing
 - Check if you're on a supported property site (Rightmove, Zoopla, etc.)
-- Open browser console and look for "BMV Finder: Content script loaded"
+- Open browser console and look for "Property Intelligence Platform: Content script loaded"
 - Try refreshing the page
 
 ### Capture Not Working

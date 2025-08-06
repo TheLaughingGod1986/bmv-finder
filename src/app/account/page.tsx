@@ -230,7 +230,7 @@ export default function AccountPage() {
                   transition={{ delay: 0.2 }}
                   className="text-4xl md:text-5xl font-bold mb-4"
                 >
-                  Welcome to BMV Finder!
+                  Welcome to Property Intelligence Platform!
                 </motion.h1>
                 <motion.p 
                   initial={{ opacity: 0, y: 20 }}
@@ -569,7 +569,7 @@ export default function AccountPage() {
             <h2 className="text-2xl font-bold">Refer Friends & Earn Rewards</h2>
           </div>
           <p className="mb-6 text-green-100">
-            Share BMV Finder with friends and earn exclusive rewards. Both you and your friends get benefits!
+            Share Property Intelligence Platform with friends and earn exclusive rewards. Both you and your friends get benefits!
           </p>
           <div className="grid md:grid-cols-3 gap-6 mb-6">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -623,7 +623,7 @@ export default function AccountPage() {
         >
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Need Help?</h2>
           <p className="text-gray-600 mb-6">
-            Our support team is here to help you get the most out of BMV Finder
+            Our support team is here to help you get the most out of Property Intelligence Platform
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a 

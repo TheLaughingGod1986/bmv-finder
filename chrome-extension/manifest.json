@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "BMV Finder Property Capture",
+  "name": "Property Intelligence Platform - Property Capture",
   "version": "1.0.0",
-  "description": "Capture property data from real estate websites and add to your personalized watchlist",
+  "description": "Capture property data from real estate websites and add to your personalized Property Analyzer",
   "icons": {
     "16": "icons/icon16.png",
     "32": "icons/icon32.png",
@@ -44,7 +44,7 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "BMV Finder Property Capture",
+    "default_title": "Property Intelligence Platform - Property Capture",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",

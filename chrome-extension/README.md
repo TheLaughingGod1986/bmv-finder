@@ -1,12 +1,12 @@
-# BMV Finder Chrome Extension
+# Property Intelligence Platform Chrome Extension
 
-A powerful Chrome extension that allows property investors to capture property data from real estate websites and build personalized watchlists.
+A powerful Chrome extension that allows property investors to capture property data from real estate websites and build personalized property analysis lists.
 
 ## Features
 
 - **One-Click Property Capture**: Capture property details from Rightmove, Zoopla, OnTheMarket, and PrimeLocation
-- **Personal Watchlist**: Build and manage your own property watchlist
-- **User Authentication**: Secure login with your BMV Finder account
+- **Personal Property Analyzer**: Build and manage your own property analysis list
+- **User Authentication**: Secure login with your Property Intelligence Platform account
 - **Tier-Based Access**: Different features based on your subscription level
 - **Cross-Platform Sync**: Access your watchlist from web, mobile, or desktop
 - **Property Status Tracking**: Track properties as active, archived, sold, or withdrawn
@@ -39,7 +39,7 @@ A powerful Chrome extension that allows property investors to capture property d
 ### First Time Setup
 
 1. **Install the Extension**: Follow the installation instructions above
-2. **Sign In**: Click the extension icon and sign in with your BMV Finder account
+2. **Sign In**: Click the extension icon and sign in with your Property Intelligence Platform account
 3. **Verify Membership**: The extension will check your subscription tier and enable appropriate features
 
 ### Capturing Properties
@@ -47,11 +47,11 @@ A powerful Chrome extension that allows property investors to capture property d
 1. **Navigate to a Property**: Go to any property listing on a supported website
 2. **Click the Capture Button**: Look for the floating "Capture Property" button in the top-right corner
 3. **Confirm Capture**: The button will show a success message when the property is captured
-4. **View in Watchlist**: Access your captured properties in your BMV Finder watchlist
+4. **View in Property Analyzer**: Access your captured properties in your Property Intelligence Platform Property Analyzer
 
 ### Managing Your Watchlist
 
-1. **View Properties**: Visit `https://your-domain.com/watchlist` to see all captured properties
+1. **View Properties**: Visit `https://your-domain.com/watchlist` to see all captured properties in your Property Analyzer
 2. **Filter and Search**: Use the search and filter options to find specific properties
 3. **Update Status**: Change property status (active, archived, sold, withdrawn)
 4. **Delete Properties**: Remove properties you no longer need

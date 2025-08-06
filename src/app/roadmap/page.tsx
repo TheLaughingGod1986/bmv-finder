@@ -294,7 +294,7 @@ export default function RoadmapPage() {
       { name: 'Mobile Expansion', weight: 10, completed: true },
       { name: 'Enhanced Data Integration', weight: 10, completed: true },
       { name: 'Market Analysis Features', weight: 5, completed: true },
-      { name: 'Property Project Management', weight: 3, completed: false },
+      { name: 'Property Project Management', weight: 3, completed: true },
       { name: 'Production Deployment', weight: 2, completed: false }
     ];
 
@@ -313,7 +313,7 @@ export default function RoadmapPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            BMV Finder Project Roadmap
+            Property Intelligence Platform Project Roadmap
           </h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             Visual tracking and understanding of your property investment platform development journey
@@ -381,23 +381,23 @@ export default function RoadmapPage() {
 
         {/* What's Next Section */}
         <div className="bg-white rounded-lg p-6 shadow-sm border border-gray-200 mb-8">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">What&apos;s Next (5% Remaining)</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-4">What&apos;s Next (2% Remaining)</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="border-l-4 border-blue-500 pl-4">
-              <h4 className="font-semibold text-gray-900">1. Property Project Management Tool</h4>
-              <p className="text-sm text-gray-600 mt-1">Implement workflow management system for property investors</p>
-            </div>
             <div className="border-l-4 border-green-500 pl-4">
-              <h4 className="font-semibold text-gray-900">2. Production Deployment</h4>
-              <p className="text-sm text-gray-600 mt-1">Final deployment steps and monitoring setup</p>
+              <h4 className="font-semibold text-gray-900">1. Production Deployment</h4>
+              <p className="text-sm text-gray-600 mt-1">Final deployment steps, domain configuration, and monitoring setup</p>
+            </div>
+            <div className="border-l-4 border-blue-500 pl-4">
+              <h4 className="font-semibold text-gray-900">2. Performance Optimization</h4>
+              <p className="text-sm text-gray-600 mt-1">Bundle optimization, loading times, and SEO implementation</p>
             </div>
             <div className="border-l-4 border-purple-500 pl-4">
-              <h4 className="font-semibold text-gray-900">3. Advanced Analytics Dashboard</h4>
-              <p className="text-sm text-gray-600 mt-1">Enhanced business intelligence features</p>
+              <h4 className="font-semibold text-gray-900">3. Enhanced Property Sources</h4>
+              <p className="text-sm text-gray-600 mt-1">Add more property sources to Chrome extension</p>
             </div>
             <div className="border-l-4 border-orange-500 pl-4">
-              <h4 className="font-semibold text-gray-900">4. Real-time Market Monitoring</h4>
-              <p className="text-sm text-gray-600 mt-1">Live market data feeds and alerts</p>
+              <h4 className="font-semibold text-gray-900">4. Real Authentication System</h4>
+              <p className="text-sm text-gray-600 mt-1">Implement production user authentication and management</p>
             </div>
           </div>
         </div>

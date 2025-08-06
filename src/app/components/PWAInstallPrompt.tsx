@@ -118,7 +118,7 @@ export default function PWAInstallPrompt() {
               </div>
               <div>
                 <h3 className="font-bold text-gray-900 text-sm md:text-base">
-                  Install BMV Finder
+                  Install Property Intelligence Platform
                 </h3>
                 <p className="text-gray-600 text-xs md:text-sm">
                   Get the full app experience

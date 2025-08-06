@@ -1,20 +1,20 @@
 export const metadata = {
-  title: 'UK Sold Property Prices Search & Analysis | Land Registry Data',
-  description: 'Instantly search and analyze millions of sold house prices from the official HM Land Registry. Get detailed property data, market trends, and regional analysis for smarter decisions.',
+  title: 'Property Intelligence Platform | AI-Powered Investment Research',
+  description: 'Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.',
   alternates: {
     canonical: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/`,
   },
   openGraph: {
-    title: 'UK Sold Property Prices Search & Analysis',
-    description: 'Search and analyze sold house prices from the official HM Land Registry. Market trends, property data, and more.',
+    title: 'Property Intelligence Platform | AI-Powered Investment Research',
+    description: 'Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.',
     url: `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/`,
-    siteName: 'Sold Property Prices',
+    siteName: 'Property Intelligence Platform',
     images: [
       {
         url: '/icon-512.png',
         width: 512,
         height: 512,
-        alt: 'Sold Property Prices',
+        alt: 'Property Intelligence Platform',
       },
     ],
     locale: 'en_GB',
@@ -22,9 +22,9 @@ export const metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'UK Sold Property Prices Search & Analysis',
-    description: 'Search and analyze sold house prices from the official HM Land Registry. Market trends, property data, and more.',
+    title: 'Property Intelligence Platform | AI-Powered Investment Research',
+    description: 'Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.',
     images: ['/icon-512.png'],
-    site: '@yourtwitter',
+    site: '@propertyintelligence',
   },
 }; 

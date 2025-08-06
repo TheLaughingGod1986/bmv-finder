@@ -20,7 +20,7 @@ export default function PersonalizedGreeting({
   const defaultTitle = `Hi${userName ? `, ${userName}` : ''}!`;
   const defaultSubtitle = planName 
     ? `You're currently on the ${planName} plan`
-    : 'Welcome to BMV Finder';
+    : 'Welcome to Property Intelligence Platform';
 
   return (
     <div className={`mb-8 text-center bg-gradient-to-r from-[#F5F5DC] to-[#E5E5E5] rounded-xl p-6 border border-neutral-200 ${className}`}>

@@ -22,11 +22,11 @@ export default function TermsPage() {
   const keyTerms = [
     {
       title: 'Acceptance of Terms',
-      description: 'By accessing or using BMV Finder, you agree to be bound by these Terms of Service and all applicable laws and regulations.'
+      description: 'By accessing or using Property Intelligence Platform, you agree to be bound by these Terms of Service and all applicable laws and regulations.'
     },
     {
       title: 'Service Description',
-      description: 'BMV Finder provides property search, analysis, and investment tools using UK Land Registry data and AI-powered insights.'
+      description: 'Property Intelligence Platform provides property search, analysis, and investment tools using UK Land Registry data and AI-powered insights.'
     },
     {
       title: 'User Accounts',
@@ -121,7 +121,7 @@ export default function TermsPage() {
               Terms of Service
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
-              The terms and conditions governing your use of BMV Finder
+              The terms and conditions governing your use of Property Intelligence Platform
             </p>
             <div className="mt-8 flex items-center justify-center gap-4 text-blue-100">
               <Calendar className="w-5 h-5" />
@@ -145,7 +145,7 @@ export default function TermsPage() {
               Important Information
             </h2>
             <p className="text-lg text-gray-600 leading-relaxed">
-              These Terms of Service govern your use of BMV Finder and outline your rights and responsibilities as a user. 
+              These Terms of Service govern your use of Property Intelligence Platform and outline your rights and responsibilities as a user. 
               Please read them carefully before using our platform.
             </p>
           </motion.div>
@@ -162,7 +162,7 @@ export default function TermsPage() {
               <div>
                 <h3 className="text-xl font-bold text-gray-900 mb-3">Important Notice</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  BMV Finder provides property data and analysis tools for informational purposes only. 
+                  Property Intelligence Platform provides property data and analysis tools for informational purposes only. 
                   We do not provide financial advice, and all investment decisions should be made in consultation 
                   with qualified professionals. Past performance does not guarantee future results.
                 </p>
@@ -222,7 +222,7 @@ export default function TermsPage() {
               Your Obligations
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              As a user of BMV Finder, you agree to the following responsibilities
+              As a user of Property Intelligence Platform, you agree to the following responsibilities
             </p>
           </motion.div>
 

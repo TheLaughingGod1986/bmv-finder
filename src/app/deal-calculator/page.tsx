@@ -21,7 +21,7 @@ export default function DealCalculatorPage() {
               >
                 <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
                   <Calculator className="w-4 h-4 mr-2" />
-                  Professional Investment Analysis Tool
+                  Professional Investment Analysis
                 </span>
               </motion.div>
 
@@ -31,9 +31,9 @@ export default function DealCalculatorPage() {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
               >
-                Deal Calculator
+                Investment Calculator
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                  Investment Analysis
+                  ROI & Cash Flow Analysis
                 </span>
               </motion.h1>
 
@@ -43,7 +43,7 @@ export default function DealCalculatorPage() {
                 transition={{ duration: 0.6, delay: 0.2 }}
                 className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto"
               >
-                Analyze property investment opportunities with our comprehensive deal calculator. Calculate ROI, yields, and cash flow to make informed investment decisions.
+                Calculate ROI, yields, and cash flow to make informed investment decisions with our comprehensive deal analysis tools.
               </motion.p>
             </div>
           </div>

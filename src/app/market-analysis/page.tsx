@@ -241,7 +241,7 @@ export default function MarketAnalysisPage() {
               >
                 <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
                   <BarChart3 className="w-4 h-4 mr-2" />
-                  Regional Property Market Insights
+                  Regional Market Intelligence
                 </span>
               </motion.div>
 
@@ -251,9 +251,9 @@ export default function MarketAnalysisPage() {
                 transition={{ duration: 0.6, delay: 0.1 }}
                 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
               >
-                Market Analysis
+                Market Intelligence
                 <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-                  Dashboard
+                  Regional Market Insights
                 </span>
               </motion.h1>
 

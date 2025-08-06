@@ -143,7 +143,7 @@ export default function PrivacyPage() {
               Your Privacy Matters
             </h2>
             <p className="text-lg text-gray-600 leading-relaxed">
-              At BMV Finder, we are committed to protecting your privacy and ensuring the security of your personal information. 
+              At Property Intelligence Platform, we are committed to protecting your privacy and ensuring the security of your personal information. 
               This Privacy Policy explains how we collect, use, and safeguard your data when you use our platform.
             </p>
           </motion.div>

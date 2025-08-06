@@ -16,17 +16,17 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: 'swap',
-  preload: true,
+  preload: false, // Disable preloading to fix the warning
   fallback: ['system-ui', 'arial'],
 });
 
 export const metadata: Metadata = {
-  title: "BMV Finder | Find Below Market Value Properties in the UK",
+      title: "Property Intelligence Platform | AI-Powered Investment Research",
   description: "Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.",
   keywords: "BMV properties, below market value, property investment, UK property prices, land registry data, property analysis, investment opportunities, property market trends, property web app, mobile property search, real estate investment platform, property research, house prices, property valuation",
-  authors: [{ name: "BMV Finder" }],
-  creator: "BMV Finder",
-  publisher: "BMV Finder",
+  authors: [{ name: "Property Intelligence Platform" }],
+  creator: "Property Intelligence Platform",
+  publisher: "Property Intelligence Platform",
   formatDetection: {
     telephone: false,
     email: false,
@@ -37,16 +37,16 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: "BMV Finder | Find Below Market Value Properties in the UK",
+    title: "Property Intelligence Platform | AI-Powered Investment Research",
     description: "Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.",
     url: process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com',
-    siteName: 'BMV Finder',
+    siteName: 'Property Intelligence Platform',
     images: [
       {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: 'BMV Finder - UK Property Investment Platform & Web App',
+        alt: 'Property Intelligence Platform - AI-Powered Investment Research',
       },
     ],
     locale: 'en_GB',
@@ -54,10 +54,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BMV Finder | Find Below Market Value Properties in the UK',
+    title: 'Property Intelligence Platform | AI-Powered Investment Research',
     description: 'Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales and AI-powered BMV analysis.',
     images: ['/og-image.png'],
-    creator: '@bmvfinder',
+    creator: '@propertyintelligence',
   },
   robots: {
     index: true,
@@ -77,8 +77,8 @@ export const metadata: Metadata = {
     'mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-capable': 'yes',
     'apple-mobile-web-app-status-bar-style': 'default',
-    'apple-mobile-web-app-title': 'BMV Finder',
-    'application-name': 'BMV Finder',
+    'apple-mobile-web-app-title': 'Property Intelligence Platform',
+    'application-name': 'Property Intelligence Platform',
     'msapplication-TileColor': '#3A7CA5',
     'msapplication-tap-highlight': 'no',
   },
@@ -105,10 +105,10 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* PWA Meta Tags */}
-        <meta name="application-name" content="BMV Finder" />
+        <meta name="application-name" content="Property Intelligence Platform" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-        <meta name="apple-mobile-web-app-title" content="BMV Finder" />
+        <meta name="apple-mobile-web-app-title" content="Property Intelligence Platform" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="msapplication-TileColor" content="#3A7CA5" />
         <meta name="msapplication-tap-highlight" content="no" />
@@ -129,7 +129,7 @@ export default function RootLayout({
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Organization",
-            "name": "BMV Finder",
+            "name": "Property Intelligence Platform",
             "url": process.env.NEXT_PUBLIC_APP_URL || "https://bmvfinder.com",
             "logo": `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/icon-192.png`,
             "sameAs": [
@@ -142,14 +142,14 @@ export default function RootLayout({
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "Product",
-            "name": "BMV Finder Property Insights Platform",
+            "name": "Property Intelligence Platform",
             "image": [
               `${process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'}/og-image.png`
             ],
             "description": "Instantly analyze UK property prices, BMV opportunities, and market trends. Compare plans for investors, buyers, and professionals.",
             "brand": {
               "@type": "Brand",
-              "name": "BMV Finder"
+              "name": "Property Intelligence Platform"
             },
             "offers": {
               "@type": "AggregateOffer",

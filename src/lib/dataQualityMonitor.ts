@@ -264,7 +264,7 @@ class DataQualityMonitor {
       duration,
       status,
       error: error || null,
-      userAgent: 'BMV-Finder-API'
+      userAgent: 'Property-Intelligence-Platform-API'
     };
 
     try {

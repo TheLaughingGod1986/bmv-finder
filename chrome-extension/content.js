@@ -1,4 +1,4 @@
-// BMV Finder Chrome Extension - Content Script
+// Property Intelligence Platform Chrome Extension - Content Script
 
 // Check if this is a property page
 function isPropertyPage() {
@@ -44,7 +44,7 @@ function testCurrentPageExtraction() {
     Source: ${propertyData.source}
   `;
   
-  console.log('BMV Finder: Test Results:', testResults);
+  console.log('Property Intelligence Platform: Test Results:', testResults);
   showMessage('Test completed - check console for results', true);
 }
 
@@ -67,7 +67,7 @@ function debugPageInfo() {
   elementsToCheck.forEach(selector => {
     const elements = document.querySelectorAll(selector);
     if (elements.length > 0) {
-      console.log(`BMV Finder: Found ${elements.length} elements for "${selector}":`);
+      console.log(`Property Intelligence Platform: Found ${elements.length} elements for "${selector}":`);
       elements.forEach((el, index) => {
         console.log(`  ${index}: "${el.textContent.substring(0, 100)}"`);
       });

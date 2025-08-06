@@ -209,7 +209,7 @@ export default function MobileFeatures() {
               Available as a Web App
             </h3>
             <p className="text-blue-100 text-lg">
-              Install BMV Finder on your device for the best experience
+                              Install Property Intelligence Platform on your device for the best experience
             </p>
           </div>
 

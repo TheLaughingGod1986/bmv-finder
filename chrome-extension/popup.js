@@ -1,5 +1,5 @@
-// Popup script for BMV Finder extension
-console.log('BMV Finder: Popup script loaded');
+// Popup script for Property Intelligence Platform extension
+console.log('Property Intelligence Platform: Popup script loaded');
 
 // DOM elements
 const propertyCount = document.getElementById('property-count');
@@ -40,7 +40,7 @@ function handleAuthCallback() {
         userData: parsedUserData,
         isAuthenticated: true
       }, () => {
-        console.log('BMV Finder: Authentication data stored successfully');
+        console.log('Property Intelligence Platform: Authentication data stored successfully');
         
         // Update the current user data
         userData = {
@@ -62,7 +62,7 @@ function handleAuthCallback() {
       });
       
     } catch (error) {
-      console.error('BMV Finder: Error parsing user data:', error);
+      console.error('Property Intelligence Platform: Error parsing user data:', error);
       showError('Authentication failed. Please try again.');
     }
   }
@@ -94,7 +94,7 @@ async function clearCachedDemoData() {
     );
     
     if (hasDemoData) {
-      console.log('BMV Finder: Clearing all cached demo data');
+      console.log('Property Intelligence Platform: Clearing all cached demo data');
       await chrome.storage.local.remove(['userData', 'isAuthenticated', 'authToken']);
       return true; // Indicates data was cleared
     }

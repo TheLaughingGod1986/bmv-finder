@@ -95,7 +95,7 @@ export default function AboutPage() {
               <Building2 className="w-10 h-10" />
             </div>
             <h1 className="text-4xl md:text-6xl font-bold mb-6">
-              About BMV Finder
+              About Property Intelligence Platform
             </h1>
             <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
               Revolutionizing property investment with AI-powered insights and comprehensive market data
@@ -149,7 +149,7 @@ export default function AboutPage() {
               className="relative"
             >
               <div className="bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl p-8 text-white">
-                <h3 className="text-2xl font-bold mb-4">Why BMV Finder?</h3>
+                <h3 className="text-2xl font-bold mb-4">Why Property Intelligence Platform?</h3>
                 <div className="space-y-4">
                   <div className="flex items-start gap-3">
                     <CheckCircle className="w-6 h-6 text-green-300 mt-0.5" />
@@ -310,7 +310,7 @@ export default function AboutPage() {
               Meet Our Team
             </h2>
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-              The passionate people behind BMV Finder
+              The passionate people behind Property Intelligence Platform
             </p>
           </motion.div>
           
@@ -349,7 +349,7 @@ export default function AboutPage() {
               Ready to Transform Your Property Investment?
             </h2>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Join thousands of investors who are already using BMV Finder to make smarter property decisions
+              Join thousands of investors who are already using Property Intelligence Platform to make smarter property decisions
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link

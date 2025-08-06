@@ -31,7 +31,7 @@ export default function ExtensionWelcomePage() {
     {
       id: 2,
       title: 'Sign In',
-      description: 'Connect your BMV Finder account to the extension',
+      description: 'Connect your Property Intelligence Platform account to the extension',
       icon: ShieldIcon
     },
     {
@@ -88,7 +88,7 @@ export default function ExtensionWelcomePage() {
               <ChromeIcon className="h-10 w-10 text-white" />
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
-              BMV Finder Chrome Extension
+              Property Intelligence Platform Chrome Extension
             </h1>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
               Capture properties from your favorite real estate websites and build your personal watchlist. 

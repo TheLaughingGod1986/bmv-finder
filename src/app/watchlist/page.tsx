@@ -84,6 +84,8 @@ export default function WatchlistPage() {
   });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [showOffersOnly, setShowOffersOnly] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'list'>('cards');
+  const [currentPage, setCurrentPage] = useState(1);
   
   const user = useUser();
   const { tier, loading: tierLoading } = useUserTier(user?.id);
@@ -151,7 +153,8 @@ export default function WatchlistPage() {
         offer_amount: 0,
         offer_date: '',
         offer_notes: '',
-        epc_rating: 'C'
+        epc_rating: 'C',
+        is_favorite: false
       },
       {
         id: 'demo-2',
@@ -190,13 +193,14 @@ export default function WatchlistPage() {
         offer_history: [
           {
             id: 'offer-1',
-            status: 'offer_made',
+            status: 'offer_made' as const,
             amount: 330000,
             date: '2024-01-15',
             notes: 'Initial offer submitted',
             outcome: 'Pending response'
           }
-        ]
+        ],
+        is_favorite: true
       },
       {
         id: 'demo-3',
@@ -235,7 +239,7 @@ export default function WatchlistPage() {
         offer_history: [
           {
             id: 'offer-1',
-            status: 'offer_made',
+            status: 'offer_made' as const,
             amount: 250000,
             date: '2024-01-05',
             notes: 'Initial offer submitted',
@@ -243,7 +247,7 @@ export default function WatchlistPage() {
           },
           {
             id: 'offer-2',
-            status: 'offer_accepted',
+            status: 'offer_accepted' as const,
             amount: 265000,
             date: '2024-01-10',
             notes: 'Counter offer accepted',
@@ -288,7 +292,7 @@ export default function WatchlistPage() {
         offer_history: [
           {
             id: 'offer-1',
-            status: 'offer_made',
+            status: 'offer_made' as const,
             amount: 580000,
             date: '2024-01-15',
             notes: 'Initial offer submitted',
@@ -296,13 +300,14 @@ export default function WatchlistPage() {
           },
           {
             id: 'offer-2',
-            status: 'offer_rejected',
+            status: 'offer_rejected' as const,
             amount: 600000,
             date: '2024-01-20',
             notes: 'Increased offer submitted',
             outcome: 'Still rejected - vendor firm on price'
           }
-        ]
+        ],
+        is_favorite: false
       },
       {
         id: 'demo-5',
@@ -341,13 +346,14 @@ export default function WatchlistPage() {
         offer_history: [
           {
             id: 'offer-1',
-            status: 'offer_made',
+            status: 'offer_made' as const,
             amount: 305000,
             date: '2024-01-25',
             notes: 'Initial offer submitted',
             outcome: 'Awaiting response'
           }
-        ]
+        ],
+        is_favorite: false
       }
     ];
     
@@ -493,20 +499,62 @@ export default function WatchlistPage() {
 
   const toggleFavorite = async (propertyId: string) => {
     try {
+      const property = watchlist.find(p => p.id === propertyId);
+      if (!property) {
+        showError('Property not found');
+        return;
+      }
+
+      const newFavoriteStatus = !property.is_favorite;
+      
+      // Update local state immediately for responsive UI
       const updatedWatchlist = watchlist.map(property => 
         property.id === propertyId 
-          ? { ...property, is_favorite: !property.is_favorite }
+          ? { ...property, is_favorite: newFavoriteStatus }
           : property
       );
       setWatchlist(updatedWatchlist);
       
-      const property = watchlist.find(p => p.id === propertyId);
-      if (property?.is_favorite) {
-        success('Removed from favorites');
-      } else {
+      // For demo properties, just update local state without API call
+      if (propertyId.startsWith('demo-')) {
+        if (newFavoriteStatus) {
+          success('Added to favorites');
+        } else {
+          success('Removed from favorites');
+        }
+        return;
+      }
+      
+      // Persist to database for real properties
+      const response = await fetch('/api/watchlist', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: propertyId,
+          is_favorite: newFavoriteStatus
+        }),
+      });
+
+      if (!response.ok) {
+        // For demo data, don't revert state - just show a warning
+        if (propertyId.startsWith('demo-')) {
+          console.warn('Demo property - changes not persisted to database');
+        } else {
+          // Revert local state if API call failed for real properties
+          setWatchlist(watchlist);
+          throw new Error('Failed to update favorite status');
+        }
+      }
+      
+      if (newFavoriteStatus) {
         success('Added to favorites');
+      } else {
+        success('Removed from favorites');
       }
     } catch (error) {
+      console.error('Error toggling favorite:', error);
       showError('Failed to update favorite status');
     }
   };
@@ -517,10 +565,35 @@ export default function WatchlistPage() {
     }
 
     try {
+      // Update local state immediately for responsive UI
       const updatedWatchlist = watchlist.filter(property => property.id !== propertyId);
       setWatchlist(updatedWatchlist);
+      
+      // For demo properties, just update local state without API call
+      if (propertyId.startsWith('demo-')) {
+        success('Property removed from watchlist');
+        return;
+      }
+      
+      // Persist deletion to database for real properties
+      const response = await fetch(`/api/watchlist?id=${propertyId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        // For demo data, don't revert state - just show a warning
+        if (propertyId.startsWith('demo-')) {
+          console.warn('Demo property - deletion not persisted to database');
+        } else {
+          // Revert local state if API call failed for real properties
+          setWatchlist(watchlist);
+          throw new Error('Failed to delete property');
+        }
+      }
+      
       success('Property removed from watchlist');
     } catch (error) {
+      console.error('Error deleting property:', error);
       showError('Failed to delete property');
     }
   };
@@ -762,6 +835,18 @@ export default function WatchlistPage() {
     return matchesSearch;
   });
 
+  // Pagination logic
+  const itemsPerPage = viewMode === 'cards' ? 6 : 10;
+  const totalPages = Math.ceil(filteredWatchlist.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedWatchlist = filteredWatchlist.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, showFavoritesOnly, showOffersOnly, viewMode]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -774,58 +859,131 @@ export default function WatchlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Demo Mode Banner */}
-        {(!user || tier === 'free' || tierLoading) && (
-          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 text-sm font-bold">ℹ️</span>
+    <>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+        <section className="relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-10"></div>
+          <div className="relative max-w-screen-2xl w-[90vw] mx-auto pt-20 pb-16">
+            <div className="text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mb-6"
+              >
+                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
+                  <span className="mr-2">📊</span>
+                  Professional Property Analyzer
+                </span>
+              </motion.div>
+
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
+              >
+                Property Analyzer
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                  Investment Analysis & Deal Comparison
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+                className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto"
+              >
+                Analyze investment opportunities, compare properties, and make data-driven decisions with our comprehensive property analysis tools.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.3 }}
+                className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+              >
+                <button
+                  onClick={() => window.location.href = '/portfolio-tracker'}
+                  className="inline-flex items-center px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <span className="mr-2">📊</span>
+                  View Investment Portfolio
+                </button>
+                <button
+                  onClick={() => window.location.reload()}
+                  className="inline-flex items-center px-8 py-4 bg-white text-gray-900 font-semibold rounded-lg shadow-lg hover:shadow-xl border border-gray-200 transform hover:-translate-y-0.5 transition-all duration-200"
+                >
+                  <span className="mr-2">🔄</span>
+                  Refresh Data
+                </button>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+                className="mt-12 flex flex-wrap justify-center items-center gap-8 text-sm text-gray-500"
+              >
+                <div className="flex items-center gap-2">
+                  <span>✅</span>
+                  <span>Property comparison</span>
                 </div>
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-semibold text-blue-800 mb-1">Demo Mode</h3>
-                <p className="text-sm text-blue-700 mb-2">
-                  You're currently viewing demo data. To capture real properties and access your personal watchlist, 
-                  please <a href="/auth" className="font-semibold underline hover:text-blue-800">sign in</a> or 
-                  <a href="/pricing" className="font-semibold underline hover:text-blue-800 ml-1">upgrade your account</a>.
-                </p>
-                <div className="flex items-center gap-4 text-xs text-blue-600">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                    Demo properties shown
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-400 rounded-full"></span>
-                    Real data when logged in
-                  </span>
+                <div className="flex items-center gap-2">
+                  <span>📈</span>
+                  <span>Investment analysis</span>
                 </div>
-              </div>
+                <div className="flex items-center gap-2">
+                  <span>💡</span>
+                  <span>Deal insights</span>
+                </div>
+              </motion.div>
             </div>
           </div>
-        )}
+        </section>
 
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Property Watchlist</h1>
-          <p className="text-gray-600">Track and analyze your captured properties</p>
-        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Demo Mode Banner */}
+          {(!user || tier === 'free' || tierLoading) && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="mb-8 p-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl shadow-sm"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-lg">ℹ️</span>
+                  </div>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-lg font-semibold text-blue-800 mb-2">Demo Mode</h3>
+                  <p className="text-blue-700 mb-3">
+                    You're currently viewing demo data. To capture real properties and access your personal watchlist, 
+                    please <a href="/auth" className="font-semibold underline hover:text-blue-800">sign in</a> or 
+                    <a href="/pricing" className="font-semibold underline hover:text-blue-800 ml-1">upgrade your account</a>.
+                  </p>
+                  <div className="flex items-center gap-6 text-sm text-blue-600">
+                    <span className="flex items-center gap-2">
+                      <span className="w-3 h-3 bg-blue-400 rounded-full"></span>
+                      Demo properties shown
+                    </span>
+                    <span className="flex items-center gap-2">
+                      <span className="w-3 h-3 bg-green-400 rounded-full"></span>
+                      Real data when logged in
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
 
         {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
           {/* Filter Status Info */}
-          {showOffersOnly && (
-            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center gap-2 text-sm text-blue-800">
-                <span className="text-blue-600">📋</span>
-                <span className="font-medium">Showing properties with offers made</span>
-                <span className="text-blue-600">({filteredWatchlist.length} of {watchlist.filter(p => p.offer_status && p.offer_status !== 'none').length} properties with offers)</span>
-              </div>
 
-            </div>
-          )}
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
               <input
@@ -896,6 +1054,17 @@ export default function WatchlistPage() {
                   {selectedProperties.length}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setViewMode(viewMode === 'cards' ? 'list' : 'cards')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
+                viewMode === 'list'
+                  ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
+                  : 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+              }`}
+            >
+              <span className="text-sm">{viewMode === 'cards' ? '📋' : '🃏'}</span>
+              {viewMode === 'cards' ? 'List View' : 'Card View'}
             </button>
           </div>
         </div>
@@ -971,16 +1140,199 @@ export default function WatchlistPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-
+          <div className={viewMode === 'cards' ? "grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" : "space-y-4"}>
             
-            {filteredWatchlist.map((item, index) => {
+            {paginatedWatchlist.map((item, index) => {
               const metrics = calculateInvestmentMetrics(item);
               const assessment = assessDealQuality(item);
               const growthProjections = calculateGrowthProjections(item);
               
-
+              if (viewMode === 'list') {
+                return (
+                  <motion.div
+                    key={item.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1 }}
+                    className="bg-white rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center p-4">
+                      {/* Property Image */}
+                      <div className="relative w-20 h-20 bg-gray-100 rounded-lg flex-shrink-0 overflow-hidden">
+                        {item.images && item.images.length > 0 && isValidImageUrl(item.images[0]) ? (
+                          <Image
+                            src={item.images[0]}
+                            alt={item.title}
+                            width={80}
+                            height={80}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = 'none';
+                              target.nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+                        <div className={`w-full h-full flex items-center justify-center ${item.images && item.images.length > 0 && isValidImageUrl(item.images[0]) ? 'hidden' : ''}`}>
+                          <div className="text-center">
+                            <div className="text-lg">🏠</div>
+                            <div className="text-xs text-gray-500">{item.property_type || 'Property'}</div>
+                          </div>
+                        </div>
+                        
+                        {/* Status Badges */}
+                        <div className="absolute -top-1 -right-1 flex flex-col gap-1">
+                          {/* Source Badge */}
+                          <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-blue-600 text-white rounded-full shadow-sm">
+                            {getSourceIcon(item.source)}
+                          </span>
+                          
+                          {/* Offer Status */}
+                          {item.offer_status && item.offer_status !== 'none' && (
+                            <span className={`inline-flex items-center px-1.5 py-0.5 text-xs font-medium rounded-full shadow-sm ${
+                              item.offer_status === 'offer_accepted' ? 'bg-green-100 text-green-800' :
+                              item.offer_status === 'offer_rejected' ? 'bg-red-100 text-red-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {item.offer_status === 'offer_accepted' ? '✅' :
+                               item.offer_status === 'offer_rejected' ? '❌' :
+                               '📋'}
+                            </span>
+                          )}
+                          
+                          {/* Favorite Status */}
+                          {item.is_favorite && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full shadow-sm">
+                              ⭐
+                            </span>
+                          )}
+                        </div>
+                        
+                        {/* Comparison Selection */}
+                        {comparisonMode && (
+                          <div className="absolute -top-1 -left-1">
+                            <label className="flex items-center justify-center w-5 h-5 bg-white rounded-full shadow-md cursor-pointer hover:bg-gray-50 transition-colors border border-gray-200">
+                              <input
+                                type="checkbox"
+                                checked={isPropertySelected(item.id)}
+                                onChange={() => togglePropertySelection(item.id)}
+                                className="sr-only"
+                                disabled={selectedProperties.length >= 3 && !isPropertySelected(item.id)}
+                              />
+                              {isPropertySelected(item.id) ? (
+                                <span className="text-blue-600 text-xs">✓</span>
+                              ) : (
+                                <span className="text-gray-400 text-xs">+</span>
+                              )}
+                            </label>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Property Info */}
+                      <div className="flex-1 ml-4 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-gray-900 text-base truncate">
+                              {item.bedrooms} bed {item.property_type.toLowerCase()}
+                            </h3>
+                            <p className="text-gray-600 text-sm truncate mt-1">{item.address}</p>
+                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                              {item.total_size && (
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                                  {item.total_size.value} {item.total_size.unit}
+                                </span>
+                              )}
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                                {item.tenure}
+                              </span>
+                              {item.epc_rating && (
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                                  EPC: {item.epc_rating}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Price and Date */}
+                          <div className="text-right ml-4 flex-shrink-0">
+                            <div className="text-lg font-bold text-gray-900">{formatPrice(item.price)}</div>
+                            <div className="text-xs text-gray-500 mt-1">{formatDate(item.captured_at)}</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Investment Metrics */}
+                      <div className="hidden md:flex items-center gap-4 ml-6 flex-shrink-0">
+                        <div className="text-center">
+                          <div className="text-xs text-gray-500 mb-1">Investment</div>
+                          <div className="font-semibold text-sm text-gray-900">{formatPrice(metrics.totalInvestmentCost)}</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-gray-500 mb-1">Yield</div>
+                          <div className={`font-semibold text-sm ${metrics.yield >= 6 ? 'text-green-600' : 'text-orange-600'}`}>
+                            {metrics.yield.toFixed(1)}%
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xs text-gray-500 mb-1">Monthly</div>
+                          <div className={`font-semibold text-sm ${metrics.netAnnualProfit / 12 > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {formatPrice(metrics.netAnnualProfit / 12)}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditProperty(item.id)}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Property"
+                        >
+                          <span className="text-sm">✏️</span>
+                        </button>
+                        <button
+                          onClick={() => setOfferModal(item.id)}
+                          className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Copy Offer"
+                        >
+                          <span className="text-sm">📋</span>
+                        </button>
+                        <button
+                          onClick={() => setStrategyModal(item.id)}
+                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="View Strategy"
+                        >
+                          <span className="text-sm">🎯</span>
+                        </button>
+                        <button
+                          onClick={() => toggleFavorite(item.id)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            item.is_favorite 
+                              ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
+                              : 'text-gray-600 hover:text-yellow-600 hover:bg-yellow-50'
+                          }`}
+                          title={item.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                        >
+                          <span className="text-sm">⭐</span>
+                        </button>
+                        <button
+                          onClick={() => deletePropertyFromWatchlist(item.id)}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Property"
+                        >
+                          <span className="text-sm">🗑️</span>
+                        </button>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              }
               
+              // Card view (existing code)
               return (
                 <motion.div
                   key={item.id}
@@ -1551,7 +1903,76 @@ export default function WatchlistPage() {
         )}
       </div>
 
+        {/* Pagination */}
+        {filteredWatchlist.length > itemsPerPage && (
+          <div className="mt-8 flex items-center justify-center">
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 px-6 py-4">
+              <div className="flex items-center gap-4">
+                {/* Previous Page */}
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                    currentPage === 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  ← Previous
+                </button>
 
+                {/* Page Numbers */}
+                <div className="flex items-center gap-2">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`w-10 h-10 rounded-lg font-medium transition-colors ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Next Page */}
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                    currentPage === totalPages
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  Next →
+                </button>
+              </div>
+
+              {/* Page Info */}
+              <div className="text-center mt-3 text-sm text-gray-600">
+                Showing {startIndex + 1}-{Math.min(endIndex, filteredWatchlist.length)} of {filteredWatchlist.length} properties
+                {viewMode === 'cards' ? ' (6 per page)' : ' (10 per page)'}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Comparison View */}
         {comparisonMode && selectedProperties.length > 0 && (
@@ -1635,7 +2056,7 @@ export default function WatchlistPage() {
                             
                             <div className="flex justify-between items-center">
                               <span className="text-sm text-gray-600">Yield:</span>
-                              <span className={`font-semibold ${parseFloat(metrics.yield) >= 6 ? 'text-green-600' : 'text-orange-600'}`}>
+                              <span className={`font-semibold ${metrics.yield >= 6 ? 'text-green-600' : 'text-orange-600'}`}>
                                 {metrics.yield}%
                               </span>
                             </div>
@@ -2430,7 +2851,7 @@ export default function WatchlistPage() {
                           </div>
                           <div className="flex justify-between items-center">
                             <span className="text-gray-700 font-medium">Discount:</span>
-                            <span className="font-bold text-green-600">-8% (£{formatPrice(property.price * 0.08).replace('£', '')})</span>
+                            <span className="font-bold text-green-600">-8% ({formatPrice(property.price * 0.08).replace('£', '')})</span>
                           </div>
                         </div>
                       </div>
@@ -2546,6 +2967,7 @@ export default function WatchlistPage() {
           </div>
         </div>
       )}
-    </div>
-  );
+        </div>
+      </>
+    );
 }

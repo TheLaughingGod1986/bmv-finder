@@ -38,7 +38,7 @@ const defaultRewards: ReferralReward[] = [
 
 export default function ReferralRewardsSection({
   title = 'Refer Friends & Earn Rewards',
-  description = 'Share BMV Finder with friends and earn exclusive rewards. Both you and your friends get benefits!',
+  description = 'Share Property Intelligence Platform with friends and earn exclusive rewards. Both you and your friends get benefits!',
   rewards = defaultRewards,
   ctaText = 'Get Referral Link',
   onCtaClick,

@@ -1,20 +1,20 @@
 // App Configuration
 export const config = {
   // App URLs
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com',
+  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'https://propertyintelligence.com',
   
   // Support & Contact
-  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@bmvfinder.com',
-  legalEmail: process.env.NEXT_PUBLIC_LEGAL_EMAIL || 'legal@bmvfinder.com',
-  privacyEmail: process.env.NEXT_PUBLIC_PRIVACY_EMAIL || 'privacy@bmvfinder.com',
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@propertyintelligence.com',
+  legalEmail: process.env.NEXT_PUBLIC_LEGAL_EMAIL || 'legal@propertyintelligence.com',
+  privacyEmail: process.env.NEXT_PUBLIC_PRIVACY_EMAIL || 'privacy@propertyintelligence.com',
   
   // Social Media Links
   social: {
-    twitter: process.env.NEXT_PUBLIC_SOCIAL_TWITTER || 'https://twitter.com/bmvfinder',
-    linkedin: process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN || 'https://linkedin.com/company/bmvfinder',
-    facebook: process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK || 'https://facebook.com/bmvfinder',
-    instagram: process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM || 'https://instagram.com/bmvfinder',
-    github: process.env.NEXT_PUBLIC_SOCIAL_GITHUB || 'https://github.com/TheLaughingGod1986/bmv-finder',
+    twitter: process.env.NEXT_PUBLIC_SOCIAL_TWITTER || 'https://twitter.com/propertyintelligence',
+    linkedin: process.env.NEXT_PUBLIC_SOCIAL_LINKEDIN || 'https://linkedin.com/company/propertyintelligence',
+    facebook: process.env.NEXT_PUBLIC_SOCIAL_FACEBOOK || 'https://facebook.com/propertyintelligence',
+    instagram: process.env.NEXT_PUBLIC_SOCIAL_INSTAGRAM || 'https://instagram.com/propertyintelligence',
+    github: process.env.NEXT_PUBLIC_SOCIAL_GITHUB || 'https://github.com/TheLaughingGod1986/property-intelligence-platform',
   },
   
   // External APIs

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'bmv-finder-v1';
+const CACHE_NAME = 'property-intelligence-platform-v2';
 const urlsToCache = [
   '/',
   '/manifest.json',

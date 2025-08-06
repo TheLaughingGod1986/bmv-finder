@@ -1,4 +1,4 @@
-/* BMV Finder Chrome Extension Popup - Modern Design System */
+/* Property Intelligence Platform Chrome Extension Popup - Modern Design System */
 
 /* Import Inter font for consistency */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -106,11 +106,11 @@ body {
   letter-spacing: -0.5px;
 }
 
-.logo-text .bmv {
+.logo-text .property {
   color: white;
 }
 
-.logo-text .finder {
+.logo-text .intelligence {
   color: var(--neutral-grey);
   font-weight: 600;
 }

@@ -134,17 +134,17 @@ export default function SavedSearchesPage() {
   return (
     <>
       <Head>
-        <title>Saved Searches | BMV Finder - Track Your Property Search History</title>
-        <meta name="description" content="Access your saved property searches and track market insights. Quickly run searches on your favorite areas and monitor property price trends with BMV Finder." />
-        <meta name="keywords" content="saved searches, property search history, BMV finder, property tracking, UK property market" />
-        <meta property="og:title" content="Saved Searches | BMV Finder" />
-        <meta property="og:description" content="Access your saved property searches and track market insights with BMV Finder." />
+        <title>Saved Searches | Property Intelligence Platform - Track Your Property Search History</title>
+        <meta name="description" content="Access your saved property searches and track market insights. Quickly run searches on your favorite areas and monitor property price trends with Property Intelligence Platform." />
+        <meta name="keywords" content="saved searches, property search history, property intelligence platform, property tracking, UK property market" />
+        <meta property="og:title" content="Saved Searches | Property Intelligence Platform" />
+        <meta property="og:description" content="Access your saved property searches and track market insights with Property Intelligence Platform." />
         <meta property="og:type" content="website" />
-        <meta property="og:url" content="https://bmvfinder.com/saved-searches" />
+        <meta property="og:url" content="https://propertyintelligence.com/saved-searches" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Saved Searches | BMV Finder" />
+        <meta name="twitter:title" content="Saved Searches | Property Intelligence Platform" />
         <meta name="twitter:description" content="Access your saved property searches and track market insights." />
-        <link rel="canonical" href="https://bmvfinder.com/saved-searches" />
+        <link rel="canonical" href="https://propertyintelligence.com/saved-searches" />
       </Head>
       <div className="min-h-screen bg-neutral-light font-sans">
         <main className="container mx-auto px-4 py-12 max-w-4xl">
