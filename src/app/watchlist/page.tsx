@@ -444,6 +444,7 @@ const WatchlistPage = () => {
       setEditFormCostBreakdown({
         deposit: currentBreakdown.deposit,
         purchaseType: 'second_home', // Default to second home
+        refurbishmentLevel: 'medium', // Default to medium refurbishment
         legalFees: currentBreakdown.legalFees,
         surveyFees: currentBreakdown.surveyFees,
         mortgageFees: currentBreakdown.mortgageFees,
@@ -838,8 +839,18 @@ const WatchlistPage = () => {
     const asbestosSurvey = mergedData?.asbestosSurvey || 300; // Asbestos survey (if needed)
     const landlordInsurance = mergedData?.landlordInsurance || 300; // Annual landlord insurance
     
-    // Refurbishment costs
-    const refurbishmentCost = mergedData?.refurbishmentCost || property.refurbishment_costs?.medium || 0;
+    // Refurbishment costs - use selected level or default to medium
+    const refurbishmentLevel = mergedData?.refurbishmentLevel || 'medium';
+    let refurbishmentCost = 0;
+    
+    if (refurbishmentLevel === 'low') {
+      refurbishmentCost = mergedData?.refurbishmentCost || property.refurbishment_costs?.low || 0;
+    } else if (refurbishmentLevel === 'high') {
+      refurbishmentCost = mergedData?.refurbishmentCost || property.refurbishment_costs?.high || 0;
+    } else {
+      // Default to medium
+      refurbishmentCost = mergedData?.refurbishmentCost || property.refurbishment_costs?.medium || 0;
+    }
     
     // Additional setup costs
     const furnitureAndAppliances = mergedData?.furnitureAndAppliances || 2000; // Basic furniture and appliances
@@ -2651,6 +2662,49 @@ const WatchlistPage = () => {
                   <p className="text-sm text-gray-600 mb-4">
                     Estimated costs based on property size, condition, and local contractor rates. These figures are derived from industry averages and recent renovation projects in similar properties.
                   </p>
+                  
+                  {/* Refurbishment Level Selection */}
+                  <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      🔨 Select Refurbishment Level:
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="refurbishmentLevel"
+                          value="low"
+                          checked={editFormCostBreakdown.refurbishmentLevel === 'low'}
+                          onChange={(e) => updateEditFormCostBreakdownField('refurbishmentLevel', e.target.value)}
+                          className="text-blue-600"
+                        />
+                        <span className="text-sm">Low - Decoration</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="refurbishmentLevel"
+                          value="medium"
+                          checked={editFormCostBreakdown.refurbishmentLevel === 'medium'}
+                          onChange={(e) => updateEditFormCostBreakdownField('refurbishmentLevel', e.target.value)}
+                          className="text-blue-600"
+                        />
+                        <span className="text-sm">Medium - Detailed</span>
+                      </label>
+                      <label className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          name="refurbishmentLevel"
+                          value="high"
+                          checked={editFormCostBreakdown.refurbishmentLevel === 'high'}
+                          onChange={(e) => updateEditFormCostBreakdownField('refurbishmentLevel', e.target.value)}
+                          className="text-blue-600"
+                        />
+                        <span className="text-sm">High - Back to Brick</span>
+                      </label>
+                    </div>
+                  </div>
+                  
                   <div className="grid grid-cols-3 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Low (£) - Decoration</label>
@@ -2718,7 +2772,7 @@ const WatchlistPage = () => {
                         <option value="Variable Rate">Variable Rate</option>
                         <option value="Tracker">Tracker</option>
                         <option value="Interest Only">Interest Only</option>
-                        <option value="Buy to Let">Buy to Let</option>
+                        <option value="Interest Only">Interest Only</option>
                       </select>
                           </div>
                     <div>
@@ -3460,7 +3514,4 @@ const WatchlistPage = () => {
     );
 }
 
-// Export with dynamic import to prevent SSR
-export default dynamic(() => Promise.resolve(WatchlistPage), {
-  ssr: false
-});
+export default WatchlistPage;
