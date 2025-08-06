@@ -3344,9 +3344,10 @@ const WatchlistPage = () => {
                             </div>
                           )}
                         </div>
-                        </div>
                       </div>
                     </div>
+                  </div>
+                </div>
               
               <div className="flex gap-3 mt-6 pt-6 border-t border-gray-200">
                 <button
@@ -3364,7 +3365,7 @@ const WatchlistPage = () => {
                 </button>
               </div>
             </div>
-      </div>
+          </div>
         </div>
       )}
 
