@@ -692,12 +692,51 @@ export default function WatchlistPage() {
 
   const calculateDetailedCostBreakdown = (property: WatchlistItem) => {
     const deposit = property.price * 0.25;
-    const stampDuty = property.price > 250000 ? (property.price - 250000) * 0.05 : 0;
-    const legalFees = 1500;
-    const surveyFees = 500;
-    const mortgageFees = 1000;
-    const insurance = 300;
-    const maintenance = property.price * 0.01;
+    
+    // Enhanced Stamp Duty calculation
+    let stampDuty = 0;
+    if (property.price <= 250000) {
+      stampDuty = property.price * 0.03; // 3% for additional properties
+    } else if (property.price <= 925000) {
+      stampDuty = 7500 + (property.price - 250000) * 0.08; // 3% on first 250k, 8% on remainder
+    } else if (property.price <= 1500000) {
+      stampDuty = 67500 + (property.price - 925000) * 0.13; // 3% on first 250k, 8% on next 675k, 13% on remainder
+    } else {
+      stampDuty = 150000 + (property.price - 1500000) * 0.15; // 3% on first 250k, 8% on next 675k, 13% on next 575k, 15% on remainder
+    }
+    
+    // Legal and compliance costs
+    const legalFees = 1500; // Conveyancing fees
+    const surveyFees = 500; // Building survey
+    const mortgageFees = 1000; // Mortgage arrangement fees
+    const landRegistryFees = 200; // Land registry fees
+    const searchesFees = 300; // Local authority searches
+    
+    // Gas and electrical safety certificates
+    const gasSafetyCertificate = 80; // Annual gas safety check
+    const electricalSafetyCertificate = 200; // EICR (Electrical Installation Condition Report)
+    const energyPerformanceCertificate = 80; // EPC certificate
+    
+    // Additional compliance costs
+    const fireSafetyAssessment = 150; // Fire risk assessment
+    const legionellaRiskAssessment = 100; // Legionella risk assessment
+    const asbestosSurvey = 300; // Asbestos survey (if needed)
+    const landlordInsurance = 300; // Annual landlord insurance
+    
+    // Refurbishment costs
+    const refurbishmentCost = property.refurbishment_costs?.medium || 0;
+    
+    // Additional setup costs
+    const furnitureAndAppliances = 2000; // Basic furniture and appliances
+    const marketingAndLettingFees = 500; // Letting agent fees
+    const contingencyFund = 1000; // Contingency for unexpected costs
+    
+    const totalSetupCosts = legalFees + surveyFees + mortgageFees + landRegistryFees + searchesFees +
+                           gasSafetyCertificate + electricalSafetyCertificate + energyPerformanceCertificate +
+                           fireSafetyAssessment + legionellaRiskAssessment + asbestosSurvey + landlordInsurance +
+                           furnitureAndAppliances + marketingAndLettingFees + contingencyFund;
+    
+    const totalInvestmentCost = deposit + stampDuty + refurbishmentCost + totalSetupCosts;
     
     return {
       deposit,
@@ -705,10 +744,21 @@ export default function WatchlistPage() {
       legalFees,
       surveyFees,
       mortgageFees,
-      insurance,
-      maintenance,
-      totalInvestmentCost: deposit + stampDuty + legalFees + surveyFees + mortgageFees,
-      totalAnnualCosts: insurance + maintenance
+      landRegistryFees,
+      searchesFees,
+      gasSafetyCertificate,
+      electricalSafetyCertificate,
+      energyPerformanceCertificate,
+      fireSafetyAssessment,
+      legionellaRiskAssessment,
+      asbestosSurvey,
+      landlordInsurance,
+      refurbishmentCost,
+      furnitureAndAppliances,
+      marketingAndLettingFees,
+      contingencyFund,
+      totalSetupCosts,
+      totalInvestmentCost
     };
   };
 
@@ -1572,12 +1622,16 @@ export default function WatchlistPage() {
                       
                       {/* Key Performance Metrics */}
                       <div className="grid grid-cols-2 gap-3 mb-4">
-                        <div className="flex flex-col p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 shadow-sm">
+                        <button 
+                          onClick={() => toggleSection(`cost-breakdown-${item.id}`)}
+                          className="flex flex-col p-3 bg-gradient-to-br from-green-50 to-green-100 rounded-lg border border-green-200 shadow-sm hover:from-green-100 hover:to-green-200 transition-colors cursor-pointer"
+                        >
                           <div className="text-xs text-green-600 font-medium mb-1">Investment Cost</div>
                           <div className="text-lg font-bold text-green-700 leading-tight">
                             {formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}
-                                      </div>
-                                      </div>
+                          </div>
+                          <div className="text-xs text-green-500 mt-1">Click for breakdown</div>
+                        </button>
                         <div className="flex flex-col p-3 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 shadow-sm">
                           <div className="text-xs text-blue-600 font-medium mb-1">Yield</div>
                           <div className="text-lg font-bold text-blue-700 leading-tight">
@@ -1597,6 +1651,124 @@ export default function WatchlistPage() {
                                       </div>
                                     </div>
                                   </div>
+                                  
+                      {/* Detailed Cost Breakdown */}
+                      {expandedSections.has(`cost-breakdown-${item.id}`) && (
+                        <div className="mb-4 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                          <h4 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                            <span className="text-xl">💰</span>
+                            Detailed Cost Breakdown
+                          </h4>
+                          <div className="space-y-3">
+                            {/* Major Cost Categories */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {/* Deposit */}
+                              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-blue-600">🏦</span>
+                                  <span className="text-sm font-medium text-gray-700">Deposit (25%)</span>
+                                </div>
+                                <span className="font-bold text-blue-700">{formatPrice(calculateDetailedCostBreakdown(item).deposit)}</span>
+                              </div>
+                              
+                              {/* Stamp Duty */}
+                              <div className="flex justify-between items-center p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-purple-600">📋</span>
+                                  <span className="text-sm font-medium text-gray-700">Stamp Duty</span>
+                                </div>
+                                <span className="font-bold text-purple-700">{formatPrice(calculateDetailedCostBreakdown(item).stampDuty)}</span>
+                              </div>
+                              
+                              {/* Refurbishment */}
+                              {calculateDetailedCostBreakdown(item).refurbishmentCost > 0 && (
+                                <div className="flex justify-between items-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-orange-600">🔨</span>
+                                    <span className="text-sm font-medium text-gray-700">Refurbishment</span>
+                                  </div>
+                                  <span className="font-bold text-orange-700">{formatPrice(calculateDetailedCostBreakdown(item).refurbishmentCost)}</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {/* Setup Costs */}
+                            <div className="border-t border-gray-200 pt-3">
+                              <h5 className="text-sm font-semibold text-gray-800 mb-2">Setup Costs:</h5>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Legal Fees</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).legalFees)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Survey Fees</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).surveyFees)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Mortgage Fees</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).mortgageFees)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Land Registry</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).landRegistryFees)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Searches</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).searchesFees)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Gas Safety Certificate</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).gasSafetyCertificate)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Electrical Certificate</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).electricalSafetyCertificate)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">EPC Certificate</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).energyPerformanceCertificate)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Fire Safety Assessment</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).fireSafetyAssessment)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Legionella Assessment</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).legionellaRiskAssessment)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Asbestos Survey</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).asbestosSurvey)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Landlord Insurance</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).landlordInsurance)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Furniture & Appliances</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).furnitureAndAppliances)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Marketing & Letting</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).marketingAndLettingFees)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Contingency Fund</span>
+                                  <span className="font-medium">{formatPrice(calculateDetailedCostBreakdown(item).contingencyFund)}</span>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Total */}
+                            <div className="border-t-2 border-green-200 pt-3 mt-3">
+                              <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                                <span className="text-lg font-bold text-green-800">Total Investment Required:</span>
+                                <span className="text-xl font-bold text-green-700">{formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                                   
                       {/* Mortgage Type */}
                       <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200 shadow-sm">
