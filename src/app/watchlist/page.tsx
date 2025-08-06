@@ -3194,8 +3194,10 @@ const WatchlistPage = () => {
                         />
                           </div>
                           </div>
-                    
-                                            <div>
+                        </div>
+
+                        {/* Offer Notes - Moved to bottom */}
+                        <div className="mt-4">
                           <label className="block text-sm font-medium text-gray-700 mb-1">Offer Notes</label>
                           <textarea
                             value={editForm.offer_notes || ''}
