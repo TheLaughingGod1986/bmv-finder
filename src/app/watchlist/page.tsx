@@ -514,6 +514,74 @@ const WatchlistPage = () => {
     }));
   };
 
+  const calculateStampDuty = (price: number, purchaseType: string) => {
+    let stampDuty = 0;
+    
+    if (purchaseType === 'first_home') {
+      // First-time buyer rates (0% up to £425k, 5% on £425k-£625k, standard rates above)
+      if (price <= 425000) {
+        stampDuty = 0;
+      } else if (price <= 625000) {
+        stampDuty = (price - 425000) * 0.05;
+      } else {
+        // Standard rates for portion above £625k
+        if (price <= 925000) {
+          stampDuty = 10000 + (price - 625000) * 0.05;
+        } else if (price <= 1500000) {
+          stampDuty = 25000 + (price - 925000) * 0.10;
+        } else {
+          stampDuty = 82500 + (price - 1500000) * 0.12;
+        }
+      }
+    } else if (purchaseType === 'own_name') {
+      // Standard rates for main residence
+      if (price <= 250000) {
+        stampDuty = 0;
+      } else if (price <= 925000) {
+        stampDuty = (price - 250000) * 0.05;
+      } else if (price <= 1500000) {
+        stampDuty = 33750 + (price - 925000) * 0.10;
+      } else {
+        stampDuty = 93750 + (price - 1500000) * 0.12;
+      }
+    } else if (purchaseType === 'second_home') {
+      // Additional property rates (3% surcharge)
+      if (price <= 250000) {
+        stampDuty = price * 0.03;
+      } else if (price <= 925000) {
+        stampDuty = 7500 + (price - 250000) * 0.08;
+      } else if (price <= 1500000) {
+        stampDuty = 67500 + (price - 925000) * 0.13;
+      } else {
+        stampDuty = 150000 + (price - 1500000) * 0.15;
+      }
+    } else if (purchaseType === 'ltd_company') {
+      // Company purchase rates (higher rates)
+      if (price <= 250000) {
+        stampDuty = price * 0.05;
+      } else if (price <= 925000) {
+        stampDuty = 12500 + (price - 250000) * 0.10;
+      } else if (price <= 1500000) {
+        stampDuty = 80000 + (price - 925000) * 0.15;
+      } else {
+        stampDuty = 166250 + (price - 1500000) * 0.17;
+      }
+    } else {
+      // Default to additional property rates
+      if (price <= 250000) {
+        stampDuty = price * 0.03;
+      } else if (price <= 925000) {
+        stampDuty = 7500 + (price - 250000) * 0.08;
+      } else if (price <= 1500000) {
+        stampDuty = 67500 + (price - 925000) * 0.13;
+      } else {
+        stampDuty = 150000 + (price - 1500000) * 0.15;
+      }
+    }
+    
+    return Math.round(stampDuty);
+  };
+
   const addOfferToHistory = () => {
     if (!newOfferEntry.amount || !newOfferEntry.date) {
       showError('Please fill in amount and date');
@@ -2831,7 +2899,12 @@ const WatchlistPage = () => {
                           name="purchaseType"
                           value="first_home"
                           checked={editFormCostBreakdown.purchaseType === 'first_home'}
-                          onChange={(e) => updateEditFormCostBreakdownField('purchaseType', e.target.value)}
+                          onChange={(e) => {
+                            updateEditFormCostBreakdownField('purchaseType', e.target.value);
+                            // Recalculate stamp duty based on new purchase type
+                            const newStampDuty = calculateStampDuty(editForm.price, e.target.value);
+                            updateEditFormCostBreakdownField('stampDuty', newStampDuty);
+                          }}
                           className="text-blue-600"
                         />
                         <span className="text-sm">First Home</span>
@@ -2842,7 +2915,12 @@ const WatchlistPage = () => {
                           name="purchaseType"
                           value="own_name"
                           checked={editFormCostBreakdown.purchaseType === 'own_name'}
-                          onChange={(e) => updateEditFormCostBreakdownField('purchaseType', e.target.value)}
+                          onChange={(e) => {
+                            updateEditFormCostBreakdownField('purchaseType', e.target.value);
+                            // Recalculate stamp duty based on new purchase type
+                            const newStampDuty = calculateStampDuty(editForm.price, e.target.value);
+                            updateEditFormCostBreakdownField('stampDuty', newStampDuty);
+                          }}
                           className="text-blue-600"
                         />
                         <span className="text-sm">Own Name</span>
@@ -2853,7 +2931,12 @@ const WatchlistPage = () => {
                           name="purchaseType"
                           value="second_home"
                           checked={editFormCostBreakdown.purchaseType === 'second_home'}
-                          onChange={(e) => updateEditFormCostBreakdownField('purchaseType', e.target.value)}
+                          onChange={(e) => {
+                            updateEditFormCostBreakdownField('purchaseType', e.target.value);
+                            // Recalculate stamp duty based on new purchase type
+                            const newStampDuty = calculateStampDuty(editForm.price, e.target.value);
+                            updateEditFormCostBreakdownField('stampDuty', newStampDuty);
+                          }}
                           className="text-blue-600"
                         />
                         <span className="text-sm">Second Home</span>
@@ -2864,7 +2947,12 @@ const WatchlistPage = () => {
                           name="purchaseType"
                           value="ltd_company"
                           checked={editFormCostBreakdown.purchaseType === 'ltd_company'}
-                          onChange={(e) => updateEditFormCostBreakdownField('purchaseType', e.target.value)}
+                          onChange={(e) => {
+                            updateEditFormCostBreakdownField('purchaseType', e.target.value);
+                            // Recalculate stamp duty based on new purchase type
+                            const newStampDuty = calculateStampDuty(editForm.price, e.target.value);
+                            updateEditFormCostBreakdownField('stampDuty', newStampDuty);
+                          }}
                           className="text-blue-600"
                         />
                         <span className="text-sm">LTD Company</span>
@@ -2947,13 +3035,26 @@ const WatchlistPage = () => {
                   {/* Stamp Duty */}
                   <div className="grid grid-cols-1 gap-4 mb-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Stamp Duty (£)</label>
-                      <input
-                        type="number"
-                        value={editFormCostBreakdown.stampDuty || ''}
-                        onChange={(e) => updateEditFormCostBreakdownField('stampDuty', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        🏠 Stamp Duty (£) - Auto-calculated based on purchase type
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="number"
+                          value={editFormCostBreakdown.stampDuty || ''}
+                          onChange={(e) => updateEditFormCostBreakdownField('stampDuty', parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-blue-50"
+                          placeholder="Auto-calculated"
+                        />
+                        <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                          <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                            Auto
+                          </span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Based on {editFormCostBreakdown.purchaseType?.replace('_', ' ')} rates for £{formatPrice(editForm.price)}
+                      </p>
                     </div>
                   </div>
 
