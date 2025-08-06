@@ -441,8 +441,14 @@ const WatchlistPage = () => {
 
       // Initialize cost breakdown data
       const currentBreakdown = calculateDetailedCostBreakdown(property);
+      
+      // Calculate deposit percentage if it's a percentage-based deposit
+      const depositPercentage = property.price > 0 ? (currentBreakdown.deposit / property.price) * 100 : 25;
+      
       setEditFormCostBreakdown({
         deposit: currentBreakdown.deposit,
+        depositType: 'percentage', // Default to percentage-based
+        depositPercentage: Math.round(depositPercentage * 10) / 10, // Round to 1 decimal place
         purchaseType: 'second_home', // Default to second home
         refurbishmentLevel: 'medium', // Default to medium refurbishment
         legalFees: currentBreakdown.legalFees,
@@ -2866,17 +2872,80 @@ const WatchlistPage = () => {
                     </div>
                   </div>
 
-                  {/* Major Costs */}
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Deposit (£)</label>
-                      <input
-                        type="number"
-                        value={editFormCostBreakdown.deposit || ''}
-                        onChange={(e) => updateEditFormCostBreakdownField('deposit', parseFloat(e.target.value) || 0)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                  {/* Deposit Configuration */}
+                  <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      💰 Deposit Configuration:
+                    </label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Deposit Type</label>
+                        <div className="flex items-center space-x-4">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="depositType"
+                              value="percentage"
+                              checked={editFormCostBreakdown.depositType === 'percentage'}
+                              onChange={(e) => updateEditFormCostBreakdownField('depositType', e.target.value)}
+                              className="text-blue-600"
+                            />
+                            <span className="text-sm">Percentage</span>
+                          </label>
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="radio"
+                              name="depositType"
+                              value="fixed"
+                              checked={editFormCostBreakdown.depositType === 'fixed'}
+                              onChange={(e) => updateEditFormCostBreakdownField('depositType', e.target.value)}
+                              className="text-blue-600"
+                            />
+                            <span className="text-sm">Fixed Amount</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div>
+                        {editFormCostBreakdown.depositType === 'percentage' ? (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Deposit Percentage (%)</label>
+                            <input
+                              type="number"
+                              step="0.1"
+                              min="5"
+                              max="40"
+                              value={editFormCostBreakdown.depositPercentage || ''}
+                              onChange={(e) => {
+                                const percentage = parseFloat(e.target.value) || 0;
+                                const calculatedDeposit = (editForm.price * percentage / 100);
+                                updateEditFormCostBreakdownField('depositPercentage', percentage);
+                                updateEditFormCostBreakdownField('deposit', calculatedDeposit);
+                              }}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        ) : (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Deposit Amount (£)</label>
+                            <input
+                              type="number"
+                              value={editFormCostBreakdown.deposit || ''}
+                              onChange={(e) => updateEditFormCostBreakdownField('deposit', parseFloat(e.target.value) || 0)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                          </div>
+                        )}
+                      </div>
                     </div>
+                    {editFormCostBreakdown.depositType === 'percentage' && editFormCostBreakdown.depositPercentage && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        Calculated Deposit: £{formatPrice(editFormCostBreakdown.deposit || 0)} ({editFormCostBreakdown.depositPercentage}% of £{formatPrice(editForm.price)})
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Stamp Duty */}
+                  <div className="grid grid-cols-1 gap-4 mb-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Stamp Duty (£)</label>
                       <input
