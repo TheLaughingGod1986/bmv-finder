@@ -1401,47 +1401,31 @@ const WatchlistPage = () => {
                       <div className="flex-1 ml-4 min-w-0">
                         <div className="flex items-start justify-between">
                           <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-gray-900 text-base truncate">
-                                {item.bedrooms} bed {item.property_type.toLowerCase()}
-                              </h3>
-                              {/* Deal Quality Indicator */}
-                              {(() => {
-                                const assessment = assessDealQuality(item);
-                                return (
-                                  <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                    assessment.score >= 80 ? 'bg-green-100 text-green-800' :
-                                    assessment.score >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                                    'bg-red-100 text-red-800'
-                                  }`}>
-                                    {assessment.score}/100
-                                  </div>
-                                );
-                              })()}
-                            </div>
+                            <h3 className="font-semibold text-gray-900 text-base truncate">
+                              {item.bedrooms} bed {item.property_type.toLowerCase()}
+                            </h3>
                             <p className="text-gray-600 text-sm truncate mt-1">{item.address}</p>
-                            <div className="flex flex-wrap items-center gap-2 mt-2 text-xs text-gray-500">
+                            <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                               {item.total_size && (
-                                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                                  📏 {item.total_size.value} {item.total_size.unit}
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                                  {item.total_size.value} {item.total_size.unit}
                                 </span>
                               )}
-                              <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                                🏠 {item.tenure}
+                              <span className="flex items-center gap-1">
+                                <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                                {item.tenure}
                               </span>
                               {item.epc_rating && (
-                                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                                  🌱 EPC: {item.epc_rating}
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                                  EPC: {item.epc_rating}
                                 </span>
                               )}
                               {item.bathrooms && (
-                                <span className="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded">
-                                  🚿 {item.bathrooms} bath{item.bathrooms > 1 ? 's' : ''}
-                                </span>
-                              )}
-                              {item.source && (
-                                <span className="flex items-center gap-1 bg-blue-100 px-2 py-1 rounded text-blue-700">
-                                  {getSourceIcon(item.source)} {item.source}
+                                <span className="flex items-center gap-1">
+                                  <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+                                  {item.bathrooms} bath{item.bathrooms > 1 ? 's' : ''}
                                 </span>
                               )}
                             </div>
@@ -1456,11 +1440,7 @@ const WatchlistPage = () => {
                       </div>
                       
                       {/* Investment Metrics */}
-                      <div className="hidden lg:flex items-center gap-4 ml-6 flex-shrink-0">
-                        <div className="text-center">
-                          <div className="text-xs text-gray-500 mb-1">Investment</div>
-                          <div className="font-semibold text-sm text-gray-900">{formatPrice(metrics.totalInvestmentCost)}</div>
-                        </div>
+                      <div className="hidden md:flex items-center gap-4 ml-6 flex-shrink-0">
                         <div className="text-center">
                           <div className="text-xs text-gray-500 mb-1">Yield</div>
                           <div className={`font-semibold text-sm ${metrics.yield >= 6 ? 'text-green-600' : 'text-orange-600'}`}>
@@ -1479,16 +1459,10 @@ const WatchlistPage = () => {
                             {metrics.annualROI.toFixed(1)}%
                           </div>
                         </div>
-                        <div className="text-center">
-                          <div className="text-xs text-gray-500 mb-1">Payback</div>
-                          <div className={`font-semibold text-sm ${metrics.paybackPeriod <= 15 ? 'text-green-600' : metrics.paybackPeriod <= 20 ? 'text-orange-600' : 'text-red-600'}`}>
-                            {metrics.paybackPeriod.toFixed(0)}y
-                          </div>
-                        </div>
                       </div>
                       
                       {/* Mobile Investment Metrics */}
-                      <div className="lg:hidden flex items-center gap-2 ml-4 flex-shrink-0">
+                      <div className="md:hidden flex items-center gap-2 ml-4 flex-shrink-0">
                         <div className="text-center">
                           <div className="text-xs text-gray-500 mb-1">Yield</div>
                           <div className={`font-semibold text-sm ${metrics.yield >= 6 ? 'text-green-600' : 'text-orange-600'}`}>
@@ -1503,61 +1477,47 @@ const WatchlistPage = () => {
                         </div>
                       </div>
                       
-                      {/* Status and Action Buttons */}
-                      <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                        {/* Status Indicator */}
-                        {item.offer_status && item.offer_status !== 'none' && (
-                          <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            item.offer_status === 'offer_accepted' ? 'bg-green-100 text-green-800' :
-                            item.offer_status === 'offer_rejected' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {item.offer_status.replace('_', ' ').toUpperCase()}
-                          </div>
-                        )}
-                        
-                        {/* Action Buttons */}
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => handleEditProperty(item.id)}
-                            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Property"
-                          >
-                            <span className="text-sm">✏️</span>
-                          </button>
-                          <button
-                            onClick={() => setOfferModal(item.id)}
-                            className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                            title="Copy Offer"
-                          >
-                            <span className="text-sm">📋</span>
-                          </button>
-                          <button
-                            onClick={() => setStrategyModal(item.id)}
-                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="View Strategy"
-                          >
-                            <span className="text-sm">🎯</span>
-                          </button>
-                          <button
-                            onClick={() => toggleFavorite(item.id)}
-                            className={`p-2 rounded-lg transition-colors ${
-                              item.is_favorite 
-                                ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
-                                : 'text-gray-600 hover:text-yellow-600 hover:bg-yellow-50'
-                            }`}
-                            title={item.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                          >
-                            <span className="text-sm">⭐</span>
-                          </button>
-                          <button
-                            onClick={() => deletePropertyFromWatchlist(item.id)}
-                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                            title="Delete Property"
-                          >
-                            <span className="text-sm">🗑️</span>
-                          </button>
-                        </div>
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-1 ml-4 flex-shrink-0">
+                        <button
+                          onClick={() => handleEditProperty(item.id)}
+                          className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit Property"
+                        >
+                          <span className="text-sm">✏️</span>
+                        </button>
+                        <button
+                          onClick={() => setOfferModal(item.id)}
+                          className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Copy Offer"
+                        >
+                          <span className="text-sm">📋</span>
+                        </button>
+                        <button
+                          onClick={() => setStrategyModal(item.id)}
+                          className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                          title="View Strategy"
+                        >
+                          <span className="text-sm">🎯</span>
+                        </button>
+                        <button
+                          onClick={() => toggleFavorite(item.id)}
+                          className={`p-2 rounded-lg transition-colors ${
+                            item.is_favorite 
+                              ? 'text-yellow-600 bg-yellow-50 hover:bg-yellow-100' 
+                              : 'text-gray-600 hover:text-yellow-600 hover:bg-yellow-50'
+                          }`}
+                          title={item.is_favorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                        >
+                          <span className="text-sm">⭐</span>
+                        </button>
+                        <button
+                          onClick={() => deletePropertyFromWatchlist(item.id)}
+                          className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Delete Property"
+                        >
+                          <span className="text-sm">🗑️</span>
+                        </button>
                       </div>
                     </div>
                   </motion.div>
