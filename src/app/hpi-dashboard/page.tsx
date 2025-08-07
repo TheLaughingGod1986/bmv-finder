@@ -8,13 +8,13 @@ import { motion } from 'framer-motion';
 const LineChart = dynamic(() => import('../components/ChartClientOnly').then(mod => mod.LineChart), { ssr: false });
 
 const REGIONS = [
-  'United Kingdom', 'London', 'South East', 'South West', 'East of England',
-  'West Midlands', 'East Midlands', 'Yorkshire and The Humber', 'North West',
-  'North East', 'Wales', 'Scotland', 'Northern Ireland'
+  'England', 'London', 'South West', 'East Midlands', 'Northern Ireland',
+  'Scotland', 'Wales', 'North West', 'South East', 'East of England',
+  'North East', 'West Midlands Region', 'Yorkshire and The Humber'
 ];
 
 export default function HpiDashboard() {
-  const [region, setRegion] = useState('United Kingdom');
+  const [region, setRegion] = useState('England');
   const [dateRange, setDateRange] = useState({ start: '2020-01', end: '2024-12' });
   const [dateLimits, setDateLimits] = useState({ min: '2020-01', max: '2024-12' });
   const [hpiData, setHpiData] = useState([]);

@@ -1,5 +1,5 @@
-// Popup script for Property Intelligence Platform extension
-console.log('Property Intelligence Platform: Popup script loaded');
+// Popup script for BMV Finder extension
+console.log('BMV Finder: Popup script loaded');
 
 // DOM elements
 const propertyCount = document.getElementById('property-count');
@@ -28,19 +28,26 @@ function handleAuthCallback() {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get('token');
   const userDataParam = urlParams.get('userData');
+  const mockAuth = urlParams.get('mockAuth');
   
-  if (token && userDataParam) {
+  if (userDataParam) {
     try {
       // Parse the user data
       const parsedUserData = JSON.parse(decodeURIComponent(userDataParam));
       
       // Store the authentication data
-      chrome.storage.local.set({
-        authToken: token,
+      const authData = {
         userData: parsedUserData,
         isAuthenticated: true
-      }, () => {
-        console.log('Property Intelligence Platform: Authentication data stored successfully');
+      };
+      
+      // Add token if available (for real auth)
+      if (token) {
+        authData.authToken = token;
+      }
+      
+      chrome.storage.local.set(authData, () => {
+        console.log('BMV Finder: Authentication data stored successfully');
         
         // Update the current user data
         userData = {
@@ -58,11 +65,12 @@ function handleAuthCallback() {
         window.history.replaceState({}, document.title, cleanUrl);
         
         // Show success message
-        showMessage('Successfully signed in!', true);
+        const authType = mockAuth ? 'demo' : 'real';
+        showMessage(`Successfully signed in with ${authType} authentication!`, true);
       });
       
     } catch (error) {
-      console.error('Property Intelligence Platform: Error parsing user data:', error);
+      console.error('BMV Finder: Error parsing user data:', error);
       showError('Authentication failed. Please try again.');
     }
   }
@@ -94,7 +102,7 @@ async function clearCachedDemoData() {
     );
     
     if (hasDemoData) {
-      console.log('Property Intelligence Platform: Clearing all cached demo data');
+      console.log('BMV Finder: Clearing all cached demo data');
       await chrome.storage.local.remove(['userData', 'isAuthenticated', 'authToken']);
       return true; // Indicates data was cleared
     }
@@ -461,6 +469,8 @@ function showMessage(message, isSuccess = false) {
 
 // Handle sign-in button click
 signInButton.addEventListener('click', async () => {
+  console.log('BMV Finder: Sign-in button clicked');
+  
   if (!userData.isAuthenticated) {
     // Clear any cached demo data before signing in
     await clearCachedDemoData();
@@ -469,6 +479,8 @@ signInButton.addEventListener('click', async () => {
     // Include a callback parameter to return to the extension
     const callbackUrl = chrome.runtime.getURL('popup.html');
     const authUrl = `https://bmv-finder-oe3jeqmh2-bens-projects-11c93b15.vercel.app/extension-auth?extension_callback=${encodeURIComponent(callbackUrl)}`;
+    
+    console.log('BMV Finder: Opening auth URL:', authUrl);
     chrome.tabs.create({ url: authUrl });
   } else {
     // If already signed in, allow sign out

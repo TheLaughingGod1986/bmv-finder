@@ -28,10 +28,44 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     scheduledFees: property?.scheduledFees || [],
     monthlyExpenses: property?.monthlyExpenses || 0,
     propertyNotes: property?.propertyNotes || '',
+    
+    // Renovation costs
+    refurbishmentCosts: property?.refurbishmentCosts || { low: 0, medium: 0, high: 0 },
+    selectedRefurbishmentLevel: property?.selectedRefurbishmentLevel || 'medium',
+    actualRefurbishmentCost: property?.actualRefurbishmentCost || 0,
+    
+    // Legal and setup costs
+    stampDuty: property?.stampDuty || 0,
+    legalFees: property?.legalFees || 1500,
+    surveyFees: property?.surveyFees || 500,
+    mortgageFees: property?.mortgageFees || 1000,
+    landRegistryFees: property?.landRegistryFees || 200,
+    searchesFees: property?.searchesFees || 300,
+    gasSafetyCertificate: property?.gasSafetyCertificate || 80,
+    electricalSafetyCertificate: property?.electricalSafetyCertificate || 200,
+    energyPerformanceCertificate: property?.energyPerformanceCertificate || 80,
+    fireSafetyAssessment: property?.fireSafetyAssessment || 150,
+    legionellaRiskAssessment: property?.legionellaRiskAssessment || 100,
+    asbestosSurvey: property?.asbestosSurvey || 300,
+    landlordInsurance: property?.landlordInsurance || 300,
+    furnitureAndAppliances: property?.furnitureAndAppliances || 2000,
+    marketingAndLettingFees: property?.marketingAndLettingFees || 500,
+    contingencyFund: property?.contingencyFund || 1000,
+    
+    // Offer history
+    offerHistory: property?.offerHistory || [],
   });
 
   // Temporary state for one-off fee inputs
   const [oneOffFeeInput, setOneOffFeeInput] = useState({ description: '', amount: '' });
+  
+  // Temporary state for offer history input
+  const [offerHistoryInput, setOfferHistoryInput] = useState({ 
+    status: 'offer_made', 
+    amount: '', 
+    date: '', 
+    notes: '' 
+  });
   
   const [isSaving, setIsSaving] = useState(false);
   const [calculatedValues, setCalculatedValues] = useState({
@@ -62,10 +96,38 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         scheduledFees: property.scheduledFees || [],
         monthlyExpenses: property.monthlyExpenses || 0,
         propertyNotes: property.propertyNotes || '',
+        
+        // Renovation costs
+        refurbishmentCosts: property.refurbishmentCosts || { low: 0, medium: 0, high: 0 },
+        selectedRefurbishmentLevel: property.selectedRefurbishmentLevel || 'medium',
+        actualRefurbishmentCost: property.actualRefurbishmentCost || 0,
+        
+        // Legal and setup costs
+        stampDuty: property.stampDuty || 0,
+        legalFees: property.legalFees || 1500,
+        surveyFees: property.surveyFees || 500,
+        mortgageFees: property.mortgageFees || 1000,
+        landRegistryFees: property.landRegistryFees || 200,
+        searchesFees: property.searchesFees || 300,
+        gasSafetyCertificate: property.gasSafetyCertificate || 80,
+        electricalSafetyCertificate: property.electricalSafetyCertificate || 200,
+        energyPerformanceCertificate: property.energyPerformanceCertificate || 80,
+        fireSafetyAssessment: property.fireSafetyAssessment || 150,
+        legionellaRiskAssessment: property.legionellaRiskAssessment || 100,
+        asbestosSurvey: property.asbestosSurvey || 300,
+        landlordInsurance: property.landlordInsurance || 300,
+        furnitureAndAppliances: property.furnitureAndAppliances || 2000,
+        marketingAndLettingFees: property.marketingAndLettingFees || 500,
+        contingencyFund: property.contingencyFund || 1000,
+        
+        // Offer history
+        offerHistory: property.offerHistory || [],
       });
       
       // Reset one-off fee input
       setOneOffFeeInput({ description: '', amount: '' });
+      // Reset offer history input
+      setOfferHistoryInput({ status: 'offer_made', amount: '', date: '', notes: '' });
     }
   }, [property?.id, isOpen]); // Only update when property ID changes or modal opens
 
@@ -173,6 +235,88 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     }));
   };
 
+  const handleAddOfferHistory = () => {
+    if (offerHistoryInput.amount && offerHistoryInput.date) {
+      const newOffer = {
+        id: Date.now().toString(),
+        status: offerHistoryInput.status,
+        amount: parseFloat(offerHistoryInput.amount),
+        date: offerHistoryInput.date,
+        notes: offerHistoryInput.notes,
+        outcome: offerHistoryInput.status === 'offer_accepted' ? 'Accepted' : 
+                offerHistoryInput.status === 'offer_rejected' ? 'Rejected' : 'Pending'
+      };
+      
+      setFormData(prev => ({
+        ...prev,
+        offerHistory: [...prev.offerHistory, newOffer]
+      }));
+      
+      // Clear the input fields
+      setOfferHistoryInput({ status: 'offer_made', amount: '', date: '', notes: '' });
+    }
+  };
+
+  const handleRemoveOfferHistory = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      offerHistory: prev.offerHistory.filter((_, i) => i !== index)
+    }));
+  };
+
+  const calculateTotalInvestmentCost = () => {
+    let total = formData.depositAmount || 0;
+    
+    // Add one-off fees (mirroring portfolio calculation)
+    if (formData.oneOffFees && Array.isArray(formData.oneOffFees)) {
+      total += formData.oneOffFees.reduce((feeSum: number, fee: any) => feeSum + (fee.amount || 0), 0);
+    }
+    
+    // Add scheduled fees (one-time only) - mirroring portfolio calculation
+    if (formData.scheduledFees && Array.isArray(formData.scheduledFees)) {
+      total += formData.scheduledFees
+        .filter((fee: any) => fee.frequency === 'one_time')
+        .reduce((feeSum: number, fee: any) => feeSum + (fee.amount || 0), 0);
+    }
+    
+    // Add renovation costs
+    const refurbishmentCost = formData.actualRefurbishmentCost || 
+                             formData.refurbishmentCosts?.[formData.selectedRefurbishmentLevel] || 0;
+    total += refurbishmentCost;
+    
+    // Add legal and setup costs (mirroring portfolio calculation exactly)
+    total += formData.stampDuty || 0;
+    total += formData.legalFees || 0;
+    total += formData.surveyFees || 0;
+    total += formData.mortgageFees || 0;
+    total += formData.landRegistryFees || 0;
+    total += formData.searchesFees || 0;
+    total += formData.gasSafetyCertificate || 0;
+    total += formData.electricalSafetyCertificate || 0;
+    total += formData.energyPerformanceCertificate || 0;
+    total += formData.fireSafetyAssessment || 0;
+    total += formData.legionellaRiskAssessment || 0;
+    total += formData.asbestosSurvey || 0;
+    total += formData.landlordInsurance || 0;
+    total += formData.furnitureAndAppliances || 0;
+    total += formData.marketingAndLettingFees || 0;
+    total += formData.contingencyFund || 0;
+    
+    return {
+      deposit: formData.depositAmount || 0,
+      stampDuty: formData.stampDuty || 0,
+      refurbishmentCost,
+      totalSetupCosts: (formData.legalFees || 0) + (formData.surveyFees || 0) + (formData.mortgageFees || 0) + 
+                      (formData.landRegistryFees || 0) + (formData.searchesFees || 0) + (formData.gasSafetyCertificate || 0) + 
+                      (formData.electricalSafetyCertificate || 0) + (formData.energyPerformanceCertificate || 0) + 
+                      (formData.fireSafetyAssessment || 0) + (formData.legionellaRiskAssessment || 0) + 
+                      (formData.asbestosSurvey || 0) + (formData.landlordInsurance || 0) + 
+                      (formData.furnitureAndAppliances || 0) + (formData.marketingAndLettingFees || 0) + 
+                      (formData.contingencyFund || 0),
+      totalInvestmentCost: total
+    };
+  };
+
   const handleSave = async () => {
     if (!property?.id) return;
     
@@ -198,11 +342,91 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         equity_percentage: calculatedValues.equityPercentage || 0,
         monthly_profit: calculatedValues.monthlyProfit || 0,
         rental_income: (formData.monthlyRent || 0) * 12, // Also update annual rental income
+        
+        // Renovation costs
+        refurbishment_costs: formData.refurbishmentCosts || { low: 0, medium: 0, high: 0 },
+        selected_refurbishment_level: formData.selectedRefurbishmentLevel || 'medium',
+        actual_refurbishment_cost: formData.actualRefurbishmentCost || 0,
+        
+        // Legal and setup costs
+        stamp_duty: formData.stampDuty || 0,
+        legal_fees: formData.legalFees || 0,
+        survey_fees: formData.surveyFees || 0,
+        mortgage_fees: formData.mortgageFees || 0,
+        land_registry_fees: formData.landRegistryFees || 0,
+        searches_fees: formData.searchesFees || 0,
+        gas_safety_certificate: formData.gasSafetyCertificate || 0,
+        electrical_safety_certificate: formData.electricalSafetyCertificate || 0,
+        energy_performance_certificate: formData.energyPerformanceCertificate || 0,
+        fire_safety_assessment: formData.fireSafetyAssessment || 0,
+        legionella_risk_assessment: formData.legionellaRiskAssessment || 0,
+        asbestos_survey: formData.asbestosSurvey || 0,
+        landlord_insurance: formData.landlordInsurance || 0,
+        furniture_and_appliances: formData.furnitureAndAppliances || 0,
+        marketing_and_letting_fees: formData.marketingAndLettingFees || 0,
+        contingency_fund: formData.contingencyFund || 0,
+        
+        // Offer history
+        offer_history: formData.offerHistory || [],
       };
       
       
+      // Handle case where Supabase is not available (demo mode)
       if (!supabase) {
-        throw new Error('Supabase client not available');
+        console.log('Supabase not available - using mock save');
+        // In demo mode, just update the local property data
+        const updatedProperty = {
+          ...property,
+          monthlyRent: formData.monthlyRent,
+          rentStartDate: formData.rentStartDate,
+          mortgageBalance: formData.mortgageBalance,
+          mortgageType: formData.mortgageType,
+          mortgageRate: formData.mortgageRate,
+          monthlyMortgagePayment: calculatedValues.monthlyMortgagePayment,
+          depositAmount: formData.depositAmount,
+          monthlyAgentFee: formData.monthlyAgentFee,
+          monthlyInsurance: formData.monthlyInsurance,
+          annualInsurance: formData.annualInsurance,
+          oneOffFees: formData.oneOffFees,
+          scheduledFees: formData.scheduledFees,
+          monthlyExpenses: formData.monthlyExpenses,
+          propertyNotes: formData.propertyNotes,
+          yield: calculatedValues.yield,
+          equity: calculatedValues.equity,
+          equityPercentage: calculatedValues.equityPercentage,
+          monthlyProfit: calculatedValues.monthlyProfit,
+          
+          // Renovation costs
+          refurbishmentCosts: formData.refurbishmentCosts,
+          selectedRefurbishmentLevel: formData.selectedRefurbishmentLevel,
+          actualRefurbishmentCost: formData.actualRefurbishmentCost,
+          
+          // Legal and setup costs
+          stampDuty: formData.stampDuty,
+          legalFees: formData.legalFees,
+          surveyFees: formData.surveyFees,
+          mortgageFees: formData.mortgageFees,
+          landRegistryFees: formData.landRegistryFees,
+          searchesFees: formData.searchesFees,
+          gasSafetyCertificate: formData.gasSafetyCertificate,
+          electricalSafetyCertificate: formData.electricalSafetyCertificate,
+          energyPerformanceCertificate: formData.energyPerformanceCertificate,
+          fireSafetyAssessment: formData.fireSafetyAssessment,
+          legionellaRiskAssessment: formData.legionellaRiskAssessment,
+          asbestosSurvey: formData.asbestosSurvey,
+          landlordInsurance: formData.landlordInsurance,
+          furnitureAndAppliances: formData.furnitureAndAppliances,
+          marketingAndLettingFees: formData.marketingAndLettingFees,
+          contingencyFund: formData.contingencyFund,
+          
+          // Offer history
+          offerHistory: formData.offerHistory,
+        };
+
+        await onSave(updatedProperty);
+        alert('Property updated successfully! (Demo Mode)');
+        onClose();
+        return;
       }
       
       // Check if user is authenticated
@@ -231,6 +455,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         return;
       }
 
+      // Create updated property object for both demo and real modes
       const updatedProperty = {
         ...property,
         monthlyRent: formData.monthlyRent,
@@ -251,6 +476,32 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
         equity: calculatedValues.equity,
         equityPercentage: calculatedValues.equityPercentage,
         monthlyProfit: calculatedValues.monthlyProfit,
+        
+        // Renovation costs
+        refurbishmentCosts: formData.refurbishmentCosts,
+        selectedRefurbishmentLevel: formData.selectedRefurbishmentLevel,
+        actualRefurbishmentCost: formData.actualRefurbishmentCost,
+        
+        // Legal and setup costs
+        stampDuty: formData.stampDuty,
+        legalFees: formData.legalFees,
+        surveyFees: formData.surveyFees,
+        mortgageFees: formData.mortgageFees,
+        landRegistryFees: formData.landRegistryFees,
+        searchesFees: formData.searchesFees,
+        gasSafetyCertificate: formData.gasSafetyCertificate,
+        electricalSafetyCertificate: formData.electricalSafetyCertificate,
+        energyPerformanceCertificate: formData.energyPerformanceCertificate,
+        fireSafetyAssessment: formData.fireSafetyAssessment,
+        legionellaRiskAssessment: formData.legionellaRiskAssessment,
+        asbestosSurvey: formData.asbestosSurvey,
+        landlordInsurance: formData.landlordInsurance,
+        furnitureAndAppliances: formData.furnitureAndAppliances,
+        marketingAndLettingFees: formData.marketingAndLettingFees,
+        contingencyFund: formData.contingencyFund,
+        
+        // Offer history
+        offerHistory: formData.offerHistory,
       };
 
       await onSave(updatedProperty);
@@ -647,6 +898,423 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
                        </div>
                 </div>
               </div>
+            </div>
+
+            {/* Renovation Costs Section */}
+            <div className="mt-6">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <Calculator className="w-5 h-5 text-orange-600" />
+                Renovation Costs
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Refurbishment Level
+                  </label>
+                  <select
+                    value={formData.selectedRefurbishmentLevel}
+                    onChange={(e) => handleInputChange('selectedRefurbishmentLevel', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="light">Light Refurbishment</option>
+                    <option value="medium">Medium Refurbishment</option>
+                    <option value="high">High Refurbishment</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Actual Refurbishment Cost (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.actualRefurbishmentCost}
+                    onChange={(e) => handleInputChange('actualRefurbishmentCost', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700 mb-1">Light Refurbishment</div>
+                  <div className="text-lg font-semibold text-orange-600">
+                    £{formData.refurbishmentCosts?.light?.toLocaleString() || '0'}
+                  </div>
+                </div>
+                <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700 mb-1">Medium Refurbishment</div>
+                  <div className="text-lg font-semibold text-orange-600">
+                    £{formData.refurbishmentCosts?.medium?.toLocaleString() || '0'}
+                  </div>
+                </div>
+                <div className="bg-orange-50 p-3 rounded-lg">
+                  <div className="text-sm font-medium text-gray-700 mb-1">High Refurbishment</div>
+                  <div className="text-lg font-semibold text-orange-600">
+                    £{formData.refurbishmentCosts?.high?.toLocaleString() || '0'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Legal & Setup Costs Section */}
+            <div className="mt-6">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-purple-600" />
+                Legal & Setup Costs
+              </h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Stamp Duty (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.stampDuty}
+                    onChange={(e) => handleInputChange('stampDuty', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="0"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Legal Fees (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.legalFees}
+                    onChange={(e) => handleInputChange('legalFees', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="1500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Survey Fees (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.surveyFees}
+                    onChange={(e) => handleInputChange('surveyFees', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Mortgage Fees (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.mortgageFees}
+                    onChange={(e) => handleInputChange('mortgageFees', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="1000"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Land Registry Fees (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.landRegistryFees}
+                    onChange={(e) => handleInputChange('landRegistryFees', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Searches Fees (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.searchesFees}
+                    onChange={(e) => handleInputChange('searchesFees', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="300"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Gas Safety Certificate (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.gasSafetyCertificate}
+                    onChange={(e) => handleInputChange('gasSafetyCertificate', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="80"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Electrical Safety Certificate (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.electricalSafetyCertificate}
+                    onChange={(e) => handleInputChange('electricalSafetyCertificate', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="200"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Energy Performance Certificate (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.energyPerformanceCertificate}
+                    onChange={(e) => handleInputChange('energyPerformanceCertificate', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="80"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Fire Safety Assessment (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.fireSafetyAssessment}
+                    onChange={(e) => handleInputChange('fireSafetyAssessment', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="150"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Legionella Risk Assessment (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.legionellaRiskAssessment}
+                    onChange={(e) => handleInputChange('legionellaRiskAssessment', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="100"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Asbestos Survey (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.asbestosSurvey}
+                    onChange={(e) => handleInputChange('asbestosSurvey', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="300"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Landlord Insurance (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.landlordInsurance}
+                    onChange={(e) => handleInputChange('landlordInsurance', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="300"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Furniture & Appliances (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.furnitureAndAppliances}
+                    onChange={(e) => handleInputChange('furnitureAndAppliances', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="2000"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Marketing & Letting Fees (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.marketingAndLettingFees}
+                    onChange={(e) => handleInputChange('marketingAndLettingFees', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Contingency Fund (£)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.contingencyFund}
+                    onChange={(e) => handleInputChange('contingencyFund', parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="1000"
+                  />
+                </div>
+              </div>
+
+              {/* Total Investment Cost Summary */}
+              <div className="mt-4 bg-purple-50 p-4 rounded-lg">
+                <h5 className="text-lg font-semibold text-purple-900 mb-3">Total Investment Cost Breakdown</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-700">Deposit:</span>
+                      <span className="font-medium">£{formData.depositAmount?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-700">Stamp Duty:</span>
+                      <span className="font-medium">£{formData.stampDuty?.toLocaleString() || '0'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-700">Refurbishment:</span>
+                      <span className="font-medium">£{(formData.actualRefurbishmentCost || formData.refurbishmentCosts?.[formData.selectedRefurbishmentLevel] || 0).toLocaleString()}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-700">Setup Costs:</span>
+                      <span className="font-medium">£{calculateTotalInvestmentCost().totalSetupCosts.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between border-t pt-2">
+                      <span className="text-sm font-semibold text-purple-900">Total Investment:</span>
+                      <span className="font-bold text-purple-900">£{calculateTotalInvestmentCost().totalInvestmentCost.toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Offer History Section */}
+            <div className="mt-6">
+              <h4 className="text-lg font-semibold text-gray-900 flex items-center gap-2 mb-4">
+                <Calendar className="w-5 h-5 text-red-600" />
+                Offer History
+              </h4>
+              
+              {/* Add New Offer */}
+              <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                <h5 className="text-md font-medium text-gray-900 mb-3">Add New Offer</h5>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                    <select
+                      value={offerHistoryInput.status}
+                      onChange={(e) => setOfferHistoryInput(prev => ({ ...prev, status: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      <option value="offer_made">Offer Made</option>
+                      <option value="offer_accepted">Offer Accepted</option>
+                      <option value="offer_rejected">Offer Rejected</option>
+                      <option value="offer_withdrawn">Offer Withdrawn</option>
+                    </select>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount (£)</label>
+                    <input
+                      type="number"
+                      value={offerHistoryInput.amount}
+                      onChange={(e) => setOfferHistoryInput(prev => ({ ...prev, amount: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input
+                      type="date"
+                      value={offerHistoryInput.date}
+                      onChange={(e) => setOfferHistoryInput(prev => ({ ...prev, date: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    />
+                  </div>
+                  
+                  <div className="flex items-end">
+                    <button
+                      onClick={handleAddOfferHistory}
+                      className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                    >
+                      Add Offer
+                    </button>
+                  </div>
+                </div>
+                
+                <div className="mt-3">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <input
+                    type="text"
+                    value={offerHistoryInput.notes}
+                    onChange={(e) => setOfferHistoryInput(prev => ({ ...prev, notes: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Additional notes about this offer..."
+                  />
+                </div>
+              </div>
+
+              {/* Existing Offers */}
+              {formData.offerHistory && formData.offerHistory.length > 0 && (
+                <div className="space-y-3">
+                  <h5 className="text-md font-medium text-gray-900">Previous Offers</h5>
+                  {formData.offerHistory.map((offer: any, index: number) => (
+                    <div key={offer.id || index} className="bg-white border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              offer.status === 'offer_accepted' ? 'bg-green-100 text-green-800' :
+                              offer.status === 'offer_rejected' ? 'bg-red-100 text-red-800' :
+                              offer.status === 'offer_withdrawn' ? 'bg-gray-100 text-gray-800' :
+                              'bg-blue-100 text-blue-800'
+                            }`}>
+                              {offer.status.replace('_', ' ').toUpperCase()}
+                            </span>
+                            <span className="text-lg font-semibold text-gray-900">£{offer.amount?.toLocaleString()}</span>
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <span className="font-medium">Date:</span> {new Date(offer.date).toLocaleDateString()}
+                          </div>
+                          {offer.notes && (
+                            <div className="text-sm text-gray-600 mt-1">
+                              <span className="font-medium">Notes:</span> {offer.notes}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleRemoveOfferHistory(index)}
+                          className="p-1 text-red-600 hover:text-red-800"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Notes Section */}

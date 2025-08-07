@@ -11,4 +11,9 @@ const clientConfig: ClientOptions = {
   }
 };
 
-export const esClient = new Client(clientConfig); 
+export const esClient = new Client(clientConfig);
+
+// Test the connection
+esClient.ping()
+  .then(() => console.log('✅ Elasticsearch connection successful'))
+  .catch((error) => console.error('❌ Elasticsearch connection failed:', error.message)); 

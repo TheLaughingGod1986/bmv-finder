@@ -27,18 +27,32 @@ import { useSearchLimit } from './components/SearchLimitContext';
 
 // Add fetch utility for enhanced property search with pagination
 async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
-  const res = await fetch('/api/search/enhanced', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      query, 
-      size: 10, // Show 10 results per page
-      page,
-      after 
-    })
-  });
-  if (!res.ok) throw new Error('Failed to fetch property results');
-  return res.json();
+  try {
+    console.log('Searching for:', query);
+    const res = await fetch('/api/search/enhanced', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        query, 
+        size: 10, // Show 10 results per page
+        page,
+        after 
+      })
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('Search API error:', res.status, errorText);
+      throw new Error(`Failed to fetch property results: ${res.status} ${errorText}`);
+    }
+    
+    const data = await res.json();
+    console.log('Search results:', data.results?.length || 0, 'properties found');
+    return data;
+  } catch (error) {
+    console.error('Search error:', error);
+    throw error;
+  }
 }
 
 export default function Home() {
@@ -505,7 +519,7 @@ export default function Home() {
                     onSearch={handleSearch}
                     isLoading={isLoading}
                     placeholder="Enter a postcode, address, area, or street name..."
-                    showHistory={true}
+                    showHistory={false}
                     showSuggestions={false}
                     className="w-full"
                   />

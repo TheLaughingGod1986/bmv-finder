@@ -265,19 +265,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // First, get all available regions from both indices for debugging
-    const propertyRegionsResponse = await esClient.search({
-      index: 'properties',
-      body: {
-        size: 0,
-        aggs: {
-          regions: {
-            terms: { field: 'county', size: 200 }
-          }
-        }
-      }
-    });
-
+    // Get HPI regions for analysis
     const hpiRegionsResponse = await esClient.search({
       index: 'house_price_index',
       body: {
@@ -290,52 +278,34 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Find region mappings
-    const propertyRegions = (propertyRegionsResponse.aggregations?.regions && 'buckets' in propertyRegionsResponse.aggregations.regions)
-      ? (propertyRegionsResponse.aggregations.regions.buckets as any[]).map((b: any) => b.key)
-      : [];
     const hpiRegions = (hpiRegionsResponse.aggregations?.regions && 'buckets' in hpiRegionsResponse.aggregations.regions)
       ? (hpiRegionsResponse.aggregations.regions.buckets as any[]).map((b: any) => b.key)
       : [];
 
-    // Find region mappings
-    const regionMappings = findMatchingRegions(propertyRegions, hpiRegions);
-
     // Get enhanced property data for the region
-    const propertyQuery: any = {
-      size: 0, // We only need aggregations
-      aggs: {
-        regions: {
-          terms: { field: 'county', size: 200 },
-          aggs: {
-            price_stats: {
-              stats: { field: 'price' }
-            },
-            property_count: {
-              value_count: { field: 'price' }
+    // Since county is a text field, we'll use a simpler approach
+    let propertyData = [];
+    
+    if (targetRegion) {
+      // Search for properties in the target region
+      const propertyResponse = await esClient.search({
+        index: 'properties-enhanced',
+        body: {
+          size: 1000,
+          query: {
+            bool: {
+              should: [
+                { match: { county: targetRegion } },
+                { match: { county: targetRegion.toLowerCase() } },
+                { match: { county: targetRegion.toUpperCase() } }
+              ]
             }
           }
         }
-      }
-    };
-
-    // Only filter by region if we don't have a search term (to get all data for mapping)
-    if (targetRegion && !searchTerm) {
-      propertyQuery.query = {
-        bool: {
-          should: [
-            { term: { county: targetRegion.toLowerCase() } },
-            { term: { county: targetRegion.toLowerCase().replace(/\s+/g, '-') } },
-            { term: { county: targetRegion.toLowerCase().replace(/\s+/g, '_') } }
-          ]
-        }
-      };
+      });
+      
+      propertyData = propertyResponse.hits.hits.map((hit: any) => hit._source);
     }
-
-    const propertyResponse = await esClient.search({
-      index: 'properties',
-      body: propertyQuery
-    });
 
     // Get HPI data for the same regions
     const hpiQuery: any = {
@@ -375,7 +345,7 @@ export async function GET(request: NextRequest) {
     // Combine and process the data
     const marketData: MarketData[] = [];
 
-    // Process HPI data
+    // Process HPI data - simplified approach
     const hpiRegionsData = (hpiResponse.aggregations?.regions && 'buckets' in hpiResponse.aggregations.regions)
       ? (hpiResponse.aggregations.regions.buckets as any[])
       : [];
@@ -411,31 +381,17 @@ export async function GET(request: NextRequest) {
 
         const historicalData = historicalResponse.hits.hits.map((hit: any) => hit._source);
         
-        // Find corresponding property data using region mappings
-        let propertyRegion = null;
-        
-        // Try direct match first
-        const propertyBuckets = (propertyResponse.aggregations?.regions && 'buckets' in propertyResponse.aggregations.regions)
-          ? (propertyResponse.aggregations.regions.buckets as any[])
-          : [];
-        propertyRegion = propertyBuckets.find(
-          (p: any) => normalizeRegionName(p.key) === normalizeRegionName(regionName)
+        // Calculate property statistics from the property data we fetched earlier
+        const regionProperties = propertyData.filter((prop: any) => 
+          prop.county && normalizeRegionName(prop.county) === normalizeRegionName(regionName)
         );
         
-        // Try mapped region if no direct match
-        if (!propertyRegion) {
-          const mappedPropertyRegion = Object.keys(regionMappings).find(
-            propRegion => normalizeRegionName(regionMappings[propRegion]) === normalizeRegionName(regionName)
-          );
-          if (mappedPropertyRegion) {
-            const propertyBuckets = (propertyResponse.aggregations?.regions && 'buckets' in propertyResponse.aggregations.regions)
-              ? (propertyResponse.aggregations.regions.buckets as any[])
-              : [];
-            propertyRegion = propertyBuckets.find(
-              (p: any) => normalizeRegionName(p.key) === normalizeRegionName(mappedPropertyRegion)
-            );
-          }
-        }
+        const propertyCount = regionProperties.length;
+        const prices = regionProperties.map((prop: any) => prop.price).filter(price => price > 0);
+        const averagePrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
+        const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+        const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+        const medianPrice = prices.length > 0 ? prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)] : 0;
         
         // Calculate growth rates
         let timeframeGrowth = 0;
@@ -496,12 +452,12 @@ export async function GET(request: NextRequest) {
           lastUpdated: latestData.date,
           dataPoints: historicalData.length,
           timeframeGrowth: parseFloat(timeframeGrowth.toFixed(2)),
-          propertyCount: propertyRegion?.doc_count || 0,
-          averagePrice: propertyRegion?.price_stats?.avg || 0,
+          propertyCount: propertyCount,
+          averagePrice: averagePrice,
           priceRange: {
-            min: propertyRegion?.price_stats?.min || 0,
-            max: propertyRegion?.price_stats?.max || 0,
-            median: propertyRegion?.price_stats?.percentiles?.['50.0'] || 0
+            min: minPrice,
+            max: maxPrice,
+            median: medianPrice
           }
         });
       }
@@ -518,11 +474,7 @@ export async function GET(request: NextRequest) {
       timeframe,
       total: marketData.length,
       debug: {
-        propertyRegions: propertyRegions.slice(0, 10), // First 10 for debugging
-        hpiRegions: hpiRegions.slice(0, 10), // First 10 for debugging
-        regionMappings: Object.fromEntries(
-          Object.entries(regionMappings).slice(0, 10) // First 10 for debugging
-        )
+        hpiRegions: hpiRegions.slice(0, 10) // First 10 for debugging
       }
     });
 

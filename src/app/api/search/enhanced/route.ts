@@ -87,10 +87,12 @@ export async function GET(request: NextRequest) {
     };
 
     // Search for properties in the enhanced index
+    console.log('Elasticsearch query:', JSON.stringify(searchBody, null, 2));
     const response = await esClient.search({
       index: 'properties-enhanced',
       body: searchBody
     });
+    console.log('Elasticsearch response:', response.hits.total, 'total hits');
 
     const results = response.hits.hits.map(hit => {
       const source = hit._source as any;
@@ -165,6 +167,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { query, filters, page = 1, size = 10 } = body;
+    
+    console.log('Enhanced search request:', { query, filters, page, size });
 
     // Build advanced search query
     const searchBody: any = {

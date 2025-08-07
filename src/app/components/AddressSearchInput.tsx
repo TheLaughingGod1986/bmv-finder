@@ -235,13 +235,17 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
     
     // Only format as postcode if it matches a more specific postcode pattern
     // This prevents formatting area names like "LON DON" as postcodes
-    const postcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i;
-    const partialPostcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]?$/i;
+    const fullPostcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}$/i;
+    const partialPostcodePattern = /^[A-Za-z]{1,2}[0-9][0-9A-Z]?\s*[0-9]?[A-Z]?$/i;
     
-    if (postcodePattern.test(input) || partialPostcodePattern.test(input)) {
+    // Check if it looks like a UK postcode being typed
+    const startsLikePostcode = /^[A-Za-z]{1,2}[0-9]/i.test(input);
+    const hasNoSpacesExceptOne = (input.match(/\s/g) || []).length <= 1;
+    
+    if (fullPostcodePattern.test(input) || (partialPostcodePattern.test(input) && startsLikePostcode && hasNoSpacesExceptOne)) {
       // Only format if it's actually a postcode pattern
-      input = formatPostcode(input);
-      onChange(input.toUpperCase());
+      const formatted = formatPostcode(input);
+      onChange(formatted.toUpperCase());
     } else {
       // For areas, addresses, etc., just pass through as-is
       onChange(input);
@@ -317,23 +321,26 @@ const AddressSearchInput: React.FC<AddressSearchInputProps> = ({
               {/* Dropdown content starts here */}
 
               {/* Search History */}
-              {history.length > 0 && showHistory && (
+              {history.length > 0 && showHistory && !addresses.length && (
                 <div className="p-4 border-b border-gray-100">
                   <h3 className="text-sm font-semibold text-text-secondary mb-3 flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     Recent Searches
                   </h3>
                   <div className="space-y-2">
-                    {history.slice(0, 3).map((query, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleHistoryClick(query)}
-                        className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors touch-target flex items-center gap-3"
-                      >
-                        <Clock className="w-4 h-4 text-text-tertiary flex-shrink-0" />
-                        <span className="text-sm text-text-primary truncate">{query}</span>
-                      </button>
-                    ))}
+                    {history
+                      .filter((query, index, self) => self.indexOf(query) === index) // Remove duplicates
+                      .slice(0, 3)
+                      .map((query, index) => (
+                        <button
+                          key={index}
+                          onClick={() => handleHistoryClick(query)}
+                          className="w-full text-left p-3 rounded-lg hover:bg-gray-50 transition-colors touch-target flex items-center gap-3"
+                        >
+                          <Clock className="w-4 h-4 text-text-tertiary flex-shrink-0" />
+                          <span className="text-sm text-text-primary truncate">{formatPostcode(query)}</span>
+                        </button>
+                      ))}
                   </div>
                 </div>
               )}

@@ -151,8 +151,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                 </h2>
                 <p className="text-gray-600 mt-1">
                   {mode === 'login' 
-                    ? 'Sign in to your account to continue' 
-                    : 'Join Property Intelligence Platform to get started'
+                    ? 'Sign in to access your property portfolio and investment insights' 
+                    : 'Join BMV Finder to start tracking your property investments'
                   }
                 </p>
               </div>
@@ -313,6 +313,12 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
                   >
                     {mode === 'login' ? 'Sign up' : 'Sign in'}
                   </button>
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  By signing in, you agree to our{' '}
+                  <a href="/terms" className="text-blue-600 hover:text-blue-700 underline">Terms of Service</a>
+                  {' '}and{' '}
+                  <a href="/privacy" className="text-blue-600 hover:text-blue-700 underline">Privacy Policy</a>
                 </p>
               </div>
             </div>

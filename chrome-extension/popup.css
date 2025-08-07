@@ -184,16 +184,18 @@ body {
 }
 
 .sign-in-button, .sign-out-button {
-  background: linear-gradient(135deg, var(--primary-green) 0%, var(--primary-green-dark) 100%);
+  background: linear-gradient(135deg, var(--error) 0%, #B91C1C 100%);
   color: white;
   border: none;
   border-radius: var(--radius-md);
-  padding: 8px 16px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: var(--shadow-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .sign-in-button:hover, .sign-out-button:hover {
@@ -202,7 +204,7 @@ body {
 }
 
 .sign-out-button {
-  background: linear-gradient(135deg, var(--error) 0%, #B91C1C 100%);
+  background: linear-gradient(135deg, var(--primary-blue) 0%, var(--primary-blue-dark) 100%);
 }
 
 /* Capture Limits Section */

@@ -342,7 +342,7 @@ export async function POST(request: NextRequest) {
 
     // Build basic search query (without EPC filters)
     const must: any[] = [
-      { term: { propertyType: mappedPropertyType } }
+      { term: { property_type: mappedPropertyType } }
     ];
 
     // Add postcode search based on radius
@@ -385,9 +385,9 @@ export async function POST(request: NextRequest) {
     };
 
 
-    // Search for properties in the regular properties index first
+    // Search for properties in the enhanced properties index
     const response = await esClient.search({
-      index: 'properties',
+      index: 'properties-enhanced',
       body: searchBody
     });
 
@@ -408,7 +408,7 @@ export async function POST(request: NextRequest) {
               query: {
                 bool: {
                   should: [
-                    { match: { full_address: property.fullAddress || `${property.paon} ${property.street}` } },
+                    { match: { full_address: property.full_address || `${property.paon} ${property.street}` } },
                     { match: { postcode: property.postcode } }
                   ],
                   minimum_should_match: 1

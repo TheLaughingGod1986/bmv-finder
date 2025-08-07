@@ -46,11 +46,28 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      const addresses = response.hits.hits.map((hit: any) => {
+      // Process and clean addresses
+      const processedAddresses: any[] = [];
+      const seenAddresses = new Set<string>();
+      
+      response.hits.hits.forEach((hit: any) => {
         const source = hit._source;
         
         // Clean up the street name - remove postcode and extra parts
-        let cleanStreet = source.street || '';
+        let cleanStreet = source.street || source.address || '';
+        
+        // Extract house number if it's part of the street
+        let houseNumber = source.paon || '';
+        if (!houseNumber && cleanStreet) {
+          // Try to extract house number from the beginning of the street
+          const match = cleanStreet.match(/^(\d+[A-Za-z]?)\s+(.+)/);
+          if (match) {
+            houseNumber = match[1];
+            cleanStreet = match[2];
+          }
+        }
+        
+        // Clean up the street name
         if (cleanStreet.includes(',')) {
           // Take only the first part before the first comma
           cleanStreet = cleanStreet.split(',')[0].trim();
@@ -59,49 +76,78 @@ export async function GET(request: NextRequest) {
         // Remove any postcode pattern from the street name
         cleanStreet = cleanStreet.replace(/\b[A-Z]{1,2}[0-9][0-9A-Z]?\s*[0-9][A-Z]{2}\b/gi, '').trim();
         
+        // Remove common suffixes that might be duplicated
+        cleanStreet = cleanStreet.replace(/\s+(NEWCASTLE UPON TYNE|TYNE AND WEAR|NORTHUMBERLAND|LONDON|MANCHESTER|BIRMINGHAM|LEEDS|LIVERPOOL|BRISTOL)$/i, '').trim();
+        
         // Clean up any trailing commas or extra spaces
-        cleanStreet = cleanStreet.replace(/,\s*$/, '').trim();
+        cleanStreet = cleanStreet.replace(/[,\s]+$/, '').trim();
         
         // Apply specific mappings for known addresses
-        const postcodeToStreet: { [key: string]: string } = {
-          'NE5 4PR': 'Lowbiggin',
-          'NE5 2PR': 'Fourstone',
+        const postcodeToStreet: { [key: string]: { [key: string]: string } } = {
+          'NE5 4PR': {
+            'default': 'Lowbiggin',
+            'LOWBIGGIN': 'Lowbiggin'
+          },
+          'NE5 2PR': {
+            'default': 'Fourstones',
+            'FOURSTONES': 'Fourstones',
+            'FOURSTONE': 'Fourstones'
+          },
+          'NE17 7JH': {
+            'default': 'Westwood Road',
+            'WESTWOOD ROAD': 'Westwood Road'
+          }
         };
         
-        // If we have a specific mapping for this postcode, use it
+        // Normalize and fix street names
+        const upperStreet = cleanStreet.toUpperCase();
         if (source.postcode && postcodeToStreet[source.postcode]) {
-          cleanStreet = postcodeToStreet[source.postcode];
+          const mapping = postcodeToStreet[source.postcode];
+          cleanStreet = mapping[upperStreet] || mapping['default'] || cleanStreet;
         }
         
-        return {
-          address: source.address || `${source.paon || ''} ${cleanStreet}`.trim(),
-          postcode: source.postcode,
-          number: source.paon || '',
-          street: cleanStreet,
-          locality: source.locality || '',
-          town_city: source.town_city || '',
-          county: source.county || '',
-          display: `${source.paon || ''} ${cleanStreet}, ${source.postcode}`.trim()
-        };
+        // Create a unique key for deduplication
+        const uniqueKey = `${houseNumber}-${cleanStreet.toLowerCase()}-${source.postcode}`;
+        
+        // Only add if we haven't seen this exact address before
+        if (!seenAddresses.has(uniqueKey) && houseNumber && cleanStreet) {
+          seenAddresses.add(uniqueKey);
+          
+          processedAddresses.push({
+            address: `${houseNumber} ${cleanStreet}`.trim(),
+            postcode: source.postcode || '',
+            number: houseNumber,
+            street: cleanStreet,
+            locality: source.locality || '',
+            town_city: source.town_city || 'Newcastle upon Tyne',
+            county: source.county || 'Tyne and Wear',
+            display: `${houseNumber} ${cleanStreet}, ${source.postcode || ''}`.trim()
+          });
+        }
       });
 
-      // Remove duplicates based on address and ensure we have all house numbers
-      const uniqueAddresses = addresses.filter((addr: any, index: number, self: any[]) => 
-        index === self.findIndex((a: any) => 
-          a.number === addr.number && a.street === addr.street && a.postcode === addr.postcode
-        )
-      );
-
-      // Sort by house number to ensure consistent ordering
-      uniqueAddresses.sort((a: any, b: any) => {
-        const numA = parseInt(a.number) || 0;
-        const numB = parseInt(b.number) || 0;
-        return numA - numB;
+      // Sort by house number (handle both numeric and alphanumeric)
+      processedAddresses.sort((a: any, b: any) => {
+        // Extract numeric part for sorting
+        const getNumericPart = (num: string) => {
+          const match = num.match(/^(\d+)/);
+          return match ? parseInt(match[1]) : 0;
+        };
+        
+        const numA = getNumericPart(a.number);
+        const numB = getNumericPart(b.number);
+        
+        if (numA !== numB) {
+          return numA - numB;
+        }
+        
+        // If numeric parts are equal, sort by the full number string
+        return a.number.localeCompare(b.number);
       });
 
       return NextResponse.json({
         suggestions: [],
-        addresses: uniqueAddresses
+        addresses: processedAddresses
       });
     } else {
       // If it's not a postcode, search for postcodes and addresses as before

@@ -177,61 +177,51 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
     
     // Fallback to Elasticsearch search strategies
     const searchQueries = [
-      // Strategy 1: Exact postcode and number match in properties-enhanced (highest priority)
+      // Strategy 1: Use the same search strategy as the search API (highest priority)
       {
         index: 'properties-enhanced',
         body: {
           query: {
             bool: {
               must: [
-                { term: { postcode: cleanPostcode } },
-                { term: { paon: cleanNumber } }
+                { match_phrase: { postcode: cleanPostcode } },
+                { match: { paon: cleanNumber } }
               ]
             }
           },
-          size: 1
+          size: 10,
+          sort: [
+            { date: { order: 'desc' } }
+          ]
         }
       },
-      // Strategy 2: Exact postcode and number match in base properties index
+      // Strategy 2: Fallback to properties-clean index
       {
-        index: 'properties',
+        index: 'properties-clean',
         body: {
           query: {
             bool: {
               must: [
-                { term: { postcode: cleanPostcode } },
-                { term: { paon: cleanNumber } }
+                { match_phrase: { postcode: cleanPostcode } },
+                { match: { paon: cleanNumber } }
               ]
             }
           },
-          size: 1
-        }
-      },
-      // Strategy 3: Exact postcode with fuzzy number match in properties-enhanced
-      {
-        index: 'properties-enhanced',
-        body: {
-          query: {
-            bool: {
-              must: [
-                { term: { postcode: cleanPostcode } }
-              ],
-              should: [
-                { term: { paon: cleanNumber } },
-                { fuzzy: { paon: { value: cleanNumber, fuzziness: 1 } } }
-              ],
-              minimum_should_match: 1
-            }
-          },
-          size: 1
+          size: 10,
+          sort: [
+            { date: { order: 'desc' } }
+          ]
         }
       }
     ];
 
     for (const searchQuery of searchQueries) {
       try {
+        console.log(`Trying search query: ${searchQuery.index}`);
         const response = await esClient.search(searchQuery);
+        console.log(`Found ${response.hits.hits.length} results in ${searchQuery.index}`);
         if (response.hits.hits.length > 0) {
+          // Results are already sorted by date in descending order, so take the first one
           const property = response.hits.hits[0]._source as any;
           
           // Map property types
@@ -437,9 +427,60 @@ async function calculateSalesComparison(property: PropertyData): Promise<Valuati
 
     let comparableValue = weightedSum / totalWeight;
     
+    // Apply HPI and inflation adjustments if we have last sold data
+    if (property.lastSoldPrice && property.lastSoldDate) {
+      const hpiAdjustment = await calculateHPIAdjustment(property.postcode, property.lastSoldDate);
+      
+      // Calculate the expected current value based on last sale
+      const expectedCurrentValue = property.lastSoldPrice * hpiAdjustment;
+      
+      // Check if this is a very recent sale (within last 6 months)
+      const soldDate = new Date(property.lastSoldDate);
+      const currentDate = new Date();
+      const monthsSinceSale = (currentDate.getTime() - soldDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+      
+      if (monthsSinceSale <= 6) {
+        // For very recent sales, use HPI-adjusted last sale as the primary value (80%)
+        // This prevents recent sales from being dragged down by poor comparable data
+        comparableValue = (comparableValue * 0.2) + (expectedCurrentValue * 0.8);
+        console.log('Recent sale detected - using 80% weight for HPI-adjusted last sale');
+      } else {
+        // Use HPI-adjusted last sale as the primary value (70%), with comparables as secondary (30%)
+        comparableValue = (comparableValue * 0.3) + (expectedCurrentValue * 0.7);
+      }
+      
+      console.log('HPI Adjustment (Inflation already included in HPI):', {
+        lastSoldPrice: property.lastSoldPrice,
+        lastSoldDate: property.lastSoldDate,
+        monthsSinceSale: Math.round(monthsSinceSale * 10) / 10,
+        hpiAdjustment,
+        expectedCurrentValue: Math.round(expectedCurrentValue),
+        blendedValue: Math.round(comparableValue)
+      });
+    }
+    
     // Apply location premium based on planning authority data
     const locationPremium = calculateLocationPremium(planningData);
     let adjustedValue = comparableValue * locationPremium;
+    
+    // Safety check: If this is a recent sale (within 12 months), don't allow the value to be significantly lower
+    // unless we have very strong evidence (high confidence with many comparables)
+    if (property.lastSoldPrice && property.lastSoldDate) {
+      const soldDate = new Date(property.lastSoldDate);
+      const currentDate = new Date();
+      const monthsSinceSale = (currentDate.getTime() - soldDate.getTime()) / (1000 * 60 * 60 * 24 * 30);
+      
+      if (monthsSinceSale <= 12) {
+        const hpiAdjustment = await calculateHPIAdjustment(property.postcode, property.lastSoldDate);
+        const minimumReasonableValue = property.lastSoldPrice * hpiAdjustment * 0.95; // Allow 5% decline max
+        
+        if (adjustedValue < minimumReasonableValue && confidence < 0.8) {
+          console.log(`Valuation too low for recent sale. Using minimum reasonable value: £${Math.round(minimumReasonableValue)}`);
+          adjustedValue = minimumReasonableValue;
+          confidence = Math.max(confidence, 0.6); // Boost confidence
+        }
+      }
+    }
     
     confidence = Math.min(0.95, confidence + (comparables.length * 0.05));
     
@@ -912,98 +953,98 @@ async function getEnhancedRegionalRent(property: PropertyData): Promise<{ monthl
 }
 
 function getRegionFromPostcode(postcode: string): string {
-  // Map postcode areas to ONS regions
+  // Map postcode areas to HPI regions
   const postcodeToRegion: { [key: string]: string } = {
-    'SW1A': 'E12000007', // London
-    'SW1': 'E12000007',  // London
-    'SW': 'E12000007',   // London
-    'W1': 'E12000007',   // London
-    'W': 'E12000007',    // London
-    'E1': 'E12000007',   // London
-    'E': 'E12000007',    // London
-    'N1': 'E12000007',   // London
-    'N': 'E12000007',    // London
-    'SE1': 'E12000007',  // London
-    'SE': 'E12000007',   // London
-    'BR': 'E12000007',   // London
-    'CR': 'E12000007',   // London
-    'DA': 'E12000007',   // London
-    'EN': 'E12000007',   // London
-    'HA': 'E12000007',   // London
-    'IG': 'E12000007',   // London
-    'KT': 'E12000007',   // London
-    'RM': 'E12000007',   // London
-    'SM': 'E12000007',   // London
-    'TW': 'E12000007',   // London
-    'UB': 'E12000007',   // London
-    'WD': 'E12000007',   // London
+    'SW1A': 'London', // London
+    'SW1': 'London',  // London
+    'SW': 'London',   // London
+    'W1': 'London',   // London
+    'W': 'London',    // London
+    'E1': 'London',   // London
+    'E': 'London',    // London
+    'N1': 'London',   // London
+    'N': 'London',    // London
+    'SE1': 'London',  // London
+    'SE': 'London',   // London
+    'BR': 'London',   // London
+    'CR': 'London',   // London
+    'DA': 'London',   // London
+    'EN': 'London',   // London
+    'HA': 'London',   // London
+    'IG': 'London',   // London
+    'KT': 'London',   // London
+    'RM': 'London',   // London
+    'SM': 'London',   // London
+    'TW': 'London',   // London
+    'UB': 'London',   // London
+    'WD': 'London',   // London
     // Add more postcode mappings for other regions
-    'B': 'E12000005',    // West Midlands
-    'CV': 'E12000005',   // West Midlands
-    'DY': 'E12000005',   // West Midlands
-    'WS': 'E12000005',   // West Midlands
-    'WV': 'E12000005',   // West Midlands
-    'M': 'E12000002',    // North West
-    'BL': 'E12000002',   // North West
-    'CA': 'E12000002',   // North West
-    'CH': 'E12000002',   // North West
-    'CW': 'E12000002',   // North West
-    'L': 'E12000002',    // North West
-    'PR': 'E12000002',   // North West
-    'SK': 'E12000002',   // North West
-    'WA': 'E12000002',   // North West
-    'WN': 'E12000002',   // North West
-    'NE': 'E12000001',   // North East
-    'SR': 'E12000001',   // North East
-    'TS': 'E12000001',   // North East
-    'DL': 'E12000001',   // North East
-    'HG': 'E12000001',   // North East
-    'YO': 'E12000001',   // North East
-    'S': 'E12000003',    // Yorkshire and The Humber
-    'BD': 'E12000003',   // Yorkshire and The Humber
-    'DN': 'E12000003',   // Yorkshire and The Humber
-    'HD': 'E12000003',   // Yorkshire and The Humber
-    'HU': 'E12000003',   // Yorkshire and The Humber
-    'HX': 'E12000003',   // Yorkshire and The Humber
-    'LS': 'E12000003',   // Yorkshire and The Humber
-    'WF': 'E12000003',   // Yorkshire and The Humber
-    'LE': 'E12000004',   // East Midlands
-    'NG': 'E12000004',   // East Midlands
-    'DE': 'E12000004',   // East Midlands
-    'LN': 'E12000004',   // East Midlands
-    'PE': 'E12000004',   // East Midlands
-    'CB': 'E12000006',   // East of England
-    'CM': 'E12000006',   // East of England
-    'CO': 'E12000006',   // East of England
-    'IP': 'E12000006',   // East of England
-    'NR': 'E12000006',   // East of England
-    'SG': 'E12000006',   // East of England
-    'SS': 'E12000006',   // East of England
-    'AL': 'E12000006',   // East of England
-    'LU': 'E12000006',   // East of England
-    'MK': 'E12000006',   // East of England
-    'NN': 'E12000006',   // East of England
-    'OX': 'E12000006',   // East of England
-    'RG': 'E12000006',   // East of England
-    'SL': 'E12000006',   // East of England
-    'SO': 'E12000008',   // South East
-    'GU': 'E12000008',   // South East
-    'HP': 'E12000008',   // South East
-    'ME': 'E12000008',   // South East
-    'PO': 'E12000008',   // South East
-    'RH': 'E12000008',   // South East
-    'TN': 'E12000008',   // South East
-    'BA': 'E12000009',   // South West
-    'BS': 'E12000009',   // South West
-    'DT': 'E12000009',   // South West
-    'EX': 'E12000009',   // South West
-    'GL': 'E12000009',   // South West
-    'PL': 'E12000009',   // South West
-    'SN': 'E12000009',   // South West
-    'SP': 'E12000009',   // South West
-    'TA': 'E12000009',   // South West
-    'TQ': 'E12000009',   // South West
-    'TR': 'E12000009',   // South West
+    'B': 'West Midlands Region',    // West Midlands
+    'CV': 'West Midlands Region',   // West Midlands
+    'DY': 'West Midlands Region',   // West Midlands
+    'WS': 'West Midlands Region',   // West Midlands
+    'WV': 'West Midlands Region',   // West Midlands
+    'M': 'England',    // North West (using England as fallback)
+    'BL': 'England',   // North West (using England as fallback)
+    'CA': 'England',   // North West (using England as fallback)
+    'CH': 'England',   // North West (using England as fallback)
+    'CW': 'England',   // North West (using England as fallback)
+    'L': 'England',    // North West (using England as fallback)
+    'PR': 'England',   // North West (using England as fallback)
+    'SK': 'England',   // North West (using England as fallback)
+    'WA': 'England',   // North West (using England as fallback)
+    'WN': 'England',   // North West (using England as fallback)
+    'NE': 'North East',   // North East
+    'SR': 'North East',   // North East
+    'TS': 'North East',   // North East
+    'DL': 'North East',   // North East
+    'HG': 'North East',   // North East
+    'YO': 'North East',   // North East
+    'S': 'England',    // Yorkshire and The Humber (using England as fallback)
+    'BD': 'England',   // Yorkshire and The Humber (using England as fallback)
+    'DN': 'England',   // Yorkshire and The Humber (using England as fallback)
+    'HD': 'England',   // Yorkshire and The Humber (using England as fallback)
+    'HU': 'England',   // Yorkshire and The Humber (using England as fallback)
+    'HX': 'England',   // Yorkshire and The Humber (using England as fallback)
+    'LS': 'England',   // Yorkshire and The Humber (using England as fallback)
+    'WF': 'England',   // Yorkshire and The Humber (using England as fallback)
+    'LE': 'East Midlands',   // East Midlands
+    'NG': 'East Midlands',   // East Midlands
+    'DE': 'East Midlands',   // East Midlands
+    'LN': 'East Midlands',   // East Midlands
+    'PE': 'East Midlands',   // East Midlands
+    'CB': 'East of England',   // East of England
+    'CM': 'East of England',   // East of England
+    'CO': 'East of England',   // East of England
+    'IP': 'East of England',   // East of England
+    'NR': 'East of England',   // East of England
+    'SG': 'East of England',   // East of England
+    'SS': 'East of England',   // East of England
+    'AL': 'East of England',   // East of England
+    'LU': 'East of England',   // East of England
+    'MK': 'East of England',   // East of England
+    'NN': 'East of England',   // East of England
+    'OX': 'East of England',   // East of England
+    'RG': 'East of England',   // East of England
+    'SL': 'East of England',   // East of England
+    'SO': 'South East',   // South East
+    'GU': 'South East',   // South East
+    'HP': 'South East',   // South East
+    'ME': 'South East',   // South East
+    'PO': 'South East',   // South East
+    'RH': 'South East',   // South East
+    'TN': 'South East',   // South East
+    'BA': 'South West',   // South West
+    'BS': 'South West',   // South West
+    'DT': 'South West',   // South West
+    'EX': 'South West',   // South West
+    'GL': 'South West',   // South West
+    'PL': 'South West',   // South West
+    'SN': 'South West',   // South West
+    'SP': 'South West',   // South West
+    'TA': 'South West',   // South West
+    'TQ': 'South West',   // South West
+    'TR': 'South West',   // South West
   };
 
   const postcodePrefix = postcode.split(' ')[0].toUpperCase();
@@ -1020,8 +1061,8 @@ function getRegionFromPostcode(postcode: string): string {
     }
   }
   
-  // Default to London if no match found
-  return 'E12000007';
+  // Default to England if no match found
+  return 'England';
 }
 
 function getONSPropertyType(propertyType: string): string {
@@ -1349,4 +1390,100 @@ function analyzeMissingData(property: PropertyData): {
     totalPotentialImprovement: totalImprovement,
     message
   };
+}
+
+// Helper function to calculate HPI adjustment
+async function calculateHPIAdjustment(postcode: string, lastSoldDate: string): Promise<number> {
+  try {
+    // Get region from postcode
+    const region = getRegionFromPostcode(postcode);
+    
+    // Get HPI data for the region
+    const hpiResponse = await esClient.search({
+      index: 'house_price_index',
+      body: {
+        query: { term: { region: region } },
+        sort: [{ date: { order: 'desc' } }],
+        size: 100
+      }
+    });
+    
+    const hpiData = hpiResponse.hits.hits.map(hit => hit._source as any);
+    if (hpiData.length === 0) {
+      console.log(`No HPI data found for region: ${region}`);
+      return 1.0; // No HPI data available
+    }
+    
+    // Find HPI data closest to last sold date
+    const soldDate = new Date(lastSoldDate);
+    const soldYear = soldDate.getFullYear();
+    const soldMonth = soldDate.getMonth() + 1;
+    const soldDateStr = `${soldYear}-${soldMonth.toString().padStart(2, '0')}`;
+    
+    // Find exact match first, then closest match
+    let soldHPI = hpiData.find(hpi => hpi.date === soldDateStr);
+    if (!soldHPI) {
+      // Find closest date (within 3 months)
+      const soldTime = soldDate.getTime();
+      soldHPI = hpiData.find(hpi => {
+        const hpiDate = new Date(hpi.date + '-01');
+        const diffMonths = Math.abs((soldTime - hpiDate.getTime()) / (1000 * 60 * 60 * 24 * 30));
+        return diffMonths <= 3;
+      });
+    }
+    
+    // Fallback to oldest available if still not found
+    if (!soldHPI) {
+      soldHPI = hpiData[hpiData.length - 1];
+    }
+    
+    const currentHPI = hpiData[0]; // Most recent
+    
+    if (!soldHPI || !currentHPI) {
+      console.log(`Missing HPI data - soldHPI: ${!!soldHPI}, currentHPI: ${!!currentHPI}`);
+      return 1.0;
+    }
+    
+    const hpiMultiplier = currentHPI.index / soldHPI.index;
+    
+    // Validate the multiplier makes sense
+    if (hpiMultiplier < 0.5 || hpiMultiplier > 2.0) {
+      console.warn(`Suspicious HPI multiplier: ${hpiMultiplier.toFixed(3)} for ${region}. Using 1.0 instead.`);
+      console.warn(`Sold HPI: ${soldHPI.index} (${soldHPI.date}), Current HPI: ${currentHPI.index} (${currentHPI.date})`);
+      return 1.0;
+    }
+    
+    console.log(`HPI Adjustment for ${region}: ${soldHPI.index} (${soldHPI.date}) -> ${currentHPI.index} (${currentHPI.date}) = ${hpiMultiplier.toFixed(3)}`);
+    
+    return hpiMultiplier;
+  } catch (error) {
+    console.error('Error calculating HPI adjustment:', error);
+    return 1.0;
+  }
+}
+
+// Helper function to calculate inflation adjustment
+function calculateInflationAdjustment(lastSoldDate: string): number {
+  try {
+    const soldDate = new Date(lastSoldDate);
+    const soldYear = soldDate.getFullYear();
+    const currentYear = new Date().getFullYear();
+    
+    // UK inflation data (simplified)
+    const inflationRates: { [key: number]: number } = {
+      2020: 0.9, 2021: 2.6, 2022: 9.1, 2023: 6.7, 2024: 3.2, 2025: 2.0
+    };
+    
+    let cumulativeInflation = 1.0;
+    for (let year = soldYear; year < currentYear; year++) {
+      const inflationRate = inflationRates[year] || 2.0; // Default 2% if no data
+      cumulativeInflation *= (1 + inflationRate / 100);
+    }
+    
+    console.log(`Inflation Adjustment ${soldYear}-${currentYear}: ${cumulativeInflation.toFixed(3)}`);
+    return cumulativeInflation;
+  } catch (error) {
+    console.error('Error calculating inflation adjustment:', error);
+    return 1.0;
+  }
 }

@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import AuthModal from '../components/AuthModal';
+import { useMockAuth } from '../components/MockAuthProvider';
 
 function ExtensionAuthContent() {
   const searchParams = useSearchParams();
@@ -11,6 +12,7 @@ function ExtensionAuthContent() {
   const [message, setMessage] = useState('Authenticating...');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const mockAuth = useMockAuth();
 
   const handleAuth = async () => {
     try {
@@ -24,12 +26,51 @@ function ExtensionAuthContent() {
         return;
       }
 
-      // Get the current session
+      // Check for mock authentication first
+      if (mockAuth.user) {
+        // User is authenticated via mock auth
+        const user = mockAuth.user;
+        
+        // Create user data for extension
+        const userData = {
+          isAuthenticated: true,
+          name: user.name,
+          email: user.email,
+          membership: 'Free Plan',
+          captureLimit: 5,
+          capturedCount: 0
+        };
+        
+        // If we have extension callback, redirect with mock data
+        if (extensionCallback) {
+          const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+          const redirectUrl = `${extensionCallback}?userData=${encodedUserData}&mockAuth=true`;
+          
+          setStatus('success');
+          setMessage('Authentication successful! Redirecting to extension...');
+          
+          setTimeout(() => {
+            window.location.href = redirectUrl;
+          }, 1500);
+        } else {
+          setStatus('success');
+          setMessage('You are signed in! Return to the extension to capture properties.');
+        }
+        return;
+      }
+      
+      // Check Supabase authentication
+      if (!supabase) {
+        setStatus('error');
+        setMessage('Please sign in using the demo authentication below.');
+        return;
+      }
+      
       const { data: { session }, error } = await supabase.auth.getSession();
       
       if (error || !session) {
         setStatus('error');
-        setMessage('You need to sign in to your Property Intelligence Platform account first. Click "Sign In to Property Intelligence Platform" below to create an account or sign in.');
+        setMessage('You need to sign in to your BMV Finder account first. Click "Sign In to BMV Finder" below to create an account or sign in.');
         return;
       }
 
@@ -62,8 +103,15 @@ function ExtensionAuthContent() {
           window.location.href = redirectUrl;
         }, 1500);
       } else {
-        setStatus('error');
-        setMessage('No extension callback URL provided');
+        // No extension callback - this is likely a direct visit
+        // Check if user is authenticated and show success
+        if (session) {
+          setStatus('success');
+          setMessage('You are signed in! Return to the extension to capture properties.');
+        } else {
+          setStatus('error');
+          setMessage('Please sign in to your BMV Finder account to use the extension.');
+        }
       }
       
     } catch (error) {
@@ -89,7 +137,7 @@ function ExtensionAuthContent() {
         <div className="mb-6">
           <div className="text-4xl mb-4">🏠</div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Property Intelligence Platform Extension
+            BMV Finder Extension
           </h1>
           <p className="text-gray-600">
             {status === 'loading' && 'Connecting to your account...'}
@@ -121,7 +169,7 @@ function ExtensionAuthContent() {
         {status === 'error' && (
           <div className="space-y-3">
             <div className="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-              <strong>How it works:</strong> First sign in to your Property Intelligence Platform account, then return to the extension to capture properties.
+              <strong>How it works:</strong> First sign in to your BMV Finder account, then return to the extension to capture properties.
             </div>
             <button
               onClick={() => {
@@ -130,7 +178,7 @@ function ExtensionAuthContent() {
               }}
               className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
             >
-              Sign In to Property Intelligence Platform
+              Sign In to BMV Finder
             </button>
             <button
               onClick={() => {
@@ -139,7 +187,41 @@ function ExtensionAuthContent() {
               }}
               className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
             >
-              Create Account
+              Create BMV Finder Account
+            </button>
+            <button
+              onClick={async () => {
+                // Quick demo login
+                try {
+                  await mockAuth.login('demo@example.com', 'demo123');
+                  setStatus('success');
+                  setMessage('Demo login successful! Redirecting to extension...');
+                  
+                  if (searchParams.get('extension_callback')) {
+                    const userData = {
+                      isAuthenticated: true,
+                      name: 'Demo User',
+                      email: 'demo@example.com',
+                      membership: 'Free Plan',
+                      captureLimit: 5,
+                      capturedCount: 0
+                    };
+                    
+                    const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+                    const redirectUrl = `${searchParams.get('extension_callback')}?userData=${encodedUserData}&mockAuth=true`;
+                    
+                    setTimeout(() => {
+                      window.location.href = redirectUrl;
+                    }, 1500);
+                  }
+                } catch (error) {
+                  setStatus('error');
+                  setMessage('Demo login failed. Please try again.');
+                }
+              }}
+              className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
+            >
+              Quick Demo Login
             </button>
             <button
               onClick={() => window.close()}
@@ -151,10 +233,20 @@ function ExtensionAuthContent() {
         )}
 
         {status === 'success' && (
-          <div className="text-sm text-gray-500">
-            This window will close automatically...
+          <div className="space-y-3">
+            <div className="text-sm text-green-600 bg-green-50 p-3 rounded-lg">
+              <strong>Success!</strong> You are now signed in to BMV Finder. Return to the extension to start capturing properties.
+            </div>
+            <button
+              onClick={() => window.close()}
+              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
+            >
+              Return to Extension
+            </button>
           </div>
         )}
+
+
       </div>
       
       {/* Auth Modal */}

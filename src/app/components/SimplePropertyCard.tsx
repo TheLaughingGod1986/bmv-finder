@@ -9,9 +9,10 @@ interface SimplePropertyCardProps {
   onEdit: (property: any) => void;
   onSold: (id: string, address: string) => void;
   onRemove: (id: string, address: string) => void;
+  onValuation?: (property: any) => void;
 }
 
-export default function SimplePropertyCard({ property, onEdit, onSold, onRemove }: SimplePropertyCardProps) {
+export default function SimplePropertyCard({ property, onEdit, onSold, onRemove, onValuation }: SimplePropertyCardProps) {
   const [streetName, setStreetName] = useState<string | null>(null);
   const [isLoadingStreet, setIsLoadingStreet] = useState(false);
   const hasLookedUp = useRef(false);
@@ -433,24 +434,33 @@ export default function SimplePropertyCard({ property, onEdit, onSold, onRemove 
       </div>
 
       {/* Actions */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
+        {onValuation && (
+          <button
+            onClick={() => onValuation(property)}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors min-w-[80px]"
+          >
+            <TrendingUp className="w-4 h-4" />
+            Valuation
+          </button>
+        )}
         <button
           onClick={() => onEdit(property)}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors min-w-[80px]"
         >
           <Edit className="w-4 h-4" />
           Edit
         </button>
         <button
           onClick={() => onSold(property.id, property.address)}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 transition-colors min-w-[80px]"
         >
           <CheckCircle className="w-4 h-4" />
           Sold
         </button>
         <button
           onClick={() => onRemove(property.id, property.address)}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors"
+          className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 transition-colors min-w-[80px]"
         >
           <Trash2 className="w-4 h-4" />
           Remove

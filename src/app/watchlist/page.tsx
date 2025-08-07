@@ -8,6 +8,7 @@ import { MapPinIcon, ArrowTopRightOnSquareIcon, PencilIcon, XMarkIcon, ChevronDo
 import Image from 'next/image';
 import { useUserTier } from '@/hooks/useUserTier';
 import { useToast } from '@/hooks/useToast';
+import { supabase } from '@/lib/supabaseClient';
 
 interface WatchlistItem {
   id: string;
@@ -43,7 +44,9 @@ interface WatchlistItem {
     low: number;
     medium: number;
     high: number;
+    selected?: number;
   };
+  selected_refurbishment_level?: 'light' | 'medium' | 'high';
   mortgage_type?: string;
   mortgage_rate?: number;
   offer_status?: 'none' | 'offer_made' | 'offer_accepted' | 'offer_rejected';
@@ -93,6 +96,38 @@ const WatchlistPage = () => {
   
   const user = useUser();
   const { tier, loading: tierLoading } = useUserTier(user?.id);
+
+  const upgradeToElite = async () => {
+    if (!user?.id) {
+      showError('Please sign in to upgrade your membership');
+      return;
+    }
+
+    try {
+      // Update the user's tier in the database
+      const { error } = await supabase
+        .from('profiles')
+        .update({ tier: 'elite' })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error upgrading tier:', error);
+        showError('Failed to upgrade membership. Please try again.');
+        return;
+      }
+
+      success('🎉 Congratulations! Your membership has been upgraded to Elite! You now have access to unlimited properties, advanced analysis, and premium features.');
+      
+      // Refresh the page to update the tier context
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Error upgrading tier:', error);
+      showError('Failed to upgrade membership. Please try again.');
+    }
+  };
   const { success, error: showError, info } = useToast();
 
   const loadWatchlist = async () => {
@@ -101,6 +136,22 @@ const WatchlistPage = () => {
       if (typeof window === 'undefined') {
         setLoading(false);
         return;
+      }
+      
+      // First, try to load saved data from localStorage
+      const savedWatchlist = localStorage.getItem('watchlist_data');
+      if (savedWatchlist) {
+        try {
+          const parsedWatchlist = JSON.parse(savedWatchlist);
+          if (parsedWatchlist && Array.isArray(parsedWatchlist) && parsedWatchlist.length > 0) {
+            console.log('Loading saved watchlist from localStorage');
+            setWatchlist(parsedWatchlist);
+            setLoading(false);
+            return;
+          }
+        } catch (parseError) {
+          console.error('Error parsing saved watchlist:', parseError);
+        }
       }
       
       const response = await fetch('/api/properties/capture');
@@ -125,6 +176,17 @@ const WatchlistPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearSavedData = () => {
+    localStorage.removeItem('watchlist_data');
+    // Also clear all cost breakdown data
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith('costBreakdown_')) {
+        localStorage.removeItem(key);
+      }
+    });
   };
 
   const loadDemoProperties = () => {
@@ -367,6 +429,9 @@ const WatchlistPage = () => {
       }
     ];
     
+    // Save demo properties to localStorage for persistence
+    localStorage.setItem('watchlist_data', JSON.stringify(demoProperties));
+    
     setWatchlist(demoProperties);
   };
 
@@ -427,20 +492,28 @@ const WatchlistPage = () => {
         address: property.address,
         description: property.description,
         notes: property.notes,
+        bedrooms: property.bedrooms,
+        bathrooms: property.bathrooms,
+        property_type: property.property_type,
+        epc_rating: property.epc_rating,
+        total_size: property.total_size,
         custom_rental_estimate: property.custom_rental_estimate,
         estimated_fair_value: property.estimated_fair_value,
         fair_bid_amount: property.fair_bid_amount,
         refurbishment_costs: property.refurbishment_costs || { low: 0, medium: 0, high: 0 },
+        selected_refurbishment_level: property.selected_refurbishment_level || 'medium',
         mortgage_type: property.mortgage_type || 'Fixed Rate',
         mortgage_rate: property.mortgage_rate || 4.5,
         offer_status: property.offer_status || 'none',
         offer_amount: property.offer_amount || 0,
         offer_date: property.offer_date || '',
-        offer_notes: property.offer_notes || ''
+        offer_notes: property.offer_notes || '',
+        offer_history: property.offer_history || []
       });
 
-      // Initialize cost breakdown data
+      // Initialize cost breakdown data - load from saved data or calculate defaults
       const currentBreakdown = calculateDetailedCostBreakdown(property);
+<<<<<<< HEAD
       
       // Calculate deposit percentage if it's a percentage-based deposit
       const depositPercentage = property.price > 0 ? (currentBreakdown.deposit / property.price) * 100 : 25;
@@ -468,6 +541,43 @@ const WatchlistPage = () => {
         marketingAndLettingFees: currentBreakdown.marketingAndLettingFees,
         contingencyFund: currentBreakdown.contingencyFund
       });
+=======
+      const defaultPurchaseType = 'second_home';
+      const initialStampDuty = calculateStampDuty(property.price, defaultPurchaseType);
+      
+      // Load saved cost breakdown data from property or localStorage
+      const savedCostBreakdown = property.costBreakdown || {};
+      const localStorageKey = `costBreakdown_${propertyId}`;
+      const localStorageData = typeof window !== 'undefined' ? localStorage.getItem(localStorageKey) : null;
+      const localStorageCostBreakdown = localStorageData ? JSON.parse(localStorageData) : {};
+      
+      // Merge saved data with defaults (saved data takes precedence)
+      const mergedCostBreakdown = {
+        deposit: savedCostBreakdown.deposit || localStorageCostBreakdown.deposit || currentBreakdown.deposit,
+        purchaseType: savedCostBreakdown.purchaseType || localStorageCostBreakdown.purchaseType || defaultPurchaseType,
+        stampDuty: savedCostBreakdown.stampDuty || localStorageCostBreakdown.stampDuty || initialStampDuty,
+        legalFees: savedCostBreakdown.legalFees || localStorageCostBreakdown.legalFees || currentBreakdown.legalFees,
+        surveyFees: savedCostBreakdown.surveyFees || localStorageCostBreakdown.surveyFees || currentBreakdown.surveyFees,
+        mortgageFees: savedCostBreakdown.mortgageFees || localStorageCostBreakdown.mortgageFees || currentBreakdown.mortgageFees,
+        landRegistryFees: savedCostBreakdown.landRegistryFees || localStorageCostBreakdown.landRegistryFees || currentBreakdown.landRegistryFees,
+        searchesFees: savedCostBreakdown.searchesFees || localStorageCostBreakdown.searchesFees || currentBreakdown.searchesFees,
+        gasSafetyCertificate: savedCostBreakdown.gasSafetyCertificate || localStorageCostBreakdown.gasSafetyCertificate || currentBreakdown.gasSafetyCertificate,
+        electricalSafetyCertificate: savedCostBreakdown.electricalSafetyCertificate || localStorageCostBreakdown.electricalSafetyCertificate || currentBreakdown.electricalSafetyCertificate,
+        energyPerformanceCertificate: savedCostBreakdown.energyPerformanceCertificate || localStorageCostBreakdown.energyPerformanceCertificate || currentBreakdown.energyPerformanceCertificate,
+        fireSafetyAssessment: savedCostBreakdown.fireSafetyAssessment || localStorageCostBreakdown.fireSafetyAssessment || currentBreakdown.fireSafetyAssessment,
+        legionellaRiskAssessment: savedCostBreakdown.legionellaRiskAssessment || localStorageCostBreakdown.legionellaRiskAssessment || currentBreakdown.legionellaRiskAssessment,
+        asbestosSurvey: savedCostBreakdown.asbestosSurvey || localStorageCostBreakdown.asbestosSurvey || currentBreakdown.asbestosSurvey,
+        landlordInsurance: savedCostBreakdown.landlordInsurance || localStorageCostBreakdown.landlordInsurance || currentBreakdown.landlordInsurance,
+        refurbishmentCost: savedCostBreakdown.refurbishmentCost || localStorageCostBreakdown.refurbishmentCost || currentBreakdown.refurbishmentCost,
+        furnitureAndAppliances: savedCostBreakdown.furnitureAndAppliances || localStorageCostBreakdown.furnitureAndAppliances || currentBreakdown.furnitureAndAppliances,
+        marketingAndLettingFees: savedCostBreakdown.marketingAndLettingFees || localStorageCostBreakdown.marketingAndLettingFees || currentBreakdown.marketingAndLettingFees,
+        contingencyFund: savedCostBreakdown.contingencyFund || localStorageCostBreakdown.contingencyFund || currentBreakdown.contingencyFund,
+        totalSetupCosts: savedCostBreakdown.totalSetupCosts || localStorageCostBreakdown.totalSetupCosts || currentBreakdown.totalSetupCosts,
+        totalInvestmentCost: savedCostBreakdown.totalInvestmentCost || localStorageCostBreakdown.totalInvestmentCost || currentBreakdown.totalInvestmentCost
+      };
+      
+      setEditFormCostBreakdown(mergedCostBreakdown);
+>>>>>>> 75bc88f (Add BTL calculator with BRRR strategy analysis and portfolio integration)
     }
   };
 
@@ -477,16 +587,27 @@ const WatchlistPage = () => {
       const costBreakdownKey = `costBreakdown_${propertyId}`;
       localStorage.setItem(costBreakdownKey, JSON.stringify(editFormCostBreakdown));
       
+      // Merge cost breakdown data with edit form data
+      const mergedPropertyData = {
+        ...editForm,
+        costBreakdown: editFormCostBreakdown,
+        updated_at: new Date().toISOString()
+      };
+      
       const updatedWatchlist = watchlist.map(property => 
         property.id === propertyId 
-          ? { ...property, ...editForm, updated_at: new Date().toISOString() }
+          ? { ...property, ...mergedPropertyData }
           : property
       );
+      
+      // Save the updated watchlist to localStorage for persistence
+      localStorage.setItem('watchlist_data', JSON.stringify(updatedWatchlist));
+      
       setWatchlist(updatedWatchlist);
       setEditingProperty(null);
       setEditForm({});
       setEditFormCostBreakdown({});
-      success('Property updated successfully');
+      success('Property updated successfully - Changes saved!');
     } catch (error) {
       showError('Failed to update property');
     }
@@ -507,11 +628,108 @@ const WatchlistPage = () => {
 
 
 
+  const calculateStampDuty = (price: number, purchaseType: string) => {
+    let stampDuty = 0;
+    
+    if (purchaseType === 'first_home') {
+      // First-time buyer rates (0% up to £425k, 5% on £425k-£625k, standard rates above)
+      if (price <= 425000) {
+        stampDuty = 0;
+      } else if (price <= 625000) {
+        stampDuty = (price - 425000) * 0.05;
+      } else {
+        // Standard rates for portion above £625k
+        if (price <= 925000) {
+          stampDuty = 10000 + (price - 625000) * 0.05;
+        } else if (price <= 1500000) {
+          stampDuty = 25000 + (price - 925000) * 0.10;
+        } else {
+          stampDuty = 82500 + (price - 1500000) * 0.12;
+        }
+      }
+    } else if (purchaseType === 'own_name') {
+      // Standard rates for main residence
+      if (price <= 250000) {
+        stampDuty = 0;
+      } else if (price <= 925000) {
+        stampDuty = (price - 250000) * 0.05;
+      } else if (price <= 1500000) {
+        stampDuty = 33750 + (price - 925000) * 0.10;
+      } else {
+        stampDuty = 93750 + (price - 1500000) * 0.12;
+      }
+    } else if (purchaseType === 'second_home') {
+      // Additional property rates (3% surcharge)
+      if (price <= 250000) {
+        stampDuty = price * 0.03;
+      } else if (price <= 925000) {
+        stampDuty = 7500 + (price - 250000) * 0.08;
+      } else if (price <= 1500000) {
+        stampDuty = 67500 + (price - 925000) * 0.13;
+      } else {
+        stampDuty = 150000 + (price - 1500000) * 0.15;
+      }
+    } else if (purchaseType === 'ltd_company') {
+      // Company purchase rates (higher rates)
+      if (price <= 250000) {
+        stampDuty = price * 0.05;
+      } else if (price <= 925000) {
+        stampDuty = 12500 + (price - 250000) * 0.10;
+      } else if (price <= 1500000) {
+        stampDuty = 80000 + (price - 925000) * 0.15;
+      } else {
+        stampDuty = 166250 + (price - 1500000) * 0.17;
+      }
+    } else {
+      // Default to additional property rates
+      if (price <= 250000) {
+        stampDuty = price * 0.03;
+      } else if (price <= 925000) {
+        stampDuty = 7500 + (price - 250000) * 0.08;
+      } else if (price <= 1500000) {
+        stampDuty = 67500 + (price - 925000) * 0.13;
+      } else {
+        stampDuty = 150000 + (price - 1500000) * 0.15;
+      }
+    }
+    
+    return Math.round(stampDuty);
+  };
+
   const updateEditFormCostBreakdownField = (field: string, value: any) => {
-    setEditFormCostBreakdown(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setEditFormCostBreakdown(prev => {
+      const updated = {
+        ...prev,
+        [field]: value
+      };
+      
+      // Auto-calculate stamp duty when purchase type or property price changes
+      if (field === 'purchaseType' || field === 'deposit') {
+        const property = watchlist.find(p => p.id === editingProperty);
+        if (property) {
+          const calculatedStampDuty = calculateStampDuty(property.price, updated.purchaseType || 'second_home');
+          updated.stampDuty = calculatedStampDuty;
+        }
+      }
+      
+      // Recalculate totals when any cost field changes
+      const totalSetupCosts = (updated.legalFees || 0) + (updated.surveyFees || 0) + (updated.mortgageFees || 0) + 
+                             (updated.landRegistryFees || 0) + (updated.searchesFees || 0) + 
+                             (updated.gasSafetyCertificate || 0) + (updated.electricalSafetyCertificate || 0) + 
+                             (updated.energyPerformanceCertificate || 0) + (updated.fireSafetyAssessment || 0) + 
+                             (updated.legionellaRiskAssessment || 0) + (updated.asbestosSurvey || 0) + 
+                             (updated.landlordInsurance || 0) + (updated.furnitureAndAppliances || 0) + 
+                             (updated.marketingAndLettingFees || 0) + (updated.contingencyFund || 0);
+      
+      const property = watchlist.find(p => p.id === editingProperty);
+      const totalInvestmentCost = (updated.deposit || 0) + (updated.stampDuty || 0) + 
+                                 (updated.refurbishmentCost || 0) + totalSetupCosts;
+      
+      updated.totalSetupCosts = totalSetupCosts;
+      updated.totalInvestmentCost = totalInvestmentCost;
+      
+      return updated;
+    });
   };
 
   const calculateStampDuty = (price: number, purchaseType: string) => {
@@ -638,6 +856,9 @@ const WatchlistPage = () => {
       );
       setWatchlist(updatedWatchlist);
       
+      // Save to localStorage for persistence
+      localStorage.setItem('watchlist_data', JSON.stringify(updatedWatchlist));
+      
       // For demo properties, just update local state without API call
       if (propertyId.startsWith('demo-')) {
         if (newFavoriteStatus) {
@@ -691,6 +912,9 @@ const WatchlistPage = () => {
       // Update local state immediately for responsive UI
       const updatedWatchlist = watchlist.filter(property => property.id !== propertyId);
       setWatchlist(updatedWatchlist);
+      
+      // Save to localStorage for persistence
+      localStorage.setItem('watchlist_data', JSON.stringify(updatedWatchlist));
       
       // For demo properties, just update local state without API call
       if (propertyId.startsWith('demo-')) {
@@ -813,6 +1037,123 @@ const WatchlistPage = () => {
     };
   };
 
+  const calculateRefurbishmentCosts = (property: WatchlistItem) => {
+    // Base calculations based on property characteristics
+    const bedrooms = property.bedrooms || 2;
+    const bathrooms = property.bathrooms || 1;
+    const propertyType = property.property_type?.toLowerCase() || 'house';
+    const totalSize = property.total_size?.value || 0;
+    
+    // Calculate base square footage if not provided
+    let estimatedSqFt = totalSize;
+    if (!estimatedSqFt) {
+      // Estimate based on bedrooms and property type
+      if (propertyType.includes('flat') || propertyType.includes('apartment')) {
+        estimatedSqFt = bedrooms * 400 + bathrooms * 200; // Smaller for flats
+      } else if (propertyType.includes('house')) {
+        estimatedSqFt = bedrooms * 500 + bathrooms * 250; // Larger for houses
+      } else {
+        estimatedSqFt = bedrooms * 450 + bathrooms * 225; // Default
+      }
+    }
+    
+    // Convert to square meters if needed (assuming input is in sq ft)
+    const sqMeters = estimatedSqFt * 0.0929;
+    
+    // Base cost per square meter for different refurbishment levels (UK realistic rates)
+    const baseCosts = {
+      light: {
+        perSqM: 150, // £150 per sq meter for light refurb
+        description: "Paint, carpets, minor repairs, cosmetic updates",
+        includes: ["Interior painting", "Carpet replacement", "Minor repairs", "Cosmetic updates", "Basic cleaning"]
+      },
+      medium: {
+        perSqM: 300, // £300 per sq meter for medium refurb
+        description: "Kitchen, bathroom updates, flooring, electrical work",
+        includes: ["Kitchen updates", "Bathroom updates", "Flooring replacement", "Electrical work", "Plumbing updates", "Interior painting"]
+      },
+      high: {
+        perSqM: 500, // £500 per sq meter for high refurb
+        description: "Full renovation, structural work, complete overhaul",
+        includes: ["Full kitchen renovation", "Full bathroom renovation", "Structural work", "Complete rewiring", "Complete replumbing", "New heating system", "New windows/doors", "Complete decoration"]
+      }
+    };
+    
+    // Adjust costs based on property type
+    const propertyTypeMultiplier = {
+      'flat': 1.1, // Flats cost slightly more due to access issues
+      'apartment': 1.1,
+      'house': 1.0, // Standard
+      'bungalow': 0.9, // Bungalows slightly cheaper
+      'maisonette': 1.05,
+      'cottage': 1.15, // Cottages often need more work
+      'mews': 1.1,
+      'townhouse': 1.05
+    };
+    
+    const multiplier = propertyTypeMultiplier[propertyType] || 1.0;
+    
+    // Adjust based on number of bedrooms (larger properties get economies of scale)
+    const bedroomMultiplier = bedrooms >= 4 ? 0.9 : bedrooms >= 3 ? 0.95 : 1.0;
+    
+    // Calculate costs for each level
+    const lightCost = Math.round(sqMeters * baseCosts.light.perSqM * multiplier * bedroomMultiplier);
+    const mediumCost = Math.round(sqMeters * baseCosts.medium.perSqM * multiplier * bedroomMultiplier);
+    const highCost = Math.round(sqMeters * baseCosts.high.perSqM * multiplier * bedroomMultiplier);
+    
+    // Add property-specific adjustments
+    const adjustments = {
+      light: {
+        additional: 0,
+        notes: []
+      },
+      medium: {
+        additional: 0,
+        notes: []
+      },
+      high: {
+        additional: 0,
+        notes: []
+      }
+    };
+    
+    // Add bathroom-specific costs
+    if (bathrooms > 1) {
+      adjustments.medium.additional += (bathrooms - 1) * 2000; // Extra £2k per additional bathroom
+      adjustments.high.additional += (bathrooms - 1) * 3500; // Extra £3.5k per additional bathroom
+    }
+    
+    // Add kitchen-specific costs for larger properties
+    if (bedrooms >= 4) {
+      adjustments.medium.additional += 1500; // Larger kitchen for 4+ bed
+      adjustments.high.additional += 2500;
+    }
+    
+    // Final calculations
+    const finalCosts = {
+      light: {
+        cost: lightCost + adjustments.light.additional,
+        description: baseCosts.light.description,
+        includes: baseCosts.light.includes,
+        notes: adjustments.light.notes
+      },
+      medium: {
+        cost: mediumCost + adjustments.medium.additional,
+        description: baseCosts.medium.description,
+        includes: baseCosts.medium.includes,
+        notes: adjustments.medium.notes
+      },
+      high: {
+        cost: highCost + adjustments.high.additional,
+        description: baseCosts.high.description,
+        includes: baseCosts.high.includes,
+        notes: adjustments.high.notes
+      }
+    };
+    
+    return finalCosts;
+  };
+
   const calculateDetailedCostBreakdown = (property: WatchlistItem, customData?: any) => {
     // Load saved cost breakdown data from localStorage
     const costBreakdownKey = `costBreakdown_${property.id}`;
@@ -914,6 +1255,7 @@ const WatchlistPage = () => {
     const landlordInsurance = mergedData?.landlordInsurance || 300; // Annual landlord insurance
     
     // Refurbishment costs - use selected level or default to medium
+<<<<<<< HEAD
     const refurbishmentLevel = mergedData?.refurbishmentLevel || 'medium';
     let refurbishmentCost = 0;
     
@@ -925,6 +1267,16 @@ const WatchlistPage = () => {
       // Default to medium
       refurbishmentCost = mergedData?.refurbishmentCost || property.refurbishment_costs?.medium || 0;
     }
+=======
+    const selectedRefurbLevel = property.selected_refurbishment_level || 'medium';
+    const refurbishmentCost = mergedData?.refurbishmentCost || 
+                             property.refurbishment_costs?.selected || 
+                             property.refurbishment_costs?.[selectedRefurbLevel] || 
+                             (() => {
+                               const calculatedCosts = calculateRefurbishmentCosts(property);
+                               return calculatedCosts[selectedRefurbLevel as keyof typeof calculatedCosts]?.cost || 0;
+                             })();
+>>>>>>> 75bc88f (Add BTL calculator with BRRR strategy analysis and portfolio integration)
     
     // Additional setup costs
     const furnitureAndAppliances = mergedData?.furnitureAndAppliances || 2000; // Basic furniture and appliances
@@ -1070,9 +1422,12 @@ const WatchlistPage = () => {
   const filteredWatchlist = watchlist.filter(item => {
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = searchTerm === '' || (
+      item.title.toLowerCase().includes(searchLower) ||
       item.address.toLowerCase().includes(searchLower) ||
       item.property_type.toLowerCase().includes(searchLower) ||
-      item.tenure.toLowerCase().includes(searchLower)
+      item.tenure.toLowerCase().includes(searchLower) ||
+      item.description.toLowerCase().includes(searchLower) ||
+      item.notes.toLowerCase().includes(searchLower)
     );
     
     // If favorites filter is active, only show favorites
@@ -1082,11 +1437,23 @@ const WatchlistPage = () => {
 
     // If offers filter is active, only show properties with offers made
     if (showOffersOnly) {
-      return matchesSearch && item.offer_status && item.offer_status !== 'none';
+      const hasOffer = item.offer_status && item.offer_status !== 'none';
+      console.log(`Property ${item.id} (${item.title}): offer_status = "${item.offer_status}", hasOffer = ${hasOffer}`);
+      return matchesSearch && hasOffer;
     }
     
     return matchesSearch;
   });
+
+  // Debug logging for offers filter
+  if (showOffersOnly) {
+    console.log('=== OFFERS FILTER DEBUG ===');
+    console.log('Total watchlist items:', watchlist.length);
+    console.log('Filtered items:', filteredWatchlist.length);
+    console.log('Properties with offers:', watchlist.filter(p => p.offer_status && p.offer_status !== 'none').length);
+    console.log('Filtered properties with offers:', filteredWatchlist.filter(p => p.offer_status && p.offer_status !== 'none').length);
+    console.log('=== END DEBUG ===');
+  }
 
   // Pagination logic
   const itemsPerPage = viewMode === 'cards' ? 6 : 10;
@@ -1165,11 +1532,15 @@ const WatchlistPage = () => {
                   View Investment Portfolio
                 </button>
                 <button
-                  onClick={() => window.location.reload()}
+                  onClick={() => {
+                    clearSavedData();
+                    loadDemoProperties();
+                    success('Data reset to demo properties');
+                  }}
                   className="inline-flex items-center px-8 py-4 bg-white text-gray-900 font-semibold rounded-lg shadow-lg hover:shadow-xl border border-gray-200 transform hover:-translate-y-0.5 transition-all duration-200"
                 >
                   <span className="mr-2">🔄</span>
-                  Refresh Data
+                  Reset to Demo Data
                 </button>
               </motion.div>
 
@@ -1214,11 +1585,11 @@ const WatchlistPage = () => {
                 <div className="flex-1">
                   <h3 className="text-lg font-semibold text-blue-800 mb-2">Demo Mode</h3>
                   <p className="text-blue-700 mb-3">
-                    You're currently viewing demo data. To capture real properties and access your personal watchlist, 
+                    You're currently viewing demo data. To access your personal watchlist and real property data, 
                     please <a href="/auth" className="font-semibold underline hover:text-blue-800">sign in</a> or 
                     <a href="/pricing" className="font-semibold underline hover:text-blue-800 ml-1">upgrade your account</a>.
                   </p>
-                  <div className="flex items-center gap-6 text-sm text-blue-600">
+                  <div className="flex items-center gap-6 text-sm text-blue-600 mb-4">
                     <span className="flex items-center gap-2">
                       <span className="w-3 h-3 bg-blue-400 rounded-full"></span>
                       Demo properties shown
@@ -1228,6 +1599,20 @@ const WatchlistPage = () => {
                       Real data when logged in
                     </span>
                   </div>
+                  {user && tier === 'free' && (
+                    <div className="mt-4 pt-4 border-t border-blue-200">
+                      <button
+                        onClick={upgradeToElite}
+                        className="inline-flex items-center px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-lg hover:from-blue-700 hover:to-indigo-700 transform hover:-translate-y-0.5 transition-all duration-200 shadow-lg"
+                      >
+                        <span className="mr-2">⭐</span>
+                        Upgrade to Elite - £19.99/month
+                      </button>
+                      <p className="text-xs text-blue-600 mt-2">
+                        Get unlimited properties, advanced analysis, and premium features
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </motion.div>
@@ -1887,6 +2272,7 @@ const WatchlistPage = () => {
                                <span className="text-xl">💰</span>
                                Investment Cost Breakdown
                              </h4>
+                             <p className="text-sm text-gray-600 mb-4">Complete breakdown of all costs required for this property investment</p>
                            </div>
                                                       <div className="space-y-3 text-sm">
                               {/* Major Costs */}
@@ -1900,15 +2286,154 @@ const WatchlistPage = () => {
                                 <span className="font-bold text-purple-700">+{formatPrice(calculateDetailedCostBreakdown(item).stampDuty)}</span>
                               </div>
                             
-                            {/* Refurbishment - Always show in edit mode, conditional in view mode */}
-                            {calculateDetailedCostBreakdown(item).refurbishmentCost > 0 && (
-                              <div className="flex justify-between items-center p-3 bg-orange-100 rounded-lg border border-orange-200 shadow-sm">
-                                <span className="text-gray-700 font-medium">🔨 Refurbishment:</span>
-                                <span className="font-bold text-orange-700">+{formatPrice(calculateDetailedCostBreakdown(item).refurbishmentCost)}</span>
-                              </div>
-                            )}
+                            {/* Refurbishment Costs - Enhanced with calculated options */}
+                            <div className="mt-4 mb-2">
+                              <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <span>🔨</span>
+                                Refurbishment Costs
+                              </h5>
+                            </div>
+                            {(() => {
+                              const calculatedCosts = calculateRefurbishmentCosts(item);
+                              const currentCost = calculateDetailedCostBreakdown(item).refurbishmentCost;
+                              const hasCustomCosts = item.refurbishment_costs && (
+                                item.refurbishment_costs.low > 0 || 
+                                item.refurbishment_costs.medium > 0 || 
+                                item.refurbishment_costs.high > 0
+                              );
+                              
+                              return (
+                                <div className="space-y-2">
+                                                                     {/* Current/Selected Refurbishment Cost */}
+                                   {currentCost > 0 && (
+                                     <div className="flex justify-between items-center p-3 bg-orange-100 rounded-lg border border-orange-200 shadow-sm">
+                                       <span className="text-gray-700 font-medium">
+                                         🔨 Refurbishment ({item.selected_refurbishment_level?.charAt(0).toUpperCase() + item.selected_refurbishment_level?.slice(1) || 'Medium'} Level):
+                                       </span>
+                                       <span className="font-bold text-orange-700">+{formatPrice(currentCost)}</span>
+                                     </div>
+                                   )}
+                                  
+                                  {/* Calculated Options */}
+                                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <div className="text-xs font-medium text-blue-800 mb-2">📊 Calculated Options:</div>
+                                    <div className="space-y-1 text-xs">
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Light (Decoration):</span>
+                                        <span className="font-medium text-green-600">{formatPrice(calculatedCosts.light.cost)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">Medium (Detailed):</span>
+                                        <span className="font-medium text-blue-600">{formatPrice(calculatedCosts.medium.cost)}</span>
+                                      </div>
+                                      <div className="flex justify-between">
+                                        <span className="text-gray-600">High (Back to Brick):</span>
+                                        <span className="font-medium text-orange-600">{formatPrice(calculatedCosts.high.cost)}</span>
+                                      </div>
+                                    </div>
+                                    {hasCustomCosts && (
+                                      <div className="mt-2 pt-2 border-t border-blue-200">
+                                        <div className="text-xs text-blue-600 font-medium">Custom costs set - click Edit to adjust</div>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Quick Selection Buttons */}
+                                    <div className="mt-3 pt-3 border-t border-blue-200">
+                                      <div className="text-xs text-blue-600 font-medium mb-2">Quick Select:</div>
+                                      <div className="flex gap-1">
+                                        <button
+                                          onClick={() => {
+                                            const calculatedCosts = calculateRefurbishmentCosts(item);
+                                            const updatedItem: WatchlistItem = {
+                                              ...item,
+                                              selected_refurbishment_level: 'light',
+                                              refurbishment_costs: {
+                                                ...item.refurbishment_costs,
+                                                selected: calculatedCosts.light.cost
+                                              }
+                                            };
+                                            // Update the watchlist and save to localStorage
+                                            setWatchlist(prev => {
+                                              const updatedWatchlist = prev.map(p => p.id === item.id ? updatedItem : p);
+                                              localStorage.setItem('watchlist_data', JSON.stringify(updatedWatchlist));
+                                              return updatedWatchlist;
+                                            });
+                                            success(`Selected Light refurbishment: ${formatPrice(calculatedCosts.light.cost)}`);
+                                          }}
+                                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                                            item.selected_refurbishment_level === 'light'
+                                              ? 'bg-green-200 text-green-800 border-2 border-green-300'
+                                              : 'bg-green-100 text-green-700 hover:bg-green-200'
+                                          }`}
+                                        >
+                                          Light
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const calculatedCosts = calculateRefurbishmentCosts(item);
+                                            const updatedItem: WatchlistItem = {
+                                              ...item,
+                                              selected_refurbishment_level: 'medium',
+                                              refurbishment_costs: {
+                                                ...item.refurbishment_costs,
+                                                selected: calculatedCosts.medium.cost
+                                              }
+                                            };
+                                            setWatchlist(prev => {
+                                              const updatedWatchlist = prev.map(p => p.id === item.id ? updatedItem : p);
+                                              localStorage.setItem('watchlist_data', JSON.stringify(updatedWatchlist));
+                                              return updatedWatchlist;
+                                            });
+                                            success(`Selected Medium refurbishment: ${formatPrice(calculatedCosts.medium.cost)}`);
+                                          }}
+                                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                                            item.selected_refurbishment_level === 'medium'
+                                              ? 'bg-blue-200 text-blue-800 border-2 border-blue-300'
+                                              : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                                          }`}
+                                        >
+                                          Medium
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            const calculatedCosts = calculateRefurbishmentCosts(item);
+                                            const updatedItem: WatchlistItem = {
+                                              ...item,
+                                              selected_refurbishment_level: 'high',
+                                              refurbishment_costs: {
+                                                ...item.refurbishment_costs,
+                                                selected: calculatedCosts.high.cost
+                                              }
+                                            };
+                                            setWatchlist(prev => {
+                                              const updatedWatchlist = prev.map(p => p.id === item.id ? updatedItem : p);
+                                              localStorage.setItem('watchlist_data', JSON.stringify(updatedWatchlist));
+                                              return updatedWatchlist;
+                                            });
+                                            success(`Selected High refurbishment: ${formatPrice(calculatedCosts.high.cost)}`);
+                                          }}
+                                          className={`px-2 py-1 text-xs rounded transition-colors ${
+                                            item.selected_refurbishment_level === 'high'
+                                              ? 'bg-orange-200 text-orange-800 border-2 border-orange-300'
+                                              : 'bg-orange-100 text-orange-700 hover:bg-orange-200'
+                                          }`}
+                                        >
+                                          High
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                             
                             {/* Legal & Setup Costs */}
+                            <div className="mt-4 mb-2">
+                              <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <span>⚖️</span>
+                                Legal & Setup Costs
+                              </h5>
+                            </div>
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">⚖️ Legal Fees:</span>
                               <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).legalFees)}</span>
@@ -1935,6 +2460,12 @@ const WatchlistPage = () => {
                             </div>
                             
                             {/* Compliance Costs */}
+                            <div className="mt-4 mb-2">
+                              <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <span>📋</span>
+                                Compliance & Safety
+                              </h5>
+                            </div>
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🔥 Gas Safety Certificate:</span>
                               <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).gasSafetyCertificate)}</span>
@@ -1966,6 +2497,12 @@ const WatchlistPage = () => {
                             </div>
                             
                             {/* Additional Costs */}
+                            <div className="mt-4 mb-2">
+                              <h5 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                                <span>🛠️</span>
+                                Additional Setup Costs
+                              </h5>
+                            </div>
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
                               <span className="text-gray-700 font-medium">🛡️ Landlord Insurance:</span>
                               <span className="font-bold text-gray-700">+{formatPrice(calculateDetailedCostBreakdown(item).landlordInsurance)}</span>
@@ -1988,8 +2525,8 @@ const WatchlistPage = () => {
                             
                             {/* Total */}
                             <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg border-t-2 border-green-200 shadow-sm">
-                              <span className="font-semibold text-gray-800">= Total Investment Required:</span>
-                              <span className="font-bold text-green-600 text-lg">= {formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}</span>
+                              <span className="font-semibold text-gray-800">Total Investment Required:</span>
+                              <span className="font-bold text-green-600 text-lg">{formatPrice(calculateDetailedCostBreakdown(item).totalInvestmentCost)}</span>
                             </div>
                           </div>
                         </div>
@@ -2744,13 +3281,34 @@ const WatchlistPage = () => {
                   />
                           </div>
                           
-                {/* Refurbishment Costs */}
+                {/* Refurbishment Costs - Combined Section */}
                 <div className="border-t border-gray-200 pt-4">
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">Refurbishment Costs</h4>
+                  <div className="flex items-center justify-between mb-3">
+                    <h4 className="text-lg font-semibold text-gray-900">Refurbishment Costs</h4>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const calculatedCosts = calculateRefurbishmentCosts(editForm as WatchlistItem);
+                        setEditForm({
+                          ...editForm,
+                          refurbishment_costs: {
+                            low: calculatedCosts.light.cost,
+                            medium: calculatedCosts.medium.cost,
+                            high: calculatedCosts.high.cost
+                          }
+                        });
+                        success('Refurbishment costs calculated based on property characteristics');
+                      }}
+                      className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                    >
+                      Auto-Calculate
+                    </button>
+                  </div>
                   <p className="text-sm text-gray-600 mb-4">
-                    Estimated costs based on property size, condition, and local contractor rates. These figures are derived from industry averages and recent renovation projects in similar properties.
+                    Choose your refurbishment level and customize costs. The selected cost will be used in investment calculations.
                   </p>
                   
+<<<<<<< HEAD
                   {/* Refurbishment Level Selection */}
                   <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -2809,41 +3367,208 @@ const WatchlistPage = () => {
                         })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
+=======
+
+                  
+                  {/* Refurbishment Level Selection */}
+                  <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                    <h5 className="text-sm font-medium text-blue-800 mb-3">Select Refurbishment Level:</h5>
+                    
+                    <div className="space-y-3">
+                      {(() => {
+                        const calculatedCosts = calculateRefurbishmentCosts(editForm as WatchlistItem);
+                        const currentSelection = editForm.selected_refurbishment_level || 'medium';
+                        
+                        return (
+                          <>
+                            <label className="flex items-center p-3 bg-white rounded-lg border-2 cursor-pointer hover:bg-blue-50 transition-colors">
+                              <input
+                                type="radio"
+                                name="refurbishment_level"
+                                value="light"
+                                checked={currentSelection === 'light'}
+                                onChange={(e) => {
+                                  setEditForm({
+                                    ...editForm,
+                                    selected_refurbishment_level: e.target.value as 'light' | 'medium' | 'high',
+                                    refurbishment_costs: {
+                                      ...editForm.refurbishment_costs,
+                                      selected: calculatedCosts.light.cost
+                                    }
+                                  });
+                                  // Also update the cost breakdown field
+                                  updateEditFormCostBreakdownField('refurbishmentCost', calculatedCosts.light.cost);
+                                  success(`Selected Light refurbishment: ${formatPrice(calculatedCosts.light.cost)}`);
+                                }}
+                                className="mr-3 text-blue-600 focus:ring-blue-500"
+                              />
+                              <div className="flex-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-gray-800">Light (Decoration)</span>
+                                  <span className="font-bold text-green-600">{formatPrice(calculatedCosts.light.cost)}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">{calculatedCosts.light.description}</p>
+                                <div className="mt-2 text-xs text-gray-500">
+                                  <div className="font-medium mb-1">Includes:</div>
+                                  <ul className="space-y-1">
+                                    {calculatedCosts.light.includes.map((item, index) => (
+                                      <li key={index} className="flex items-center">
+                                        <span className="text-green-500 mr-1">•</span>
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+>>>>>>> 75bc88f (Add BTL calculator with BRRR strategy analysis and portfolio integration)
                               </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Medium (£) - Detailed</label>
-                      <p className="text-xs text-gray-500 mb-2">Kitchen, bathroom updates, flooring, electrical work</p>
-                      <input
-                        type="number"
-                        value={editForm.refurbishment_costs?.medium || ''}
-                        onChange={(e) => setEditForm({
-                          ...editForm, 
-                          refurbishment_costs: {
-                            ...editForm.refurbishment_costs,
-                            medium: parseInt(e.target.value) || 0
-                          }
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                            </label>
+                            
+                            <label className="flex items-center p-3 bg-white rounded-lg border-2 cursor-pointer hover:bg-blue-50 transition-colors">
+                              <input
+                                type="radio"
+                                name="refurbishment_level"
+                                value="medium"
+                                checked={currentSelection === 'medium'}
+                                onChange={(e) => {
+                                  setEditForm({
+                                    ...editForm,
+                                    selected_refurbishment_level: e.target.value as 'light' | 'medium' | 'high',
+                                    refurbishment_costs: {
+                                      ...editForm.refurbishment_costs,
+                                      selected: calculatedCosts.medium.cost
+                                    }
+                                  });
+                                  // Also update the cost breakdown field
+                                  updateEditFormCostBreakdownField('refurbishmentCost', calculatedCosts.medium.cost);
+                                  success(`Selected Medium refurbishment: ${formatPrice(calculatedCosts.medium.cost)}`);
+                                }}
+                                className="mr-3 text-blue-600 focus:ring-blue-500"
+                              />
+                              <div className="flex-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-gray-800">Medium (Detailed)</span>
+                                  <span className="font-bold text-blue-600">{formatPrice(calculatedCosts.medium.cost)}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">{calculatedCosts.medium.description}</p>
+                                <div className="mt-2 text-xs text-gray-500">
+                                  <div className="font-medium mb-1">Includes:</div>
+                                  <ul className="space-y-1">
+                                    {calculatedCosts.medium.includes.map((item, index) => (
+                                      <li key={index} className="flex items-center">
+                                        <span className="text-blue-500 mr-1">•</span>
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            </label>
+                            
+                            <label className="flex items-center p-3 bg-white rounded-lg border-2 cursor-pointer hover:bg-blue-50 transition-colors">
+                              <input
+                                type="radio"
+                                name="refurbishment_level"
+                                value="high"
+                                checked={currentSelection === 'high'}
+                                onChange={(e) => {
+                                  setEditForm({
+                                    ...editForm,
+                                    selected_refurbishment_level: e.target.value as 'light' | 'medium' | 'high',
+                                    refurbishment_costs: {
+                                      ...editForm.refurbishment_costs,
+                                      selected: calculatedCosts.high.cost
+                                    }
+                                  });
+                                  // Also update the cost breakdown field
+                                  updateEditFormCostBreakdownField('refurbishmentCost', calculatedCosts.high.cost);
+                                  success(`Selected High refurbishment: ${formatPrice(calculatedCosts.high.cost)}`);
+                                }}
+                                className="mr-3 text-blue-600 focus:ring-blue-500"
+                              />
+                              <div className="flex-1">
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium text-gray-800">High (Back to Brick)</span>
+                                  <span className="font-bold text-orange-600">{formatPrice(calculatedCosts.high.cost)}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mt-1">{calculatedCosts.high.description}</p>
+                                <div className="mt-2 text-xs text-gray-500">
+                                  <div className="font-medium mb-1">Includes:</div>
+                                  <ul className="space-y-1">
+                                    {calculatedCosts.high.includes.map((item, index) => (
+                                      <li key={index} className="flex items-center">
+                                        <span className="text-orange-500 mr-1">•</span>
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              </div>
+                            </label>
+                          </>
+                        );
+                      })()}
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">High (£) - Back to Brick</label>
-                      <p className="text-xs text-gray-500 mb-2">Full renovation, structural work, complete overhaul</p>
-                      <input
-                        type="number"
-                        value={editForm.refurbishment_costs?.high || ''}
-                        onChange={(e) => setEditForm({
-                          ...editForm, 
-                          refurbishment_costs: {
-                            ...editForm.refurbishment_costs,
-                            high: parseInt(e.target.value) || 0
-                          }
-                        })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
+                    
+                    {/* Selected Level Summary */}
+                    {editForm.selected_refurbishment_level && (() => {
+                      const calculatedCosts = calculateRefurbishmentCosts(editForm as WatchlistItem);
+                      const selectedLevel = editForm.selected_refurbishment_level;
+                      const selectedCost = calculatedCosts[selectedLevel as keyof typeof calculatedCosts];
+                      
+                      return (
+                        <div className="mt-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-green-800">
+                              Selected: {selectedLevel.charAt(0).toUpperCase() + selectedLevel.slice(1)} Refurbishment
+                            </span>
+                            <span className="font-bold text-green-600">{formatPrice(selectedCost.cost)}</span>
                           </div>
+                          <p className="text-xs text-green-700 mt-1">
+                            This cost will be used in all investment calculations and ROI analysis.
+                          </p>
                         </div>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Property Characteristics Summary */}
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <h5 className="text-sm font-medium text-gray-700 mb-2">Calculation Factors:</h5>
+                    <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
+                      <div>
+                        <span className="font-medium">Property Type:</span> {editForm.property_type || 'House'}
                       </div>
+                      <div>
+                        <span className="font-medium">Bedrooms:</span> {editForm.bedrooms || 2}
+                      </div>
+                      <div>
+                        <span className="font-medium">Bathrooms:</span> {editForm.bathrooms || 1}
+                      </div>
+                      <div>
+                        <span className="font-medium">Estimated Size:</span> {(() => {
+                          const property = editForm as WatchlistItem;
+                          const bedrooms = property.bedrooms || 2;
+                          const bathrooms = property.bathrooms || 1;
+                          const propertyType = property.property_type?.toLowerCase() || 'house';
+                          let estimatedSqFt = property.total_size?.value || 0;
+                          
+                          if (!estimatedSqFt) {
+                            if (propertyType.includes('flat') || propertyType.includes('apartment')) {
+                              estimatedSqFt = bedrooms * 400 + bathrooms * 200;
+                            } else if (propertyType.includes('house')) {
+                              estimatedSqFt = bedrooms * 500 + bathrooms * 250;
+                            } else {
+                              estimatedSqFt = bedrooms * 450 + bathrooms * 225;
+                            }
+                          }
+                          
+                          const sqMeters = Math.round(estimatedSqFt * 0.0929);
+                          return `${sqMeters} sqm (${Math.round(estimatedSqFt)} sq ft)`;
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Mortgage Details */}
                 <div className="border-t border-gray-200 pt-4">
@@ -3154,6 +3879,7 @@ const WatchlistPage = () => {
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Contingency Fund (£)</label>
                       <input
