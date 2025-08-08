@@ -13,11 +13,14 @@ import {
   Target,
   Award,
   Chrome,
-  Bookmark
+  Bookmark,
+  Brain,
+  Zap,
+  BarChart3
 } from 'lucide-react';
 import { LineChart, DoughnutChart } from '../../components/ChartClientOnly';
 
-export type BtlResults = {
+export type BrrrResults = {
   input: {
     postcode: string;
     region: string;
@@ -38,6 +41,7 @@ export type BtlResults = {
     projectedValue: number;
     inflationAdjustedValue?: number;
     appreciationGain?: number;
+    realProjectedValue?: number;
   };
   funding: {
     initialDeposit: number;
@@ -51,6 +55,13 @@ export type BtlResults = {
     percentInitialLeft?: number;
   };
   inflation?: { rate: number; source?: string };
+  predictions?: {
+    propertyGrowth: number;
+    rentalYield: number;
+    predictedRoi: number;
+    confidence: number;
+    factors: string[];
+  };
 };
 
 function Money({ value }: { value: number }) {
@@ -69,7 +80,7 @@ function PercentBadge({ value, label }: { value: number; label: string }) {
   );
 }
 
-export default function EnhancedResultsCard({ results, estimatedMonthlyCashFlow, timelineMonths }: { results: BtlResults; estimatedMonthlyCashFlow?: number; timelineMonths?: number }) {
+export default function BRRRResultsCard({ results, predictions }: { results: BrrrResults; predictions?: BrrrResults['predictions'] }) {
   const [activeChart, setActiveChart] = useState<'composition' | 'timeline'>('composition');
   const r = results;
   
@@ -112,9 +123,7 @@ export default function EnhancedResultsCard({ results, estimatedMonthlyCashFlow,
     ? (r.funding.equityReleased / r.funding.totalInitialInvestment) * 100 
     : null;
 
-  const appreciationReturn = r.projections.appreciationGain && r.funding.totalInitialInvestment > 0
-    ? (r.projections.appreciationGain / r.funding.totalInitialInvestment) * 100
-    : null;
+  const netYield = grossYield && r.input.monthlyRent ? grossYield - 2 : null; // Approximate costs
 
   // Chart data and options
   const compositionData = {
@@ -212,33 +221,104 @@ export default function EnhancedResultsCard({ results, estimatedMonthlyCashFlow,
 
   return (
     <div className="space-y-6">
-      {/* Chrome Extension Promo Banner */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white"
-      >
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-white/20 p-2">
-              <Chrome className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-semibold">Supercharge your property sourcing</div>
-              <div className="text-sm text-blue-100">Get instant BMV analysis on any property listing</div>
+      {/* AI Predictions Section */}
+      {predictions && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-gray-200 bg-white shadow-lg"
+        >
+          <div className="border-b border-gray-100 p-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-purple-100 p-2">
+                  <Brain className="h-5 w-5 text-purple-600" />
+                </div>
+                <div>
+                  <div className="text-lg font-semibold text-gray-900">AI-Powered Predictions</div>
+                  <div className="text-sm text-gray-500">Machine Learning Enhanced</div>
+                </div>
+              </div>
+              <div className="rounded-full bg-gray-100 p-2">
+                <BarChart3 className="h-4 w-4 text-gray-600" />
+              </div>
             </div>
           </div>
-          <div className="flex gap-2">
-            <button className="rounded-lg bg-white/20 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/30">
-              Install Extension
-            </button>
-            <button className="rounded-lg border border-white/30 px-3 py-1.5 text-xs font-medium transition-colors hover:bg-white/10">
-              View Watchlist
-            </button>
+
+          <div className="p-6">
+            {/* Prediction Cards */}
+            <div className="grid gap-4 md:grid-cols-3 mb-6">
+              <div className="rounded-lg bg-gray-50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-gray-600" />
+                  <div className="text-sm font-medium text-gray-700">Property Growth</div>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">{predictions.propertyGrowth.toFixed(1)}%</div>
+                <div className="text-xs text-gray-500">Annual appreciation</div>
+              </div>
+
+              <div className="rounded-lg bg-blue-50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Target className="h-4 w-4 text-blue-600" />
+                  <div className="text-sm font-medium text-gray-700">Rental Yield</div>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">{predictions.rentalYield.toFixed(1)}%</div>
+                <div className="text-xs text-gray-500">Annual rental return</div>
+              </div>
+
+              <div className="rounded-lg bg-purple-50 p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className="h-4 w-4 text-purple-600" />
+                  <div className="text-sm font-medium text-gray-700">Predicted ROI</div>
+                </div>
+                <div className="text-2xl font-bold text-gray-900">{predictions.predictedRoi.toFixed(1)}%</div>
+                <div className="text-xs text-gray-500">Return on investment</div>
+              </div>
+            </div>
+
+            {/* Confidence Section */}
+            <div className="mb-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm font-medium text-gray-700">Prediction Confidence</div>
+                <div className="text-sm font-semibold text-gray-900">{predictions.confidence.toFixed(1)}%</div>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-gradient-to-r from-red-500 to-yellow-500 h-2 rounded-full" 
+                  style={{ width: `${Math.min(100, predictions.confidence)}%` }}
+                />
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <div className="rounded-full bg-red-100 p-1">
+                  <Target className="h-3 w-3 text-red-600" />
+                </div>
+                <div className="text-xs text-gray-600">Low confidence</div>
+              </div>
+            </div>
+
+            {/* Key Factors */}
+            <div className="mb-4">
+              <div className="text-sm font-medium text-gray-700 mb-2">Key Factors Considered</div>
+              <ul className="space-y-1">
+                {predictions.factors.map((factor, index) => (
+                  <li key={index} className="flex items-start gap-2 text-xs text-gray-600">
+                    <span className="w-1 h-1 bg-gray-400 rounded-full mt-1.5 flex-shrink-0" />
+                    {factor}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-gray-500">Last updated: {new Date().toLocaleDateString('en-GB')}</div>
+              <button className="flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
+                <Zap className="h-3 w-3" />
+                Refresh Predictions
+              </button>
+            </div>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      )}
 
       {/* Main Results Card */}
       <div className="rounded-xl border border-gray-200 bg-white shadow-lg">
@@ -246,7 +326,7 @@ export default function EnhancedResultsCard({ results, estimatedMonthlyCashFlow,
         <div className="border-b border-gray-100 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm text-gray-500">Investment Analysis</div>
+              <div className="text-sm text-gray-500">BRRR Analysis</div>
               <div className="flex items-center gap-2">
                 <div className="text-xl font-bold text-gray-900">{r.input.region}</div>
                 <div className="text-sm text-gray-500">• {r.input.postcode.toUpperCase()}</div>
@@ -285,9 +365,9 @@ export default function EnhancedResultsCard({ results, estimatedMonthlyCashFlow,
             </div>
             <div className="mt-1 flex items-center gap-2">
               <PercentBadge value={r.projections.compoundHpiAnnualPct} label="HPI" />
-              {appreciationReturn && (
+              {r.projections.appreciationGain && (
                 <div className="text-xs text-gray-500">
-                  {appreciationReturn.toFixed(1)}% gain
+                  {((r.projections.appreciationGain / r.funding.totalInitialInvestment) * 100).toFixed(1)}% gain
                 </div>
               )}
             </div>
@@ -320,19 +400,73 @@ export default function EnhancedResultsCard({ results, estimatedMonthlyCashFlow,
               {(percentLeft * 100).toFixed(1)}% of initial £{Math.round(r.funding.totalInitialInvestment).toLocaleString()}
             </div>
           </div>
+        </div>
 
-          {/* Performance (emphasize ROI for compact summary) */}
-          <div className="rounded-lg border border-gray-100 p-4">
-            <div className="flex items-center gap-2 text-xs font-medium text-gray-500 uppercase tracking-wide">
-              <PieChart className="h-3 w-3" />
-              Performance
+        {/* Financial Metrics */}
+        <div className="border-t border-gray-100 p-6">
+          <div className="grid gap-4 md:grid-cols-4">
+            <div className="rounded-lg border border-gray-100 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">ROI</div>
+              <div className="mt-2 text-2xl font-bold text-gray-900">
+                {roiPct ? `${roiPct.toFixed(1)}%` : '0.00%'}
+              </div>
             </div>
-            <div className="mt-2">
-              <div className="text-[11px] text-gray-600">ROI</div>
-              <div className="text-2xl font-bold text-gray-900">{roiPct ? `${roiPct.toFixed(1)}%` : '—'}</div>
-              {grossYield && (
-                <div className="mt-1 text-xs text-gray-500">Gross yield {grossYield.toFixed(1)}%</div>
-              )}
+            <div className="rounded-lg border border-gray-100 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Gross Yield</div>
+              <div className="mt-2 text-2xl font-bold text-gray-900">
+                {grossYield ? `${grossYield.toFixed(1)}%` : '0.00%'}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Net Yield</div>
+              <div className="mt-2 text-2xl font-bold text-gray-900">
+                {netYield ? `${netYield.toFixed(1)}%` : '0.00%'}
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">Monthly Mortgage</div>
+              <div className="mt-2 text-2xl font-bold text-gray-900">
+                <Money value={r.funding.currentMortgageOutstanding / 12} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Projected Values */}
+        <div className="border-t border-gray-100 p-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="rounded-lg border border-gray-100 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Projected Value (2 Years)
+              </div>
+              <div className="mt-2 text-2xl font-bold text-gray-900">
+                <Money value={r.projections.projectedValue} />
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                Assumes {r.projections.compoundHpiAnnualPct.toFixed(2)}% annual growth
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Potential Equity Release (2 Years)
+              </div>
+              <div className="mt-2 text-2xl font-bold text-gray-900">
+                <Money value={r.funding.equityReleased} />
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                Remortgage to {r.input.remortgageLtv}% LTV, interest-only
+              </div>
+            </div>
+            <div className="rounded-lg border border-gray-100 p-4">
+              <div className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                Cash Left in Deal (vs Initial Investment)
+              </div>
+              <div className="mt-2 text-2xl font-bold text-gray-900">
+                <Money value={r.funding.cashLeftInDeal} />
+              </div>
+              <div className="mt-1 text-xs text-gray-500">
+                Initial investment <Money value={r.funding.totalInitialInvestment} />
+              </div>
             </div>
           </div>
         </div>
@@ -410,48 +544,6 @@ export default function EnhancedResultsCard({ results, estimatedMonthlyCashFlow,
             ) : (
               <LineChart data={timelineData} options={timelineOptions} />
             )}
-          </div>
-        </div>
-
-        {/* Payback Timeline */}
-        <div className="border-t border-gray-100 p-6">
-          <div className="rounded-lg border border-gray-100 p-4">
-            <div className="text-sm font-medium text-gray-700">Full payback timeline</div>
-            {typeof estimatedMonthlyCashFlow === 'number' && estimatedMonthlyCashFlow > 0 ? (
-              (() => {
-                const remaining = Math.max(0, r.funding.cashLeftInDeal || 0);
-                const monthsAfterRefi = Math.ceil(remaining / estimatedMonthlyCashFlow);
-                const totalMonths = (timelineMonths ?? 24) + (isFinite(monthsAfterRefi) ? monthsAfterRefi : 0);
-                const years = Math.floor(totalMonths / 12);
-                const months = totalMonths % 12;
-                return (
-                  <div className="mt-1 text-gray-900 text-lg font-semibold">
-                    ≈ {years}y {months}m
-                    <div className="mt-1 text-xs text-gray-500">
-                      Assumes refinance at {timelineMonths ?? 24}m and net monthly cash flow of £{Math.round(estimatedMonthlyCashFlow).toLocaleString()} with £{Math.round(remaining).toLocaleString()} left in deal after refi.
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div className="mt-1 text-xs text-gray-500">
-                Add monthly rent to estimate a payback timeline.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Compact mobile summary for parity with Turnkey */}
-        <div className="border-t border-gray-100 p-6 md:hidden">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-md border border-gray-200 bg-white p-3">
-              <div className="text-[11px] text-gray-600">Equity Release</div>
-              <div className="text-lg font-semibold">£{Math.round(r.funding.equityReleased).toLocaleString()}</div>
-            </div>
-            <div className="rounded-md border border-gray-200 bg-white p-3">
-              <div className="text-[11px] text-gray-600">Cash Left</div>
-              <div className="text-lg font-semibold">£{Math.round(r.funding.cashLeftInDeal).toLocaleString()}</div>
-            </div>
           </div>
         </div>
 

@@ -114,10 +114,22 @@ export async function GET(request: NextRequest) {
         const weightedSum = weightedPrices.reduce((sum, item) => sum + (item.price * item.weight), 0);
         const comparableAverage = Math.round(weightedSum / totalWeight);
         
-        // Use blended approach: 70% HPI-adjusted last sale + 30% comparable average
+        // Use blended approach with smart weighting based on sale recency
         if (latestSale.price && hpiData) {
-          const hpiAdjustedLastSale = Math.round(latestSale.price * hpiData.multiplier);
-          estimatedValue = Math.round((hpiAdjustedLastSale * 0.7) + (comparableAverage * 0.3));
+          // Check if the last sale is very recent (within 6 months)
+          const lastSaleDate = new Date(latestSale.date);
+          const currentDate = new Date();
+          const monthsSinceLastSale = (currentDate.getFullYear() - lastSaleDate.getFullYear()) * 12 + 
+            (currentDate.getMonth() - lastSaleDate.getMonth());
+          
+          if (monthsSinceLastSale <= 6) {
+            // For very recent sales, use 90% last sale price + 10% comparable average
+            estimatedValue = Math.round((latestSale.price * 0.9) + (comparableAverage * 0.1));
+          } else {
+            // For older sales, use HPI adjustment
+            const hpiAdjustedLastSale = Math.round(latestSale.price * hpiData.multiplier);
+            estimatedValue = Math.round((hpiAdjustedLastSale * 0.7) + (comparableAverage * 0.3));
+          }
         } else {
           estimatedValue = comparableAverage;
         }
@@ -140,10 +152,22 @@ export async function GET(request: NextRequest) {
         const weightedSum = weightedPrices.reduce((sum, item) => sum + (item.price * item.weight), 0);
         const comparableAverage = Math.round(weightedSum / totalWeight);
         
-        // Use blended approach: 70% HPI-adjusted last sale + 30% comparable average
+        // Use blended approach with smart weighting based on sale recency
         if (latestSale.price && hpiData) {
-          const hpiAdjustedLastSale = Math.round(latestSale.price * hpiData.multiplier);
-          estimatedValue = Math.round((hpiAdjustedLastSale * 0.7) + (comparableAverage * 0.3));
+          // Check if the last sale is very recent (within 6 months)
+          const lastSaleDate = new Date(latestSale.date);
+          const currentDate = new Date();
+          const monthsSinceLastSale = (currentDate.getFullYear() - lastSaleDate.getFullYear()) * 12 + 
+            (currentDate.getMonth() - lastSaleDate.getMonth());
+          
+          if (monthsSinceLastSale <= 6) {
+            // For very recent sales, use 90% last sale price + 10% comparable average
+            estimatedValue = Math.round((latestSale.price * 0.9) + (comparableAverage * 0.1));
+          } else {
+            // For older sales, use HPI adjustment
+            const hpiAdjustedLastSale = Math.round(latestSale.price * hpiData.multiplier);
+            estimatedValue = Math.round((hpiAdjustedLastSale * 0.7) + (comparableAverage * 0.3));
+          }
         } else {
           estimatedValue = comparableAverage;
         }
@@ -160,6 +184,12 @@ export async function GET(request: NextRequest) {
         estimatedValue = Math.round(latestSale.price * 1.07); // Use 7% growth for North East
       }
       confidence = 'low';
+    }
+
+    // Apply market uplift to better match Zoopla/Hometrack valuations
+    if (estimatedValue) {
+      const marketUplift = 1.12; // 12% uplift to match market valuations
+      estimatedValue = Math.round(estimatedValue * marketUplift);
     }
 
     return NextResponse.json({

@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import Button from './Button';
 import { useToast } from './ToastProvider';
 import { supabase } from '../../lib/supabaseClient';
-import { Search, Building2, Calculator, TrendingUp, Target, DollarSign, Home, MapPin, Calendar, Percent, PoundSterling, ArrowRight, Info, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Search, Building2, Calculator, TrendingUp, Target, DollarSign, Home, MapPin, Calendar, Percent, PoundSterling, ArrowRight, Info, CheckCircle, AlertTriangle, X } from 'lucide-react';
 import MLPredictionCard from './MLPredictionCard';
+import { fieldInput, fieldLabel, fieldSelect } from '../components/ui/fieldStyles';
+
 
 // Reusable input component
 interface InputFieldProps {
@@ -99,16 +101,19 @@ interface LandRegistryProperty {
 
 function InputField({ label, value, onChange, type = 'number', required = false, min, step, ...props }: InputFieldProps) {
   return (
-    <div className="mb-4 w-full">
-      <label className="block text-base font-semibold text-primary mb-1">{label}{required && <span className="text-gold">*</span>}</label>
+    <div className="w-full">
+      <label className={fieldLabel}>
+        {label}
+        {required && <span className="text-red-500">*</span>}
+      </label>
       <input
         type={type}
         value={value}
-        onChange={e => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         required={required}
         min={min}
         step={step}
-        className="w-full px-4 py-2 border-2 border-taupe rounded-xl bg-beige text-primary focus:ring-2 focus:ring-gold focus:border-gold transition-all text-base shadow-sm"
+        className={fieldInput}
         {...props}
       />
     </div>
@@ -163,6 +168,8 @@ export default function DealCalculator() {
   const [propertySearchResults, setPropertySearchResults] = useState<any[]>([]);
   const [showPropertySearch, setShowPropertySearch] = useState(false);
   const [isAccordionExpanded, setIsAccordionExpanded] = useState(true);
+  
+
 
   // Derived/calculated values
   const p = Number(purchasePrice) || 0;
@@ -272,34 +279,50 @@ export default function DealCalculator() {
       const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(searchPostcode)}`);
       if (response.ok) {
         const data = await response.json();
-        if (data.property) {
+        if (data.success && data.estimatedValue) {
           setLandRegistryData({
-            address: data.property.address || '',
+            address: data.subject?.address || '',
             postcode: searchPostcode,
-            propertyType: data.property.propertyType || 'House',
-            currentValue: data.property.estimatedValue || 0,
-            lastSoldPrice: data.property.lastSoldPrice || 0,
-            lastSoldDate: data.property.lastSoldDate || '',
-            priceHistory: data.property.priceHistory || [],
-            averageGrowthRate: data.property.averageGrowthRate || 0.03
+            propertyType: data.subject?.propertyType || 'House',
+            currentValue: data.estimatedValue || 0,
+            lastSoldPrice: data.subject?.lastSale?.price || 0,
+            lastSoldDate: data.subject?.lastSale?.date || '',
+            priceHistory: data.comparables || [],
+            averageGrowthRate: 0.03
           });
           
           // Auto-fill form with Land Registry data
-          setPropertyName(data.property.address || '');
-          setPurchasePrice(data.property.estimatedValue?.toString() || '');
-          setCurrentValue(data.property.estimatedValue?.toString() || '');
-          setPropertyType(data.property.propertyType || 'House');
+          setPropertyName(data.subject?.address || '');
+          setPurchasePrice(data.estimatedValue?.toString() || '');
+          setCurrentValue(data.estimatedValue?.toString() || '');
+          setPropertyType(data.subject?.propertyType || 'House');
           
-          showToast('Property data loaded from Land Registry', 'success');
+          showToast({
+            type: 'success',
+            title: 'Success',
+            message: 'Property data loaded from Land Registry'
+          });
         } else {
-          showToast('No property data found for this postcode', 'error');
+          showToast({
+            type: 'error',
+            title: 'No Data',
+            message: 'No property data found for this postcode'
+          });
         }
       } else {
-        showToast('Error searching Land Registry', 'error');
+        showToast({
+          type: 'error',
+          title: 'Error',
+          message: 'Error searching Land Registry'
+        });
       }
     } catch (error) {
       console.error('Error searching Land Registry:', error);
-      showToast('Error searching Land Registry', 'error');
+      showToast({
+        type: 'error',
+        title: 'Error',
+        message: 'Error searching Land Registry'
+      });
     } finally {
       setIsSearchingProperty(false);
     }
@@ -334,6 +357,8 @@ export default function DealCalculator() {
       setIsSearchingProperties(false);
     }
   };
+
+
 
   // Select a property from search results
   const selectProperty = (property: any) => {
@@ -426,6 +451,18 @@ export default function DealCalculator() {
 
   // Validation
   const isValid = p > 0 && rent > 0 && rate > 0 && ltvVal > 0 && ltvVal <= 1 && propertyName.trim().length > 0;
+
+  // Equity release and cash-left-in-deal (2 years)
+  const maxRemortgage2Year = projectedValue2Year * ltvVal;
+  const outstandingMortgage2Year = loanAmount; // interest-only assumption
+  const potentialEquityRelease2Year = Math.max(0, maxRemortgage2Year - outstandingMortgage2Year);
+  const totalEquity2Year = Math.max(0, projectedValue2Year - outstandingMortgage2Year);
+  const cashLeftVsInitial2Year = Math.max(0, initialInvestment - potentialEquityRelease2Year);
+  const cashLeftVsTotalUpfront2Year = Math.max(0, totalInvestment - potentialEquityRelease2Year);
+
+  // Repayment timeline estimate (refi at 24 months + cash flow thereafter)
+  const monthsToRepayAfterRefi = totalMonthlyCashFlow > 0 ? Math.ceil(cashLeftVsInitial2Year / totalMonthlyCashFlow) : Infinity;
+  const totalMonthsToPayback = isFinite(monthsToRepayAfterRefi) ? 24 + monthsToRepayAfterRefi : Infinity;
 
   // Save deal to portfolio
   const handleSave = async () => {
@@ -547,147 +584,123 @@ export default function DealCalculator() {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-bold text-primary-700 mb-6 text-center">Deal Calculator</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Deal Calculator</h2>
       {!user && (
-        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
+        <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-yellow-800 text-sm">
             💡 <strong>Sign in</strong> to save your deals to your portfolio and track them over time.
           </p>
         </div>
       )}
-      <form className="grid grid-cols-1 md:grid-cols-2 gap-6" onSubmit={e => e.preventDefault()}>
-        <InputField label="Property Name" value={propertyName} onChange={setPropertyName} required type="text" />
-        <div className="relative">
-          <InputField label="Postcode" value={postcode} onChange={setPostcode} required type="text" maxLength={8} />
-          <button
-            type="button"
-            onClick={() => searchPropertiesByPostcode(postcode)}
-            disabled={!postcode || postcode.length < 3 || isSearchingProperties}
-            className="absolute right-2 top-8 px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-          >
-            {isSearchingProperties ? 'Searching...' : 'Search'}
-          </button>
-        </div>
-        
-        {/* Property Search Results Accordion */}
-        {showPropertySearch && propertySearchResults.length > 0 && (
-          <div className="md:col-span-2">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
-              {/* Accordion Header */}
-              <div 
-                className="flex justify-between items-center p-4 bg-gray-50 border-b border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors"
-                onClick={() => setIsAccordionExpanded(!isAccordionExpanded)}
+      <div className="grid gap-6 md:grid-cols-2">
+        <form className="space-y-4 rounded-lg border border-gray-200 bg-white p-4" onSubmit={e => e.preventDefault()}>
+          <div className="flex flex-col gap-2">
+            <label className={fieldLabel}>Postcode<span className="text-red-500">*</span></label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={postcode}
+                onChange={(e) => {
+                  // Clean input - only allow letters, numbers, and spaces
+                  let value = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
+                  
+                  // Remove extra spaces
+                  value = value.replace(/\s+/g, ' ').trim();
+                  
+                  // Handle common UK postcode patterns
+                  if (value.length >= 5) {
+                    // Pattern: NE54PR -> NE5 4PR
+                    if (value.match(/^[A-Z]{2}[0-9][0-9A-Z][0-9][A-Z]{2}$/)) {
+                      value = value.replace(/^([A-Z]{2}[0-9][0-9A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                    }
+                    // Pattern: NE54PR -> NE5 4PR (alternative)
+                    else if (value.match(/^[A-Z]{2}[0-9][0-9][A-Z][0-9][A-Z]{2}$/)) {
+                      value = value.replace(/^([A-Z]{2}[0-9][0-9][A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                    }
+                    // Pattern: NE54PR -> NE5 4PR (another variation)
+                    else if (value.match(/^[A-Z]{2}[0-9][0-9][0-9][A-Z]{2}$/)) {
+                      value = value.replace(/^([A-Z]{2}[0-9][0-9][0-9])([A-Z]{2})$/, '$1 $2');
+                    }
+                  }
+                  
+                  setPostcode(value);
+                }}
+                placeholder="e.g., NE5 4PR"
+                className={`${fieldInput} flex-1`}
+                maxLength={8}
+              />
+              <button
+                type="button"
+                onClick={() => searchLandRegistry(postcode)}
+                disabled={!postcode.trim() || isSearchingProperty}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-sm"
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <Search className="w-4 h-4 text-blue-600" />
-                  </div>
+                {isSearchingProperty ? 'Searching...' : 'Search'}
+              </button>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className={fieldLabel}>Property Address<span className="text-red-500">*</span></label>
+            <input
+              type="text"
+              value={propertyName}
+              onChange={(e) => setPropertyName(e.target.value)}
+              placeholder="e.g., 16 Lowbiggin"
+              className={fieldInput}
+              maxLength={120}
+            />
+          </div>
+          <div className="space-y-3">
+            {/* Last Sold Price Information */}
+            {landRegistryData && landRegistryData.lastSoldPrice && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold text-gray-900">Property Search Results</h3>
-                    <p className="text-xs text-gray-600">Found {propertySearchResults.length} properties in {postcode}</p>
+                    <div className="text-sm font-medium text-blue-800">Last Sold Price</div>
+                    <div className="text-lg font-bold text-blue-900">{formatCurrency(landRegistryData.lastSoldPrice)}</div>
+                    <div className="text-xs text-blue-600">Sold on {new Date(landRegistryData.lastSoldDate).toLocaleDateString()}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-blue-800">Recommended Offer</div>
+                    <div className="text-lg font-bold text-green-600">{formatCurrency(landRegistryData.lastSoldPrice * 0.85)}</div>
+                    <div className="text-xs text-blue-600">15% below last sale</div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-gray-500">
-                    {isAccordionExpanded ? 'Click to collapse' : 'Click to expand'}
-                  </span>
-                  <svg 
-                    className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isAccordionExpanded ? 'rotate-180' : ''}`} 
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowPropertySearch(false);
-                      setPropertySearchResults([]);
-                    }}
-                    className="ml-2 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded transition-colors"
-                    title="Close search results"
-                  >
-                    <XMarkIcon className="w-4 h-4" />
-                  </button>
+                <div className="mt-2 text-xs text-blue-700">
+                  💡 <strong>Why this offer price?</strong> We recommend 15% below the last sold price to account for market conditions, 
+                  potential refurbishment needs, and to ensure a good investment margin.
                 </div>
               </div>
-              
-              {/* Accordion Content */}
-              {isAccordionExpanded && (
-                <>
-                  <div className="max-h-80 overflow-y-auto">
-                    <div className="divide-y divide-gray-100">
-                      {propertySearchResults.map((property, index) => (
-                        <div
-                          key={index}
-                          onClick={() => selectProperty(property)}
-                          className="p-4 hover:bg-blue-50 cursor-pointer transition-colors group"
-                        >
-                          <div className="flex items-start gap-4">
-                            {/* Property Icon */}
-                            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:bg-blue-200 transition-colors">
-                              <Home className="w-5 h-5 text-blue-600" />
-                            </div>
-                            
-                            {/* Property Details */}
-                            <div className="flex-1 min-w-0">
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-medium text-gray-900 truncate">{property.title || property.address}</h4>
-                                <div className="text-right ml-4">
-                                  <p className="font-semibold text-gray-900 text-lg">{formatCurrency(property.price)}</p>
-                                  <p className="text-xs text-gray-500">Click to select</p>
-                                </div>
-                              </div>
-                              
-                              <div className="grid grid-cols-2 gap-4 text-sm">
-                                <div>
-                                  <p className="text-gray-600">{property.postcode}</p>
-                                  <p className="text-gray-500">{property.property_type}</p>
-                                </div>
-                                <div>
-                                  <p className="text-gray-600">{property.bedrooms} bedrooms</p>
-                                  <p className="text-gray-500">{property.estate_type}</p>
-                                </div>
-                              </div>
-                              
-                              {/* Property Tags */}
-                              <div className="flex gap-2 mt-2">
-                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                  {property.transaction_type}
-                                </span>
-                                {property.new_build && (
-                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                                    New Build
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  {/* Accordion Footer */}
-                  <div className="p-3 bg-gray-50 border-t border-gray-200">
-                    <div className="flex justify-between items-center text-xs text-gray-600">
-                      <span>Select a property to auto-fill the form</span>
-                      <span>{propertySearchResults.length} properties found</span>
-                    </div>
-                  </div>
-                </>
+            )}
+            
+            {/* Purchase Price Input */}
+            <div className="flex flex-col gap-2">
+              <label className={fieldLabel}>Offer/Asking Price (£)<span className="text-red-500">*</span></label>
+              <input
+                type="number"
+                value={purchasePrice}
+                onChange={(e) => {
+                  setPurchasePrice(e.target.value);
+                  if (ltvMode === 'ltv') setDeposit('');
+                }}
+                placeholder="e.g., 250000"
+                className={fieldInput}
+                min={0}
+                required
+              />
+              {landRegistryData && landRegistryData.lastSoldPrice && (
+                <div className="text-xs text-gray-600">
+                  💡 <strong>Tip:</strong> Consider offering 10-20% below the asking price for better investment returns
+                </div>
               )}
             </div>
           </div>
-        )}
-        <InputField label="Purchase Price" value={purchasePrice} onChange={val => { setPurchasePrice(val); if (ltvMode === 'ltv') setDeposit(''); }} required min={0} />
         <div className="flex flex-col gap-2">
-          <label className="block text-sm font-medium text-gray-700">Property Type</label>
+          <label className={fieldLabel}>Property Type</label>
           <select
             value={propertyType}
             onChange={(e) => setPropertyType(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className={fieldSelect}
           >
             <option value="House">House</option>
             <option value="Flat">Flat</option>
@@ -703,8 +716,8 @@ export default function DealCalculator() {
         <InputField label="Mortgage Interest Rate (%)" value={interestRate} onChange={setInterestRate} required min={0} step={0.01} />
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <button type="button" className={`px-2 py-1 rounded text-xs font-semibold ${ltvMode === 'ltv' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`} onClick={() => setLtvMode('ltv')}>Edit LTV</button>
-            <button type="button" className={`px-2 py-1 rounded text-xs font-semibold ${ltvMode === 'deposit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700'}`} onClick={() => setLtvMode('deposit')}>Edit Deposit</button>
+            <button type="button" className={`px-2 py-1 rounded-md text-xs font-medium border ${ltvMode === 'ltv' ? 'border-gray-900 text-gray-900' : 'border-gray-300 text-gray-700 hover:border-gray-400'}`} onClick={() => setLtvMode('ltv')}>Edit LTV</button>
+            <button type="button" className={`px-2 py-1 rounded-md text-xs font-medium border ${ltvMode === 'deposit' ? 'border-gray-900 text-gray-900' : 'border-gray-300 text-gray-700 hover:border-gray-400'}`} onClick={() => setLtvMode('deposit')}>Edit Deposit</button>
           </div>
           {ltvMode === 'ltv' ? (
             <InputField label="Loan-to-Value (%)" value={ltv} onChange={val => { setLtv(val); setDeposit(''); }} required min={0} max={100} step={0.1} />
@@ -713,49 +726,109 @@ export default function DealCalculator() {
           )}
         </div>
         <InputField label="Other Monthly Expenses" value={otherExpenses} onChange={setOtherExpenses} min={0} />
-      </form>
-      {/* ML Predictions */}
-      <div className="mt-8">
-        <MLPredictionCard 
-          propertyFeatures={{
-            propertyType: propertyType,
-            postcode: postcode,
-            purchasePrice: p,
-            refurbishmentCost: refurb,
-            stampDuty: stampDuty,
-            legalFees: legalFees,
-            mortgageRate: rate,
-            ltv: ltvVal
-          }}
-        />
-      </div>
+        </form>
 
-      <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-50 rounded-2xl p-6 flex flex-col items-center border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className="text-lg font-semibold text-gray-700 mb-1">ROI</div>
-          <div className="text-3xl font-bold text-primary-600">{formatPercent(roi)}</div>
-        </div>
-        <div className="bg-gray-50 rounded-2xl p-6 flex flex-col items-center border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className="text-lg font-semibold text-gray-700 mb-1">Gross Yield</div>
-          <div className="text-3xl font-bold text-green-600">{formatPercent(grossYield)}</div>
-        </div>
-        <div className="bg-gray-50 rounded-2xl p-6 flex flex-col items-center border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className="text-lg font-semibold text-gray-700 mb-1">Net Yield</div>
-          <div className="text-3xl font-bold text-green-600">{formatPercent(netYield)}</div>
-        </div>
-        <div className="bg-gray-50 rounded-2xl p-6 flex flex-col items-center border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className="text-lg font-semibold text-gray-700 mb-1">Monthly Mortgage</div>
-          <div className="text-3xl font-bold text-orange-600">{formatCurrency(monthlyInterest)}</div>
-        </div>
-        <div className="bg-gradient-to-r from-primary-50 to-blue-50 rounded-2xl p-8 flex flex-col items-center md:col-span-2 border border-primary-200 shadow-sm hover:shadow-md transition-shadow">
-          <div className="text-lg font-semibold text-gray-700 mb-1">Total Monthly Cash Flow</div>
-          <div className="text-4xl font-bold text-primary-600">{formatCurrency(totalMonthlyCashFlow)}</div>
+        <div className="space-y-6">
+          <div className="rounded-md border border-gray-200 bg-white p-4">
+            <MLPredictionCard 
+              propertyFeatures={{
+                propertyType: propertyType,
+                postcode: postcode,
+                purchasePrice: p,
+                refurbishmentCost: refurb,
+                stampDuty: stampDuty,
+                legalFees: legalFees,
+                mortgageRate: rate,
+                ltv: ltvVal
+              }}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col items-center">
+              <div className="text-sm font-medium text-gray-700 mb-1">ROI</div>
+              <div className="text-2xl font-bold text-gray-900">{formatPercent(roi)}</div>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col items-center">
+              <div className="text-sm font-medium text-gray-700 mb-1">Gross Yield</div>
+              <div className="text-2xl font-bold text-gray-900">{formatPercent(grossYield)}</div>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col items-center">
+              <div className="text-sm font-medium text-gray-700 mb-1">Net Yield</div>
+              <div className="text-2xl font-bold text-gray-900">{formatPercent(netYield)}</div>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col items-center">
+              <div className="text-sm font-medium text-gray-700 mb-1">Monthly Mortgage</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(monthlyInterest)}</div>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-6 flex flex-col items-center md:col-span-2">
+              <div className="text-sm font-medium text-gray-700 mb-1">Total Monthly Cash Flow</div>
+              <div className="text-3xl font-bold text-gray-900">{formatCurrency(totalMonthlyCashFlow)}</div>
+            </div>
+          </div>
+
+          {/* Equity Release and Cash Left in Deal (2 Years) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col">
+              <div className="text-sm font-medium text-gray-700 mb-1">Projected Value (2 Years)</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(projectedValue2Year)}</div>
+              <div className="text-xs text-gray-500 mt-1">Assumes {formatPercent(averageGrowthRate * 100)} annual growth</div>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col">
+              <div className="text-sm font-medium text-gray-700 mb-1">Potential Equity Release (2 Years)</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(potentialEquityRelease2Year)}</div>
+              <div className="text-xs text-gray-500 mt-1">Remortgage to {(ltvVal * 100).toFixed(0)}% LTV, interest-only</div>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col">
+              <div className="text-sm font-medium text-gray-700 mb-1">Cash Left in Deal (vs Initial Investment)</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(cashLeftVsInitial2Year)}</div>
+              <div className="text-xs text-gray-500 mt-1">Initial investment {formatCurrency(initialInvestment)}</div>
+            </div>
+          </div>
+          <div>
+            <div className="rounded-md border border-gray-200 bg-white p-4 flex flex-col">
+              <div className="text-sm font-medium text-gray-700 mb-1">Cash Left in Deal (vs Total Upfront Cost)</div>
+              <div className="text-2xl font-bold text-gray-900">{formatCurrency(cashLeftVsTotalUpfront2Year)}</div>
+              <div className="text-xs text-gray-500 mt-1">Upfront cost includes deposit, fees and refurb: {formatCurrency(totalInvestment)}</div>
+            </div>
+          </div>
+
+          {/* Compact mobile summary */}
+          <div className="md:hidden grid grid-cols-2 gap-3">
+            <div className="rounded-md border border-gray-200 bg-white p-3">
+              <div className="text-[11px] text-gray-600">Equity Release (2y)</div>
+              <div className="text-lg font-semibold">{formatCurrency(potentialEquityRelease2Year)}</div>
+            </div>
+            <div className="rounded-md border border-gray-200 bg-white p-3">
+              <div className="text-[11px] text-gray-600">Cash Left (vs Initial)</div>
+              <div className="text-lg font-semibold">{formatCurrency(cashLeftVsInitial2Year)}</div>
+            </div>
+          </div>
+
+          {/* Payback timeline */}
+          <div className="rounded-md border border-gray-200 bg-white p-4">
+            <div className="text-sm font-medium text-gray-700 mb-1">Full payback timeline</div>
+            {isFinite(totalMonthsToPayback) && totalMonthsToPayback > 0 ? (
+              (() => {
+                const years = Math.floor(totalMonthsToPayback / 12);
+                const months = totalMonthsToPayback % 12;
+                return (
+                  <div className="text-lg font-semibold text-gray-900">≈ {years}y {months}m</div>
+                );
+              })()
+            ) : (
+              <div className="text-xs text-gray-500">Add rent and costs to estimate payback timeline.</div>
+            )}
+            <div className="text-xs text-gray-500 mt-1">
+              Assumes refinance at 24m and net monthly cash flow of {formatCurrency(totalMonthlyCashFlow)} with {formatCurrency(cashLeftVsInitial2Year)} left after refi.
+            </div>
+          </div>
         </div>
       </div>
-      <div className="mt-10 flex flex-col md:flex-row items-center justify-center gap-4">
+      <div className="mt-10 flex flex-col md:flex-row items-center justify-center gap-3">
         <Button
           type="button"
-          className="px-8 py-3 rounded-lg bg-primary-600 text-white font-semibold shadow-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="primary"
           onClick={handleSave}
           disabled={!isValid || isLoading}
         >
@@ -763,7 +836,7 @@ export default function DealCalculator() {
         </Button>
         <Button
           type="button"
-          className="px-8 py-3 rounded-lg bg-gray-100 text-gray-700 font-semibold shadow-md hover:bg-gray-200 transition-colors"
+          variant="outline"
           onClick={() => setShowSaved(true)}
         >
           View Portfolio

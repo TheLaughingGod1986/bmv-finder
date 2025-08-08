@@ -47,6 +47,26 @@ export default function MLPredictionCard({ propertyFeatures, onPredictionUpdate 
   }, [propertyFeatures]);
 
   const generatePrediction = async () => {
+    // Check if we have meaningful input data
+    const hasValidData = propertyFeatures.purchasePrice > 0 && 
+                        propertyFeatures.postcode && 
+                        propertyFeatures.postcode.trim() !== '';
+    
+    if (!hasValidData) {
+      // Return zero predictions when no valid data is provided
+      const zeroPrediction = {
+        propertyGrowth: 0,
+        rentalYield: 0,
+        roi: 0,
+        confidence: 0,
+        factors: ['No property data entered yet'],
+        lastUpdated: new Date().toISOString()
+      };
+      setPrediction(zeroPrediction);
+      onPredictionUpdate?.(zeroPrediction);
+      return;
+    }
+
     setIsLoading(true);
     try {
       const response = await fetch('/api/ml-predictions', {

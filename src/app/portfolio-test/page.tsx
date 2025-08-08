@@ -16,8 +16,8 @@ import {
   Calculator,
   FileText,
   Calendar as CalendarIcon,
-  BuildingOffice,
-  UserGroup,
+  Building2,
+  Users,
   Cog,
   X
 } from 'lucide-react';
@@ -112,8 +112,8 @@ const PortfolioTestPage = () => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const { userTier } = useUserTier();
-  const { showToast } = useToast();
+  const { tier: userTier } = useUserTier(null);
+  const { success, error } = useToast();
 
   // Demo data with enhanced information
   const demoProperties: PortfolioProperty[] = [
@@ -314,10 +314,10 @@ const PortfolioTestPage = () => {
       ));
       
       setEditingProperty(null);
-      showToast('Property updated successfully!', 'success');
-    } catch (error) {
-      console.error('Error saving property:', error);
-      showToast('Failed to save property', 'error');
+              success('Property updated successfully!');
+    } catch (err) {
+      console.error('Error saving property:', err);
+              error('Failed to save property');
     }
   };
 

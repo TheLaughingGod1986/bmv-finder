@@ -46,8 +46,8 @@ export default function ResultsCharts({ results }: { results: BtlResults }) {
   };
 
   // Line: value trajectory
-  const purchaseMV = r.projections?.purchaseMarketValue ?? r.input.purchasePrice;
-  const postRefurb = r.projections?.postRefurbValue ?? purchaseMV + r.input.refurbCost;
+  const purchaseMV = r.input.purchasePrice;
+  const postRefurb = purchaseMV + r.input.refurbCost;
   const projected = r.projections.projectedValue;
   const lineData = {
     labels: ['Purchase MV', 'Post‑refurb', `${r.input.timelineMonths}m projected`],

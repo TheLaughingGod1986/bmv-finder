@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { fieldInput, fieldLabel, fieldSelect } from "@/app/components/ui/fieldStyles";
 import { fetchGrowthData } from "@/lib/fetchGrowthData";
 import { formatPostcode } from "@/utils/formatPostcode";
 import { computeStampDuty } from "@/lib/stampDuty";
 import EnhancedResultsCard, { BtlResults } from "./EnhancedResultsCard";
 import PortfolioPicker from "./PortfolioPicker";
 
+
 type FormState = {
   postcode: string;
-  manualAddress?: string; // Optional: user-entered house no. + street if not in suggestions
+  manualAddress?: string; // Optional: user-entered house no. + street
   purchasePrice: number;
   discountPct?: number; // Optional BMV discount
   monthlyRent?: number; // Optional monthly rent to compute yield
@@ -50,8 +52,6 @@ export default function BTLCalculatorForm() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<BtlResults | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [suggestions, setSuggestions] = useState<Array<{ address: string; postcode: string; number: string; street: string; display: string }>>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<{ address: string; postcode: string; number: string; street: string } | null>(null);
   const [lastSoldPrice, setLastSoldPrice] = useState<number | null>(null);
   const [lastSoldDate, setLastSoldDate] = useState<string | null>(null);
@@ -61,7 +61,7 @@ export default function BTLCalculatorForm() {
   const [stampTouched, setStampTouched] = useState(false);
   const postcodeBoxRef = useRef<HTMLDivElement | null>(null);
   const postcodeInputRef = useRef<HTMLInputElement | null>(null);
-  const suppressNextSuggestions = useRef(false);
+
   const [purchaseTouched, setPurchaseTouched] = useState(false);
   const [autoFilledFromMarket, setAutoFilledFromMarket] = useState(false);
   const [refurbTouched, setRefurbTouched] = useState(false);
@@ -219,54 +219,9 @@ export default function BTLCalculatorForm() {
     // Select explicit dependencies to avoid reruns on internal state changes unrelated to payload
   }, [autoUpdate, state.postcode, state.purchasePrice, state.discountPct, state.monthlyRent, state.depositPct, state.refurbCost, state.stampDuty, state.legalFees, state.brokerFees, state.remortgageLtv, state.timelineMonths, state.adjustForInflation, state.purchaseType]);
 
-  // Fetch addresses by postcode when postcode looks valid
-  useEffect(() => {
-    const pc = state.postcode.trim();
-    if (suppressNextSuggestions.current) {
-      suppressNextSuggestions.current = false;
-      setShowSuggestions(false);
-      return;
-    }
-    setSelectedAddress(null);
-    setLastSoldPrice(null);
-    if (!pc) {
-      setSuggestions([]);
-      setShowSuggestions(false);
-      return;
-    }
-    const isFullPostcode = /^(?:[A-Z]{1,2}\d{1,2}[A-Z]?)\s*\d[A-Z]{2}$/i.test(pc);
-    const handle = setTimeout(async () => {
-      try {
-        const res = await fetch(`/api/address-suggestions?q=${encodeURIComponent(pc)}`);
-        const json = await res.json();
-        const addrs = json?.addresses || [];
-        setSuggestions(addrs);
-        setShowSuggestions(isFullPostcode && addrs.length > 0);
-      } catch {
-        setSuggestions([]);
-        setShowSuggestions(false);
-      }
-    }, 300);
-    return () => clearTimeout(handle);
-  }, [state.postcode]);
 
-  // Close suggestions when clicking outside or pressing Escape
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (postcodeBoxRef.current && !postcodeBoxRef.current.contains(e.target as Node)) {
-        setShowSuggestions(false);
-      }
-    }
-    function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') setShowSuggestions(false);
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKey);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKey);
-    };
-  }, []);
+
+
 
   // Load watchlist (mock or real) for quick selection
   useEffect(() => {
@@ -284,11 +239,6 @@ export default function BTLCalculatorForm() {
   const onSelectAddress = async (a: { address: string; postcode: string; number: string; street: string }) => {
     setSelectedAddress(a);
     setState((s) => ({ ...s, postcode: a.postcode, manualAddress: `${a.number} ${a.street}` }));
-    setShowSuggestions(false);
-    setSuggestions([]);
-    suppressNextSuggestions.current = true;
-    // Blur the input to avoid reopening dropdown on focus
-    postcodeInputRef.current?.blur();
     // Try to get last sold price for the selected property
     try {
       const url = `/api/property-sales-history?postcode=${encodeURIComponent(a.postcode)}&number=${encodeURIComponent(a.number)}`;
@@ -462,16 +412,16 @@ export default function BTLCalculatorForm() {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-      <form onSubmit={onSubmit} className="rounded-lg border border-gray-200 bg-white p-4">
+      <form onSubmit={onSubmit} className="rounded-lg border border-gray-200 bg-white p-6">
         <div className="grid gap-3">
           <div className="grid gap-1" ref={postcodeBoxRef}>
-            <label className="text-sm font-medium">Property source</label>
+            <label className={fieldLabel}>Property source</label>
             <div className={`grid gap-2 text-xs ${isAuthenticated ? 'grid-cols-4' : 'grid-cols-3'}`}>
               {(['search','manual','watchlist', ...(isAuthenticated ? ['portfolio'] : [])] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
-                  onClick={() => { setAddressMode(m); setShowSuggestions(false); }}
+                                      onClick={() => { setAddressMode(m as typeof addressMode); }}
                   className={`rounded-md border px-2 py-1 ${addressMode === m ? 'border-gray-900 text-gray-900' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
                 >
                   {m === 'search' ? 'Search by postcode' : m === 'manual' ? 'Add manually' : m === 'watchlist' ? 'From watchlist' : 'From portfolio'}
@@ -479,39 +429,46 @@ export default function BTLCalculatorForm() {
               ))}
             </div>
 
-            {addressMode !== 'watchlist' && (
+            {addressMode === 'search' && (
               <>
-                <label className="mt-3 text-sm font-medium">Postcode</label>
+                <label className={`${fieldLabel} mt-2`}>Postcode</label>
                 <input
-                  required
                   value={state.postcode}
-                  onChange={(e) => onChange("postcode", formatPostcode(e.target.value))}
-                  placeholder="e.g., SW1A 1AA"
-                  className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
-                  ref={postcodeInputRef}
-                  onFocus={() => addressMode === 'search' && suggestions.length > 0 && setShowSuggestions(true)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Escape') setShowSuggestions(false);
+                  onChange={(e) => {
+                    // Clean input - only allow letters, numbers, and spaces
+                    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
+                    
+                    // Remove extra spaces
+                    value = value.replace(/\s+/g, ' ').trim();
+                    
+                    // Handle common UK postcode patterns
+                    if (value.length >= 5) {
+                      // Pattern: NE54PR -> NE5 4PR
+                      if (value.match(/^[A-Z]{2}[0-9][0-9A-Z][0-9][A-Z]{2}$/)) {
+                        value = value.replace(/^([A-Z]{2}[0-9][0-9A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                      }
+                      // Pattern: NE54PR -> NE5 4PR (alternative)
+                      else if (value.match(/^[A-Z]{2}[0-9][0-9][A-Z][0-9][A-Z]{2}$/)) {
+                        value = value.replace(/^([A-Z]{2}[0-9][0-9][A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                      }
+                      // Pattern: NE54PR -> NE5 4PR (another variation)
+                      else if (value.match(/^[A-Z]{2}[0-9][0-9][0-9][A-Z]{2}$/)) {
+                        value = value.replace(/^([A-Z]{2}[0-9][0-9][0-9])([A-Z]{2})$/, '$1 $2');
+                      }
+                    }
+                    
+                    onChange("postcode", value);
                   }}
+                  placeholder="e.g., NE5 4PR"
+                  className={`${fieldInput} mt-1`}
+                  maxLength={8}
                 />
+                
+
               </>
             )}
 
-            {addressMode === 'search' && showSuggestions && (
-              <div className="mt-2 max-h-56 overflow-auto rounded-md border border-gray-200 bg-white text-sm">
-                {suggestions.map((a) => (
-                  <button
-                    type="button"
-                    key={`${a.postcode}-${a.number}-${a.street}`}
-                    className="flex w-full items-start gap-2 px-3 py-2 text-left hover:bg-gray-50"
-                    onClick={() => onSelectAddress(a)}
-                  >
-                    <span className="shrink-0 rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-700">{a.number}</span>
-                    <span className="truncate">{a.street}, {a.postcode}</span>
-                  </button>
-                ))}
-              </div>
-            )}
+
 
             {addressMode === 'search' && (
               <p className="mt-2 text-xs text-gray-500">
@@ -521,12 +478,12 @@ export default function BTLCalculatorForm() {
 
             {addressMode === 'manual' && (
               <>
-                <label className="mt-2 text-sm font-medium">House number and street</label>
+                <label className={`${fieldLabel} mt-2`}>House number and street</label>
                 <input
                   value={state.manualAddress}
                   onChange={(e) => onChange("manualAddress", e.target.value)}
                   placeholder="e.g., 73 Belgrave Road"
-                  className="mt-1 rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                  className={`${fieldInput} mt-1`}
                 />
                 <p className="mt-1 text-xs text-gray-500">Enter the property address manually if it’s not in our database.</p>
               </>
@@ -612,13 +569,13 @@ export default function BTLCalculatorForm() {
                 {lastSoldDate ? `on ${new Date(lastSoldDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}` : ''}
               </div>
             )}
-            <label className="text-sm font-medium">Offer/asking price (£)</label>
+            <label className={fieldLabel}>Offer/asking price (£)</label>
             <input
               type="number"
               min={0}
               value={state.purchasePrice}
               onChange={(e) => { setPurchaseTouched(true); setAutoFilledFromMarket(false); onChange("purchasePrice", Number(e.target.value)); }}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className={fieldInput}
             />
             {lastSoldPrice && autoMarketValue && (
               <div className="mt-1 text-xs text-gray-500">
@@ -663,14 +620,14 @@ export default function BTLCalculatorForm() {
           
           {/* Rent input for yield calculations */}
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Monthly rent (optional)</label>
+            <label className={fieldLabel}>Monthly rent (optional)</label>
             <input
               type="number"
               min={0}
               value={state.monthlyRent ?? ''}
               onChange={(e) => { setRentTouched(true); onChange('monthlyRent', e.target.value === '' ? undefined : Number(e.target.value)); }}
               placeholder="For yield calculations"
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              className={fieldInput}
             />
             <div className="text-xs text-gray-500">Used to calculate gross yield and rental performance metrics</div>
           </div>
@@ -684,7 +641,7 @@ export default function BTLCalculatorForm() {
                 <select
                   value={mortgageType}
                   onChange={(e) => setMortgageType(e.target.value as 'interest_only' | 'repayment')}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                  className={fieldSelect}
                 >
                   <option value="interest_only">Interest only</option>
                   <option value="repayment">Repayment</option>
@@ -699,7 +656,7 @@ export default function BTLCalculatorForm() {
                   step={0.1}
                   value={mortgageRatePct}
                   onChange={(e) => setMortgageRatePct(Number(e.target.value))}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                  className={fieldInput}
                 />
               </div>
             </div>
@@ -722,11 +679,11 @@ export default function BTLCalculatorForm() {
           </div>
 
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Deposit</label>
+            <label className={fieldLabel}>Deposit</label>
             <select
               value={state.depositPct}
               onChange={(e) => onChange("depositPct", Number(e.target.value))}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              className={fieldSelect}
             >
               <option value={10}>10%</option>
               <option value={15}>15%</option>
@@ -738,7 +695,7 @@ export default function BTLCalculatorForm() {
             </div>
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Refurbishment scope</label>
+            <label className={fieldLabel}>Refurbishment scope</label>
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 text-xs">
               {(['cosmetic','modernisation','full_renovation'] as const).map((key) => (
                 <button
@@ -759,7 +716,7 @@ export default function BTLCalculatorForm() {
                 <select
                   value={state.refurbContingencyPct}
                   onChange={(e) => { setRefurbTouched(false); onChange('refurbContingencyPct', Number(e.target.value) as 0|10|15|20); }}
-                  className="mt-1 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm"
+                  className={`${fieldSelect} mt-1 w-full`}
                 >
                   <option value={0}>0% (no contingency)</option>
                   <option value={10}>10%</option>
@@ -774,7 +731,7 @@ export default function BTLCalculatorForm() {
                   min={0}
                   value={state.refurbCost}
                   onChange={(e) => { setRefurbTouched(true); onChange('refurbCost', Number(e.target.value)); }}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className={`${fieldInput} mt-1 w-full`}
                 />
                 {refurbTouched && (
                   <button
@@ -789,7 +746,7 @@ export default function BTLCalculatorForm() {
             </div>
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Purchase type</label>
+            <label className={fieldLabel}>Purchase type</label>
             <div className="grid grid-cols-3 gap-2 text-xs">
               <button
                 type="button"
@@ -813,7 +770,7 @@ export default function BTLCalculatorForm() {
                 Second home / LTD
               </button>
             </div>
-            <label className="mt-3 text-sm font-medium">Stamp duty (£) — override</label>
+            <label className={`${fieldLabel} mt-3`}>Stamp duty (£) — override</label>
             <input
               type="number"
               min={0}
@@ -822,39 +779,39 @@ export default function BTLCalculatorForm() {
                 setStampTouched(true);
                 onChange("stampDuty", e.target.value === "" ? undefined : Number(e.target.value))
               }}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className={fieldInput}
               placeholder="Optional override"
             />
             <div className="text-xs text-gray-500 mt-1">Type affects auto-calculated SDLT. Override to use a custom value.</div>
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Legal fees (£)</label>
+            <label className={fieldLabel}>Legal fees (£)</label>
             <input
               type="number"
               min={0}
               value={state.legalFees}
               onChange={(e) => onChange("legalFees", Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className={fieldInput}
             />
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Broker fees (£)</label>
+            <label className={fieldLabel}>Broker fees (£)</label>
             <input
               type="number"
               min={0}
               value={state.brokerFees}
               onChange={(e) => onChange("brokerFees", Number(e.target.value))}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+              className={fieldInput}
             />
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Remortgage LTV (%)</label>
+            <label className={fieldLabel}>Remortgage LTV (%)</label>
             {ltvMode === 'preset' ? (
               <div className="flex items-center gap-2">
                 <select
                   value={state.remortgageLtv}
                   onChange={(e) => onChange('remortgageLtv', Number(e.target.value))}
-                  className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+                  className={fieldSelect}
                 >
                   <option value={65}>65%</option>
                   <option value={70}>70%</option>
@@ -871,7 +828,7 @@ export default function BTLCalculatorForm() {
                   max={100}
                   value={state.remortgageLtv}
                   onChange={(e) => onChange('remortgageLtv', Number(e.target.value))}
-                  className="rounded-md border border-gray-300 px-3 py-2 text-sm"
+                  className={fieldInput}
                 />
                 <button type="button" className="text-xs text-gray-600 underline" onClick={() => setLtvMode('preset')}>Presets</button>
               </div>
@@ -890,11 +847,11 @@ export default function BTLCalculatorForm() {
             })()}
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">Remortgage timeline</label>
+            <label className={fieldLabel}>Remortgage timeline</label>
             <select
               value={state.timelineMonths}
               onChange={(e) => onChange("timelineMonths", Number(e.target.value))}
-              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-gray-400 focus:outline-none"
+              className={fieldSelect}
             >
               <option value={24}>2 years</option>
               <option value={36}>3 years</option>
@@ -927,7 +884,11 @@ export default function BTLCalculatorForm() {
 
       <div>
         {results ? (
-          <EnhancedResultsCard results={results} />
+          <EnhancedResultsCard 
+            results={results} 
+            estimatedMonthlyCashFlow={(state.monthlyRent ?? 0) - ((state.purchasePrice * (1 - state.depositPct/100)) * (mortgageRatePct/100) / 12) - 0}
+            timelineMonths={state.timelineMonths}
+          />
         ) : (
           <div className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500">
             Results will appear here after you calculate.

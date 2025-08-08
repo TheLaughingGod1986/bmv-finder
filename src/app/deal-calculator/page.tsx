@@ -1,24 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Calculator, TrendingUp, Target, Star, ArrowRight } from 'lucide-react';
-import DealCalculator from '../components/DealCalculator';
-import BTLCalculatorForm from '../features/btl-calculator/BTLCalculatorForm';
+import UnifiedDealCalculator from '../components/UnifiedDealCalculator';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-export default function DealCalculatorPage() {
+function DealCalculatorContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [tab, setTab] = useState<'vanilla' | 'brrr'>('vanilla');
-
-  // Initialize from URL (?mode=brrr)
-  useEffect(() => {
-    const m = searchParams?.get('mode');
-    if (m === 'brrr' || m === 'vanilla') {
-      setTab(m);
-    }
-  }, [searchParams]);
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       <main>
@@ -65,43 +55,15 @@ export default function DealCalculatorPage() {
 
         {/* Main Content Section */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          {/* Deal Calculator Tabs */}
+          {/* Unified Deal Calculator */}
           <section className="mb-16">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
             >
-              {/* Tabs */}
-              <div className="mb-4 flex w-full items-center justify-center">
-                <div className="inline-flex rounded-full border border-gray-200 bg-white p-1 shadow-sm">
-                  <button
-                    type="button"
-                    onClick={() => setTab('vanilla')}
-                    className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                      tab === 'vanilla' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:text-gray-900'
-                    }`}
-                  >
-                    Buy-to-Let (Turnkey)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTab('brrr')}
-                    className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
-                      tab === 'brrr' ? 'bg-gray-900 text-white' : 'text-gray-700 hover:text-gray-900'
-                    }`}
-                  >
-                    BRRR (Buy • Refurbish • Rent • Refinance)
-                  </button>
-                </div>
-              </div>
-              {/* Body */}
               <div className="bg-white rounded-2xl shadow-xl border border-gray-200 p-4 sm:p-8">
-                {tab === 'vanilla' ? (
-                  <DealCalculator />
-                ) : (
-                  <BTLCalculatorForm />
-                )}
+                <UnifiedDealCalculator />
               </div>
             </motion.div>
           </section>
@@ -191,7 +153,7 @@ export default function DealCalculatorPage() {
               transition={{ duration: 0.6, delay: 0.5 }}
               className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white"
             >
-              <h3 className="text-2xl font-bold mb-4">Ready to Analyze More Properties?</h3>
+              <h3 className="text-2xl font-bold mb-4 text-white">Ready to Analyze More Properties?</h3>
               <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
                 Use our advanced deal analysis tool to get comprehensive property insights, 
                 market trends, and professional valuation estimates.
@@ -208,5 +170,13 @@ export default function DealCalculatorPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function DealCalculatorPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <DealCalculatorContent />
+    </Suspense>
   );
 } 
