@@ -106,3 +106,21 @@ Error running Bulk Enrichment: Command failed: node /Users/benjaminoats/my-vibe-
 /bin/sh: node: command not found
 Error running Enrichment Monitoring Report: Command failed: node /Users/benjaminoats/my-vibe-project/bmv-finder/scripts/generate-enrichment-report.js
 Automation complete. Review logs and reports for details.
+
+=== Running: Bulk Enrichment ===
+/bin/sh: node: command not found
+Error running Bulk Enrichment: Command failed: node /Users/benjaminoats/my-vibe-project/bmv-finder/scripts/bulk-enrich-properties-with-epc.js
+
+=== Running: Enrichment Monitoring Report ===
+/bin/sh: node: command not found
+Error running Enrichment Monitoring Report: Command failed: node /Users/benjaminoats/my-vibe-project/bmv-finder/scripts/generate-enrichment-report.js
+Automation complete. Review logs and reports for details.
+
+=== Running: Bulk Enrichment ===
+/bin/sh: node: command not found
+Error running Bulk Enrichment: Command failed: node /Users/benjaminoats/my-vibe-project/bmv-finder/scripts/bulk-enrich-properties-with-epc.js
+
+=== Running: Enrichment Monitoring Report ===
+/bin/sh: node: command not found
+Error running Enrichment Monitoring Report: Command failed: node /Users/benjaminoats/my-vibe-project/bmv-finder/scripts/generate-enrichment-report.js
+Automation complete. Review logs and reports for details.

@@ -86,3 +86,15 @@
 [2025-08-08 02:00:01] Starting recent sales indexing job
 [2025-08-08 02:00:01] ERROR: Elasticsearch is not running on localhost:9200
 [2025-08-08 02:00:01] ERROR: Elasticsearch is not running on localhost:9200
+[2025-08-09 02:00:00] Starting recent sales indexing job
+[2025-08-09 02:00:00] Starting recent sales indexing job
+[2025-08-09 02:00:00] ERROR: Elasticsearch is not running on localhost:9200
+[2025-08-09 02:00:00] ERROR: Elasticsearch is not running on localhost:9200
+[2025-08-10 02:00:00] Starting recent sales indexing job
+[2025-08-10 02:00:00] Starting recent sales indexing job
+[2025-08-10 02:00:00] ERROR: Elasticsearch is not running on localhost:9200
+[2025-08-10 02:00:00] ERROR: Elasticsearch is not running on localhost:9200
+[2025-08-10 03:00:01] Starting recent sales indexing job
+[2025-08-10 03:00:01] Starting recent sales indexing job
+[2025-08-10 03:00:01] ERROR: Elasticsearch is not running on localhost:9200
+[2025-08-10 03:00:01] ERROR: Elasticsearch is not running on localhost:9200

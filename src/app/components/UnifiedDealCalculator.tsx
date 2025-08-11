@@ -17,7 +17,8 @@ import {
   Info,
   ChevronDown,
   ChevronUp,
-  Check
+  Check,
+  X
 } from 'lucide-react';
 
 import { fieldInput, fieldLabel, fieldSelect } from '../components/ui/fieldStyles';
@@ -32,6 +33,7 @@ interface DealInputs {
   currentValue: number;
   // Current open-market value used for BMV guidance
   marketValue?: number;
+  estimatedRenovatedValue: number;
   bedrooms: number;
   squareFootage: number;
   purchaseType: PurchaseType;
@@ -46,6 +48,9 @@ interface DealInputs {
   refurbCost: number;
   refurbLevel: 'none' | 'cosmetic' | 'modernisation' | 'full_renovation';
   refurbContingencyPct: number;
+  
+  // Investment strategy
+  desiredModel: 'vanilla' | 'brrr' | 'flip';
   
   // BRRR specific
   remortgageLtv: number;
@@ -121,6 +126,7 @@ export default function UnifiedDealCalculator() {
     purchasePrice: 250000,
     currentValue: 250000,
     marketValue: 250000,
+    estimatedRenovatedValue: 280000,
     bedrooms: 3,
     squareFootage: 1200,
     purchaseType: 'second_home',
@@ -143,6 +149,7 @@ export default function UnifiedDealCalculator() {
     bridgeMonths: 6,
     growthAnnualPct: 3,
     refurbUpliftFactor: 0.8,
+    desiredModel: 'vanilla' as const,
   });
 
   const [addressMode, setAddressMode] = useState<'search' | 'manual' | 'watchlist'>('search');
@@ -157,7 +164,7 @@ export default function UnifiedDealCalculator() {
     propertyType: string;
   }>>([]);
   const [showRecentSales, setShowRecentSales] = useState(false);
-
+  const [showBrrrDetailsModal, setShowBrrrDetailsModal] = useState(false);
 
   const [results, setResults] = useState<AnalysisResult[]>([]);
   const [recommendedModel, setRecommendedModel] = useState<'vanilla' | 'brrr' | 'flip' | null>(null);
@@ -168,6 +175,20 @@ export default function UnifiedDealCalculator() {
   });
   const [includeRefurb, setIncludeRefurb] = useState<boolean>(true);
   const [sdltOverride, setSdltOverride] = useState<boolean>(false);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowBrrrDetailsModal(false);
+      }
+    };
+
+    if (showBrrrDetailsModal) {
+      document.addEventListener('keydown', handleEsc);
+      return () => document.removeEventListener('keydown', handleEsc);
+    }
+  }, [showBrrrDetailsModal]);
 
   // Check authentication and load watchlist
   useEffect(() => {
@@ -234,21 +255,33 @@ export default function UnifiedDealCalculator() {
   }, [inputs]);
 
   const calculateVanillaBTL = (inputs: DealInputs): AnalysisResult => {
+    // For vanilla BTL, we assume buying at or near market value with minimal renovation
     const deposit = inputs.purchasePrice * (inputs.depositPct / 100);
     const mortgage = inputs.purchasePrice - deposit;
     const monthlyMortgage = (mortgage * (inputs.interestRate / 100)) / 12;
+    
+    // Vanilla BTL typically has minimal renovation - just cosmetic touch-ups
+    // If user wants vanilla but has high refurb costs, cap them for realistic vanilla scenario
+    const refurbCost = inputs.desiredModel === 'vanilla' 
+      ? Math.min(inputs.refurbCost, 8000) // Cap at £8k for vanilla - just cosmetic
+      : inputs.refurbCost;
+    
+    const investedFees = inputs.legalFees + inputs.brokerFees;
+    const investedTotal = deposit + investedFees + inputs.stampDuty + refurbCost;
+    
+    // Monthly cash flow - rental income starts immediately after purchase
     const monthlyCashFlow = inputs.monthlyRent - monthlyMortgage - inputs.otherExpenses;
     const annualCashFlow = monthlyCashFlow * 12;
-    const roi = (annualCashFlow / (deposit + inputs.stampDuty + inputs.legalFees + inputs.brokerFees)) * 100;
     const grossYield = inputs.monthlyRent > 0 ? (inputs.monthlyRent * 12) / inputs.purchasePrice * 100 : 0;
-    const estGrowthPct = 3.0; // baseline assumption used elsewhere
-    const years = Math.max(1, inputs.timelineMonths / 12);
-    const investedFees = inputs.legalFees + inputs.brokerFees;
-    const investedTotal = deposit + investedFees + inputs.stampDuty + (includeRefurb ? inputs.refurbCost : 0);
-    const rentReturnTotal = Math.round(monthlyCashFlow * inputs.timelineMonths);
-    const projectedValue = inputs.purchasePrice * Math.pow(1 + estGrowthPct / 100, years);
+    
+    // Calculate total return over 2 years
+    const timeHorizonMonths = 24;
+    const years = Math.max(1, timeHorizonMonths / 12);
+    const rentReturnTotal = Math.round(monthlyCashFlow * timeHorizonMonths);
+    const projectedValue = inputs.purchasePrice * Math.pow(1 + (inputs.growthAnnualPct || 3) / 100, years);
     const projectedCapitalGain = Math.round(Math.max(0, projectedValue - inputs.purchasePrice));
     const totalProfit = rentReturnTotal + projectedCapitalGain - investedTotal;
+    const roi = investedTotal > 0 ? (totalProfit / investedTotal) * 100 : 0;
     
     return {
       model: 'vanilla',
@@ -256,10 +289,10 @@ export default function UnifiedDealCalculator() {
       cashFlow: monthlyCashFlow,
       totalReturn: totalProfit,
       grossYield,
-      estGrowthPct,
-      timeHorizonMonths: inputs.timelineMonths,
+      estGrowthPct: inputs.growthAnnualPct || 3,
+      timeHorizonMonths,
       investedDeposit: deposit,
-      investedRefurb: includeRefurb ? inputs.refurbCost : 0,
+      investedRefurb: refurbCost,
       investedFeesTotal: investedFees,
       investedStampDuty: inputs.stampDuty,
       investedLegalFees: inputs.legalFees,
@@ -269,86 +302,99 @@ export default function UnifiedDealCalculator() {
       projectedCapitalGain,
       totalProfit,
       risk: roi > 8 ? 'low' : roi > 5 ? 'medium' : 'high',
-      recommendation: 'Buy and hold for rental income',
+      recommendation: 'Buy at market value, minimal renovation, immediate rental income',
       pros: [
+        'Immediate rental income after purchase',
+        'Lower risk profile',
         'Steady monthly cash flow',
-        'Long-term appreciation potential',
-        'Lower risk than flipping',
-        'Tax advantages available'
+        'Long-term capital appreciation',
+        'Minimal renovation disruption',
+        'Predictable returns'
       ],
       cons: [
-        'Requires ongoing management',
-        'Market dependent for appreciation',
-        'Illiquid investment'
+        'Lower potential returns',
+        'Requires larger initial deposit',
+        'Limited capital recycling',
+        'Buying at market value (no BMV discount)',
+        'Lower leverage potential'
       ]
     };
   };
 
   const calculateBRRR = (inputs: DealInputs): AnalysisResult => {
-    const totalInvestment = inputs.purchasePrice * (inputs.depositPct / 100) + 
-                           inputs.stampDuty + inputs.legalFees + inputs.brokerFees + (includeRefurb ? inputs.refurbCost : 0);
+    // BRRR strategy: Buy distressed property at big discount, renovate over months, then refinance
+    const deposit = inputs.purchasePrice * (inputs.depositPct / 100);
+    const mortgage = inputs.purchasePrice - deposit;
     
-    // Assume 80% value add from refurb
-    const uplift = (includeRefurb ? inputs.refurbCost : 0) * (inputs.refurbUpliftFactor ?? 0.8);
-    const postRefurbValue = inputs.purchasePrice + uplift;
+    // BRRR requires significant renovation to add value
+    // If user wants BRRR but has low refurb costs, suggest minimum viable renovation
+    const refurbCost = inputs.desiredModel === 'brrr' 
+      ? Math.max(inputs.refurbCost, 20000) // BRRR needs substantial renovation
+      : inputs.refurbCost;
+    
+    const totalInvestment = deposit + inputs.stampDuty + inputs.legalFees + inputs.brokerFees + refurbCost;
+    
+    // Use user's estimated renovated value
+    const postRefurbValue = inputs.estimatedRenovatedValue;
     const growthPct = (inputs.growthAnnualPct ?? 3) / 100;
     const projectedValue = postRefurbValue * Math.pow(1 + growthPct, inputs.timelineMonths / 12);
     
+    // Calculate equity release at refinance
     const remortgageAmount = projectedValue * (inputs.remortgageLtv / 100);
-    const equityReleased = remortgageAmount - (inputs.purchasePrice - (inputs.purchasePrice * (inputs.depositPct / 100)));
+    const equityReleased = remortgageAmount - (inputs.purchasePrice - deposit);
     const cashLeftInDeal = totalInvestment - equityReleased;
     
+    // Calculate ROI based on equity released
     const roi = (equityReleased / totalInvestment) * 100;
     
-    const deposit = inputs.purchasePrice * (inputs.depositPct / 100);
-    const mortgage = inputs.purchasePrice - deposit;
-    const day1Monthly = (mortgage * (inputs.interestRate / 100)) / 12;
-    const bridgeMonthly = (mortgage * ((inputs.bridgeRate ?? 8) / 100)) / 12;
-    const monthsOnBridge = inputs.financeMode === 'bridge_refi' ? Math.min(inputs.bridgeMonths ?? 6, inputs.timelineMonths) : 0;
-    const monthsOnDay1 = (inputs.timelineMonths - monthsOnBridge);
-    const monthlyMortgage = monthsOnBridge > 0 
-      ? ((bridgeMonthly * monthsOnBridge) + (day1Monthly * monthsOnDay1)) / (inputs.timelineMonths || 1)
-      : day1Monthly;
-    const monthlyCashFlow = inputs.monthlyRent - monthlyMortgage - inputs.otherExpenses;
-    const investedFees = inputs.legalFees + inputs.brokerFees;
-    const investedTotal = deposit + investedFees + inputs.stampDuty + (includeRefurb ? inputs.refurbCost : 0);
-    const years = Math.max(1, inputs.timelineMonths / 12);
-    const rentReturnTotal = Math.round(monthlyCashFlow * inputs.timelineMonths);
-    const projectedCapitalGain = Math.max(0, projectedValue - inputs.purchasePrice);
-    const totalProfit = equityReleased + rentReturnTotal - investedTotal;
-
+    // During renovation period, no rental income (property is being worked on)
+    const monthlyCashFlow = 0; // No cash flow during BRRR cycle
+    const rentReturnTotal = 0; // No rent during renovation
+    
+    // Total profit includes equity released
+    const totalProfit = equityReleased - totalInvestment;
+    
     // BRRR insights
-    const recyclePercent = investedTotal > 0 ? (equityReleased / investedTotal) * 100 : 0;
-    const breakEvenRent = Math.ceil(monthlyMortgage + inputs.otherExpenses);
-    // Simple guidance: target purchase price that would leave ~£0 cash in deal
-    const targetArvForZeroCashIn = (investedTotal + (inputs.purchasePrice - (inputs.purchasePrice * (inputs.depositPct / 100)))) / (inputs.remortgageLtv / 100);
-    const recommendedArv = Math.max(projectedValue, targetArvForZeroCashIn);
-    const recommendedPurchasePrice = Math.max(0, recommendedArv - (includeRefurb ? inputs.refurbCost * (inputs.refurbUpliftFactor ?? 0.8) : 0));
-
-    // BMV guidance ladder given market value
+    const recyclePercent = totalInvestment > 0 ? (equityReleased / totalInvestment) * 100 : 0;
+    const breakEvenRent = Math.ceil((mortgage * (inputs.interestRate / 100) / 12) + inputs.otherExpenses);
+    
+    // BMV guidance ladder - BRRR needs bigger discounts
     const mv = inputs.marketValue ?? inputs.currentValue ?? inputs.purchasePrice;
-    const bmv10 = mv * 0.9;
-    const bmv15 = mv * 0.85;
-    const bmv20 = mv * 0.8;
+    const bmv15 = mv * 0.85; // 15% below market value
+    const bmv20 = mv * 0.8;  // 20% below market value
+    const bmv25 = mv * 0.75; // 25% below market value
+    
     const buildScenario = (label: string, purchasePrice: number, refurbCost: number) => {
       const dep = purchasePrice * (inputs.depositPct / 100);
-      const mort = purchasePrice - dep;
-      const mMonthly = (mort * (inputs.interestRate / 100)) / 12;
-      const cfMonthly = inputs.monthlyRent - mMonthly - inputs.otherExpenses;
       const upfront = dep + inputs.stampDuty + inputs.legalFees + inputs.brokerFees + refurbCost;
-      const upl = refurbCost * (inputs.refurbUpliftFactor ?? 0.8);
-      const arv = (purchasePrice + upl) * Math.pow(1 + (inputs.growthAnnualPct ?? 3)/100, inputs.timelineMonths/12);
+      
+      // Adjust ARV based on purchase price ratio
+      const priceRatio = purchasePrice / inputs.purchasePrice;
+      const adjustedArv = inputs.estimatedRenovatedValue * priceRatio;
+      const arv = adjustedArv * Math.pow(1 + (inputs.growthAnnualPct ?? 3)/100, inputs.timelineMonths/12);
+      
       const refi = arv * (inputs.remortgageLtv / 100);
       const equity = refi - (purchasePrice - dep);
       const cashLeft = Math.max(0, upfront - equity);
       const recycle = upfront > 0 ? (equity / upfront) * 100 : 0;
-      const profit = equity + Math.round(cfMonthly * inputs.timelineMonths) - upfront;
-      return { label, purchasePrice, refurbCost, arv, equityReleased: equity, cashLeftInDeal: cashLeft, recyclePercent: recycle, totalProfit: profit };
+      const profit = equity - upfront;
+      
+      return { 
+        label, 
+        purchasePrice, 
+        refurbCost, 
+        arv, 
+        equityReleased: equity, 
+        cashLeftInDeal: cashLeft, 
+        recyclePercent: recycle, 
+        totalProfit: profit 
+      };
     };
+    
     const scenarios = [
-      buildScenario('MV-10%', bmv10, includeRefurb ? inputs.refurbCost : 0),
-      buildScenario('MV-15%', bmv15, includeRefurb ? inputs.refurbCost : 0),
-      buildScenario('MV-20%', bmv20, includeRefurb ? inputs.refurbCost : 0)
+      buildScenario('MV-15%', bmv15, refurbCost),
+      buildScenario('MV-20%', bmv20, refurbCost),
+      buildScenario('MV-25%', bmv25, refurbCost)
     ];
 
     return {
@@ -356,72 +402,84 @@ export default function UnifiedDealCalculator() {
       roi: Math.max(0, roi),
       cashFlow: 0, // No cash flow during BRRR cycle
       totalReturn: totalProfit,
-      grossYield: inputs.monthlyRent > 0 ? (inputs.monthlyRent * 12) / (inputs.purchasePrice + (includeRefurb ? inputs.refurbCost : 0)) * 100 : 0,
-      estGrowthPct: 5.1, // assumption used in UI copy
+      grossYield: inputs.monthlyRent > 0 ? (inputs.monthlyRent * 12) / (inputs.purchasePrice + refurbCost) * 100 : 0,
+      estGrowthPct: inputs.growthAnnualPct ?? 3,
       timeHorizonMonths: inputs.timelineMonths,
       investedDeposit: deposit,
-      investedRefurb: includeRefurb ? inputs.refurbCost : 0,
-      investedFeesTotal: investedFees,
+      investedRefurb: refurbCost,
+      investedFeesTotal: inputs.legalFees + inputs.brokerFees,
       investedStampDuty: inputs.stampDuty,
       investedLegalFees: inputs.legalFees,
       investedBrokerFees: inputs.brokerFees,
       investedTotal,
       rentReturnTotal,
-      projectedCapitalGain,
+      projectedCapitalGain: projectedValue - inputs.purchasePrice,
       totalProfit,
       equityReleased,
       cashLeftInDeal,
       recyclePercent,
       breakEvenRent,
-      recommendedPurchasePrice,
-      recommendedArv,
+      recommendedPurchasePrice: bmv20, // Recommend 20% below market value
+      recommendedArv: postRefurbValue,
       scenarios,
       risk: cashLeftInDeal / totalInvestment < 0.3 ? 'low' : cashLeftInDeal / totalInvestment < 0.45 ? 'medium' : 'high',
-      recommendation: 'Refinance to release equity and repeat',
+      recommendation: 'Buy distressed property at 15-20% discount, renovate significantly, refinance to release equity',
       pros: [
         'Recycle capital for next deal',
         'Scale portfolio faster',
         'Tax efficient structure',
-        'Lower ongoing cash requirements'
+        'Lower ongoing cash requirements',
+        'Higher potential returns through value-add',
+        'Build equity through renovation'
       ],
       cons: [
         'Higher upfront costs',
         'Refinancing risk',
         'More complex strategy',
-        'Requires good credit'
+        'Requires good credit',
+        'No rental income during renovation',
+        'Renovation timeline risk'
       ]
     };
   };
 
   const calculateFlip = (inputs: DealInputs): AnalysisResult => {
-    const totalInvestment = inputs.purchasePrice * (inputs.depositPct / 100) + 
-                           inputs.stampDuty + inputs.legalFees + inputs.brokerFees + (includeRefurb ? inputs.refurbCost : 0);
+    // Flip strategy: Buy distressed property at discount, renovate quickly, sell for profit
+    const deposit = inputs.purchasePrice * (inputs.depositPct / 100);
+    const investedFees = inputs.legalFees + inputs.brokerFees;
     
-    const postRefurbValue = inputs.purchasePrice + ((includeRefurb ? inputs.refurbCost : 0) * 0.8);
+    // Flip requires significant renovation to add value
+    // If user wants flip but has low refurb costs, suggest minimum viable renovation
+    const refurbCost = inputs.desiredModel === 'flip' 
+      ? Math.max(inputs.refurbCost, 25000) // Flip needs substantial renovation
+      : inputs.refurbCost;
+    
+    const totalInvestment = deposit + inputs.stampDuty + investedFees + refurbCost;
+    
+    // Calculate post-renovation value and selling price
+    const postRefurbValue = inputs.estimatedRenovatedValue;
     const sellingPrice = postRefurbValue * 1.05; // 5% profit margin
-    const netProfit = sellingPrice - inputs.purchasePrice - (includeRefurb ? inputs.refurbCost : 0) - inputs.sellingCosts;
+    const netProfit = sellingPrice - inputs.purchasePrice - refurbCost - inputs.sellingCosts;
     
     const roi = (netProfit / totalInvestment) * 100;
     const annualizedRoi = roi * (12 / inputs.flipTimeline);
     
-    const deposit = inputs.purchasePrice * (inputs.depositPct / 100);
-    const investedFees = inputs.legalFees + inputs.brokerFees;
-    const investedTotal = deposit + investedFees + inputs.stampDuty + (includeRefurb ? inputs.refurbCost : 0);
+    const investedTotal = totalInvestment;
     const years = Math.max(1, Math.round(inputs.flipTimeline / 12));
-    const rentReturnTotal = 0;
+    const rentReturnTotal = 0; // No rental income during flip
     const projectedCapitalGain = Math.max(0, sellingPrice - inputs.purchasePrice);
-    const totalProfit = netProfit - investedTotal;
+    const totalProfit = netProfit;
 
     return {
       model: 'flip',
       roi: Math.max(0, annualizedRoi),
       cashFlow: -totalInvestment / inputs.flipTimeline, // Negative during flip
       totalReturn: totalProfit,
-      grossYield: inputs.monthlyRent > 0 ? (inputs.monthlyRent * 12) / (inputs.purchasePrice + (includeRefurb ? inputs.refurbCost : 0)) * 100 : 0,
-      estGrowthPct: 3.0,
-      timeHorizonMonths: inputs.timelineMonths,
+      grossYield: 0, // No rental yield during flip
+      estGrowthPct: 0, // No long-term growth consideration
+      timeHorizonMonths: inputs.flipTimeline,
       investedDeposit: deposit,
-      investedRefurb: includeRefurb ? inputs.refurbCost : 0,
+      investedRefurb: refurbCost,
       investedFeesTotal: investedFees,
       investedStampDuty: inputs.stampDuty,
       investedLegalFees: inputs.legalFees,
@@ -431,34 +489,67 @@ export default function UnifiedDealCalculator() {
       projectedCapitalGain,
       totalProfit,
       risk: roi > 20 ? 'low' : roi > 10 ? 'medium' : 'high',
-      recommendation: 'Quick renovation and resale',
+      recommendation: 'Buy distressed property at 15-20% discount, renovate quickly, sell for profit within 6-12 months',
       pros: [
         'Fastest capital return',
         'No ongoing management',
         'High potential returns',
-        'Clear exit strategy'
+        'Clear exit strategy',
+        'No long-term commitment',
+        'Capital gains tax benefits'
       ],
       cons: [
         'Higher risk',
         'Market timing critical',
         'Requires renovation skills',
-        'Tax implications on sale'
+        'Tax implications on sale',
+        'No rental income',
+        'Selling costs reduce profit'
       ]
     };
   };
 
   const determineRecommendedModel = (results: AnalysisResult[], inputs: DealInputs): 'vanilla' | 'brrr' | 'flip' => {
-    // Simple recommendation logic based on deal characteristics
+    // Consider user's desired model first, then analyze deal characteristics
+    const userDesired = inputs.desiredModel;
+    
+    // Analyze deal characteristics
     const hasRefurb = inputs.refurbCost > 0;
     const isHighValue = inputs.purchasePrice > 400000;
     const hasGoodRent = inputs.monthlyRent > inputs.purchasePrice * 0.005; // 6% gross yield
+    const isBelowMarketValue = inputs.purchasePrice < (inputs.marketValue ?? inputs.currentValue ?? inputs.purchasePrice) * 0.9; // 10% below market
     
-    if (hasRefurb && !isHighValue && inputs.monthlyRent > 0) {
-      return 'brrr';
-    } else if (hasRefurb && !hasGoodRent) {
-      return 'flip';
+    // If user has a strong preference, respect it but validate
+    if (userDesired === 'vanilla') {
+      // Vanilla works best with minimal renovation and good rental yields
+      if (hasGoodRent && inputs.refurbCost <= 15000) {
+        return 'vanilla';
+      }
+    } else if (userDesired === 'brrr') {
+      // BRRR needs significant renovation and below market value
+      if (hasRefurb && inputs.refurbCost >= 20000 && isBelowMarketValue) {
+        return 'brrr';
+      }
+    } else if (userDesired === 'flip') {
+      // Flip needs significant renovation and below market value
+      if (hasRefurb && inputs.refurbCost >= 25000 && isBelowMarketValue) {
+        return 'flip';
+      }
+    }
+    
+    // Fallback recommendation logic based on deal characteristics
+    if (hasRefurb && isBelowMarketValue && inputs.refurbCost >= 20000) {
+      if (hasGoodRent) {
+        return 'brrr'; // Good rental potential suggests BRRR over flip
+      } else {
+        return 'flip'; // Poor rental potential suggests flip
+      }
+    } else if (hasGoodRent && inputs.refurbCost <= 15000) {
+      return 'vanilla'; // Good rental yield with minimal renovation
+    } else if (hasRefurb && !isBelowMarketValue) {
+      return 'vanilla'; // High renovation costs but no BMV discount
     } else {
-      return 'vanilla';
+      return 'vanilla'; // Default to vanilla for safety
     }
   };
 
@@ -607,6 +698,50 @@ export default function UnifiedDealCalculator() {
             )}
           </div>
 
+          {/* Investment Strategy Selection */}
+          <div className="mt-6">
+            <label className={fieldLabel}>Investment Strategy</label>
+            <div className="grid gap-3 mt-2">
+              {(['vanilla', 'brrr', 'flip'] as const).map((model) => (
+                <button
+                  key={model}
+                  type="button"
+                  onClick={() => setInputs(prev => ({ ...prev, desiredModel: model }))}
+                  className={`p-4 rounded-lg border-2 text-left transition-all ${
+                    inputs.desiredModel === model 
+                      ? 'border-blue-500 bg-blue-50' 
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {getModelIcon(model)}
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-900 capitalize">
+                        {model === 'vanilla' ? 'Vanilla BTL' : model.toUpperCase()}
+                      </h4>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {model === 'vanilla' 
+                          ? 'Buy at market value, minimal renovation (£5-8k), immediate rental income'
+                          : model === 'brrr'
+                          ? 'Buy distressed property at 15-20% discount, renovate significantly (£20k+), refinance to release equity'
+                          : 'Buy distressed property at 15-20% discount, renovate quickly (£25k+), sell for profit within 6-12 months'
+                        }
+                      </p>
+                      <div className="mt-2 text-xs text-gray-500">
+                        {model === 'vanilla' 
+                          ? 'Best for: Steady income, lower risk, long-term holds'
+                          : model === 'brrr'
+                          ? 'Best for: Scaling portfolio, capital recycling, higher returns'
+                          : 'Best for: Quick profits, no ongoing management, capital gains'
+                        }
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Property Size Fields */}
           <div className="grid gap-4 mt-4">
             <div className="grid gap-4 md:grid-cols-2">
@@ -718,6 +853,18 @@ export default function UnifiedDealCalculator() {
               <div className="text-sm text-gray-900 px-3 py-2 border rounded-lg bg-gray-50">
                 £{(inputs.marketValue || 0).toLocaleString()}
               </div>
+            </div>
+
+            <div>
+              <label className={fieldLabel}>Estimated renovated value</label>
+              <input
+                type="number"
+                value={inputs.estimatedRenovatedValue}
+                onChange={(e) => setInputs(prev => ({ ...prev, estimatedRenovatedValue: Number(e.target.value) }))}
+                className={fieldInput}
+                min={0}
+              />
+              <p className="mt-1 text-xs text-gray-500">What you think the property will be worth after refurbishment</p>
             </div>
 
             <div>
@@ -875,6 +1022,29 @@ export default function UnifiedDealCalculator() {
             </label>
           </div>
           
+          {/* Model-specific guidance */}
+          <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
+            <div className="flex items-center gap-2 mb-2">
+              <Info className="w-4 h-4 text-blue-600" />
+              <span className="text-sm font-medium text-blue-900">
+                {inputs.desiredModel === 'vanilla' 
+                  ? 'Vanilla BTL: Keep renovation minimal for immediate rental'
+                  : inputs.desiredModel === 'brrr'
+                  ? 'BRRR: Significant renovation needed to add value and justify refinance'
+                  : 'Flip: Maximum renovation impact for quick resale profit'
+                }
+              </span>
+            </div>
+            <p className="text-xs text-blue-800">
+              {inputs.desiredModel === 'vanilla' 
+                ? 'Focus on cosmetic improvements that tenants will appreciate. Avoid major works that delay rental income.'
+                : inputs.desiredModel === 'brrr'
+                ? 'Renovation should add 80%+ of cost to property value. Consider kitchen, bathroom, heating, and structural improvements.'
+                : 'Renovation should transform the property for maximum resale appeal. Focus on high-impact improvements that buyers value most.'
+              }
+            </p>
+          </div>
+          
           {includeRefurb && (
           <div className="grid gap-4">
             <div className="grid gap-3">
@@ -890,6 +1060,14 @@ export default function UnifiedDealCalculator() {
                     <div>
                       <h4 className="font-medium text-gray-900">Cosmetic refresh</h4>
                       <p className="text-sm text-gray-600 mt-1">Painting/decor, flooring, minor joinery, fixtures & fittings.</p>
+                      <div className="mt-1 text-xs text-gray-500">
+                        {inputs.desiredModel === 'vanilla' 
+                          ? 'Perfect for vanilla BTL - quick turnaround, immediate rental'
+                          : inputs.desiredModel === 'brrr'
+                          ? 'May not add enough value for BRRR strategy'
+                          : 'May not justify flip margins - consider higher level'
+                        }
+                      </div>
                     </div>
                   </div>
                   <span className="text-sm font-medium text-gray-600">£{calculateRefurbCost('cosmetic', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct).toLocaleString()}</span>
@@ -908,6 +1086,14 @@ export default function UnifiedDealCalculator() {
                     <div>
                       <h4 className="font-medium text-gray-900">Modernisation</h4>
                       <p className="text-sm text-gray-600 mt-1">New kitchen/bath updates, partial rewire, boiler/heating refresh, windows in parts.</p>
+                      <div className="mt-1 text-xs text-gray-500">
+                        {inputs.desiredModel === 'vanilla' 
+                          ? 'Good for vanilla if you want higher rental value'
+                          : inputs.desiredModel === 'brrr'
+                          ? 'Good balance for BRRR - adds value without excessive cost'
+                          : 'Good for flip - significant improvement for resale'
+                        }
+                      </div>
                     </div>
                   </div>
                   <span className="text-sm font-medium text-gray-600">£{calculateRefurbCost('modernisation', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct).toLocaleString()}</span>
@@ -926,6 +1112,14 @@ export default function UnifiedDealCalculator() {
                     <div>
                       <h4 className="font-medium text-gray-900">Full renovation</h4>
                       <p className="text-sm text-gray-600 mt-1">Full rewire, plumbing/heating, new kitchen & bathrooms, windows/doors, possible structural repairs.</p>
+                      <div className="mt-1 text-xs text-gray-500">
+                        {inputs.desiredModel === 'vanilla' 
+                          ? 'May delay rental income - consider if necessary'
+                          : inputs.desiredModel === 'brrr'
+                          ? 'Excellent for BRRR - maximum value creation'
+                          : 'Perfect for flip - maximum resale appeal'
+                        }
+                      </div>
                     </div>
                   </div>
                   <span className="text-sm font-medium text-gray-600">£{calculateRefurbCost('full_renovation', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct).toLocaleString()}</span>
@@ -964,6 +1158,13 @@ export default function UnifiedDealCalculator() {
                 min={0}
               />
               <p className="mt-1 text-xs text-gray-500">
+                {inputs.desiredModel === 'vanilla' 
+                  ? 'For vanilla BTL, keep costs under £8k for quick rental turnaround. Focus on cosmetic improvements only.'
+                  : inputs.desiredModel === 'brrr'
+                  ? 'For BRRR, aim for £20k+ renovation to justify refinance. Ensure 80%+ value-add ratio.'
+                  : 'For flip, aim for £25k+ renovation for maximum resale impact. Focus on high-visibility improvements.'
+                }
+                <br />
                 Costs are calculated from the selected scope, adjusted for bedrooms & square footage, then contingency is applied. 
                 For a 5-bed house, costs will be ~67% higher than a 3-bed before contingency. 
                 These are estimates based on UK market averages - actual costs vary by location and condition.
@@ -1153,43 +1354,96 @@ export default function UnifiedDealCalculator() {
                 <span className="text-sm text-gray-600">ROI</span>
                 <span className="font-semibold">{result.roi.toFixed(1)}%</span>
               </div>
-              {result.model !== 'brrr' && (
+              
+              {/* Model-specific metrics */}
+              {result.model === 'vanilla' && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Monthly Cash Flow</span>
+                    <span className={`font-semibold ${result.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      £{result.cashFlow.toFixed(0)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Annual Cash Flow</span>
+                    <span className={`font-semibold ${(result.cashFlow * 12) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      £{(result.cashFlow * 12).toLocaleString()}
+                    </span>
+                  </div>
+                </>
+              )}
+              
+              {result.model === 'brrr' && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Equity Released</span>
+                    <span className="font-semibold text-purple-600">£{(result.equityReleased || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Capital Recycle %</span>
+                    <span className="font-semibold text-purple-600">{(result.recyclePercent || 0).toFixed(0)}%</span>
+                  </div>
+                </>
+              )}
+              
+              {result.model === 'flip' && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Flip Timeline</span>
+                    <span className="font-semibold text-orange-600">{inputs.flipTimeline} months</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm text-gray-600">Annualized ROI</span>
+                    <span className="font-semibold text-orange-600">{result.roi.toFixed(1)}%</span>
+                  </div>
+                </>
+              )}
+              
+              <div className="flex justify-between">
+                <span className="text-sm text-gray-600">Income after deductions ({result.timeHorizonMonths || 12} months)</span>
+                <span className="font-semibold">£{(result.rentReturnTotal || 0).toLocaleString()}</span>
+              </div>
+              
+              {result.model !== 'flip' && typeof result.grossYield === 'number' && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Monthly Cash Flow</span>
-                  <span className="font-semibold">£{result.cashFlow.toFixed(0)}</span>
+                  <span className="text-sm text-gray-600">Gross Yield</span>
+                  <span className="font-semibold">{result.grossYield.toFixed(1)}%</span>
                 </div>
               )}
+              
+              {result.model !== 'flip' && typeof result.estGrowthPct === 'number' && (
                 <div className="flex justify-between">
-                  <span className="text-sm text-gray-600">Income after deductions ({result.timeHorizonMonths || 12} months)</span>
-                  <span className="font-semibold">£{(result.rentReturnTotal || 0).toLocaleString()}</span>
+                  <span className="text-sm text-gray-600">Estimated Growth</span>
+                  <span className="font-semibold">{result.estGrowthPct.toFixed(1)}% / yr</span>
                 </div>
-                {result.model !== 'brrr' && typeof result.grossYield === 'number' && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Gross Yield</span>
-                    <span className="font-semibold">{result.grossYield.toFixed(1)}%</span>
-                  </div>
-                )}
-                {result.model !== 'brrr' && typeof result.estGrowthPct === 'number' && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Estimated Growth</span>
-                    <span className="font-semibold">{result.estGrowthPct.toFixed(1)}% / yr</span>
-                  </div>
-                )}
-                {typeof result.timeHorizonMonths === 'number' && (
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Timeframe</span>
-                    <span className="font-semibold">{(result.timeHorizonMonths / 12).toFixed(0)} year{result.timeHorizonMonths >= 24 ? 's' : ''}</span>
-                  </div>
-                )}
+              )}
+              
+              {typeof result.timeHorizonMonths === 'number' && (
+                <div className="flex justify-between">
+                  <span className="text-sm text-gray-600">Timeframe</span>
+                  <span className="font-semibold">{(result.timeHorizonMonths / 12).toFixed(0)} year{result.timeHorizonMonths >= 24 ? 's' : ''}</span>
+                </div>
+              )}
+              
+              {/* Model-specific summary metric */}
               {result.model === 'brrr' ? (
                 <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2 border">
                   <span className="text-sm text-gray-700">Cash left in deal</span>
                   <span className="text-lg font-semibold">£{(result.cashLeftInDeal || 0).toLocaleString()}</span>
                 </div>
+              ) : result.model === 'flip' ? (
+                <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2 border">
+                  <span className="text-sm text-gray-700">Total Profit</span>
+                  <span className={`text-lg font-semibold ${(result.totalProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    £{(result.totalProfit || 0).toLocaleString()}
+                  </span>
+                </div>
               ) : (
                 <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2 border">
                   <span className="text-sm text-gray-700">Total Profit</span>
-                  <span className={`text-lg font-semibold ${((result.totalProfit ?? result.totalReturn) || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>£{result.totalReturn.toLocaleString()}</span>
+                  <span className={`text-lg font-semibold ${(result.totalProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    £{(result.totalProfit || 0).toLocaleString()}
+                  </span>
                 </div>
               )}
             </div>
@@ -1213,49 +1467,18 @@ export default function UnifiedDealCalculator() {
                   <div className="flex justify-between"><span className="text-gray-600">Value gain (projected)</span><span>£{(result.projectedCapitalGain || 0).toLocaleString()}</span></div>
                   <div className="flex justify-between font-medium mt-1"><span className="text-gray-700">Total returns</span><span>£{(((result.rentReturnTotal || 0) + (result.projectedCapitalGain || 0))).toLocaleString()}</span></div>
                   {result.model === 'brrr' && (
-                    <div className="mt-3 grid gap-1 text-xs text-gray-700">
-                      <div className="flex justify-between"><span>Equity released at refi</span><span>£{(result.equityReleased || 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span>Cash left in deal</span><span>£{(result.cashLeftInDeal || 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span>Recycle %</span><span>{(result.recyclePercent || 0).toFixed(0)}%</span></div>
-                      <div className="flex justify-between"><span>Break-even rent</span><span>£{(result.breakEvenRent || 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span>Recommended ARV</span><span>£{(result.recommendedArv || 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span>Target purchase (guidance)</span><span>£{(result.recommendedPurchasePrice || 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span>BMV guide (10%)</span><span>£{(inputs.marketValue ? inputs.marketValue * 0.9 : 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span>BMV guide (15%)</span><span>£{(inputs.marketValue ? inputs.marketValue * 0.85 : 0).toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span>BMV guide (20%)</span><span>£{(inputs.marketValue ? inputs.marketValue * 0.80 : 0).toLocaleString()}</span></div>
-                      {Array.isArray(result.scenarios) && result.scenarios.length > 0 && (
-                        <div className="mt-2">
-                          <div className="font-medium text-gray-800 mb-2">Scenario ladder</div>
-                          <div className="overflow-auto">
-                            <table className="w-full text-xs">
-                              <thead className="text-gray-500">
-                                <tr>
-                                  <th className="text-left py-1 pr-2">Discount</th>
-                                  <th className="text-right py-1 pr-2">Buy</th>
-                                  <th className="text-right py-1 pr-2">Refurb</th>
-                                  <th className="text-right py-1 pr-2">ARV</th>
-                                  <th className="text-right py-1 pr-2">Equity rel.</th>
-                                  <th className="text-right py-1 pr-2">Cash left</th>
-                                  <th className="text-right py-1">Recycle %</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-100">
-                                {result.scenarios.map((s, i) => (
-                                  <tr key={i} className={i % 2 ? 'bg-gray-50' : ''}>
-                                    <td className="py-1 pr-2">{s.label}</td>
-                                    <td className="py-1 pr-2 text-right">{formatCurrency(s.purchasePrice)}</td>
-                                    <td className="py-1 pr-2 text-right">{formatCurrency(s.refurbCost)}</td>
-                                    <td className="py-1 pr-2 text-right">{formatCurrency(s.arv)}</td>
-                                    <td className="py-1 pr-2 text-right">{formatCurrency(s.equityReleased)}</td>
-                                    <td className="py-1 pr-2 text-right">{formatCurrency(s.cashLeftInDeal)}</td>
-                                    <td className="py-1 text-right">{Math.round(s.recyclePercent)}%</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      )}
+                    <div className="mt-3">
+                      <div className="grid gap-1 text-xs text-gray-700 mb-3">
+                        <div className="flex justify-between"><span>Equity released at refi</span><span>£{(result.equityReleased || 0).toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>Cash left in deal</span><span>£{(result.cashLeftInDeal || 0).toLocaleString()}</span></div>
+                        <div className="flex justify-between"><span>Recycle %</span><span>{(result.recyclePercent || 0).toFixed(0)}%</span></div>
+                      </div>
+                      <button
+                        onClick={() => setShowBrrrDetailsModal(true)}
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded-md transition-colors"
+                      >
+                        See details
+                      </button>
                     </div>
                   )}
                   <div className="mt-2 text-xs text-gray-600">Minus invested capital</div>
@@ -1300,6 +1523,337 @@ export default function UnifiedDealCalculator() {
           </motion.div>
         ))}
       </div>
+
+      {/* Model Comparison Section */}
+      {results && results.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Which Model Should You Choose?</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {['vanilla', 'brrr', 'flip'].map((model) => {
+              const result = results.find(r => r.model === model);
+              if (!result) return null;
+              
+              return (
+                <div key={model} className={`p-4 rounded-lg border-2 ${
+                  model === recommendedModel ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                }`}>
+                  <h4 className="font-semibold text-gray-900 capitalize mb-2">
+                    {model === 'vanilla' ? 'Vanilla BTL' : model.toUpperCase()}
+                  </h4>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Annual Cash Flow:</span>
+                      <span className={`font-semibold ${result.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        £{(result.cashFlow * 12).toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Total ROI:</span>
+                      <span className="font-semibold text-blue-600">
+                        {result.roi.toFixed(1)}%
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Total Profit:</span>
+                      <span className={`font-semibold ${result.totalProfit && result.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        £{(result.totalProfit || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Risk Level:</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        result.risk === 'low' ? 'bg-green-100 text-green-800' :
+                        result.risk === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {result.risk}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-gray-600">
+                    <p><strong>Best for:</strong> {result.recommendation}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-900 mb-2">Key Decision Factors:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="font-medium text-gray-700">Choose Vanilla BTL if:</p>
+                <ul className="text-gray-600 mt-1 space-y-1">
+                  <li>• You want steady monthly income</li>
+                  <li>• You prefer lower risk</li>
+                  <li>• You're investing for the long term</li>
+                  <li>• You want minimal renovation</li>
+                  <li>• You're buying at market value</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Choose BRRR if:</p>
+                <ul className="text-gray-600 mt-1 space-y-1">
+                  <li>• You want to scale your portfolio quickly</li>
+                  <li>• You can handle higher risk</li>
+                  <li>• You want to recycle capital</li>
+                  <li>• You can find 15-20% BMV deals</li>
+                  <li>• You're willing to do significant renovation</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Choose Flip if:</p>
+                <ul className="text-gray-600 mt-1 space-y-1">
+                  <li>• You want quick capital gains</li>
+                  <li>• You have renovation skills</li>
+                  <li>• You don't need ongoing income</li>
+                  <li>• You can find 15-20% BMV deals</li>
+                  <li>• You want to exit quickly (6-12 months)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {/* Model-specific guidance */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                Vanilla BTL Strategy
+              </h4>
+              <div className="text-sm text-blue-800 space-y-2">
+                <p><strong>Timeline:</strong> Immediate rental after purchase</p>
+                <p><strong>Renovation:</strong> Cosmetic only (£5-8k max)</p>
+                <p><strong>Purchase Price:</strong> At or near market value</p>
+                <p><strong>Returns:</strong> Steady monthly cash flow + long-term appreciation</p>
+                <p><strong>Risk:</strong> Lower - predictable, stable returns</p>
+              </div>
+            </div>
+            
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                BRRR Strategy
+              </h4>
+              <div className="text-sm text-purple-800 space-y-2">
+                <p><strong>Timeline:</strong> 6-12 months to refinance</p>
+                <p><strong>Renovation:</strong> Significant (£20k+ for value-add)</p>
+                <p><strong>Purchase Price:</strong> 15-20% below market value</p>
+                <p><strong>Returns:</strong> Equity release + ongoing rental income</p>
+                <p><strong>Risk:</strong> Medium - renovation and refinancing risk</p>
+              </div>
+            </div>
+            
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h4 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                Flip Strategy
+              </h4>
+              <div className="text-sm text-orange-800 space-y-2">
+                <p><strong>Timeline:</strong> 6-12 months to resale</p>
+                <p><strong>Renovation:</strong> Maximum impact (£25k+ for resale appeal)</p>
+                <p><strong>Purchase Price:</strong> 15-20% below market value</p>
+                <p><strong>Returns:</strong> One-time profit on resale</p>
+                <p><strong>Risk:</strong> Higher - market timing and renovation risk</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* BRRR Details Modal */}
+      {showBrrrDetailsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black bg-opacity-50"
+            onClick={() => setShowBrrrDetailsModal(false)}
+          />
+          
+          {/* Modal Content */}
+          <div className="relative bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Header */}
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <div className="flex items-center gap-3">
+                <TrendingUp className="w-6 h-6 text-purple-600" />
+                <h2 className="text-xl font-semibold text-gray-900">BRRR Strategy Details</h2>
+              </div>
+              <button
+                onClick={() => setShowBrrrDetailsModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {results.find(r => r.model === 'brrr') && (() => {
+                const result = results.find(r => r.model === 'brrr')!;
+                return (
+                  <div className="space-y-6">
+                    {/* Key Metrics */}
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                        <div className="text-sm text-purple-600 font-medium">Equity Released</div>
+                        <div className="text-2xl font-bold text-purple-900">£{(result.equityReleased || 0).toLocaleString()}</div>
+                      </div>
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div className="text-sm text-blue-600 font-medium">Cash Left in Deal</div>
+                        <div className="text-2xl font-bold text-blue-900">£{(result.cashLeftInDeal || 0).toLocaleString()}</div>
+                      </div>
+                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                        <div className="text-sm text-green-600 font-medium">Recycle %</div>
+                        <div className="text-2xl font-bold text-green-900">{(result.recyclePercent || 0).toFixed(0)}%</div>
+                      </div>
+                    </div>
+
+                    {/* BRRR Insights */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h3 className="font-semibold text-gray-900 mb-3">BRRR Strategy Insights</h3>
+                      <div className="grid md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-gray-600">Break-even rent</span>
+                            <span className="font-medium">£{(result.breakEvenRent || 0).toLocaleString()}/month</span>
+                          </div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-gray-600">Your estimated ARV</span>
+                            <span className="font-medium">£{inputs.estimatedRenovatedValue.toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Target purchase price</span>
+                            <span className="font-medium">£{(result.recommendedPurchasePrice || 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-gray-600">BMV guide (10%)</span>
+                            <span className="font-medium">£{(inputs.marketValue ? inputs.marketValue * 0.9 : 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between mb-1">
+                            <span className="text-gray-600">BMV guide (15%)</span>
+                            <span className="font-medium">£{(inputs.marketValue ? inputs.marketValue * 0.85 : 0).toLocaleString()}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">BMV guide (20%)</span>
+                            <span className="font-medium">£{(inputs.marketValue ? inputs.marketValue * 0.80 : 0).toLocaleString()}</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Explanation Section */}
+                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h4 className="font-medium text-blue-900 mb-2">What These Numbers Mean:</h4>
+                        <div className="text-xs text-blue-800 space-y-1">
+                          <p><strong>Break-even rent:</strong> The minimum monthly rent needed to cover all costs (mortgage + expenses)</p>
+                          <p><strong>Recommended ARV:</strong> The target property value after refurbishment and market growth</p>
+                          <p><strong>Target purchase price:</strong> What you should aim to buy for to achieve optimal returns</p>
+                          <p><strong>BMV guides:</strong> Below Market Value targets - aim for 10-20% discount for best BRRR returns</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Scenario Ladder */}
+                    {Array.isArray(result.scenarios) && result.scenarios.length > 0 && (
+                      <div>
+                        <h3 className="font-semibold text-gray-900 mb-3">Scenario Analysis</h3>
+                        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-gray-50">
+                                <tr>
+                                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Discount</th>
+                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Buy</th>
+                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Refurb</th>
+                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">ARV</th>
+                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Equity Released</th>
+                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Cash Left</th>
+                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Recycle %</th>
+                                </tr>
+                              </thead>
+                              <tbody className="divide-y divide-gray-200">
+                                {result.scenarios.map((s, i) => (
+                                  <tr key={i} className={i % 2 ? 'bg-gray-50' : 'bg-white'}>
+                                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{s.label}</td>
+                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.purchasePrice)}</td>
+                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.refurbCost)}</td>
+                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.arv)}</td>
+                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.equityReleased)}</td>
+                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.cashLeftInDeal)}</td>
+                                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-900">{Math.round(s.recyclePercent)}%</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Strategy Guidance */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-blue-900 mb-2">Strategy Guidance</h3>
+                      <div className="text-sm text-blue-800 space-y-2">
+                        <p>• Target properties at 10-20% below market value for optimal BRRR returns</p>
+                        <p>• Ensure refurbishment adds at least 80% of cost to property value</p>
+                        <p>• Plan for 6-12 months between purchase and refinance</p>
+                        <p>• Maintain good credit score for favorable refinance terms</p>
+                      </div>
+                    </div>
+
+                    {/* What You Should Offer */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-green-900 mb-3">What You Should Offer</h3>
+                      <div className="space-y-3">
+                        <div className="bg-white rounded-lg p-3 border border-green-200">
+                          <h4 className="font-medium text-green-900 mb-2">🎯 Ideal Purchase Price</h4>
+                          <div className="text-2xl font-bold text-green-700 mb-2">
+                            £{(inputs.marketValue ? inputs.marketValue * 0.85 : 0).toLocaleString()}
+                          </div>
+                          <p className="text-sm text-green-800">Aim for 15% below market value for optimal returns</p>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg p-3 border border-green-200">
+                          <h4 className="font-medium text-green-900 mb-2">💰 Maximum Offer</h4>
+                          <div className="text-2xl font-bold text-green-700 mb-2">
+                            £{(inputs.marketValue ? inputs.marketValue * 0.9 : 0).toLocaleString()}
+                          </div>
+                          <p className="text-sm text-green-800">Don't pay more than 10% below market value</p>
+                        </div>
+
+                        <div className="bg-white rounded-lg p-3 border border-green-200">
+                          <h4 className="font-medium text-green-900 mb-2">📈 Your Estimated Renovated Value</h4>
+                          <div className="text-2xl font-bold text-green-700 mb-2">
+                            £{inputs.estimatedRenovatedValue.toLocaleString()}
+                          </div>
+                          <p className="text-sm text-green-800">Your estimate of what the property will be worth after refurbishment</p>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h4 className="font-medium text-yellow-900 mb-2">💡 Negotiation Tips</h4>
+                        <div className="text-xs text-yellow-800 space-y-1">
+                          <p>• Start your offer at 20% below market value and negotiate up</p>
+                          <p>• Highlight any issues that justify the discount (damp, outdated kitchen, etc.)</p>
+                          <p>• Be prepared to walk away if the seller won't meet your target price</p>
+                          <p>• Consider offering a quick completion to sweeten the deal</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
