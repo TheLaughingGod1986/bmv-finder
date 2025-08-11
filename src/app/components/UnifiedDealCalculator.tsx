@@ -83,6 +83,15 @@ interface DealInputs {
   growthAnnualPct?: number; // % per year compounding
   refurbUpliftFactor?: number; // proportion of refurb that adds to value (0.8 = 80%)
   mortgageType?: 'repayment' | 'interest_only'; // Added mortgage type selection
+  // API data
+  apiData?: {
+    estimatedValue: number;
+    monthlyRent: number;
+    annualGrowth: number;
+    confidence: string;
+    source: string;
+    lastUpdated: string;
+  };
 }
 
 
@@ -303,6 +312,30 @@ export default function UnifiedDealCalculator() {
     };
     checkAuth();
   }, []);
+
+  // Function to fetch property data from API
+  const fetchPropertyData = async (postcode: string, bedrooms: number) => {
+    try {
+      const response = await fetch(`/api/deal-calculator-data?postcode=${encodeURIComponent(postcode)}&bedrooms=${bedrooms}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setInputs(prev => ({
+            ...prev,
+            estimatedRenovatedValue: data.data.estimatedValue,
+            monthlyRent: data.data.monthlyRent,
+            growthAnnualPct: data.data.annualGrowth,
+            apiData: data.data
+          }));
+          
+          // Show success message
+          console.log('Property data fetched successfully:', data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch property data:', error);
+    }
+  };
 
   // Validation functions
   const validatePurchasePrice = (price: number) => {
@@ -937,28 +970,55 @@ export default function UnifiedDealCalculator() {
                     {addressMode === 'search' && (
                       <div>
                         <label className={fieldLabel}>Postcode</label>
-                        <input
-                          value={inputs.postcode}
-                          onChange={(e) => {
-                            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
-                            value = value.replace(/\s+/g, ' ').trim();
-                            
-                            if (value.length >= 5) {
-                              if (value.match(/^[A-Z]{2}[0-9][0-9A-Z][0-9][A-Z]{2}$/)) {
-                                value = value.replace(/^([A-Z]{2}[0-9][0-9A-Z])([0-9][A-Z]{2})$/, '$1 $2');
-                              } else if (value.match(/^[A-Z]{2}[0-9][0-9][A-Z][0-9][A-Z]{2}$/)) {
-                                value = value.replace(/^([A-Z]{2}[0-9][0-9][A-Z])([0-9][A-Z]{2})$/, '$1 $2');
-                              } else if (value.match(/^[A-Z]{2}[0-9][0-9][0-9][A-Z]{2}$/)) {
-                                value = value.replace(/^([A-Z]{2}[0-9][0-9][0-9])([A-Z]{2})$/, '$1 $2');
+                        <div className="flex gap-2">
+                          <input
+                            value={inputs.postcode}
+                            onChange={(e) => {
+                              let value = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
+                              value = value.replace(/\s+/g, ' ').trim();
+                              
+                              if (value.length >= 5) {
+                                if (value.match(/^[A-Z]{2}[0-9][0-9A-Z][0-9][A-Z]{2}$/)) {
+                                  value = value.replace(/^([A-Z]{2}[0-9][0-9A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                                } else if (value.match(/^[A-Z]{2}[0-9][0-9][A-Z][0-9][A-Z]{2}$/)) {
+                                  value = value.replace(/^([A-Z]{2}[0-9][0-9][A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                                } else if (value.match(/^[A-Z]{2}[0-9][0-9][0-9][A-Z]{2}$/)) {
+                                  value = value.replace(/^([A-Z]{2}[0-9][0-9][0-9])([A-Z]{2})$/, '$1 $2');
+                                }
                               }
-                            }
-                            
-                            setInputs(prev => ({ ...prev, postcode: value }));
-                          }}
-                          placeholder="e.g., NE5 4PR"
-                          className={fieldInput}
-                          maxLength={8}
-                        />
+                              
+                              setInputs(prev => ({ ...prev, postcode: value }));
+                            }}
+                            placeholder="e.g., NE5 4PR"
+                            className={fieldInput}
+                            maxLength={8}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fetchPropertyData(inputs.postcode, inputs.bedrooms)}
+                            disabled={!inputs.postcode.trim() || inputs.bedrooms === 0}
+                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Fetch Data
+                          </button>
+                        </div>
+                        {inputs.apiData && (
+                          <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
+                            <div className="text-xs text-green-700">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CheckCircle className="w-4 h-4" />
+                                <span className="font-medium">Data fetched from API</span>
+                                <span className="text-green-600">({inputs.apiData.confidence} confidence)</span>
+                              </div>
+                              <div className="grid grid-cols-3 gap-2 text-xs">
+                                <div>Value: £{inputs.apiData.estimatedValue.toLocaleString()}</div>
+                                <div>Rent: £{inputs.apiData.monthlyRent}/month</div>
+                                <div>Growth: {inputs.apiData.annualGrowth}%/year</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <p className="mt-1 text-xs text-gray-500">Enter postcode and click "Fetch Data" to auto-populate values</p>
                       </div>
                     )}
 
