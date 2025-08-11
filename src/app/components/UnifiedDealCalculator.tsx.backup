@@ -153,7 +153,6 @@ export default function UnifiedDealCalculator() {
   });
 
   const [addressMode, setAddressMode] = useState<'search' | 'manual' | 'watchlist'>('search');
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
   const [watchlist, setWatchlist] = useState<Array<{ id: string; address: string; postcode: string; price?: number }>>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [recentSales, setRecentSales] = useState<Array<{
@@ -187,53 +186,6 @@ export default function UnifiedDealCalculator() {
     brrr: false,
     flip: false
   });
-
-  // Smart defaults based on investment strategy
-  const applySmartDefaults = (model: 'vanilla' | 'brrr' | 'flip') => {
-    const defaults = {
-      vanilla: {
-        refurbCost: 8000,
-        refurbLevel: 'cosmetic' as const,
-        refurbContingencyPct: 10,
-        timelineMonths: 24,
-        flipTimeline: 6,
-        growthAnnualPct: 3,
-        refurbUpliftFactor: 0.8,
-        financeMode: 'day1' as const,
-      },
-      brrr: {
-        refurbCost: 25000,
-        refurbLevel: 'modernisation' as const,
-        refurbContingencyPct: 15,
-        timelineMonths: 12,
-        flipTimeline: 6,
-        growthAnnualPct: 4,
-        refurbUpliftFactor: 0.85,
-        financeMode: 'bridge_refi' as const,
-        bridgeRate: 8,
-        bridgeMonths: 6,
-      },
-      flip: {
-        refurbCost: 30000,
-        refurbLevel: 'full_renovation' as const,
-        refurbContingencyPct: 20,
-        timelineMonths: 24,
-        flipTimeline: 8,
-        growthAnnualPct: 0, // No growth for flip
-        refurbUpliftFactor: 0.9,
-        financeMode: 'bridge_refi' as const,
-        bridgeRate: 9,
-        bridgeMonths: 8,
-        sellingCosts: 8000,
-      }
-    };
-
-    setInputs(prev => ({
-      ...prev,
-      desiredModel: model,
-      ...defaults[model]
-    }));
-  };
 
   const toggleAccordion = (model: 'vanilla' | 'brrr' | 'flip') => {
     setOpenAccordions(prev => ({
@@ -667,34 +619,6 @@ export default function UnifiedDealCalculator() {
     <div className="grid gap-8 lg:grid-cols-2">
       {/* Input Form */}
       <div className="space-y-6">
-        {/* Mode Toggle */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Calculator Mode</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Quick Start</span>
-              <button
-                onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isAdvancedMode ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    isAdvancedMode ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className="text-sm text-gray-600">Advanced</span>
-            </div>
-          </div>
-          <p className="text-sm text-gray-500">
-            {isAdvancedMode 
-              ? 'Advanced mode shows all detailed options and advanced financial settings.'
-              : 'Quick Start mode shows essential fields with smart defaults based on your investment strategy.'
-            }
-          </p>
-        </div>
 
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -801,7 +725,7 @@ export default function UnifiedDealCalculator() {
                 <button
                   key={model}
                   type="button"
-                  onClick={() => applySmartDefaults(model)}
+                  onClick={() => setInputs(prev => ({ ...prev, desiredModel: model }))}
                   className={`p-4 rounded-lg border-2 text-left transition-all ${
                     inputs.desiredModel === model 
                       ? 'border-blue-500 bg-blue-50' 
@@ -926,40 +850,6 @@ export default function UnifiedDealCalculator() {
               )}
             </div>
           )}
-
-          {/* Quick Start Summary - Only shown in Quick Start Mode */}
-          {!isAdvancedMode && inputs.desiredModel && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">Smart Defaults Applied</h4>
-              <div className="text-sm text-blue-800 space-y-1">
-                {inputs.desiredModel === 'vanilla' && (
-                  <>
-                    <p>• Refurb cost: £{inputs.refurbCost?.toLocaleString()} (cosmetic level)</p>
-                    <p>• Finance: Day-1 buy-to-let mortgage</p>
-                    <p>• Growth: {inputs.growthAnnualPct}% per year</p>
-                    <p>• Refurb uplift: {(inputs.refurbUpliftFactor || 0) * 100}% of cost</p>
-                  </>
-                )}
-                {inputs.desiredModel === 'brrr' && (
-                  <>
-                    <p>• Refurb cost: £{inputs.refurbCost?.toLocaleString()} (modernisation level)</p>
-                    <p>• Finance: Bridge loan → refinance</p>
-                    <p>• Growth: {inputs.growthAnnualPct}% per year</p>
-                    <p>• Timeline: {inputs.timelineMonths} months to refinance</p>
-                  </>
-                )}
-                {inputs.desiredModel === 'flip' && (
-                  <>
-                    <p>• Refurb cost: £{inputs.refurbCost?.toLocaleString()} (full renovation)</p>
-                    <p>• Finance: Bridge loan during works</p>
-                    <p>• Timeline: {inputs.flipTimeline} months to sell</p>
-                    <p>• Selling costs: £{inputs.sellingCosts?.toLocaleString()}</p>
-                  </>
-                )}
-                <p className="mt-2 text-xs">Switch to Advanced mode to customize these settings</p>
-              </div>
-            </div>
-          )}
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -1008,75 +898,70 @@ export default function UnifiedDealCalculator() {
               <p className="mt-1 text-xs text-gray-500">Used to calculate gross yield and rental performance metrics</p>
             </div>
 
-            {/* Advanced Fields - Only shown in Advanced Mode */}
-            {isAdvancedMode && (
-              <>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className={fieldLabel}>Growth (%/yr)</label>
+                <input
+                  type="number"
+                  value={inputs.growthAnnualPct}
+                  onChange={(e) => setInputs(prev => ({ ...prev, growthAnnualPct: Number(e.target.value) }))}
+                  className={fieldInput}
+                  min={0}
+                  step={0.1}
+                />
+              </div>
+              <div>
+                <label className={fieldLabel}>Refurb uplift factor</label>
+                <select
+                  value={inputs.refurbUpliftFactor}
+                  onChange={(e) => setInputs(prev => ({ ...prev, refurbUpliftFactor: Number(e.target.value) }))}
+                  className={fieldSelect}
+                >
+                  <option value={0.7}>70% of refurb cost</option>
+                  <option value={0.8}>80% of refurb cost</option>
+                  <option value={0.9}>90% of refurb cost</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className={fieldLabel}>Finance mode</label>
+                <select
+                  value={inputs.financeMode}
+                  onChange={(e) => setInputs(prev => ({ ...prev, financeMode: e.target.value as 'day1' | 'bridge_refi' }))}
+                  className={fieldSelect}
+                >
+                  <option value="day1">Day-1 buy-to-let</option>
+                  <option value="bridge_refi">Bridge → refinance</option>
+                </select>
+              </div>
+              {inputs.financeMode === 'bridge_refi' && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <label className={fieldLabel}>Growth (%/yr)</label>
+                    <label className={fieldLabel}>Bridge rate (% APR)</label>
                     <input
                       type="number"
-                      value={inputs.growthAnnualPct}
-                      onChange={(e) => setInputs(prev => ({ ...prev, growthAnnualPct: Number(e.target.value) }))}
+                      value={inputs.bridgeRate}
+                      onChange={(e) => setInputs(prev => ({ ...prev, bridgeRate: Number(e.target.value) }))}
                       className={fieldInput}
                       min={0}
                       step={0.1}
                     />
                   </div>
                   <div>
-                    <label className={fieldLabel}>Refurb uplift factor</label>
-                    <select
-                      value={inputs.refurbUpliftFactor}
-                      onChange={(e) => setInputs(prev => ({ ...prev, refurbUpliftFactor: Number(e.target.value) }))}
-                      className={fieldSelect}
-                    >
-                      <option value={0.7}>70% of refurb cost</option>
-                      <option value={0.8}>80% of refurb cost</option>
-                      <option value={0.9}>90% of refurb cost</option>
-                    </select>
+                    <label className={fieldLabel}>Bridge term (months)</label>
+                    <input
+                      type="number"
+                      value={inputs.bridgeMonths}
+                      onChange={(e) => setInputs(prev => ({ ...prev, bridgeMonths: Number(e.target.value) }))}
+                      className={fieldInput}
+                      min={0}
+                    />
                   </div>
                 </div>
-
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className={fieldLabel}>Finance mode</label>
-                    <select
-                      value={inputs.financeMode}
-                      onChange={(e) => setInputs(prev => ({ ...prev, financeMode: e.target.value as 'day1' | 'bridge_refi' }))}
-                      className={fieldSelect}
-                    >
-                      <option value="day1">Day-1 buy-to-let</option>
-                      <option value="bridge_refi">Bridge → refinance</option>
-                    </select>
-                  </div>
-                  {inputs.financeMode === 'bridge_refi' && (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div>
-                        <label className={fieldLabel}>Bridge rate (% APR)</label>
-                        <input
-                          type="number"
-                          value={inputs.bridgeRate}
-                          onChange={(e) => setInputs(prev => ({ ...prev, bridgeRate: Number(e.target.value) }))}
-                          className={fieldInput}
-                          min={0}
-                          step={0.1}
-                        />
-                      </div>
-                      <div>
-                        <label className={fieldLabel}>Bridge term (months)</label>
-                        <input
-                          type="number"
-                          value={inputs.bridgeMonths}
-                          onChange={(e) => setInputs(prev => ({ ...prev, bridgeMonths: Number(e.target.value) }))}
-                          className={fieldInput}
-                          min={0}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -1430,12 +1315,6 @@ export default function UnifiedDealCalculator() {
         </div>
       </div>
 
-
-
-
-
-
-
       {/* Results Sidebar */}
       <div className="space-y-6">
         {/* Combined Deal Summary & Strategy Recommendation */}
@@ -1485,8 +1364,6 @@ export default function UnifiedDealCalculator() {
                 </div>
               ))}
             </div>
-
-
 
             {/* Recommended Strategy Details */}
             <div className="bg-white/20 rounded-lg p-4 mb-4">
@@ -1875,7 +1752,273 @@ export default function UnifiedDealCalculator() {
         ))}
       </div>
 
+      {/* Strategy Explanations Section */}
+      {results && results.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Investment Strategy Guide</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {/* Vanilla BTL Strategy */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-blue-900">Vanilla BTL Strategy</h4>
+              </div>
+              <div className="space-y-2 text-sm text-blue-800">
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Timeline:</span>
+                  <span>Immediate rental after purchase</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Renovation:</span>
+                  <span>Cosmetic only (£5-8k max)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Purchase Price:</span>
+                  <span>At or near market value</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Returns:</span>
+                  <span>Steady monthly cash flow + long-term appreciation</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Risk:</span>
+                  <span>Lower - predictable, stable returns</span>
+                </div>
+              </div>
+            </div>
 
+            {/* BRRR Strategy */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-purple-900">BRRR Strategy</h4>
+              </div>
+              <div className="space-y-2 text-sm text-purple-800">
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Timeline:</span>
+                  <span>6-12 months to refinance</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Renovation:</span>
+                  <span>Significant (£20k+ for value-add)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Purchase Price:</span>
+                  <span>15-20% below market value</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Returns:</span>
+                  <span>Equity release + ongoing rental income</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Risk:</span>
+                  <span>Medium - renovation and refinancing risk</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Flip Strategy */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                  <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                </div>
+                <h4 className="font-semibold text-orange-900">Flip Strategy</h4>
+              </div>
+              <div className="space-y-2 text-sm text-orange-800">
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Timeline:</span>
+                  <span>6-12 months to resale</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Renovation:</span>
+                  <span>Maximum impact (£25k+ for resale appeal)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Purchase Price:</span>
+                  <span>15-20% below market value</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Returns:</span>
+                  <span>One-time profit on resale</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Risk:</span>
+                  <span>Higher - market timing and renovation risk</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+                  <span className="font-medium">Purchase Price:</span>
+                  <span>15-20% below market value</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Returns:</span>
+                  <span>One-time profit on resale</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="font-medium">Risk:</span>
+                  <span>Higher - market timing and renovation risk</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Model Comparison Section */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Which Model Should You Choose?</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            {['vanilla', 'brrr', 'flip'].map((model) => {
+              const result = results.find(r => r.model === model);
+              if (!result) return null;
+              
+              return (
+                <div key={model} className={`p-4 rounded-lg border-2 ${
+                  model === recommendedModel ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                }`}>
+                  <h4 className="font-semibold text-gray-900 capitalize mb-2">
+                    {model === 'vanilla' ? 'Vanilla BTL' : model.toUpperCase()}
+                  </h4>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Annual Cash Flow:</span>
+                      <span className={`font-semibold ${result.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        £{(result.cashFlow * 12).toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Total ROI:</span>
+                      <span className="font-semibold text-blue-600">
+                        {result.roi.toFixed(1)}%
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Total Profit:</span>
+                      <span className={`font-semibold ${result.totalProfit && result.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        £{(result.totalProfit || 0).toLocaleString()}
+                      </span>
+                    </div>
+                    
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600">Risk Level:</span>
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        result.risk === 'low' ? 'bg-green-100 text-green-800' :
+                        result.risk === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {result.risk}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-3 text-xs text-gray-600">
+                    <p><strong>Best for:</strong> {result.recommendation}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-semibold text-gray-900 mb-2">Key Decision Factors:</h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div>
+                <p className="font-medium text-gray-700">Choose Vanilla BTL if:</p>
+                <ul className="text-gray-600 mt-1 space-y-1">
+                  <li>• You want steady monthly income</li>
+                  <li>• You prefer lower risk</li>
+                  <li>• You're investing for the long term</li>
+                  <li>• You want minimal renovation</li>
+                  <li>• You're buying at market value</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Choose BRRR if:</p>
+                <ul className="text-gray-600 mt-1 space-y-1">
+                  <li>• You want to scale your portfolio quickly</li>
+                  <li>• You can handle higher risk</li>
+                  <li>• You want to recycle capital</li>
+                  <li>• You can find 15-20% BMV deals</li>
+                  <li>• You're willing to do significant renovation</li>
+                </ul>
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">Choose Flip if:</p>
+                <ul className="text-gray-600 mt-1 space-y-1">
+                  <li>• You want quick capital gains</li>
+                  <li>• You have renovation skills</li>
+                  <li>• You don't need ongoing income</li>
+                  <li>• You can find 15-20% BMV deals</li>
+                  <li>• You want to exit quickly (6-12 months)</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          
+          {/* Model-specific guidance */}
+          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                Vanilla BTL Strategy
+              </h4>
+              <div className="text-sm text-blue-800 space-y-2">
+                <p><strong>Timeline:</strong> Immediate rental after purchase</p>
+                <p><strong>Renovation:</strong> Cosmetic only (£5-8k max)</p>
+                <p><strong>Purchase Price:</strong> At or near market value</p>
+                <p><strong>Returns:</strong> Steady monthly cash flow + long-term appreciation</p>
+                <p><strong>Risk:</strong> Lower - predictable, stable returns</p>
+              </div>
+            </div>
+            
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                BRRR Strategy
+              </h4>
+              <div className="text-sm text-purple-800 space-y-2">
+                <p><strong>Timeline:</strong> 6-12 months to refinance</p>
+                <p><strong>Renovation:</strong> Significant (£20k+ for value-add)</p>
+                <p><strong>Purchase Price:</strong> 15-20% below market value</p>
+                <p><strong>Returns:</strong> Equity release + ongoing rental income</p>
+                <p><strong>Risk:</strong> Medium - renovation and refinancing risk</p>
+              </div>
+            </div>
+            
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h4 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
+                <Wrench className="w-4 h-4" />
+                Flip Strategy
+              </h4>
+              <div className="text-sm text-orange-800 space-y-2">
+                <p><strong>Timeline:</strong> 6-12 months to resale</p>
+                <p><strong>Renovation:</strong> Maximum impact (£25k+ for resale appeal)</p>
+                <p><strong>Purchase Price:</strong> 15-20% below market value</p>
+                <p><strong>Returns:</strong> One-time profit on resale</p>
+                <p><strong>Risk:</strong> Higher - market timing and renovation risk</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* BRRR Details Modal */}
       {showBrrrDetailsModal && (
@@ -2060,6 +2203,51 @@ export default function UnifiedDealCalculator() {
                   </div>
                 );
               })()}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Simple Strategy Guide */}
+      {results && results.length > 0 && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Investment Strategy Guide</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Vanilla BTL */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-3">🏠 Vanilla BTL</h4>
+              <div className="text-sm text-blue-800 space-y-2">
+                <p><strong>Timeline:</strong> Immediate rental after purchase</p>
+                <p><strong>Renovation:</strong> Cosmetic only (£5-8k max)</p>
+                <p><strong>Purchase:</strong> At or near market value</p>
+                <p><strong>Returns:</strong> Steady monthly cash flow</p>
+                <p><strong>Risk:</strong> Lower - predictable returns</p>
+              </div>
+            </div>
+
+            {/* BRRR */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h4 className="font-semibold text-purple-900 mb-3">🔄 BRRR</h4>
+              <div className="text-sm text-purple-800 space-y-2">
+                <p><strong>Timeline:</strong> 6-12 months to refinance</p>
+                <p><strong>Renovation:</strong> Significant (£20k+ for value-add)</p>
+                <p><strong>Purchase:</strong> 15-20% below market value</p>
+                <p><strong>Returns:</strong> Equity release + rental income</p>
+                <p><strong>Risk:</strong> Medium - renovation risk</p>
+              </div>
+            </div>
+
+            {/* Flip */}
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <h4 className="font-semibold text-orange-900 mb-3">💰 Flip</h4>
+              <div className="text-sm text-orange-800 space-y-2">
+                <p><strong>Timeline:</strong> 6-12 months to resale</p>
+                <p><strong>Renovation:</strong> Maximum impact (£25k+ for appeal)</p>
+                <p><strong>Purchase:</strong> 15-20% below market value</p>
+                <p><strong>Returns:</strong> One-time profit on resale</p>
+                <p><strong>Risk:</strong> Higher - market timing risk</p>
+              </div>
             </div>
           </div>
         </div>
