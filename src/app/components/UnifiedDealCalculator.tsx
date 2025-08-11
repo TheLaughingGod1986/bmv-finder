@@ -417,7 +417,7 @@ export default function UnifiedDealCalculator() {
     
     return {
       model: 'vanilla',
-      roi: Math.max(0, roi),
+      roi: roi, // Show actual ROI (including negative values)
       cashFlow: annualCashFlow, // Return annual cash flow, not monthly
       totalReturn: totalProfit,
       grossYield,
@@ -498,9 +498,13 @@ export default function UnifiedDealCalculator() {
       roi
     });
     
-    // Calculate post-renovation cash flow (property will be rented after renovations)
+    // Calculate realistic annual cash flow accounting for renovation downtime
     const monthlyCashFlow = inputs.monthlyRent - (inputs.purchasePrice * (1 - inputs.depositPct / 100) * (inputs.interestRate / 100) / 12) - inputs.otherExpenses;
-    const rentReturnTotal = monthlyCashFlow * 12; // Annual cash flow
+    
+    // BRRR typically has 3-6 months renovation, then 6-9 months rental income
+    const renovationMonths = Math.min(inputs.timelineMonths || 6, 6); // Assume 6 months max renovation
+    const rentalMonths = 12 - renovationMonths;
+    const rentReturnTotal = monthlyCashFlow * rentalMonths; // Only count months when property is rented
     
     // BRRR insights
     const cashLeftInDeal = totalInvestment - equityReleased;
@@ -548,8 +552,8 @@ export default function UnifiedDealCalculator() {
 
     return {
       model: 'brrr',
-      roi: Math.max(0, roi),
-      cashFlow: rentReturnTotal, // Annual cash flow after renovations
+      roi: roi, // Show actual ROI (including negative values)
+      cashFlow: rentReturnTotal, // Realistic annual cash flow (accounts for renovation downtime)
       totalReturn: totalProfit,
       grossYield: inputs.monthlyRent > 0 ? (inputs.monthlyRent * 12) / (inputs.purchasePrice + refurbCost) * 100 : 0,
       estGrowthPct: inputs.growthAnnualPct ?? 3,
@@ -621,7 +625,7 @@ export default function UnifiedDealCalculator() {
 
     return {
       model: 'flip',
-      roi: Math.max(0, annualizedRoi),
+      roi: annualizedRoi, // Show actual ROI (including negative values)
       cashFlow: -totalInvestment / inputs.flipTimeline, // Negative during flip
       totalReturn: totalProfit,
       grossYield: 0, // No rental yield during flip
