@@ -14,14 +14,26 @@ import {
   ArrowRight,
   CheckCircle,
   AlertTriangle,
+  AlertCircle,
   Info,
   ChevronDown,
   ChevronUp,
   Check,
-  X
+  X,
+  XCircle,
+  Printer,
+  Lightbulb
 } from 'lucide-react';
 
 import { fieldInput, fieldLabel, fieldSelect } from '../components/ui/fieldStyles';
+
+// Enhanced field styles with validation states
+const getFieldStyles = (isValid: boolean, hasValue: boolean) => {
+  if (!hasValue) return fieldInput;
+  return isValid 
+    ? `${fieldInput} border-green-300 bg-green-50 focus:border-green-500 focus:ring-green-500` 
+    : `${fieldInput} border-red-300 bg-red-50 focus:border-red-500 focus:ring-red-500`;
+};
 import { computeStampDuty, type PurchaseType } from '@/lib/stampDuty';
 
 interface DealInputs {
@@ -50,7 +62,7 @@ interface DealInputs {
   refurbContingencyPct: number;
   
   // Investment strategy
-  desiredModel: 'vanilla' | 'brrr' | 'flip';
+  desiredModel?: 'vanilla' | 'brrr' | 'flip';
   
   // BRRR specific
   remortgageLtv: number;
@@ -70,6 +82,7 @@ interface DealInputs {
   bridgeMonths?: number; // months on bridge before refi
   growthAnnualPct?: number; // % per year compounding
   refurbUpliftFactor?: number; // proportion of refurb that adds to value (0.8 = 80%)
+  mortgageType?: 'repayment' | 'interest_only'; // Added mortgage type selection
 }
 
 
@@ -119,6 +132,9 @@ interface AnalysisResult {
 
 export default function UnifiedDealCalculator() {
   const formatCurrency = (value?: number): string => `£${Math.round(value || 0).toLocaleString()}`;
+  
+  // Add step management for progressive form flow
+  const [currentStep, setCurrentStep] = useState<number>(1);
   const [inputs, setInputs] = useState<DealInputs>({
     postcode: '',
     address: '',
@@ -134,8 +150,8 @@ export default function UnifiedDealCalculator() {
     interestRate: 5,
     monthlyRent: 1200,
     otherExpenses: 200,
-    refurbCost: 15000,
-    refurbLevel: 'cosmetic',
+    refurbCost: 0,
+    refurbLevel: 'none',
     refurbContingencyPct: 10,
     remortgageLtv: 75,
     timelineMonths: 24,
@@ -149,11 +165,11 @@ export default function UnifiedDealCalculator() {
     bridgeMonths: 6,
     growthAnnualPct: 3,
     refurbUpliftFactor: 0.8,
-    desiredModel: 'vanilla' as const,
+    desiredModel: undefined,
+    mortgageType: 'repayment',
   });
 
   const [addressMode, setAddressMode] = useState<'search' | 'manual' | 'watchlist'>('search');
-  const [isAdvancedMode, setIsAdvancedMode] = useState(false);
   const [watchlist, setWatchlist] = useState<Array<{ id: string; address: string; postcode: string; price?: number }>>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [recentSales, setRecentSales] = useState<Array<{
@@ -188,51 +204,62 @@ export default function UnifiedDealCalculator() {
     flip: false
   });
 
-  // Smart defaults based on investment strategy
-  const applySmartDefaults = (model: 'vanilla' | 'brrr' | 'flip') => {
-    const defaults = {
-      vanilla: {
-        refurbCost: 8000,
-        refurbLevel: 'cosmetic' as const,
-        refurbContingencyPct: 10,
-        timelineMonths: 24,
-        flipTimeline: 6,
-        growthAnnualPct: 3,
-        refurbUpliftFactor: 0.8,
-        financeMode: 'day1' as const,
-      },
-      brrr: {
-        refurbCost: 25000,
-        refurbLevel: 'modernisation' as const,
-        refurbContingencyPct: 15,
-        timelineMonths: 12,
-        flipTimeline: 6,
-        growthAnnualPct: 4,
-        refurbUpliftFactor: 0.85,
-        financeMode: 'bridge_refi' as const,
-        bridgeRate: 8,
-        bridgeMonths: 6,
-      },
-      flip: {
-        refurbCost: 30000,
-        refurbLevel: 'full_renovation' as const,
-        refurbContingencyPct: 20,
-        timelineMonths: 24,
-        flipTimeline: 8,
-        growthAnnualPct: 0, // No growth for flip
-        refurbUpliftFactor: 0.9,
-        financeMode: 'bridge_refi' as const,
-        bridgeRate: 9,
-        bridgeMonths: 8,
-        sellingCosts: 8000,
-      }
-    };
+  // Function to handle next step
+  const handleNextStep = () => {
+    // Validate required fields before proceeding
+    if (currentStep === 1 && !inputs.desiredModel) {
+      // Show error message or prevent progression
+      return; // Don't proceed without strategy selection
+    }
+    
+    if (currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
 
-    setInputs(prev => ({
-      ...prev,
-      desiredModel: model,
-      ...defaults[model]
-    }));
+  // Function to handle previous step
+  const handlePrevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  // Function to handle strategy selection with smart defaults
+  const handleStrategySelection = (model: 'vanilla' | 'brrr' | 'flip') => {
+    setInputs(prev => {
+      const newInputs = { ...prev, desiredModel: model };
+      
+      // Only apply defaults if refurbishment level hasn't been explicitly set
+      // or if it's currently 'none' (user's choice)
+      if (prev.refurbLevel === 'none') {
+        // Keep 'none' level for user's choice
+        newInputs.refurbCost = 0;
+      } else {
+        // Apply smart defaults based on strategy
+        switch (model) {
+          case 'vanilla':
+            newInputs.refurbLevel = 'cosmetic';
+            newInputs.refurbCost = calculateRefurbCost('cosmetic', newInputs.bedrooms, newInputs.squareFootage, newInputs.refurbContingencyPct);
+            newInputs.purchasePrice = 250000;
+            newInputs.estimatedRenovatedValue = 260000;
+            break;
+          case 'brrr':
+            newInputs.refurbLevel = 'modernisation';
+            newInputs.refurbCost = calculateRefurbCost('modernisation', newInputs.bedrooms, newInputs.squareFootage, newInputs.refurbContingencyPct);
+            newInputs.purchasePrice = 200000;
+            newInputs.estimatedRenovatedValue = 280000;
+            break;
+          case 'flip':
+            newInputs.refurbLevel = 'full_renovation';
+            newInputs.refurbCost = calculateRefurbCost('full_renovation', newInputs.bedrooms, newInputs.squareFootage, newInputs.refurbContingencyPct);
+            newInputs.purchasePrice = 180000;
+            newInputs.estimatedRenovatedValue = 300000;
+            break;
+        }
+      }
+      
+      return newInputs;
+    });
   };
 
   const toggleAccordion = (model: 'vanilla' | 'brrr' | 'flip') => {
@@ -276,6 +303,31 @@ export default function UnifiedDealCalculator() {
     };
     checkAuth();
   }, []);
+
+  // Validation functions
+  const validatePurchasePrice = (price: number) => {
+    return price > 0 && price <= 10000000; // £0 - £10M
+  };
+
+  const validateMonthlyRent = (rent: number) => {
+    return rent > 0 && rent <= 50000; // £0 - £50k
+  };
+
+  const validateDeposit = (deposit: number) => {
+    return deposit >= 15 && deposit <= 40; // 15-40%
+  };
+
+  const validateInterestRate = (rate: number) => {
+    return rate > 0 && rate <= 20; // 0-20%
+  };
+
+  // Ensure refurbishment cost is calculated correctly
+  useEffect(() => {
+    const calculatedCost = calculateRefurbCost(inputs.refurbLevel, inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct);
+    if (calculatedCost !== inputs.refurbCost) {
+      setInputs(prev => ({ ...prev, refurbCost: calculatedCost }));
+    }
+  }, [inputs.refurbLevel, inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct]);
 
   // Fetch recent sales when postcode changes
   useEffect(() => {
@@ -349,10 +401,24 @@ export default function UnifiedDealCalculator() {
     const totalProfit = rentReturnTotal + projectedCapitalGain - investedTotal;
     const roi = investedTotal > 0 ? (totalProfit / investedTotal) * 100 : 0;
     
+    // Debug logging
+    console.log('Vanilla BTL Calculation:', {
+      purchasePrice: inputs.purchasePrice,
+      deposit,
+      refurbCost,
+      investedTotal,
+      monthlyCashFlow,
+      annualCashFlow,
+      rentReturnTotal,
+      projectedCapitalGain,
+      totalProfit,
+      roi
+    });
+    
     return {
       model: 'vanilla',
       roi: Math.max(0, roi),
-      cashFlow: monthlyCashFlow,
+      cashFlow: annualCashFlow, // Return annual cash flow, not monthly
       totalReturn: totalProfit,
       grossYield,
       estGrowthPct: inputs.growthAnnualPct || 3,
@@ -409,17 +475,35 @@ export default function UnifiedDealCalculator() {
     // Calculate equity release at refinance
     const remortgageAmount = projectedValue * (inputs.remortgageLtv / 100);
     const equityReleased = remortgageAmount - (inputs.purchasePrice - deposit);
-    const cashLeftInDeal = totalInvestment - equityReleased;
     
-    // Calculate ROI based on total profit (equity released minus investment)
-    const totalProfit = equityReleased - totalInvestment;
+    // Calculate total profit: equity released + capital appreciation - total investment
+    const capitalAppreciation = projectedValue - inputs.purchasePrice;
+    const totalProfit = equityReleased + capitalAppreciation - totalInvestment;
+    
+    // Calculate ROI based on total profit vs total investment
     const roi = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
     
-    // During renovation period, no rental income (property is being worked on)
-    const monthlyCashFlow = 0; // No cash flow during BRRR cycle
-    const rentReturnTotal = 0; // No rent during renovation
+    // Debug logging
+    console.log('BRRR Calculation:', {
+      purchasePrice: inputs.purchasePrice,
+      deposit,
+      refurbCost,
+      totalInvestment,
+      postRefurbValue,
+      projectedValue,
+      remortgageAmount,
+      equityReleased,
+      capitalAppreciation,
+      totalProfit,
+      roi
+    });
+    
+    // Calculate post-renovation cash flow (property will be rented after renovations)
+    const monthlyCashFlow = inputs.monthlyRent - (inputs.purchasePrice * (1 - inputs.depositPct / 100) * (inputs.interestRate / 100) / 12) - inputs.otherExpenses;
+    const rentReturnTotal = monthlyCashFlow * 12; // Annual cash flow
     
     // BRRR insights
+    const cashLeftInDeal = totalInvestment - equityReleased;
     const recyclePercent = totalInvestment > 0 ? (equityReleased / totalInvestment) * 100 : 0;
     const breakEvenRent = Math.ceil((mortgage * (inputs.interestRate / 100) / 12) + inputs.otherExpenses);
     
@@ -465,7 +549,7 @@ export default function UnifiedDealCalculator() {
     return {
       model: 'brrr',
       roi: Math.max(0, roi),
-      cashFlow: 0, // No cash flow during BRRR cycle
+      cashFlow: rentReturnTotal, // Annual cash flow after renovations
       totalReturn: totalProfit,
       grossYield: inputs.monthlyRent > 0 ? (inputs.monthlyRent * 12) / (inputs.purchasePrice + refurbCost) * 100 : 0,
       estGrowthPct: inputs.growthAnnualPct ?? 3,
@@ -648,6 +732,7 @@ export default function UnifiedDealCalculator() {
   // Calculate refurbishment cost based on property size and level
   const calculateRefurbCost = (level: string, bedrooms: number, squareFootage: number, contingencyPct?: number) => {
     const baseCosts = {
+      none: 0,
       cosmetic: 12000,
       modernisation: 30000,
       full_renovation: 55000
@@ -663,1407 +748,1485 @@ export default function UnifiedDealCalculator() {
     return Math.round(sizedCost * contingencyMultiplier);
   };
 
+  // Handle refurbishment level change and update cost
+  const handleRefurbLevelChange = (level: string) => {
+    const newCost = calculateRefurbCost(level, inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct);
+    setInputs(prev => ({ 
+      ...prev, 
+      refurbLevel: level as any,
+      refurbCost: newCost
+    }));
+  };
+
+  // Get refurbishment level description and details
+  const getRefurbLevelDetails = (level: string) => {
+    const details = {
+      none: {
+        label: 'None',
+        description: 'No renovation required - property is ready to rent or sell',
+        includes: ['Property is in good condition', 'No structural work needed', 'Ready for immediate use'],
+        typicalCost: '£0',
+        timeline: '0 weeks',
+        bestFor: 'Properties in excellent condition or new builds'
+      },
+      cosmetic: {
+        label: 'Cosmetic',
+        description: 'Surface-level improvements for visual appeal and basic functionality',
+        includes: [
+          'Painting and decorating',
+          'New carpets/flooring',
+          'Kitchen cabinet refresh',
+          'Bathroom updates',
+          'Lighting improvements',
+          'Basic repairs'
+        ],
+        typicalCost: '£8,000 - £15,000',
+        timeline: '2-4 weeks',
+        bestFor: 'Properties in good structural condition needing visual refresh'
+      },
+      modernisation: {
+        label: 'Modernisation',
+        description: 'Significant updates to bring property to modern standards',
+        includes: [
+          'Full kitchen replacement',
+          'Bathroom renovation',
+          'New heating system',
+          'Electrical upgrades',
+          'New windows/doors',
+          'Insulation improvements',
+          'Roof repairs if needed'
+        ],
+        typicalCost: '£20,000 - £40,000',
+        timeline: '6-12 weeks',
+        bestFor: 'Properties needing major updates but with good structure'
+      },
+      full_renovation: {
+        label: 'Full Renovation',
+        description: 'Complete property transformation including structural work',
+        includes: [
+          'Structural modifications',
+          'Complete kitchen rebuild',
+          'Multiple bathroom renovations',
+          'New heating and electrical systems',
+          'Roof replacement if needed',
+          'Extension work',
+          'Complete redecoration',
+          'Garden landscaping'
+        ],
+        typicalCost: '£40,000 - £80,000+',
+        timeline: '12-20 weeks',
+        bestFor: 'Distressed properties or major value-add opportunities'
+      }
+    };
+    
+    return details[level as keyof typeof details] || details.cosmetic;
+  };
+
+  // Calculate monthly mortgage payment based on type and finance mode
+  const calculateMonthlyMortgagePayment = () => {
+    const principal = inputs.purchasePrice * (1 - inputs.depositPct / 100);
+    
+    // Handle bridge financing
+    if (inputs.financeMode === 'bridge_refi') {
+      const bridgeRate = inputs.bridgeRate || 10; // Default to 10% if not set
+      const monthlyRate = bridgeRate / 100 / 12;
+      // Bridge loans are interest-only during the renovation period
+      return Math.round(principal * monthlyRate);
+    }
+    
+    // Handle regular BTL mortgages
+    const monthlyRate = inputs.interestRate / 100 / 12;
+    const totalPayments = 25 * 12; // 25-year mortgage term
+    
+    if (inputs.mortgageType === 'interest_only') {
+      // Interest-only: just the monthly interest
+      return Math.round(principal * monthlyRate);
+    } else {
+      // Repayment: full amortization formula
+      const monthlyPayment = principal * (monthlyRate * Math.pow(1 + monthlyRate, totalPayments)) / (Math.pow(1 + monthlyRate, totalPayments) - 1);
+      return Math.round(monthlyPayment);
+    }
+  };
+
   return (
-    <div className="grid gap-8 lg:grid-cols-2">
-      {/* Input Form */}
-      <div className="space-y-6">
-        {/* Mode Toggle */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Calculator Mode</h3>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Quick Start</span>
-              <button
-                onClick={() => setIsAdvancedMode(!isAdvancedMode)}
-                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  isAdvancedMode ? 'bg-blue-600' : 'bg-gray-200'
-                }`}
-              >
-                <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                    isAdvancedMode ? 'translate-x-6' : 'translate-x-1'
-                  }`}
-                />
-              </button>
-              <span className="text-sm text-gray-600">Advanced</span>
-            </div>
-          </div>
-          <p className="text-sm text-gray-500">
-            {isAdvancedMode 
-              ? 'Advanced mode shows all detailed options and advanced financial settings.'
-              : 'Quick Start mode shows essential fields with smart defaults based on your investment strategy.'
-            }
-          </p>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Deal Calculator</h1>
+          <p className="text-lg text-gray-600">Analyze your property investment strategy step by step</p>
         </div>
 
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Details</h3>
-          
-          <div className="grid gap-3">
-            <div className="grid gap-1">
-              <label className={fieldLabel}>Property source</label>
-              <div className={`grid gap-2 text-xs ${isAuthenticated ? 'grid-cols-4' : 'grid-cols-3'}`}>
-                {(['search','manual','watchlist'] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => { setAddressMode(m); }}
-                    className={`rounded-md border px-2 py-1 ${addressMode === m ? 'border-gray-900 text-gray-900' : 'border-gray-300 text-gray-600 hover:border-gray-400'}`}
-                  >
-                    {m === 'search' ? 'Search by postcode' : m === 'manual' ? 'Add manually' : 'From watchlist'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {addressMode === 'search' && (
-              <div>
-                <label className={fieldLabel}>Postcode</label>
-                <input
-                  value={inputs.postcode}
-                  onChange={(e) => {
-                    // Clean input - only allow letters, numbers, and spaces
-                    let value = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
-                    
-                    // Remove extra spaces
-                    value = value.replace(/\s+/g, ' ').trim();
-                    
-                    // Handle common UK postcode patterns
-                    if (value.length >= 5) {
-                      // Pattern: NE54PR -> NE5 4PR
-                      if (value.match(/^[A-Z]{2}[0-9][0-9A-Z][0-9][A-Z]{2}$/)) {
-                        value = value.replace(/^([A-Z]{2}[0-9][0-9A-Z])([0-9][A-Z]{2})$/, '$1 $2');
-                      }
-                      // Pattern: NE54PR -> NE5 4PR (alternative)
-                      else if (value.match(/^[A-Z]{2}[0-9][0-9][A-Z][0-9][A-Z]{2}$/)) {
-                        value = value.replace(/^([A-Z]{2}[0-9][0-9][A-Z])([0-9][A-Z]{2})$/, '$1 $2');
-                      }
-                      // Pattern: NE54PR -> NE5 4PR (another variation)
-                      else if (value.match(/^[A-Z]{2}[0-9][0-9][0-9][A-Z]{2}$/)) {
-                        value = value.replace(/^([A-Z]{2}[0-9][0-9][0-9])([A-Z]{2})$/, '$1 $2');
-                      }
-                    }
-                    
-                    setInputs(prev => ({ ...prev, postcode: value }));
-                  }}
-                  placeholder="e.g., NE5 4PR"
-                  className={fieldInput}
-                  maxLength={8}
-                />
-              </div>
-            )}
-
-            {addressMode === 'manual' && (
-              <>
-                <label className={`${fieldLabel} mt-2`}>House number and street</label>
-                <input
-                  value={inputs.address}
-                  onChange={(e) => setInputs(prev => ({ ...prev, address: e.target.value }))}
-                  placeholder="e.g., 73 Belgrave Road"
-                  className={`${fieldInput} mt-1`}
-                />
-                <p className="mt-1 text-xs text-gray-500">Enter the property address manually if it's not in our database.</p>
-              </>
-            )}
-
-            {addressMode === 'watchlist' && (
-              <div className="mt-2 max-h-48 overflow-auto rounded-md border border-gray-200 bg-white text-sm">
-                {watchlist.length === 0 && (
-                  <div className="px-3 py-2 text-xs text-gray-500">No properties in watchlist.</div>
-                )}
-                {watchlist.map((w) => (
-                  <button
-                    key={w.id}
-                    type="button"
-                    className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-gray-50"
-                    onClick={() => {
-                      setInputs(prev => ({ 
-                        ...prev, 
-                        postcode: w.postcode || prev.postcode, 
-                        address: w.address || prev.address 
-                      }));
-                    }}
-                  >
-                    <span className="truncate">{w.address}</span>
-                    <span className="shrink-0 text-xs text-gray-500">{w.postcode}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Investment Strategy Selection */}
-          <div className="mt-6">
-            <label className={fieldLabel}>Investment Strategy</label>
-            <div className="grid gap-3 mt-2">
-              {(['vanilla', 'brrr', 'flip'] as const).map((model) => (
-                <button
-                  key={model}
-                  type="button"
-                  onClick={() => applySmartDefaults(model)}
-                  className={`p-4 rounded-lg border-2 text-left transition-all ${
-                    inputs.desiredModel === model 
-                      ? 'border-blue-500 bg-blue-50' 
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {getModelIcon(model)}
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 capitalize">
-                        {model === 'vanilla' ? 'Vanilla BTL' : model.toUpperCase()}
-                      </h4>
-                      <p className="text-sm text-gray-600 mt-1">
-                        {model === 'vanilla' 
-                          ? 'Buy at market value, minimal renovation (£5-8k), immediate rental income'
-                          : model === 'brrr'
-                          ? 'Buy distressed property at 15-20% discount, renovate significantly (£20k+), refinance to release equity'
-                          : 'Buy distressed property at 15-20% discount, renovate quickly (£25k+), sell for profit within 6-12 months'
-                        }
-                      </p>
-                      <div className="mt-2 text-xs text-gray-500">
-                        {model === 'vanilla' 
-                          ? 'Best for: Steady income, lower risk, long-term holds'
-                          : model === 'brrr'
-                          ? 'Best for: Scaling portfolio, capital recycling, higher returns'
-                          : 'Best for: Quick profits, no ongoing management, capital gains'
-                        }
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Property Size Fields */}
-          <div className="grid gap-4 mt-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className={fieldLabel}>Bedrooms</label>
-                <input
-                  type="number"
-                  value={inputs.bedrooms}
-                  onChange={(e) => setInputs(prev => ({ ...prev, bedrooms: Number(e.target.value) }))}
-                  className={fieldInput}
-                  min={1}
-                  max={10}
-                />
-              </div>
-              <div>
-                <label className={fieldLabel}>Square Footage</label>
-                <input
-                  type="number"
-                  value={inputs.squareFootage}
-                  onChange={(e) => setInputs(prev => ({ ...prev, squareFootage: Number(e.target.value) }))}
-                  className={fieldInput}
-                  min={500}
-                  max={5000}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Recent Sales Section */}
-          {recentSales.length > 0 && (
-            <div className="mt-4">
-              <button
-                type="button"
-                onClick={() => setShowRecentSales(!showRecentSales)}
-                className="flex items-center justify-between w-full p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-2">
-                  <Home className="h-4 w-4 text-gray-600" />
-                  <span className="font-medium text-gray-900">
-                    Recent Sales ({recentSales.length} properties)
-                  </span>
+        {/* Progress Steps */}
+        <div className="flex justify-center mb-8">
+          <div className="flex items-center space-x-4">
+            {[1, 2, 3].map((step) => (
+              <div key={step} className="flex items-center">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium ${
+                  currentStep >= step 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-gray-200 text-gray-600'
+                }`}>
+                  {currentStep > step ? (
+                    <Check className="w-5 h-5" />
+                  ) : (
+                    step
+                  )}
                 </div>
-                {showRecentSales ? (
-                  <ChevronUp className="h-4 w-4 text-gray-600" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-600" />
+                {step < 3 && (
+                  <div className={`w-16 h-0.5 mx-2 ${
+                    currentStep > step ? 'bg-blue-600' : 'bg-gray-200'
+                  }`} />
                 )}
-              </button>
-              
-              {showRecentSales && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="mt-2 max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white"
-                >
-                  <div className="p-3">
-                    <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
-                      Sold in the last 12 months
-                    </div>
-                    {recentSales.map((sale, index) => (
-                      <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium text-gray-900 truncate">
-                            {sale.paon} {sale.street}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {new Date(sale.dateOfTransfer).toLocaleDateString('en-GB', {
-                              day: 'numeric',
-                              month: 'short',
-                              year: 'numeric'
-                            })}
-                          </div>
-                        </div>
-                        <div className="text-right ml-2">
-                          <div className="text-sm font-semibold text-gray-900">
-                            £{sale.price.toLocaleString()}
-                          </div>
-                          <div className="text-xs text-gray-500 capitalize">
-                            {sale.propertyType}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </div>
-          )}
-
-          {/* Quick Start Summary - Only shown in Quick Start Mode */}
-          {!isAdvancedMode && inputs.desiredModel && (
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium text-blue-900 mb-2">Smart Defaults Applied</h4>
-              <div className="text-sm text-blue-800 space-y-1">
-                {inputs.desiredModel === 'vanilla' && (
-                  <>
-                    <p>• Refurb cost: £{inputs.refurbCost?.toLocaleString()} (cosmetic level)</p>
-                    <p>• Finance: Day-1 buy-to-let mortgage</p>
-                    <p>• Growth: {inputs.growthAnnualPct}% per year</p>
-                    <p>• Refurb uplift: {(inputs.refurbUpliftFactor || 0) * 100}% of cost</p>
-                  </>
-                )}
-                {inputs.desiredModel === 'brrr' && (
-                  <>
-                    <p>• Refurb cost: £{inputs.refurbCost?.toLocaleString()} (modernisation level)</p>
-                    <p>• Finance: Bridge loan → refinance</p>
-                    <p>• Growth: {inputs.growthAnnualPct}% per year</p>
-                    <p>• Timeline: {inputs.timelineMonths} months to refinance</p>
-                  </>
-                )}
-                {inputs.desiredModel === 'flip' && (
-                  <>
-                    <p>• Refurb cost: £{inputs.refurbCost?.toLocaleString()} (full renovation)</p>
-                    <p>• Finance: Bridge loan during works</p>
-                    <p>• Timeline: {inputs.flipTimeline} months to sell</p>
-                    <p>• Selling costs: £{inputs.sellingCosts?.toLocaleString()}</p>
-                  </>
-                )}
-                <p className="mt-2 text-xs">Switch to Advanced mode to customize these settings</p>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Advanced assumptions</h3>
-          
-          <div className="grid gap-4">
-            <div>
-              <label className={fieldLabel}>Offer/asking price (£)</label>
-              <input
-                type="number"
-                value={inputs.purchasePrice}
-                onChange={(e) => setInputs(prev => ({ ...prev, purchasePrice: Number(e.target.value) }))}
-                className={fieldInput}
-                min={0}
-              />
-            </div>
+        {/* Step Labels */}
+        <div className="flex justify-center mb-8">
+          <div className="flex space-x-16">
+            <span className={`text-sm font-medium ${currentStep === 1 ? 'text-blue-600' : 'text-gray-500'}`}>
+              Property & Strategy
+            </span>
+            <span className={`text-sm font-medium ${currentStep === 2 ? 'text-blue-600' : 'text-gray-500'}`}>
+              Financial Details
+            </span>
+            <span className={`text-sm font-medium ${currentStep === 3 ? 'text-blue-600' : 'text-gray-500'}`}>
+              Results & Analysis
+            </span>
+          </div>
+        </div>
 
-            <div>
-              <label className={fieldLabel}>Open market value (MV)</label>
-              <div className="text-sm text-gray-900 px-3 py-2 border rounded-lg bg-gray-50">
-                £{(inputs.marketValue || 0).toLocaleString()}
-              </div>
-            </div>
+        {/* Main Content */}
+        <div className="grid gap-8 lg:grid-cols-3">
+          {/* Left Column - Form */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Step 1: Property Details & Strategy Selection */}
+            {currentStep === 1 && (
+              <div className="space-y-6">
+                {/* Property Source Selection */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Property Details</h3>
+                  
+                  <div className="grid gap-4">
+                    <div>
+                      <label className={fieldLabel}>Property source</label>
+                      <div className={`grid gap-2 text-sm ${isAuthenticated ? 'grid-cols-4' : 'grid-cols-3'}`}>
+                        {(['search','manual','watchlist'] as const).map((m) => (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => { setAddressMode(m); }}
+                            className={`rounded-lg border-2 px-3 py-2 font-medium transition-all ${
+                              addressMode === m 
+                                ? 'border-blue-500 bg-blue-50 text-blue-700' 
+                                : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                            }`}
+                          >
+                            {m === 'search' ? 'Search by postcode' : m === 'manual' ? 'Add manually' : 'From watchlist'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-            <div>
-              <label className={fieldLabel}>Estimated renovated value</label>
-              <input
-                type="number"
-                value={inputs.estimatedRenovatedValue}
-                onChange={(e) => setInputs(prev => ({ ...prev, estimatedRenovatedValue: Number(e.target.value) }))}
-                className={fieldInput}
-                min={0}
-              />
-              <p className="mt-1 text-xs text-gray-500">What you think the property will be worth after refurbishment</p>
-            </div>
+                    {addressMode === 'search' && (
+                      <div>
+                        <label className={fieldLabel}>Postcode</label>
+                        <input
+                          value={inputs.postcode}
+                          onChange={(e) => {
+                            let value = e.target.value.toUpperCase().replace(/[^A-Z0-9\s]/g, '');
+                            value = value.replace(/\s+/g, ' ').trim();
+                            
+                            if (value.length >= 5) {
+                              if (value.match(/^[A-Z]{2}[0-9][0-9A-Z][0-9][A-Z]{2}$/)) {
+                                value = value.replace(/^([A-Z]{2}[0-9][0-9A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                              } else if (value.match(/^[A-Z]{2}[0-9][0-9][A-Z][0-9][A-Z]{2}$/)) {
+                                value = value.replace(/^([A-Z]{2}[0-9][0-9][A-Z])([0-9][A-Z]{2})$/, '$1 $2');
+                              } else if (value.match(/^[A-Z]{2}[0-9][0-9][0-9][A-Z]{2}$/)) {
+                                value = value.replace(/^([A-Z]{2}[0-9][0-9][0-9])([A-Z]{2})$/, '$1 $2');
+                              }
+                            }
+                            
+                            setInputs(prev => ({ ...prev, postcode: value }));
+                          }}
+                          placeholder="e.g., NE5 4PR"
+                          className={fieldInput}
+                          maxLength={8}
+                        />
+                      </div>
+                    )}
 
-            <div>
-              <label className={fieldLabel}>Monthly rent (optional)</label>
-              <input
-                type="number"
-                value={inputs.monthlyRent}
-                onChange={(e) => setInputs(prev => ({ ...prev, monthlyRent: Number(e.target.value) }))}
-                className={fieldInput}
-                min={0}
-              />
-              <p className="mt-1 text-xs text-gray-500">Used to calculate gross yield and rental performance metrics</p>
-            </div>
+                    {addressMode === 'manual' && (
+                      <div>
+                        <label className={fieldLabel}>House number and street</label>
+                        <input
+                          value={inputs.address}
+                          onChange={(e) => setInputs(prev => ({ ...prev, address: e.target.value }))}
+                          placeholder="e.g., 73 Belgrave Road"
+                          className={fieldInput}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Enter the property address manually if it's not in our database.</p>
+                      </div>
+                    )}
 
-            {/* Advanced Fields - Only shown in Advanced Mode */}
-            {isAdvancedMode && (
-              <>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className={fieldLabel}>Growth (%/yr)</label>
-                    <input
-                      type="number"
-                      value={inputs.growthAnnualPct}
-                      onChange={(e) => setInputs(prev => ({ ...prev, growthAnnualPct: Number(e.target.value) }))}
-                      className={fieldInput}
-                      min={0}
-                      step={0.1}
-                    />
-                  </div>
-                  <div>
-                    <label className={fieldLabel}>Refurb uplift factor</label>
-                    <select
-                      value={inputs.refurbUpliftFactor}
-                      onChange={(e) => setInputs(prev => ({ ...prev, refurbUpliftFactor: Number(e.target.value) }))}
-                      className={fieldSelect}
-                    >
-                      <option value={0.7}>70% of refurb cost</option>
-                      <option value={0.8}>80% of refurb cost</option>
-                      <option value={0.9}>90% of refurb cost</option>
-                    </select>
-                  </div>
-                </div>
+                    {addressMode === 'watchlist' && (
+                      <div className="max-h-48 overflow-auto rounded-lg border border-gray-200 bg-white text-sm">
+                        {watchlist.length === 0 && (
+                          <div className="px-3 py-2 text-xs text-gray-500">No properties in watchlist.</div>
+                        )}
+                        {watchlist.map((w) => (
+                          <button
+                            key={w.id}
+                            type="button"
+                            className="flex w-full items-center justify-between gap-3 px-3 py-2 text-left hover:bg-gray-50"
+                            onClick={() => {
+                              setInputs(prev => ({ 
+                                ...prev, 
+                                postcode: w.postcode || prev.postcode, 
+                                address: w.address || prev.address 
+                              }));
+                            }}
+                          >
+                            <span className="truncate">{w.address}</span>
+                            <span className="shrink-0 text-xs text-gray-500">{w.postcode}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <label className={fieldLabel}>Finance mode</label>
-                    <select
-                      value={inputs.financeMode}
-                      onChange={(e) => setInputs(prev => ({ ...prev, financeMode: e.target.value as 'day1' | 'bridge_refi' }))}
-                      className={fieldSelect}
-                    >
-                      <option value="day1">Day-1 buy-to-let</option>
-                      <option value="bridge_refi">Bridge → refinance</option>
-                    </select>
-                  </div>
-                  {inputs.financeMode === 'bridge_refi' && (
+                    {/* Property Size Fields */}
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label className={fieldLabel}>Bridge rate (% APR)</label>
+                        <label className={fieldLabel}>Bedrooms</label>
                         <input
                           type="number"
-                          value={inputs.bridgeRate}
-                          onChange={(e) => setInputs(prev => ({ ...prev, bridgeRate: Number(e.target.value) }))}
+                          value={inputs.bedrooms}
+                          onChange={(e) => setInputs(prev => ({ ...prev, bedrooms: Number(e.target.value) }))}
+                          className={fieldInput}
+                          min={1}
+                          max={10}
+                        />
+                      </div>
+                      <div>
+                        <label className={fieldLabel}>Square Footage</label>
+                        <input
+                          type="number"
+                          value={inputs.squareFootage}
+                          onChange={(e) => setInputs(prev => ({ ...prev, squareFootage: Number(e.target.value) }))}
+                          className={fieldInput}
+                          min={500}
+                          max={5000}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Enhanced Investment Strategy Selection - Required */}
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Investment Strategy <span className="text-red-500">*</span>
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-6">Choose your investment approach to see tailored recommendations and smart defaults</p>
+                  
+                  {!inputs.desiredModel && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-red-600" />
+                        <p className="text-sm text-red-700 font-medium">
+                          Please select an investment strategy to continue
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="grid gap-4">
+                    {(['vanilla', 'brrr', 'flip'] as const).map((model) => (
+                      <button
+                        key={model}
+                        type="button"
+                        onClick={() => handleStrategySelection(model)}
+                        className={`p-6 rounded-xl border-2 text-left transition-all duration-200 hover:shadow-md ${
+                          inputs.desiredModel === model 
+                            ? 'border-blue-500 bg-blue-50 shadow-lg' 
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`p-3 rounded-lg ${
+                            inputs.desiredModel === model 
+                              ? 'bg-blue-100 text-blue-600' 
+                              : 'bg-gray-100 text-gray-600'
+                          }`}>
+                            {getModelIcon(model)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-lg font-semibold text-gray-900 capitalize">
+                                {model === 'vanilla' ? 'Vanilla BTL' : model.toUpperCase()}
+                              </h4>
+                              {inputs.desiredModel === model && (
+                                <div className="flex items-center gap-2 text-blue-600">
+                                  <CheckCircle className="w-5 h-5" />
+                                  <span className="text-sm font-medium">Selected</span>
+                                </div>
+                              )}
+                            </div>
+                            
+                            <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+                              {model === 'vanilla' 
+                                ? 'Buy at market value, minimal renovation (£5-8k), immediate rental income'
+                                : model === 'brrr'
+                                ? 'Buy distressed property at 15-20% discount, renovate significantly (£20k+), refinance to release equity'
+                                : 'Buy distressed property at 15-20% discount, renovate quickly (£25k+), sell for profit within 6-12 months'
+                              }
+                            </p>
+                            
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                              <div className="space-y-1">
+                                <div className="font-medium text-gray-700">Best for:</div>
+                                <div className="text-gray-600">
+                                  {model === 'vanilla' 
+                                    ? 'Steady income, lower risk, long-term holds'
+                                    : model === 'brrr'
+                                    ? 'Scaling portfolio, capital recycling, higher returns'
+                                    : 'Quick profits, no ongoing management, capital gains'
+                                  }
+                                </div>
+                              </div>
+                              <div className="space-y-1">
+                                <div className="font-medium text-gray-700">Timeline:</div>
+                                <div className="text-gray-600">
+                                  {model === 'vanilla' 
+                                    ? 'Immediate rental'
+                                    : model === 'brrr'
+                                    ? '6-12 months'
+                                    : '6-12 months'
+                                  }
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Recent Sales Section */}
+                {recentSales.length > 0 && (
+                  <div className="bg-white rounded-xl border border-gray-200 p-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowRecentSales(!showRecentSales)}
+                      className="flex items-center justify-between w-full p-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Home className="h-4 w-4 text-gray-600" />
+                        <span className="font-medium text-gray-900">
+                          Recent Sales ({recentSales.length} properties)
+                        </span>
+                      </div>
+                      {showRecentSales ? (
+                        <ChevronUp className="h-4 w-4 text-gray-600" />
+                      ) : (
+                        <ChevronDown className="h-4 w-4 text-gray-600" />
+                      )}
+                    </button>
+                    
+                    {showRecentSales && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="mt-4 max-h-64 overflow-auto rounded-lg border border-gray-200 bg-white"
+                      >
+                        <div className="p-3">
+                          <div className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                            Sold in the last 12 months
+                          </div>
+                          {recentSales.map((sale, index) => (
+                            <div key={index} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+                              <div className="flex-1 min-w-0">
+                                <div className="text-sm font-medium text-gray-900 truncate">
+                                  {sale.paon} {sale.street}
+                                </div>
+                                <div className="text-xs text-gray-500">
+                                  {new Date(sale.dateOfTransfer).toLocaleDateString('en-GB', {
+                                    day: 'numeric',
+                                    month: 'short',
+                                    year: 'numeric'
+                                  })}
+                                </div>
+                              </div>
+                              <div className="text-right ml-2">
+                                <div className="text-sm font-semibold text-gray-900">
+                                  £{sale.price.toLocaleString()}
+                                </div>
+                                <div className="text-xs text-gray-500 capitalize">
+                                  {sale.propertyType}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {/* Next Step Button */}
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={handleNextStep}
+                    disabled={!inputs.desiredModel || (!inputs.postcode.trim() && !inputs.address.trim())}
+                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                  >
+                    Continue to Financial Details
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Financial Details */}
+            {currentStep === 2 && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Details</h3>
+                  <p className="text-sm text-gray-600 mb-6">Configure your investment parameters and assumptions</p>
+                  
+                  <div className="grid gap-6">
+                    {/* Purchase Price & Values */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className={fieldLabel}>Purchase Price (£)</label>
+                        <input
+                          type="number"
+                          value={inputs.purchasePrice}
+                          onChange={(e) => setInputs(prev => ({ ...prev, purchasePrice: Number(e.target.value) }))}
+                          className={getFieldStyles(validatePurchasePrice(inputs.purchasePrice), inputs.purchasePrice > 0)}
+                          min={0}
+                        />
+                        <div className="mt-1 flex items-center gap-2">
+                          {inputs.purchasePrice > 0 && (
+                            validatePurchasePrice(inputs.purchasePrice) ? (
+                              <span className="text-green-600 text-xs">✓ Valid price</span>
+                            ) : (
+                              <span className="text-red-600 text-xs">⚠ Price should be £0 - £10M</span>
+                            )
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">
+                          {inputs.desiredModel === 'vanilla' && 'Market value or slightly below'}
+                          {inputs.desiredModel === 'brrr' && '15-20% below market value recommended'}
+                          {inputs.desiredModel === 'flip' && '15-20% below market value for maximum profit'}
+                        </p>
+                      </div>
+                      <div>
+                        <label className={fieldLabel}>Estimated Current Value (£)</label>
+                        <input
+                          type="number"
+                          value={inputs.estimatedRenovatedValue}
+                          onChange={(e) => setInputs(prev => ({ ...prev, estimatedRenovatedValue: Number(e.target.value) }))}
+                          className={fieldInput}
+                          min={0}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Current market value of the property</p>
+                      </div>
+                    </div>
+
+
+                    
+                    {/* Refurbishment Level */}
+                    <div className="w-full">
+                      <label className={fieldLabel}>Refurbishment Level</label>
+                      <select
+                        value={inputs.refurbLevel}
+                        onChange={(e) => handleRefurbLevelChange(e.target.value)}
+                        className={fieldSelect}
+                      >
+                        <option value="none">None</option>
+                        <option value="cosmetic">Cosmetic</option>
+                        <option value="modernisation">Modernisation</option>
+                        <option value="full_renovation">Full Renovation</option>
+                      </select>
+                      
+                      {/* Refurbishment Level Details - Compact */}
+                      <div className="mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200 w-full">
+                        {(() => {
+                          const details = getRefurbLevelDetails(inputs.refurbLevel);
+                          return (
+                            <div className="space-y-2">
+                              {/* Price and Level - Compact Header */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                                  <span className="font-semibold text-gray-900">{details.label}</span>
+                                </div>
+                                <div className="text-right">
+                                  <div className="text-lg font-bold text-blue-600">{details.typicalCost}</div>
+                                  <div className="text-xs text-gray-600">{details.timeline}</div>
+                                </div>
+                              </div>
+                              
+                              {/* Description */}
+                              <p className="text-sm text-gray-700">{details.description}</p>
+                              
+                              {/* Key Information - Side by Side */}
+                              <div className="grid grid-cols-2 gap-3">
+                                {/* What's Included */}
+                                <div>
+                                  <h5 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1">What's Included</h5>
+                                  <div className="space-y-1">
+                                    {details.includes.map((item, index) => (
+                                      <div key={index} className="flex items-start gap-1 text-xs text-gray-700">
+                                        <span className="text-blue-500 text-sm">•</span>
+                                        <span>{item}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                                
+                                {/* Best For */}
+                                <div className="p-2 bg-gradient-to-br from-blue-50 to-blue-100 rounded border border-blue-200">
+                                  <h5 className="text-xs font-bold text-blue-800 uppercase tracking-wide mb-1">Best For</h5>
+                                  <p className="text-xs text-blue-700">{details.bestFor}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Refurbishment Costs - Now below the level */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                      <div className="w-full">
+                        <label className={fieldLabel}>Contingency (%)</label>
+                        <input
+                          type="number"
+                          value={inputs.refurbContingencyPct || 10}
+                          onChange={(e) => {
+                            const contingency = Number(e.target.value);
+                            setInputs(prev => ({ 
+                              ...prev, 
+                              refurbContingencyPct: contingency,
+                              refurbCost: calculateRefurbCost(prev.refurbLevel, prev.bedrooms, prev.squareFootage, contingency)
+                            }));
+                          }}
+                          className={fieldInput}
+                          min={0}
+                          max={50}
+                          step={5}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Buffer for unexpected costs • 10-20% recommended</p>
+                      </div>
+                      
+                      <div className="w-full">
+                        <label className={fieldLabel}>Refurbishment Cost (£)</label>
+                        <div className="relative w-full">
+                          <input
+                            type="number"
+                            value={inputs.refurbCost}
+                            onChange={(e) => setInputs(prev => ({ ...prev, refurbCost: Number(e.target.value) }))}
+                            className={fieldInput}
+                            min={0}
+                          />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          </div>
+                        </div>
+                        <div className="mt-1 text-xs text-gray-600 flex items-center gap-2">
+                          <span className="text-blue-600 font-medium">Auto-calculated</span>
+                          <span>•</span>
+                          <span>{inputs.refurbLevel.replace('_', ' ')} level</span>
+                          <span>•</span>
+                          <span>{inputs.bedrooms} bed, {inputs.squareFootage} sq ft</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Mortgage Details */}
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div>
+                        <label className={fieldLabel}>Deposit (%)</label>
+                        <input
+                          type="number"
+                          value={inputs.depositPct}
+                          onChange={(e) => setInputs(prev => ({ ...prev, depositPct: Number(e.target.value) }))}
+                          className={getFieldStyles(validateDeposit(inputs.depositPct), inputs.depositPct > 0)}
+                          min={15}
+                          max={40}
+                        />
+                        <div className="mt-1 flex items-center gap-2">
+                          {inputs.depositPct > 0 && (
+                            validateDeposit(inputs.depositPct) ? (
+                              <span className="text-green-600 text-xs">✓ Valid deposit</span>
+                            ) : (
+                              <span className="text-red-600 text-xs">⚠ Deposit should be 15-40%</span>
+                            )
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">15-40% recommended</p>
+                      </div>
+                      <div>
+                        <label className={fieldLabel}>Interest Rate (%)</label>
+                        <input
+                          type="number"
+                          value={inputs.interestRate}
+                          onChange={(e) => setInputs(prev => ({ ...prev, interestRate: Number(e.target.value) }))}
+                          className={getFieldStyles(validateInterestRate(inputs.interestRate), inputs.interestRate > 0)}
+                          min={0}
+                          step={0.1}
+                        />
+                        <div className="mt-1 flex items-center gap-2">
+                          {inputs.interestRate > 0 && (
+                            validateInterestRate(inputs.interestRate) ? (
+                              <span className="text-green-600 text-xs">✓ Valid rate</span>
+                            ) : (
+                              <span className="text-red-600 text-xs">⚠ Rate should be 0-20%</span>
+                            )
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Current BTL mortgage rate</p>
+                      </div>
+                      <div>
+                        <label className={fieldLabel}>Purchase Type</label>
+                        <select
+                          value={inputs.purchaseType}
+                          onChange={(e) => setInputs(prev => ({ ...prev, purchaseType: e.target.value as PurchaseType }))}
+                          className={fieldSelect}
+                        >
+                          <option value="second_home">Second Home</option>
+                          <option value="buy_to_let">Buy to Let</option>
+                          <option value="limited_company">Limited Company</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Mortgage Type Selection - 50/50 Layout */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="w-full">
+                        <label className={fieldLabel}>Mortgage Type</label>
+                        <select
+                          value={inputs.mortgageType || 'repayment'}
+                          onChange={(e) => setInputs(prev => ({ ...prev, mortgageType: e.target.value as 'repayment' | 'interest_only' }))}
+                          className={fieldSelect}
+                        >
+                          <option value="repayment">Repayment Mortgage</option>
+                          <option value="interest_only">Interest Only Mortgage</option>
+                        </select>
+                        <div className="mt-1 text-xs text-gray-600">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-blue-600 font-medium">Repayment</span>
+                            <span>•</span>
+                            <span>Capital + interest, builds equity</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-purple-600 font-medium">Interest Only</span>
+                            <span>•</span>
+                            <span>Interest only, lower monthly cost</span>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="w-full">
+                        <label className={fieldLabel}>
+                          {inputs.financeMode === 'bridge_refi' ? 'Monthly Bridge Payment' : 'Monthly Mortgage Payment'}
+                        </label>
+                        <div className="relative w-full">
+                          <input
+                            type="text"
+                            value={`£${calculateMonthlyMortgagePayment().toLocaleString()}`}
+                            className={`${fieldInput} bg-gray-50 cursor-not-allowed`}
+                            readOnly
+                          />
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          </div>
+                        </div>
+                        <div className="mt-1 text-xs text-gray-600 flex items-center gap-2">
+                          <span className="text-blue-600 font-medium">Auto-calculated</span>
+                          <span>•</span>
+                          <span>{(inputs.purchasePrice * (1 - inputs.depositPct / 100)).toLocaleString()} mortgage</span>
+                          <span>•</span>
+                          {inputs.financeMode === 'bridge_refi' ? (
+                            <>
+                              <span>{inputs.bridgeRate || 10}% bridge rate</span>
+                              <span>•</span>
+                              <span className="text-orange-600 font-medium">Bridge Loan</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>{inputs.interestRate}% interest rate</span>
+                              <span>•</span>
+                              <span className={`font-medium ${inputs.mortgageType === 'interest_only' ? 'text-purple-600' : 'text-blue-600'}`}>
+                                {inputs.mortgageType === 'interest_only' ? 'Interest Only' : 'Repayment'}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Monthly Rent & Expenses */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className={fieldLabel}>Monthly Rent (£)</label>
+                        <input
+                          type="number"
+                          value={inputs.monthlyRent}
+                          onChange={(e) => setInputs(prev => ({ ...prev, monthlyRent: Number(e.target.value) }))}
+                          className={getFieldStyles(validateMonthlyRent(inputs.monthlyRent), inputs.monthlyRent > 0)}
+                          min={0}
+                        />
+                        <div className="mt-1 flex items-center gap-2">
+                          {inputs.monthlyRent > 0 && (
+                            validateMonthlyRent(inputs.monthlyRent) ? (
+                              <span className="text-green-600 text-xs">✓ Valid rent</span>
+                            ) : (
+                              <span className="text-red-600 text-xs">⚠ Rent should be £0 - £50k</span>
+                            )
+                          )}
+                        </div>
+                        <p className="mt-1 text-xs text-gray-500">Expected rental income after renovation</p>
+                      </div>
+                      <div>
+                        <label className={fieldLabel}>Other Monthly Expenses (£)</label>
+                        <input
+                          type="number"
+                          value={inputs.otherExpenses}
+                          onChange={(e) => setInputs(prev => ({ ...prev, otherExpenses: Number(e.target.value) }))}
+                          className={fieldInput}
+                          min={0}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Insurance, maintenance, void periods</p>
+                      </div>
+                    </div>
+
+                    {/* Growth & Refurb Assumptions */}
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div>
+                        <label className={fieldLabel}>Annual Growth (%)</label>
+                        <input
+                          type="number"
+                          value={inputs.growthAnnualPct || 3}
+                          onChange={(e) => setInputs(prev => ({ ...prev, growthAnnualPct: Number(e.target.value) }))}
                           className={fieldInput}
                           min={0}
                           step={0.1}
                         />
+                        <p className="mt-1 text-xs text-gray-500">Long-term property value appreciation</p>
                       </div>
                       <div>
-                        <label className={fieldLabel}>Bridge term (months)</label>
-                        <input
-                          type="number"
-                          value={inputs.bridgeMonths}
-                          onChange={(e) => setInputs(prev => ({ ...prev, bridgeMonths: Number(e.target.value) }))}
-                          className={fieldInput}
-                          min={0}
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Mortgage details</h3>
-          
-          <div className="grid gap-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className={fieldLabel}>Type</label>
-                <select
-                  defaultValue="interest_only"
-                  className={fieldSelect}
-                >
-                  <option value="interest_only">Interest only</option>
-                  <option value="repayment">Repayment</option>
-                </select>
-              </div>
-              <div>
-                <label className={fieldLabel}>Rate (%)</label>
-                <input
-                  type="number"
-                  value={inputs.interestRate}
-                  onChange={(e) => setInputs(prev => ({ ...prev, interestRate: Number(e.target.value) }))}
-                  className={fieldInput}
-                  min={0}
-                  max={20}
-                  step={0.1}
-                />
-              </div>
-            </div>
-            <div className="text-sm text-gray-600">
-              Outstanding balance at refinance: £318,750
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Deposit</h3>
-          
-          <div className="grid gap-4">
-            <div>
-              <label className={fieldLabel}>Deposit</label>
-              <select
-                value={inputs.depositPct}
-                onChange={(e) => setInputs(prev => ({ ...prev, depositPct: Number(e.target.value) }))}
-                className={fieldSelect}
-              >
-                <option value={10}>10%</option>
-                <option value={15}>15%</option>
-                <option value={20}>20%</option>
-                <option value={25}>25%</option>
-                <option value={30}>30%</option>
-                <option value={35}>35%</option>
-                <option value={40}>40%</option>
-              </select>
-            </div>
-            <div className="text-sm text-gray-600">
-              Deposit amount: £{Math.round(inputs.purchasePrice * (inputs.depositPct / 100)).toLocaleString()}
-            </div>
-          </div>
-        </div>
-
-
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Refurbishment scope</h3>
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="checkbox"
-                className="h-4 w-4 rounded border-gray-300"
-                checked={includeRefurb}
-                onChange={(e) => setIncludeRefurb(e.target.checked)}
-              />
-              Include refurb in analysis
-            </label>
-          </div>
-          
-          {/* Model-specific guidance */}
-          <div className="mb-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
-            <div className="flex items-center gap-2 mb-2">
-              <Info className="w-4 h-4 text-blue-600" />
-              <span className="text-sm font-medium text-blue-900">
-                {inputs.desiredModel === 'vanilla' 
-                  ? 'Vanilla BTL: Keep renovation minimal for immediate rental'
-                  : inputs.desiredModel === 'brrr'
-                  ? 'BRRR: Significant renovation needed to add value and justify refinance'
-                  : 'Flip: Maximum renovation impact for quick resale profit'
-                }
-              </span>
-            </div>
-            <p className="text-xs text-blue-800">
-              {inputs.desiredModel === 'vanilla' 
-                ? 'Focus on cosmetic improvements that tenants will appreciate. Avoid major works that delay rental income.'
-                : inputs.desiredModel === 'brrr'
-                ? 'Renovation should add 80%+ of cost to property value. Consider kitchen, bathroom, heating, and structural improvements.'
-                : 'Renovation should transform the property for maximum resale appeal. Focus on high-impact improvements that buyers value most.'
-              }
-            </p>
-          </div>
-          
-          {includeRefurb && (
-          <div className="grid gap-4">
-            <div className="grid gap-3">
-              <div className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${inputs.refurbLevel === 'cosmetic' ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`} onClick={() => {
-                const newCost = calculateRefurbCost('cosmetic', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct);
-                setInputs(prev => ({ ...prev, refurbLevel: 'cosmetic', refurbCost: newCost }));
-              }}>
-                <div className="flex justify-between items-start">
-                  <div className="flex items-start gap-3">
-                    {inputs.refurbLevel === 'cosmetic' && (
-                      <Check className="h-5 w-5 text-green-700 mt-0.5 flex-shrink-0" />
-                    )}
-                    <div>
-                      <h4 className="font-medium text-gray-900">Cosmetic refresh</h4>
-                      <p className="text-sm text-gray-600 mt-1">Painting/decor, flooring, minor joinery, fixtures & fittings.</p>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {inputs.desiredModel === 'vanilla' 
-                          ? 'Perfect for vanilla BTL - quick turnaround, immediate rental'
-                          : inputs.desiredModel === 'brrr'
-                          ? 'May not add enough value for BRRR strategy'
-                          : 'May not justify flip margins - consider higher level'
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">£{calculateRefurbCost('cosmetic', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct).toLocaleString()}</span>
-                </div>
-              </div>
-              
-              <div className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${inputs.refurbLevel === 'modernisation' ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`} onClick={() => {
-                const newCost = calculateRefurbCost('modernisation', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct);
-                setInputs(prev => ({ ...prev, refurbLevel: 'modernisation', refurbCost: newCost }));
-              }}>
-                <div className="flex justify-between items-start">
-                  <div className="flex items-start gap-3">
-                    {inputs.refurbLevel === 'modernisation' && (
-                      <Check className="h-5 w-5 text-green-700 mt-0.5 flex-shrink-0" />
-                    )}
-                    <div>
-                      <h4 className="font-medium text-gray-900">Modernisation</h4>
-                      <p className="text-sm text-gray-600 mt-1">New kitchen/bath updates, partial rewire, boiler/heating refresh, windows in parts.</p>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {inputs.desiredModel === 'vanilla' 
-                          ? 'Good for vanilla if you want higher rental value'
-                          : inputs.desiredModel === 'brrr'
-                          ? 'Good balance for BRRR - adds value without excessive cost'
-                          : 'Good for flip - significant improvement for resale'
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">£{calculateRefurbCost('modernisation', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct).toLocaleString()}</span>
-                </div>
-              </div>
-              
-              <div className={`p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 ${inputs.refurbLevel === 'full_renovation' ? 'border-green-600 bg-green-50 shadow-md' : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'}`} onClick={() => {
-                const newCost = calculateRefurbCost('full_renovation', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct);
-                setInputs(prev => ({ ...prev, refurbLevel: 'full_renovation', refurbCost: newCost }));
-              }}>
-                <div className="flex justify-between items-start">
-                  <div className="flex items-start gap-3">
-                    {inputs.refurbLevel === 'full_renovation' && (
-                      <Check className="h-5 w-5 text-green-700 mt-0.5 flex-shrink-0" />
-                    )}
-                    <div>
-                      <h4 className="font-medium text-gray-900">Full renovation</h4>
-                      <p className="text-sm text-gray-600 mt-1">Full rewire, plumbing/heating, new kitchen & bathrooms, windows/doors, possible structural repairs.</p>
-                      <div className="mt-1 text-xs text-gray-500">
-                        {inputs.desiredModel === 'vanilla' 
-                          ? 'May delay rental income - consider if necessary'
-                          : inputs.desiredModel === 'brrr'
-                          ? 'Excellent for BRRR - maximum value creation'
-                          : 'Perfect for flip - maximum resale appeal'
-                        }
-                      </div>
-                    </div>
-                  </div>
-                  <span className="text-sm font-medium text-gray-600">£{calculateRefurbCost('full_renovation', inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct).toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className={fieldLabel}>Contingency</label>
-              <select 
-                className={fieldSelect}
-                value={inputs.refurbContingencyPct}
-                onChange={(e) => {
-                  const pct = Number(e.target.value);
-                  // Recalculate current level cost including contingency
-                  const newCost = calculateRefurbCost(inputs.refurbLevel, inputs.bedrooms, inputs.squareFootage, pct);
-                  setInputs(prev => ({ ...prev, refurbContingencyPct: pct, refurbCost: newCost }));
-                }}
-              >
-                <option value={0}>0%</option>
-                <option value={5}>5%</option>
-                <option value={10}>10%</option>
-                <option value={15}>15%</option>
-                <option value={20}>20%</option>
-                <option value={25}>25%</option>
-              </select>
-            </div>
-
-            <div>
-              <label className={fieldLabel}>Refurbishment cost (£) — override</label>
-              <input
-                type="number"
-                value={inputs.refurbCost}
-                onChange={(e) => setInputs(prev => ({ ...prev, refurbCost: Number(e.target.value) }))}
-                className={fieldInput}
-                min={0}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                {inputs.desiredModel === 'vanilla' 
-                  ? 'For vanilla BTL, keep costs under £8k for quick rental turnaround. Focus on cosmetic improvements only.'
-                  : inputs.desiredModel === 'brrr'
-                  ? 'For BRRR, aim for £20k+ renovation to justify refinance. Ensure 80%+ value-add ratio.'
-                  : 'For flip, aim for £25k+ renovation for maximum resale impact. Focus on high-visibility improvements.'
-                }
-                <br />
-                Costs are calculated from the selected scope, adjusted for bedrooms & square footage, then contingency is applied. 
-                For a 5-bed house, costs will be ~67% higher than a 3-bed before contingency. 
-                These are estimates based on UK market averages - actual costs vary by location and condition.
-              </p>
-            </div>
-          </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Purchase type</h3>
-          
-          <div className="grid gap-2">
-            <div className="grid gap-2 text-xs grid-cols-3">
-              <button
-                type="button"
-                className="rounded-md border px-2 py-1 border-gray-300 text-gray-600 hover:border-gray-400"
-              >
-                First-time buyer
-              </button>
-              <button
-                type="button"
-                className="rounded-md border px-2 py-1 border-gray-300 text-gray-600 hover:border-gray-400"
-              >
-                Personal
-              </button>
-              <button
-                type="button"
-                className="rounded-md border px-2 py-1 border-gray-900 text-gray-900"
-              >
-                Second home / LTD
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Fees</h3>
-          
-          <div className="grid gap-4">
-            <div>
-              <label className={fieldLabel}>Stamp duty (£) — override</label>
-              <input
-                type="number"
-                value={inputs.stampDuty}
-                onChange={(e) => setInputs(prev => ({ ...prev, stampDuty: Number(e.target.value) }))}
-                className={fieldInput}
-                min={0}
-              />
-              <p className="mt-1 text-xs text-gray-500">Type affects auto-calculated SDLT. Override to use a custom value.</p>
-            </div>
-
-            <div>
-              <label className={fieldLabel}>Legal fees (£)</label>
-              <input
-                type="number"
-                value={inputs.legalFees}
-                onChange={(e) => setInputs(prev => ({ ...prev, legalFees: Number(e.target.value) }))}
-                className={fieldInput}
-                min={0}
-              />
-            </div>
-
-            <div>
-              <label className={fieldLabel}>Broker fees (£)</label>
-              <input
-                type="number"
-                value={inputs.brokerFees}
-                onChange={(e) => setInputs(prev => ({ ...prev, brokerFees: Number(e.target.value) }))}
-                className={fieldInput}
-                min={0}
-              />
-            </div>
-
-            <div className="pt-2 mt-2 border-t border-gray-100 flex items-center justify-between text-sm">
-              <span className="text-gray-600">Total fees</span>
-              <span className="font-semibold">£{(inputs.stampDuty + inputs.legalFees + inputs.brokerFees).toLocaleString()}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Remortgage</h3>
-          
-          <div className="grid gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className={fieldLabel}>Remortgage LTV (%)</label>
-                <select className={fieldSelect}>
-                  <option value={75}>75% (typical)</option>
-                  <option value={80}>80%</option>
-                  <option value={85}>85%</option>
-                </select>
-              </div>
-              <a href="#" className="text-sm text-blue-600 hover:text-blue-800">Advanced</a>
-            </div>
-            <p className="text-xs text-gray-500">Most lenders cap BTL remortgage around 75% LTV; 80% may require tighter stress tests.</p>
-            <div className="text-sm text-gray-600">
-              Est. remortgage @75% in 24m: £352,091 (assumes 5.1%/yr HPI)
-            </div>
-
-            <div>
-              <label className={fieldLabel}>Remortgage timeline</label>
-              <select
-                className={fieldSelect}
-                value={inputs.timelineMonths}
-                onChange={(e) => setInputs(prev => ({ ...prev, timelineMonths: Number(e.target.value) }))}
-              >
-                <option value={24}>2 years</option>
-                <option value={36}>3 years</option>
-                <option value={60}>5 years</option>
-                <option value={120}>10 years</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="adjustInflation"
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="adjustInflation" className="text-sm font-medium text-gray-900">
-              Adjust for inflation (uses local CPI estimate)
-            </label>
-          </div>
-        </div>
-      </div>
-
-
-
-
-
-
-
-      {/* Results Sidebar */}
-      <div className="space-y-6">
-        {/* Combined Deal Summary & Strategy Recommendation */}
-        {recommendedModel && results.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl p-6 text-white"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <Star className="w-6 h-6" />
-              <div>
-                <h3 className="text-lg font-semibold text-white">Deal Summary & Strategy</h3>
-                <p className="text-blue-100">Complete analysis of your investment opportunity</p>
-              </div>
-            </div>
-            
-            {/* Key Financial Metrics */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-white/20 rounded-lg p-3 text-center">
-                <div className="text-xs text-blue-100 font-medium mb-1">TOTAL INVESTMENT NEEDED</div>
-                <div className="text-xl font-bold text-white">
-                  £{results[0]?.investedTotal ? results[0].investedTotal.toLocaleString() : '0'}
-                </div>
-                <div className="text-xs text-blue-100">Initial Capital Required</div>
-              </div>
-              <div className="bg-white/20 rounded-lg p-3 text-center">
-                <div className="text-xs text-blue-100 font-medium mb-1">BEST MODEL ROI</div>
-                <div className="text-xl font-bold text-green-300">
-                  {Math.max(...results.map(r => r.roi)).toFixed(1)}%
-                </div>
-                <div className="text-xs text-blue-100">
-                  {results.find(r => r.roi === Math.max(...results.map(r => r.roi)))?.model.toUpperCase()} Strategy
-                </div>
-              </div>
-            </div>
-
-            {/* Strategy Comparison */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {results.map((result) => (
-                <div key={result.model} className={`text-center p-2 rounded-lg ${
-                  result.model === recommendedModel ? 'bg-white/30 border-2 border-white' : 'bg-white/10'
-                }`}>
-                  <div className="font-medium text-white capitalize">{result.model}</div>
-                  <div className="text-lg font-bold text-white">{result.roi.toFixed(1)}%</div>
-                  <div className="text-blue-100 text-xs">ROI</div>
-                </div>
-              ))}
-            </div>
-
-
-
-            {/* Recommended Strategy Details */}
-            <div className="bg-white/20 rounded-lg p-4 mb-4">
-              <div className="flex items-center gap-3 mb-3">
-                {getModelIcon(recommendedModel)}
-                <span className="font-semibold capitalize">{recommendedModel.toUpperCase()}</span>
-                <span className="text-blue-100 text-sm">RECOMMENDED</span>
-              </div>
-              <p className="text-sm text-blue-100 mb-3">
-                {results.find(r => r.model === recommendedModel)?.recommendation}
-              </p>
-            </div>
-
-            {/* Why This Strategy Was Recommended */}
-            <div className="bg-white/20 rounded-lg p-4 mb-4">
-              <h4 className="font-semibold text-white mb-3">Why {recommendedModel.toUpperCase()} Was Recommended:</h4>
-              <div className="space-y-2 text-sm">
-                {(() => {
-                  const result = results.find(r => r.model === recommendedModel);
-                  if (!result) return null;
-                  
-                  if (recommendedModel === 'vanilla') {
-                    return (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Good rental yield: {result.grossYield?.toFixed(1)}% gross yield</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Minimal renovation needed: £{result.investedRefurb?.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Immediate cash flow: £{result.cashFlow?.toFixed(0)}/month</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Lower risk profile with steady returns</span>
-                        </div>
-                      </>
-                    );
-                  } else if (recommendedModel === 'brrr') {
-                    return (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Significant renovation potential: £{result.investedRefurb?.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Below market value purchase opportunity</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Equity release potential: £{(result.equityReleased || 0).toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Capital recycling: {(result.recyclePercent || 0).toFixed(0)}%</span>
-                        </div>
-                      </>
-                    );
-                  } else if (recommendedModel === 'flip') {
-                    return (
-                      <>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">High renovation impact: £{result.investedRefurb?.toLocaleString()}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Quick turnaround: {result.timeHorizonMonths} months</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">Below market value purchase opportunity</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-300" />
-                          <span className="text-white font-medium">High potential returns: {result.roi.toFixed(1)}% ROI</span>
-                        </div>
-                      </>
-                    );
-                  }
-                  return null;
-                })()}
-              </div>
-            </div>
-
-            {/* Key Decision Factors */}
-            <div className="bg-white/20 rounded-lg p-4">
-              <h4 className="font-semibold text-white mb-3">Key Decision Factors:</h4>
-              <div className="grid grid-cols-2 gap-3 text-xs text-blue-100">
-                <div>
-                  <div className="font-medium">Purchase Price</div>
-                  <div>£{inputs.purchasePrice?.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="font-medium">Refurb Cost</div>
-                  <div>£{inputs.refurbCost?.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="font-medium">Monthly Rent</div>
-                  <div>£{inputs.monthlyRent?.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="font-medium">Gross Yield</div>
-                  <div>{inputs.monthlyRent && inputs.purchasePrice ? ((inputs.monthlyRent * 12) / inputs.purchasePrice * 100).toFixed(1) : '0'}%</div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Analysis Models */}
-        {results.map((result, index) => (
-          <motion.div
-            key={result.model}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className={`border rounded-xl p-6 ${getModelColor(result.model)} ${
-              result.model === recommendedModel ? 'ring-2 ring-blue-500' : ''
-            }`}
-          >
-            {/* Accordion Header - Always Visible */}
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                {getModelIcon(result.model)}
-                <h3 className="font-semibold capitalize">{result.model.toUpperCase()}</h3>
-                {result.model === recommendedModel && (
-                  <Award className="w-4 h-4 text-blue-600" />
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRiskColor(result.risk)}`}>
-                  {result.risk} risk
-                </span>
-                <button
-                  onClick={() => toggleAccordion(result.model as 'vanilla' | 'brrr' | 'flip')}
-                  className="p-1 hover:bg-white/20 rounded transition-colors"
-                >
-                  {openAccordions[result.model as 'vanilla' | 'brrr' | 'flip'] ? (
-                    <ChevronUp className="w-4 h-4" />
-                  ) : (
-                    <ChevronDown className="w-4 h-4" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Key Financial Summary - Always Visible */}
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 rounded-lg p-4 border border-gray-200 mb-4">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <div className="text-xs text-gray-500 font-medium mb-1">INITIAL COST</div>
-                  <div className="text-lg font-bold text-gray-800">£{(result.investedTotal || 0).toLocaleString()}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 font-medium mb-1">NET RETURN</div>
-                  <div className={`text-lg font-bold ${(result.totalProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                    £{(result.totalProfit || 0).toLocaleString()}
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-gray-500 font-medium mb-1">ROI</div>
-                  <div className="text-lg font-bold text-blue-600">{result.roi.toFixed(1)}%</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Accordion Content - Simple Conditional Rendering */}
-            {openAccordions[result.model as 'vanilla' | 'brrr' | 'flip'] && (
-              <div className="space-y-4">
-                {/* Detailed Metrics */}
-                <div className="grid gap-3 mb-4">
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">ROI</span>
-                    <span className="font-semibold">{result.roi.toFixed(1)}%</span>
-                  </div>
-                  
-                  {/* Model-specific metrics */}
-                  {result.model === 'vanilla' && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Monthly Cash Flow</span>
-                        <span className={`font-semibold ${result.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          £{result.cashFlow.toFixed(0)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Annual Cash Flow</span>
-                        <span className={`font-semibold ${(result.cashFlow * 12) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          £{(result.cashFlow * 12).toLocaleString()}
-                        </span>
-                      </div>
-                    </>
-                  )}
-                  
-                  {result.model === 'brrr' && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Equity Released</span>
-                        <span className="font-semibold text-purple-600">£{(result.equityReleased || 0).toLocaleString()}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Capital Recycle %</span>
-                        <span className="font-semibold text-purple-600">{(result.recyclePercent || 0).toFixed(0)}%</span>
-                      </div>
-                    </>
-                  )}
-                  
-                  {result.model === 'flip' && (
-                    <>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Flip Timeline</span>
-                        <span className="font-semibold text-orange-600">{inputs.flipTimeline} months</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Annualized ROI</span>
-                        <span className="font-semibold text-orange-600">{result.roi.toFixed(1)}%</span>
-                      </div>
-                    </>
-                  )}
-                  
-                  <div className="flex justify-between">
-                    <span className="text-sm text-gray-600">Income after deductions ({result.timeHorizonMonths || 12} months)</span>
-                    <span className="font-semibold">£{(result.rentReturnTotal || 0).toLocaleString()}</span>
-                  </div>
-                  
-                  {result.model !== 'flip' && typeof result.grossYield === 'number' && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Gross Yield</span>
-                      <span className="font-semibold">{result.grossYield.toFixed(1)}%</span>
-                    </div>
-                  )}
-                  
-                  {result.model !== 'flip' && typeof result.estGrowthPct === 'number' && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Estimated Growth</span>
-                      <span className="font-semibold">{result.estGrowthPct.toFixed(1)}% / yr</span>
-                    </div>
-                  )}
-                  
-                  {typeof result.timeHorizonMonths === 'number' && (
-                    <div className="flex justify-between">
-                      <span className="text-sm text-gray-600">Timeframe</span>
-                      <span className="font-semibold">{(result.timeHorizonMonths / 12).toFixed(0)} year{result.timeHorizonMonths >= 24 ? 's' : ''}</span>
-                    </div>
-                  )}
-                  
-                  {/* Model-specific summary metric */}
-                  {result.model === 'brrr' ? (
-                    <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2 border">
-                      <span className="text-sm text-gray-700">Cash left in deal</span>
-                      <span className="text-lg font-semibold">£{(result.cashLeftInDeal || 0).toLocaleString()}</span>
-                    </div>
-                  ) : result.model === 'flip' ? (
-                    <div className="flex justify-between items-center bg-white/60 rounded-lg px-3 py-2 border">
-                      <span className="text-sm text-gray-700">Total Profit</span>
-                      <span className={`text-lg font-semibold ${(result.totalProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        £{(result.totalProfit || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center bg-white/600 rounded-lg px-3 py-2 border">
-                      <span className="text-sm text-gray-700">Total Profit</span>
-                      <span className={`text-lg font-semibold ${(result.totalProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        £{(result.totalProfit || 0).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Key Financial Summary - Highlighted */}
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border-2 border-blue-200">
-                  <h4 className="text-sm font-bold text-blue-800 mb-3 text-center">KEY FINANCIAL SUMMARY</h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="text-center">
-                      <div className="text-xs text-blue-600 font-medium mb-1">ESTIMATED COST NEEDED</div>
-                      <div className="text-lg font-bold text-blue-800">£{(result.investedTotal || 0).toLocaleString()}</div>
-                      <div className="text-xs text-blue-600">Initial Investment</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-xs text-blue-600 font-medium mb-1">RETURNS AFTER TERM</div>
-                      <div className={`text-lg font-bold ${(result.totalProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        £{(result.totalProfit || 0).toLocaleString()}
-                      </div>
-                      <div className="text-xs text-blue-600">
-                        {result.model === 'brrr' ? 'Equity Released' : 
-                         result.model === 'flip' ? 'Sale Profit' : 
-                         'Net Profit'}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-blue-200">
-                    <div className="text-center">
-                      <div className="text-xs text-blue-600 font-medium mb-1">NET POSITION</div>
-                      <div className={`text-lg font-bold ${(result.totalProfit || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
-                        {result.totalProfit >= 0 ? '+' : ''}£{(result.totalProfit || 0).toLocaleString()}
-                      </div>
-                      <div className="text-xs text-blue-600">
-                        {result.totalProfit >= 0 ? 'Profit' : 'Loss'} over {(result.timeHorizonMonths || 12) / 12} year{(result.timeHorizonMonths || 12) / 12 >= 2 ? 's' : ''}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Investment & Returns Breakdown */}
-                <div className="grid md:grid-cols-2 gap-4 mb-2 text-sm">
-                  <div className="bg-white/60 rounded-lg p-3 border">
-                    <div className="font-medium text-gray-800 mb-2">Investment</div>
-                    <div className="flex justify-between"><span className="text-gray-600">Deposit</span><span>£{(result.investedDeposit || 0).toLocaleString()}</span></div>
-                    {typeof result.investedRefurb === 'number' && result.investedRefurb > 0 && (
-                      <div className="flex justify-between"><span className="text-gray-600">Refurb</span><span>£{result.investedRefurb.toLocaleString()}</span></div>
-                    )}
-                    <div className="flex justify-between"><span className="text-gray-600">Stamp duty</span><span>£{(result.investedStampDuty || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">Legal fees</span><span>£{(result.investedLegalFees || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">Broker fees</span><span>£{(result.investedBrokerFees || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between font-semibold mt-1 pt-1 border-t"><span>Total invested</span><span>£{(result.investedTotal || 0).toLocaleString()}</span></div>
-                  </div>
-                  <div className="bg-white/60 rounded-lg p-3 border">
-                    <div className="font-medium text-gray-800 mb-2">Returns</div>
-                    <div className="flex justify-between"><span className="text-gray-600">Rent over {(result.timeHorizonMonths || 12) / 12} yr</span><span>£{(result.rentReturnTotal || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between"><span className="text-gray-600">Value gain (projected)</span><span>£{(result.projectedCapitalGain || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between font-medium mt-1"><span className="text-gray-700">Total returns</span><span>£{(((result.rentReturnTotal || 0) + (result.projectedCapitalGain || 0))).toLocaleString()}</span></div>
-                    {result.model === 'brrr' && (
-                      <div className="mt-3">
-                        <div className="grid gap-1 text-xs text-gray-700 mb-3">
-                          <div className="flex justify-between"><span>Equity released at refi</span><span>£{(result.equityReleased || 0).toLocaleString()}</span></div>
-                          <div className="flex justify-between"><span>Cash left in deal</span><span>£{(result.cashLeftInDeal || 0).toLocaleString()}</span></div>
-                          <div className="flex justify-between"><span>Recycle %</span><span>{(result.recyclePercent || 0).toFixed(0)}%</span></div>
-                        </div>
-                        <button
-                          onClick={() => setShowBrrrDetailsModal(true)}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium py-2 px-3 rounded-md transition-colors"
+                        <label className={fieldLabel}>Refurb Uplift Factor</label>
+                        <select
+                          value={inputs.refurbUpliftFactor || 0.8}
+                          onChange={(e) => setInputs(prev => ({ ...prev, refurbUpliftFactor: Number(e.target.value) }))}
+                          className={fieldSelect}
                         >
-                          See details
-                        </button>
+                          <option value={0.7}>70% of refurb cost</option>
+                          <option value={0.8}>80% of refurb cost</option>
+                          <option value={0.9}>90% of refurb cost</option>
+                        </select>
+                        <p className="mt-1 text-xs text-gray-500">How much value refurb adds</p>
+                      </div>
+                    </div>
+
+                    {/* Finance Mode */}
+                    <div>
+                      <label className={fieldLabel}>Finance Mode</label>
+                      <select
+                        value={inputs.financeMode || 'day1'}
+                        onChange={(e) => setInputs(prev => ({ ...prev, financeMode: e.target.value as 'day1' | 'bridge_refi' }))}
+                        className={fieldSelect}
+                      >
+                        <option value="day1">Day-1 buy-to-let</option>
+                        <option value="bridge_refi">Bridge → refinance</option>
+                      </select>
+                      <p className="mt-1 text-xs text-gray-500">
+                        {inputs.financeMode === 'day1' 
+                          ? 'Standard BTL mortgage from day one'
+                          : 'Short-term bridge loan, then refinance to BTL'
+                        }
+                      </p>
+                    </div>
+
+                    {/* Bridge Finance Details */}
+                    {inputs.financeMode === 'bridge_refi' && (
+                      <div className="grid gap-4 md:grid-cols-2 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <label className={fieldLabel}>Bridge Rate (% APR)</label>
+                          <input
+                            type="number"
+                            value={inputs.bridgeRate || 12}
+                            onChange={(e) => setInputs(prev => ({ ...prev, bridgeRate: Number(e.target.value) }))}
+                            className={fieldInput}
+                            min={0}
+                            step={0.1}
+                          />
+                          <p className="mt-1 text-xs text-gray-500">Typical: 10-15% APR</p>
+                        </div>
+                        <div>
+                          <label className={fieldLabel}>Bridge Term (months)</label>
+                          <input
+                            type="number"
+                            value={inputs.bridgeMonths || 6}
+                            onChange={(e) => setInputs(prev => ({ ...prev, bridgeMonths: Number(e.target.value) }))}
+                            className={fieldInput}
+                            min={1}
+                            max={24}
+                          />
+                          <p className="mt-1 text-xs text-gray-500">6-12 months typical</p>
+                        </div>
                       </div>
                     )}
-                    <div className="mt-2 text-xs text-gray-600">Minus invested capital</div>
-                    <div className="flex justify-between text-xs"><span className="text-gray-600">- Deposit</span><span>£{(result.investedDeposit || 0).toLocaleString()}</span></div>
-                    {typeof result.investedRefurb === 'number' && result.investedRefurb > 0 && (
-                      <div className="flex justify-between text-xs"><span className="text-gray-600">- Refurb</span><span>£{result.investedRefurb.toLocaleString()}</span></div>
+
+                    {/* Strategy-Specific Fields */}
+                    {inputs.desiredModel === 'brrr' && (
+                      <div className="grid gap-4 md:grid-cols-2 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                        <div>
+                          <label className={fieldLabel}>Remortgage LTV (%)</label>
+                          <input
+                            type="number"
+                            value={inputs.remortgageLtv || 75}
+                            onChange={(e) => setInputs(prev => ({ ...prev, remortgageLtv: Number(e.target.value) }))}
+                            className={fieldInput}
+                            min={60}
+                            max={85}
+                          />
+                          <p className="mt-1 text-xs text-purple-600">LTV for refinancing after renovation</p>
+                        </div>
+                        <div>
+                          <label className={fieldLabel}>Timeline (months)</label>
+                          <input
+                            type="number"
+                            value={inputs.timelineMonths || 12}
+                            onChange={(e) => setInputs(prev => ({ ...prev, timelineMonths: Number(e.target.value) }))}
+                            className={fieldInput}
+                            min={6}
+                            max={24}
+                          />
+                          <p className="mt-1 text-xs text-purple-600">Time to complete BRRR cycle</p>
+                        </div>
+                      </div>
                     )}
-                    <div className="flex justify-between text-xs"><span className="text-gray-600">- Stamp duty</span><span>£{(result.investedStampDuty || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-gray-600">- Legal fees</span><span>£{(result.investedLegalFees || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between text-xs"><span className="text-gray-600">- Broker fees</span><span>£{(result.investedBrokerFees || 0).toLocaleString()}</span></div>
-                    <div className="flex justify-between font-semibold mt-2">
-                      <span>{result.model === 'brrr' ? 'Cash left in deal' : 'Total profit'}</span>
-                      <span>£{(result.model === 'brrr' ? (result.cashLeftInDeal || 0) : (result.totalProfit || 0)).toLocaleString()}</span>
-                    </div>
+
+                    {inputs.desiredModel === 'flip' && (
+                      <div className="grid gap-4 md:grid-cols-2 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                        <div>
+                          <label className={fieldLabel}>Flip Timeline (months)</label>
+                          <input
+                            type="number"
+                            value={inputs.flipTimeline || 12}
+                            onChange={(e) => setInputs(prev => ({ ...prev, flipTimeline: Number(e.target.value) }))}
+                            className={fieldInput}
+                            min={3}
+                            max={24}
+                          />
+                          <p className="mt-1 text-xs text-orange-600">Time to complete and sell</p>
+                        </div>
+                        <div>
+                          <label className={fieldLabel}>Selling Costs (%)</label>
+                          <input
+                            type="number"
+                            value={inputs.sellingCosts || 3}
+                            onChange={(e) => setInputs(prev => ({ ...prev, sellingCosts: Number(e.target.value) }))}
+                            className={fieldInput}
+                            min={1}
+                            max={5}
+                          />
+                          <p className="mt-1 text-xs text-orange-600">Agent fees, legal costs, etc.</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Pros and Cons */}
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Pros</h4>
-                    <ul className="space-y-1">
-                      {result.pros.map((pro, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                          <CheckCircle className="w-3 h-3 text-green-700 mt-0.5 flex-shrink-0" />
-                          {pro}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Cons</h4>
-                    <ul className="space-y-1">
-                      {result.cons.map((con, i) => (
-                        <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                          <AlertTriangle className="w-3 h-3 text-red-600 mt-0.5 flex-shrink-0" />
-                          {con}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                {/* Navigation Buttons */}
+                <div className="flex justify-between pt-4">
+                  <button
+                    onClick={handlePrevStep}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    <ArrowRight className="w-4 h-4 rotate-180" />
+                    Back to Property Details
+                  </button>
+                  <button
+                    onClick={handleNextStep}
+                    className="px-6 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                  >
+                    Continue to Results
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
             )}
-          </motion.div>
-        ))}
-      </div>
 
+            {/* Step 3: Results & Analysis */}
+            {currentStep === 3 && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-xl border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Results & Analysis</h3>
+                  <p className="text-sm text-gray-600 mb-6">Review your investment analysis and recommendations</p>
+                  
+                  {/* Calculate Results Button */}
+                  <div className="text-center mb-8">
+                    <button
+                      onClick={() => {
+                        const vanillaResult = calculateVanillaBTL(inputs);
+                        const brrrResult = calculateBRRR(inputs);
+                        const flipResult = calculateFlip(inputs);
+                        setResults([vanillaResult, brrrResult, flipResult]);
+                      }}
+                      className="px-8 py-4 bg-green-600 text-white font-semibold rounded-xl hover:bg-green-700 transition-colors flex items-center gap-3 mx-auto"
+                    >
+                      <Calculator className="w-5 h-5" />
+                      Calculate Investment Analysis
+                    </button>
+                  </div>
 
+                  {/* Results Display */}
+                  {results && results.length > 0 && (
+                    <div className="space-y-6">
+                      {/* Strategy Comparison Summary */}
+                      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 border border-blue-200">
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Strategy Comparison</h4>
+                        <div className="grid gap-4 md:grid-cols-3">
+                          {results.map((result) => (
+                            <div key={result.model} className="bg-white rounded-lg p-4 border border-gray-200">
+                              <div className="flex items-center gap-2 mb-3">
+                                <div className={`p-2 rounded-lg ${getModelColor(result.model)}`}>
+                                  {getModelIcon(result.model)}
+                                </div>
+                                <h5 className="font-semibold text-gray-900 capitalize">
+                                  {result.model === 'vanilla' ? 'Vanilla BTL' : result.model.toUpperCase()}
+                                </h5>
+                              </div>
+                              <div className="space-y-2 text-sm">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">ROI:</span>
+                                  <span className={`font-semibold ${result.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {result.roi.toFixed(1)}%
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Cash Flow:</span>
+                                  <span className={`font-semibold ${result.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                    {formatCurrency(result.cashFlow)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-600">Risk:</span>
+                                  <span className={`text-xs px-2 py-1 rounded-full ${getRiskColor(result.risk)}`}>
+                                    {result.risk}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
 
-      {/* BRRR Details Modal */}
-      {showBrrrDetailsModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
-          <div 
-            className="absolute inset-0 bg-black bg-opacity-50"
-            onClick={() => setShowBrrrDetailsModal(false)}
-          />
-          
-          {/* Modal Content */}
-          <div className="relative bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <TrendingUp className="w-6 h-6 text-purple-600" />
-                <h2 className="text-xl font-semibold text-gray-900">BRRR Strategy Details</h2>
+                      {/* Detailed Results for Each Strategy */}
+                      {results.map((result) => (
+                        <div key={result.model} className="border border-gray-200 rounded-xl overflow-hidden">
+                          {/* Strategy Header */}
+                          <div className={`p-4 ${getModelColor(result.model)}`}>
+                            <div className="flex items-center gap-3">
+                              {getModelIcon(result.model)}
+                              <div>
+                                <h4 className="text-lg font-semibold text-gray-900 capitalize">
+                                  {result.model === 'vanilla' ? 'Vanilla BTL' : result.model.toUpperCase()} Analysis
+                                </h4>
+                                <p className="text-sm text-gray-700">{result.recommendation}</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Strategy Content */}
+                          <div className="p-6 bg-white">
+                            <div className="grid gap-6 md:grid-cols-2">
+                              {/* Key Metrics */}
+                              <div className="space-y-4">
+                                <h5 className="font-semibold text-gray-900">Key Metrics</h5>
+                                <div className="grid gap-3">
+                                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Total ROI</span>
+                                    <span className={`font-semibold text-lg ${result.roi >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {result.roi.toFixed(1)}%
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Annual Cash Flow</span>
+                                    <span className={`font-semibold text-lg ${result.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {formatCurrency(result.cashFlow)}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                    <span className="text-sm text-gray-600">Total Profit</span>
+                                    <span className={`font-semibold text-lg ${result.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                      {formatCurrency(result.totalProfit)}
+                                    </span>
+                                  </div>
+                                  {result.grossYield && (
+                                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm text-gray-600">Gross Yield</span>
+                                      <span className="font-semibold text-lg text-blue-600">
+                                        {result.grossYield.toFixed(1)}%
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Investment Breakdown */}
+                              <div className="space-y-4">
+                                <h5 className="font-semibold text-gray-900">Investment Breakdown</h5>
+                                <div className="grid gap-3">
+                                  {result.investedDeposit && (
+                                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm text-gray-600">Deposit</span>
+                                      <span className="font-semibold text-gray-900">
+                                        {formatCurrency(result.investedDeposit)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {result.investedRefurb && (
+                                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm text-gray-600">Refurbishment</span>
+                                      <span className="font-semibold text-gray-900">
+                                        {formatCurrency(result.investedRefurb)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {result.investedFeesTotal && (
+                                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                                      <span className="text-sm text-gray-600">Fees & Costs</span>
+                                      <span className="font-semibold text-gray-900">
+                                        {formatCurrency(result.investedFeesTotal)}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {result.investedTotal && (
+                                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                      <span className="text-sm font-medium text-blue-700">Total Investment</span>
+                                      <span className="font-bold text-lg text-blue-700">
+                                        {formatCurrency(result.investedTotal)}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Strategy-Specific Insights */}
+                            {result.model === 'brrr' && result.equityReleased && (
+                              <div className="mt-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                                <h6 className="font-semibold text-purple-900 mb-3">BRRR Insights</h6>
+                                <div className="grid gap-3 md:grid-cols-3">
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-purple-600">
+                                      {formatCurrency(result.equityReleased)}
+                                    </div>
+                                    <div className="text-sm text-purple-700">Equity Released</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-purple-600">
+                                      {formatCurrency(result.cashLeftInDeal || 0)}
+                                    </div>
+                                    <div className="text-sm text-purple-700">Cash Left in Deal</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-purple-600">
+                                      {(result.recyclePercent || 0).toFixed(0)}%
+                                    </div>
+                                    <div className="text-sm text-purple-700">Capital Recycled</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {result.model === 'flip' && result.projectedCapitalGain && (
+                              <div className="mt-6 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                                <h6 className="font-semibold text-orange-900 mb-3">Flip Insights</h6>
+                                <div className="grid gap-3 md:grid-cols-2">
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-orange-600">
+                                      {formatCurrency(result.projectedCapitalGain)}
+                                    </div>
+                                    <div className="text-sm text-orange-700">Capital Gain</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="text-2xl font-bold text-orange-600">
+                                      {inputs.flipTimeline || 12} months
+                                    </div>
+                                    <div className="text-sm text-orange-700">Timeline</div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Pros & Cons */}
+                            <div className="mt-6 grid gap-4 md:grid-cols-2">
+                              <div>
+                                <h6 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
+                                  <CheckCircle className="w-4 h-4" />
+                                  Advantages
+                                </h6>
+                                <ul className="space-y-2">
+                                  {result.pros.map((pro, index) => (
+                                    <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
+                                      {pro}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div>
+                                <h6 className="font-semibold text-red-700 mb-3 flex items-center gap-2">
+                                  <XCircle className="w-4 h-4" />
+                                  Considerations
+                                </h6>
+                                <ul className="space-y-2">
+                                  {result.cons.map((con, index) => (
+                                    <li key={index} className="flex items-start gap-2 text-sm text-gray-700">
+                                      <div className="w-1.5 h-1.5 bg-red-500 rounded-full mt-2 flex-shrink-0"></div>
+                                      {con}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* No Results State */}
+                  {(!results || results.length === 0) && (
+                    <div className="text-center py-12 text-gray-500">
+                      <Calculator className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                      <p className="text-lg mb-2">Ready to analyze your investment?</p>
+                      <p className="text-sm">Click the button above to calculate detailed results for all three strategies</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between pt-4">
+                  <button
+                    onClick={handlePrevStep}
+                    className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-2"
+                  >
+                    <ArrowRight className="w-4 h-4 rotate-180" />
+                    Back to Financial Details
+                  </button>
+                  {results && results.length > 0 && (
+                    <button
+                      onClick={() => window.print()}
+                      className="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
+                    >
+                      <Printer className="w-4 h-4" />
+                      Print Report
+                    </button>
+                  )}
+                </div>
               </div>
-              <button
-                onClick={() => setShowBrrrDetailsModal(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <X className="w-5 h-5 text-gray-500" />
-              </button>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              {results.find(r => r.model === 'brrr') && (() => {
-                const result = results.find(r => r.model === 'brrr')!;
-                return (
-                  <div className="space-y-6">
-                    {/* Key Metrics */}
-                    <div className="grid md:grid-cols-3 gap-4">
-                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-                        <div className="text-sm text-purple-600 font-medium">Equity Released</div>
-                        <div className="text-2xl font-bold text-purple-900">£{(result.equityReleased || 0).toLocaleString()}</div>
-                      </div>
-                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                        <div className="text-sm text-blue-600 font-medium">Cash Left in Deal</div>
-                        <div className="text-2xl font-bold text-blue-900">£{(result.cashLeftInDeal || 0).toLocaleString()}</div>
-                      </div>
-                      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                        <div className="text-sm text-green-600 font-medium">Recycle %</div>
-                        <div className="text-2xl font-bold text-green-900">{(result.recyclePercent || 0).toFixed(0)}%</div>
-                      </div>
-                    </div>
+            )}
+          </div>
 
-                    {/* BRRR Insights */}
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <h3 className="font-semibold text-gray-900 mb-3">BRRR Strategy Insights</h3>
-                      <div className="grid md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-gray-600">Break-even rent</span>
-                            <span className="font-medium">£{(result.breakEvenRent || 0).toLocaleString()}/month</span>
-                          </div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-gray-600">Your estimated ARV</span>
-                            <span className="font-medium">£{inputs.estimatedRenovatedValue.toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Target purchase price</span>
-                            <span className="font-medium">£{(result.recommendedPurchasePrice || 0).toLocaleString()}</span>
-                          </div>
-                        </div>
-                        <div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-gray-600">BMV guide (10%)</span>
-                            <span className="font-medium">£{(inputs.marketValue ? inputs.marketValue * 0.9 : 0).toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between mb-1">
-                            <span className="text-gray-600">BMV guide (15%)</span>
-                            <span className="font-medium">£{(inputs.marketValue ? inputs.marketValue * 0.85 : 0).toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">BMV guide (20%)</span>
-                            <span className="font-medium">£{(inputs.marketValue ? inputs.marketValue * 0.80 : 0).toLocaleString()}</span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {/* Explanation Section */}
-                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <h4 className="font-medium text-blue-900 mb-2">What These Numbers Mean:</h4>
-                        <div className="text-xs text-blue-800 space-y-1">
-                          <p><strong>Break-even rent:</strong> The minimum monthly rent needed to cover all costs (mortgage + expenses)</p>
-                          <p><strong>Recommended ARV:</strong> The target property value after refurbishment and market growth</p>
-                          <p><strong>Target purchase price:</strong> What you should aim to buy for to achieve optimal returns</p>
-                          <p><strong>BMV guides:</strong> Below Market Value targets - aim for 10-20% discount for best BRRR returns</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Scenario Ladder */}
-                    {Array.isArray(result.scenarios) && result.scenarios.length > 0 && (
-                      <div>
-                        <h3 className="font-semibold text-gray-900 mb-3">Scenario Analysis</h3>
-                        <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-                          <div className="overflow-x-auto">
-                            <table className="w-full">
-                              <thead className="bg-gray-50">
-                                <tr>
-                                  <th className="text-left py-3 px-4 text-sm font-medium text-gray-700">Discount</th>
-                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Buy</th>
-                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Refurb</th>
-                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">ARV</th>
-                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Equity Released</th>
-                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Cash Left</th>
-                                  <th className="text-right py-3 px-4 text-sm font-medium text-gray-700">Recycle %</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-gray-200">
-                                {result.scenarios.map((s, i) => (
-                                  <tr key={i} className={i % 2 ? 'bg-gray-50' : 'bg-white'}>
-                                    <td className="py-3 px-4 text-sm font-medium text-gray-900">{s.label}</td>
-                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.purchasePrice)}</td>
-                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.refurbCost)}</td>
-                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.arv)}</td>
-                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.equityReleased)}</td>
-                                    <td className="py-3 px-4 text-sm text-right text-gray-900">{formatCurrency(s.cashLeftInDeal)}</td>
-                                    <td className="py-3 px-4 text-sm text-right font-medium text-gray-900">{Math.round(s.recyclePercent)}%</td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
+          {/* Right Column - Results Preview */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl border border-gray-200 p-6 sticky top-8">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Preview</h3>
+              
+              {currentStep === 1 && (
+                <div className="space-y-4">
+                  {/* Strategy Guidance */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      Strategy Guidance
+                    </h4>
+                    {inputs.desiredModel === 'vanilla' && (
+                      <div className="text-sm text-blue-800">
+                        <p className="mb-2"><strong>Vanilla BTL:</strong> Best for steady income and lower risk</p>
+                        <ul className="space-y-1 text-xs">
+                          <li>• Aim for 5-8% gross yield</li>
+                          <li>• Purchase at or near market value</li>
+                          <li>• Minimal renovation (£5-8k)</li>
+                          <li>• Immediate rental income</li>
+                        </ul>
                       </div>
                     )}
+                    {inputs.desiredModel === 'brrr' && (
+                      <div className="text-sm text-blue-800">
+                        <p className="mb-2"><strong>BRRR:</strong> Best for scaling portfolio quickly</p>
+                        <ul className="space-y-1 text-xs">
+                          <li>• Buy 15-20% below market value</li>
+                          <li>• Renovate for £20-30k value-add</li>
+                          <li>• Refinance to release equity</li>
+                          <li>• 6-12 month timeline</li>
+                        </ul>
+                      </div>
+                    )}
+                    {inputs.desiredModel === 'flip' && (
+                      <div className="text-sm text-blue-800">
+                        <p className="mb-2"><strong>FLIP:</strong> Best for quick capital gains</p>
+                        <ul className="space-y-1 text-xs">
+                          <li>• Buy 15-20% below market value</li>
+                          <li>• Maximum renovation impact (£25k+)</li>
+                          <li>• Sell within 6-12 months</li>
+                          <li>• No ongoing management</li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
 
-                    {/* Strategy Guidance */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-blue-900 mb-2">Strategy Guidance</h3>
-                      <div className="text-sm text-blue-800 space-y-2">
-                        <p>• Target properties at 10-20% below market value for optimal BRRR returns</p>
-                        <p>• Ensure refurbishment adds at least 80% of cost to property value</p>
-                        <p>• Plan for 6-12 months between purchase and refinance</p>
-                        <p>• Maintain good credit score for favorable refinance terms</p>
+                  {/* Property Insights */}
+                  {inputs.postcode && (
+                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                      <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                        <Home className="w-4 h-4" />
+                        Property Insights
+                      </h4>
+                      <div className="text-sm text-green-800">
+                        <p className="mb-2"><strong>Postcode:</strong> {inputs.postcode}</p>
+                        <p className="mb-2"><strong>Bedrooms:</strong> {inputs.bedrooms}</p>
+                        <p className="mb-2"><strong>Size:</strong> {inputs.squareFootage} sq ft</p>
+                        {inputs.bedrooms >= 3 && (
+                          <p className="text-xs text-green-700 mt-2">
+                            ✓ Good family home potential<br/>
+                            ✓ Strong rental demand<br/>
+                            ✓ Good resale market
+                          </p>
+                        )}
                       </div>
                     </div>
+                  )}
 
-                    {/* What You Should Offer */}
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                      <h3 className="font-semibold text-green-900 mb-3">What You Should Offer</h3>
-                      <div className="space-y-3">
-                        <div className="bg-white rounded-lg p-3 border border-green-200">
-                          <h4 className="font-medium text-green-900 mb-2">🎯 Ideal Purchase Price</h4>
-                          <div className="text-2xl font-bold text-green-700 mb-2">
-                            £{(inputs.marketValue ? inputs.marketValue * 0.85 : 0).toLocaleString()}
-                          </div>
-                          <p className="text-sm text-green-800">Aim for 15% below market value for optimal returns</p>
-                        </div>
-                        
-                        <div className="bg-white rounded-lg p-3 border border-green-200">
-                          <h4 className="font-medium text-green-900 mb-2">💰 Maximum Offer</h4>
-                          <div className="text-2xl font-bold text-green-700 mb-2">
-                            £{(inputs.marketValue ? inputs.marketValue * 0.9 : 0).toLocaleString()}
-                          </div>
-                          <p className="text-sm text-green-800">Don't pay more than 10% below market value</p>
-                        </div>
+                  {/* Quick Tips */}
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                    <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4" />
+                      Quick Tips
+                    </h4>
+                    <div className="text-sm text-purple-800 space-y-2">
+                      <p>• Enter a postcode to enable the continue button</p>
+                      <p>• Select your investment strategy for tailored guidance</p>
+                      <p>• Use the property size fields for accurate calculations</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-                        <div className="bg-white rounded-lg p-3 border border-green-200">
-                          <h4 className="font-medium text-green-900 mb-2">📈 Your Estimated Renovated Value</h4>
-                          <div className="text-2xl font-bold text-green-700 mb-2">
-                            £{inputs.estimatedRenovatedValue.toLocaleString()}
-                          </div>
-                          <p className="text-sm text-green-800">Your estimate of what the property will be worth after refurbishment</p>
-                        </div>
+              {currentStep === 2 && (
+                <div className="space-y-4">
+                  {/* Financial Summary */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                      <Calculator className="w-4 h-4" />
+                      Financial Summary
+                    </h4>
+                    <div className="text-sm text-blue-800 space-y-2">
+                      <div className="flex justify-between">
+                        <span>Purchase Price:</span>
+                        <span className="font-semibold">{formatCurrency(inputs.purchasePrice)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Deposit:</span>
+                        <span className="font-semibold">{formatCurrency(inputs.purchasePrice * (inputs.depositPct / 100))}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Refurb Cost:</span>
+                        <span className="font-semibold">{formatCurrency(inputs.refurbCost)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Monthly Rent:</span>
+                        <span className="font-semibold">{formatCurrency(inputs.monthlyRent)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Monthly Mortgage:</span>
+                        <span className="font-semibold">{formatCurrency(calculateMonthlyMortgagePayment())}</span>
                       </div>
                       
-                      <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <h4 className="font-medium text-yellow-900 mb-2">💡 Negotiation Tips</h4>
-                        <div className="text-xs text-yellow-800 space-y-1">
-                          <p>• Start your offer at 20% below market value and negotiate up</p>
-                          <p>• Highlight any issues that justify the discount (damp, outdated kitchen, etc.)</p>
-                          <p>• Be prepared to walk away if the seller won't meet your target price</p>
-                          <p>• Consider offering a quick completion to sweeten the deal</p>
+                      {/* New Enhanced Metrics */}
+                      <div className="border-t border-blue-200 pt-2 mt-2">
+                        <div className="flex justify-between items-center">
+                          <span>Monthly Cash Flow:</span>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-semibold ${
+                              (inputs.monthlyRent - calculateMonthlyMortgagePayment() - inputs.otherExpenses) >= 0 
+                                ? 'text-green-600' 
+                                : 'text-red-600'
+                            }`}>
+                              {formatCurrency(inputs.monthlyRent - calculateMonthlyMortgagePayment() - inputs.otherExpenses)}
+                            </span>
+                            {(inputs.monthlyRent - calculateMonthlyMortgagePayment() - inputs.otherExpenses) >= 0 ? (
+                              <span className="text-green-600">✓</span>
+                            ) : (
+                              <span className="text-red-600">⚠</span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Investment:</span>
+                          <span className="font-semibold">{formatCurrency(
+                            (inputs.purchasePrice * (inputs.depositPct / 100)) + 
+                            inputs.refurbCost + 
+                            inputs.stampDuty + 
+                            inputs.legalFees + 
+                            inputs.brokerFees
+                          )}</span>
                         </div>
                       </div>
                     </div>
                   </div>
-                );
-              })()}
+
+                  {/* Yield Calculator */}
+                  <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                    <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4" />
+                      Quick Yield Calc
+                    </h4>
+                    <div className="text-sm text-green-800 space-y-2">
+                      <div className="flex justify-between">
+                        <span>Gross Yield:</span>
+                        <span className="font-semibold">
+                          {inputs.purchasePrice > 0 ? ((inputs.monthlyRent * 12 / inputs.purchasePrice) * 100).toFixed(1) : '0.0'}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Net Yield:</span>
+                        <span className="font-semibold">
+                          {inputs.purchasePrice > 0 ? (((inputs.monthlyRent - inputs.otherExpenses) * 12 / inputs.purchasePrice) * 100).toFixed(1) : '0.0'}%
+                        </span>
+                      </div>
+                      <div className="text-xs text-green-700 mt-2">
+                        {inputs.purchasePrice > 0 && (inputs.monthlyRent * 12 / inputs.purchasePrice) * 100 >= 5 ? (
+                          <span className="text-green-600">✓ Good yield potential</span>
+                        ) : (
+                          <span className="text-orange-600">⚠ Consider negotiating price</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Strategy-Specific Tips */}
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                    <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                      <Target className="w-4 h-4" />
+                      Strategy Tips
+                    </h4>
+                    <div className="text-sm text-purple-800">
+                      {inputs.desiredModel === 'vanilla' && (
+                        <p>Ensure monthly rent covers mortgage + expenses for positive cash flow</p>
+                      )}
+                      {inputs.desiredModel === 'brrr' && (
+                        <p>Target 15-20% below market value to create equity for renovation</p>
+                      )}
+                      {inputs.desiredModel === 'flip' && (
+                        <p>Calculate total costs including selling fees to ensure profit margin</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {currentStep === 3 && (
+                <div className="space-y-4">
+                  {/* Results Summary */}
+                  {results && results.length > 0 && (
+                    <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                      <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                        <TrendingUp className="w-4 h-4" />
+                        Results Summary
+                      </h4>
+                      <div className="text-sm text-green-800 space-y-2">
+                        {results.map((result) => (
+                          <div key={result.model} className="border-b border-green-200 pb-2 last:border-b-0">
+                            <div className="font-medium capitalize mb-1">
+                              {result.model === 'vanilla' ? 'Vanilla BTL' : result.model.toUpperCase()}
+                            </div>
+                            <div className="text-xs space-y-1">
+                              <div className="flex justify-between">
+                                <span>ROI:</span>
+                                <span className={result.roi >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                  {result.roi.toFixed(1)}%
+                                </span>
+                              </div>
+                              <div className="flex justify-between">
+                                <span>Cash Flow:</span>
+                                <span className={result.cashFlow >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                  {formatCurrency(result.cashFlow)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Best Strategy */}
+                  {results && results.length > 0 && (
+                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                      <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
+                        <Star className="w-4 h-4" />
+                        Recommended Strategy
+                      </h4>
+                      <div className="text-sm text-blue-800">
+                        {(() => {
+                          const bestStrategy = results.reduce((best, current) => 
+                            current.roi > best.roi ? current : best
+                          );
+                          return (
+                            <div>
+                              <p className="font-medium capitalize mb-1">
+                                {bestStrategy.model === 'vanilla' ? 'Vanilla BTL' : bestStrategy.model.toUpperCase()}
+                              </p>
+                              <p className="text-xs">
+                                Highest ROI at {bestStrategy.roi.toFixed(1)}%
+                              </p>
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Action Items */}
+                  <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                    <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Next Steps
+                    </h4>
+                    <div className="text-sm text-purple-800 space-y-2">
+                      <p>• Review detailed analysis for each strategy</p>
+                      <p>• Compare pros and cons</p>
+                      <p>• Print report for your records</p>
+                      <p>• Consider market conditions</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Default State */}
+              {(!currentStep || currentStep < 1) && (
+                <div className="text-center py-8 text-gray-500">
+                  <Target className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+                  <p className="text-sm">Start with Step 1 to see tailored guidance</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
