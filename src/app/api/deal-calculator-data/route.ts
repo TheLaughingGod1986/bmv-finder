@@ -17,14 +17,14 @@ export async function GET(request: NextRequest) {
 
     console.log('Deal calculator data request:', { postcode, address, bedrooms, propertyType });
 
-    // 1. Get recent sales data for valuation
-    let estimatedValue = null;
+    // 1. Get list of sold properties for selection
+    let soldProperties = [];
     let confidence = 'low';
     
     try {
       const salesResponse = await esClient.search({
         index: 'recent_sales',
-        size: 10,
+        size: 20,
         query: {
           bool: {
             must: [
@@ -37,10 +37,17 @@ export async function GET(request: NextRequest) {
       });
 
       if (salesResponse.hits.hits.length > 0) {
-        const recentSales = salesResponse.hits.hits.map(hit => hit._source);
-        const avgPrice = recentSales.reduce((sum, sale) => sum + (sale.price || 0), 0) / recentSales.length;
-        estimatedValue = Math.round(avgPrice);
-        confidence = recentSales.length >= 3 ? 'high' : recentSales.length >= 1 ? 'medium' : 'low';
+        soldProperties = salesResponse.hits.hits.map(hit => ({
+          id: hit._id,
+          address: hit._source.address || 'Unknown Address',
+          postcode: hit._source.postcode,
+          price: hit._source.price,
+          date: hit._source.date,
+          bedrooms: hit._source.bedrooms,
+          propertyType: hit._source.property_type || 'Unknown',
+          squareFootage: hit._source.square_footage || 0
+        }));
+        confidence = soldProperties.length >= 3 ? 'high' : soldProperties.length >= 1 ? 'medium' : 'low';
       }
     } catch (error) {
       console.log('No recent sales data available, using regional estimates');
@@ -89,9 +96,13 @@ export async function GET(request: NextRequest) {
     }
 
     // 4. Fallback to reasonable defaults if no data available
-    if (!estimatedValue) {
+    let estimatedValue = null;
+    if (soldProperties.length > 0) {
+      // Use average of sold properties
+      const avgPrice = soldProperties.reduce((sum, prop) => sum + prop.price, 0) / soldProperties.length;
+      estimatedValue = Math.round(avgPrice);
+    } else {
       estimatedValue = bedrooms * 80000; // £80k per bedroom as fallback
-      confidence = 'low';
     }
 
     if (!monthlyRent) {
@@ -101,6 +112,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data: {
+        soldProperties,
         estimatedValue: Math.round(estimatedValue),
         monthlyRent: Math.round(monthlyRent),
         annualGrowth: Math.round(annualGrowth * 100) / 100,

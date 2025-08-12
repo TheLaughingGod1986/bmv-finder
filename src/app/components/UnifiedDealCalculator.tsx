@@ -91,6 +91,16 @@ interface DealInputs {
     confidence: string;
     source: string;
     lastUpdated: string;
+    soldProperties?: Array<{
+      id: string;
+      address: string;
+      postcode: string;
+      price: number;
+      date: string;
+      bedrooms: number;
+      propertyType: string;
+      squareFootage: number;
+    }>;
   };
 }
 
@@ -1010,8 +1020,41 @@ export default function UnifiedDealCalculator() {
                                 <span className="font-medium">Data fetched from API</span>
                                 <span className="text-green-600">({inputs.apiData.confidence} confidence)</span>
                               </div>
-                              <div className="grid grid-cols-3 gap-2 text-xs">
-                                <div>Value: £{inputs.apiData.estimatedValue.toLocaleString()}</div>
+                              
+                              {/* Sold Properties Dropdown */}
+                              {inputs.apiData.soldProperties && inputs.apiData.soldProperties.length > 0 && (
+                                <div className="mt-2">
+                                  <label className="block text-xs font-medium text-green-700 mb-1">
+                                    Select a sold property to analyze:
+                                  </label>
+                                  <select
+                                    onChange={(e) => {
+                                      const selectedProperty = inputs.apiData.soldProperties.find(p => p.id === e.target.value);
+                                      if (selectedProperty) {
+                                        setInputs(prev => ({
+                                          ...prev,
+                                          estimatedRenovatedValue: selectedProperty.price,
+                                          purchasePrice: selectedProperty.price,
+                                          bedrooms: selectedProperty.bedrooms,
+                                          squareFootage: selectedProperty.squareFootage || prev.squareFootage,
+                                          propertyType: selectedProperty.propertyType
+                                        }));
+                                      }
+                                    }}
+                                    className="w-full text-xs border border-green-200 rounded px-2 py-1 bg-white"
+                                  >
+                                    <option value="">Choose a property...</option>
+                                    {inputs.apiData.soldProperties.map((property) => (
+                                      <option key={property.id} value={property.id}>
+                                        {property.address} - £{property.price.toLocaleString()} ({property.bedrooms} bed, {property.date})
+                                      </option>
+                                    ))}
+                                  </select>
+                                </div>
+                              )}
+                              
+                              <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                                <div>Avg Value: £{inputs.apiData.estimatedValue.toLocaleString()}</div>
                                 <div>Rent: £{inputs.apiData.monthlyRent}/month</div>
                                 <div>Growth: {inputs.apiData.annualGrowth}%/year</div>
                               </div>
