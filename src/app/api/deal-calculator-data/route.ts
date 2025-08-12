@@ -89,6 +89,48 @@ export async function GET(request: NextRequest) {
       console.log('No recent sales data available, using regional estimates');
     }
 
+    // 2.5. Get enhanced property data (EPC, house type, condition, etc.)
+    let enhancedPropertyData = null;
+    try {
+      const enhancedResponse = await esClient.search({
+        index: 'properties-enhanced',
+        size: 1,
+        query: {
+          bool: {
+            must: [
+              { match: { postcode: postcode || '' } }
+            ],
+            should: [
+              { match: { address: address || '' } },
+              { match: { street: address || '' } }
+            ],
+            minimum_should_match: 0
+          }
+        }
+      });
+
+      if (enhancedResponse.hits.hits.length > 0) {
+        const hit = enhancedResponse.hits.hits[0]._source;
+        enhancedPropertyData = {
+          epcRating: hit.epc_rating || null,
+          epcScore: hit.epc_score || null,
+          epcSize: hit.epc_size || null, // in sqm
+          propertyType: hit.property_type || hit.propertyType || null,
+          houseCondition: hit.condition || hit.house_condition || null,
+          squareFootage: hit.square_footage || hit.epc_size || null,
+          buildYear: hit.build_year || hit.year_built || null,
+          tenure: hit.tenure || null,
+          hasGarage: hit.has_garage || false,
+          hasGarden: hit.has_garden || false,
+          hasParking: hit.has_parking || false
+        };
+        
+        console.log('Enhanced property data found:', enhancedPropertyData);
+      }
+    } catch (error) {
+      console.log('No enhanced property data available');
+    }
+
     // 3. Get rental estimation data using Postcodes.io region data
     let monthlyRent = null;
     let annualGrowth = 3; // Default 3%
@@ -230,9 +272,10 @@ export async function GET(request: NextRequest) {
         estimatedValue = bedrooms * basePricePerBedroom;
       }
       
-      // Adjust for property type
-      if (propertyType && propertyType !== 'Unknown') {
-        switch (propertyType.toLowerCase()) {
+            // Adjust for property type (use enhanced data if available, fallback to input)
+      const finalPropertyType = enhancedPropertyData?.propertyType || propertyType;
+      if (finalPropertyType && finalPropertyType !== 'Unknown') {
+        switch (finalPropertyType.toLowerCase()) {
           case 'detached':
             estimatedValue = Math.round(estimatedValue * 1.2);
             break;
@@ -249,11 +292,77 @@ export async function GET(request: NextRequest) {
         }
       }
       
-      // Adjust for square footage if available (we'll use a default assumption)
-      // In a real implementation, this would come from the frontend inputs
-      const avgSqFtPerBedroom = 150; // Average UK bedroom size
-      const expectedSqFt = bedrooms * avgSqFtPerBedroom;
-            // For now, assume average size - this could be enhanced later
+      // Adjust for square footage using enhanced data
+      if (enhancedPropertyData?.squareFootage && enhancedPropertyData.squareFootage > 0) {
+        const actualSqFt = enhancedPropertyData.squareFootage;
+        const avgSqFtPerBedroom = 150; // Average UK bedroom size
+        const expectedSqFt = bedrooms * avgSqFtPerBedroom;
+        const sizeMultiplier = actualSqFt / expectedSqFt;
+        
+        if (sizeMultiplier > 1.3) {
+          estimatedValue = Math.round(estimatedValue * 1.15); // Significantly larger
+        } else if (sizeMultiplier > 1.1) {
+          estimatedValue = Math.round(estimatedValue * 1.1); // Larger than average
+        } else if (sizeMultiplier < 0.7) {
+          estimatedValue = Math.round(estimatedValue * 0.85); // Significantly smaller
+        } else if (sizeMultiplier < 0.9) {
+          estimatedValue = Math.round(estimatedValue * 0.9); // Smaller than average
+        }
+        
+        console.log('Square footage adjustment:', { actualSqFt, expectedSqFt, sizeMultiplier, adjustedValue: estimatedValue });
+      }
+      
+      // Adjust for EPC rating
+      if (enhancedPropertyData?.epcRating) {
+        const epcMultipliers = {
+          'A': 1.08,  // +8% for excellent energy efficiency
+          'B': 1.05,  // +5% for very good
+          'C': 1.02,  // +2% for good
+          'D': 1.0,   // No adjustment for average
+          'E': 0.98,  // -2% for below average
+          'F': 0.95,  // -5% for poor
+          'G': 0.92   // -8% for very poor
+        };
+        
+        const epcMultiplier = epcMultipliers[enhancedPropertyData.epcRating as keyof typeof epcMultipliers] || 1.0;
+        estimatedValue = Math.round(estimatedValue * epcMultiplier);
+        
+        console.log('EPC rating adjustment:', { epcRating: enhancedPropertyData.epcRating, epcMultiplier, adjustedValue: estimatedValue });
+      }
+      
+      // Adjust for house condition
+      if (enhancedPropertyData?.houseCondition) {
+        const conditionMultipliers = {
+          'excellent': 1.1,    // +10% for excellent condition
+          'very good': 1.05,   // +5% for very good
+          'good': 1.02,        // +2% for good
+          'fair': 1.0,         // No adjustment for fair
+          'poor': 0.95,        // -5% for poor
+          'very poor': 0.9,    // -10% for very poor
+          'needs work': 0.85   // -15% for properties needing work
+        };
+        
+        const conditionMultiplier = conditionMultipliers[enhancedPropertyData.houseCondition.toLowerCase() as keyof typeof conditionMultipliers] || 1.0;
+        estimatedValue = Math.round(estimatedValue * conditionMultiplier);
+        
+        console.log('House condition adjustment:', { houseCondition: enhancedPropertyData.houseCondition, conditionMultiplier, adjustedValue: estimatedValue });
+      }
+      
+      // Adjust for build year (newer properties often command premium)
+      if (enhancedPropertyData?.buildYear) {
+        const currentYear = new Date().getFullYear();
+        const age = currentYear - enhancedPropertyData.buildYear;
+        
+        if (age <= 5) {
+          estimatedValue = Math.round(estimatedValue * 1.05); // +5% for very new
+        } else if (age <= 15) {
+          estimatedValue = Math.round(estimatedValue * 1.03); // +3% for relatively new
+        } else if (age >= 100) {
+          estimatedValue = Math.round(estimatedValue * 1.02); // +2% for period properties
+        }
+        
+        console.log('Build year adjustment:', { buildYear: enhancedPropertyData.buildYear, age, adjustedValue: estimatedValue });
+      }
     }
     
     console.log('Estimated value calculation:', { 
@@ -262,7 +371,14 @@ export async function GET(request: NextRequest) {
       bedrooms, 
       estimatedValue, 
       soldPropertiesCount: soldProperties.length,
-      postcodeData: !!postcodeData
+      postcodeData: !!postcodeData,
+      enhancedPropertyData: enhancedPropertyData ? {
+        epcRating: enhancedPropertyData.epcRating,
+        propertyType: enhancedPropertyData.propertyType,
+        squareFootage: enhancedPropertyData.squareFootage,
+        houseCondition: enhancedPropertyData.houseCondition,
+        buildYear: enhancedPropertyData.buildYear
+      } : null
     });
     
     if (!monthlyRent) {
@@ -286,6 +402,19 @@ export async function GET(request: NextRequest) {
           parish: postcodeData.parish,
           latitude: postcodeData.latitude,
           longitude: postcodeData.longitude
+        } : null,
+        enhancedPropertyData: enhancedPropertyData ? {
+          epcRating: enhancedPropertyData.epcRating,
+          epcScore: enhancedPropertyData.epcScore,
+          epcSize: enhancedPropertyData.epcSize,
+          propertyType: enhancedPropertyData.propertyType,
+          houseCondition: enhancedPropertyData.houseCondition,
+          squareFootage: enhancedPropertyData.squareFootage,
+          buildYear: enhancedPropertyData.buildYear,
+          tenure: enhancedPropertyData.tenure,
+          hasGarage: enhancedPropertyData.hasGarage,
+          hasGarden: enhancedPropertyData.hasGarden,
+          hasParking: enhancedPropertyData.hasParking
         } : null
       }
     });

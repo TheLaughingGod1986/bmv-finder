@@ -101,6 +101,19 @@ interface DealInputs {
       propertyType: string;
       squareFootage: number;
     }>;
+    enhancedPropertyData?: {
+      epcRating: string | null;
+      epcScore: number | null;
+      epcSize: number | null;
+      propertyType: string | null;
+      houseCondition: string | null;
+      squareFootage: number | null;
+      buildYear: number | null;
+      tenure: string | null;
+      hasGarage: boolean;
+      hasGarden: boolean;
+      hasParking: boolean;
+    };
   };
 }
 
@@ -1055,16 +1068,25 @@ export default function UnifiedDealCalculator() {
                                   <select
                                     onChange={(e) => {
                                       const selectedProperty = inputs.apiData.soldProperties.find(p => p.id === e.target.value);
-                                      if (selectedProperty) {
-                                        setInputs(prev => ({
-                                          ...prev,
-                                          estimatedRenovatedValue: selectedProperty.price,
-                                          purchasePrice: selectedProperty.price,
-                                          bedrooms: selectedProperty.bedrooms,
-                                          squareFootage: selectedProperty.squareFootage || prev.squareFootage,
-                                          propertyType: selectedProperty.propertyType
-                                        }));
-                                      }
+                                                                             if (selectedProperty) {
+                                         setInputs(prev => ({
+                                           ...prev,
+                                           estimatedRenovatedValue: selectedProperty.price,
+                                           purchasePrice: selectedProperty.price,
+                                           bedrooms: selectedProperty.bedrooms,
+                                           squareFootage: selectedProperty.squareFootage || prev.squareFootage,
+                                           propertyType: selectedProperty.propertyType
+                                         }));
+                                         
+                                         // Also update with enhanced property data if available
+                                         if (inputs.apiData?.enhancedPropertyData) {
+                                           setInputs(prev => ({
+                                             ...prev,
+                                             squareFootage: inputs.apiData.enhancedPropertyData.squareFootage || prev.squareFootage,
+                                             propertyType: inputs.apiData.enhancedPropertyData.propertyType || prev.propertyType
+                                           }));
+                                         }
+                                       }
                                     }}
                                     className="w-full text-xs border border-green-200 rounded px-2 py-1 bg-white"
                                   >
@@ -1078,11 +1100,70 @@ export default function UnifiedDealCalculator() {
                                 </div>
                               )}
                               
-                              <div className="grid grid-cols-3 gap-2 text-xs mt-2">
-                                <div>Avg Value: £{inputs.apiData.estimatedValue.toLocaleString()}</div>
-                                <div>Rent: £{inputs.apiData.monthlyRent}/month</div>
-                                <div>Growth: {inputs.apiData.annualGrowth}%/year</div>
-                              </div>
+                                                             <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+                                 <div>Avg Value: £{inputs.apiData.estimatedValue.toLocaleString()}</div>
+                                 <div>Rent: £{inputs.apiData.monthlyRent}/month</div>
+                                 <div>Growth: {inputs.apiData.annualGrowth}%/year</div>
+                               </div>
+                               
+                               {/* Enhanced Property Data Display */}
+                               {inputs.apiData.enhancedPropertyData && (
+                                 <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                                   <div className="text-xs font-medium text-blue-700 mb-2">Enhanced Property Details</div>
+                                   <div className="grid grid-cols-2 gap-2 text-xs text-blue-600">
+                                     {inputs.apiData.enhancedPropertyData.epcRating && (
+                                       <div className="flex items-center gap-1">
+                                         <span className="font-medium">EPC:</span>
+                                         <span className={`px-1.5 py-0.5 rounded text-xs font-bold ${
+                                           inputs.apiData.enhancedPropertyData.epcRating === 'A' ? 'bg-green-100 text-green-700' :
+                                           inputs.apiData.enhancedPropertyData.epcRating === 'B' ? 'bg-blue-100 text-blue-700' :
+                                           inputs.apiData.enhancedPropertyData.epcRating === 'C' ? 'bg-yellow-100 text-yellow-700' :
+                                           inputs.apiData.enhancedPropertyData.epcRating === 'D' ? 'bg-orange-100 text-orange-700' :
+                                           'bg-red-100 text-red-700'
+                                         }`}>
+                                           {inputs.apiData.enhancedPropertyData.epcRating}
+                                         </span>
+                                       </div>
+                                     )}
+                                     {inputs.apiData.enhancedPropertyData.propertyType && (
+                                       <div>
+                                         <span className="font-medium">Type:</span> {inputs.apiData.enhancedPropertyData.propertyType}
+                                       </div>
+                                     )}
+                                     {inputs.apiData.enhancedPropertyData.squareFootage && (
+                                       <div>
+                                         <span className="font-medium">Size:</span> {inputs.apiData.enhancedPropertyData.squareFootage} sqm
+                                       </div>
+                                     )}
+                                     {inputs.apiData.enhancedPropertyData.houseCondition && (
+                                       <div>
+                                         <span className="font-medium">Condition:</span> {inputs.apiData.enhancedPropertyData.houseCondition}
+                                       </div>
+                                     )}
+                                     {inputs.apiData.enhancedPropertyData.buildYear && (
+                                       <div>
+                                         <span className="font-medium">Built:</span> {inputs.apiData.enhancedPropertyData.buildYear}
+                                       </div>
+                                     )}
+                                     {inputs.apiData.enhancedPropertyData.tenure && (
+                                       <div>
+                                         <span className="font-medium">Tenure:</span> {inputs.apiData.enhancedPropertyData.tenure}
+                                       </div>
+                                     )}
+                                   </div>
+                                   <div className="mt-2 flex gap-2 text-xs">
+                                     {inputs.apiData.enhancedPropertyData.hasGarage && (
+                                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">Garage</span>
+                                     )}
+                                     {inputs.apiData.enhancedPropertyData.hasGarden && (
+                                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">Garden</span>
+                                       )}
+                                     {inputs.apiData.enhancedPropertyData.hasParking && (
+                                       <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">Parking</span>
+                                     )}
+                                   </div>
+                                 </div>
+                               )}
                             </div>
                           </div>
                         )}
