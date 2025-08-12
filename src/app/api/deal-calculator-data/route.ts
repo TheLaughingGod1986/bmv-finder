@@ -8,6 +8,16 @@ export async function GET(request: NextRequest) {
     const address = searchParams.get('address');
     const bedrooms = parseInt(searchParams.get('bedrooms') || '3');
     const propertyType = searchParams.get('propertyType') || 'detached';
+    
+    // Get manual property inputs if provided
+    const manualPropertyType = searchParams.get('manualPropertyType');
+    const manualPropertyCondition = searchParams.get('manualPropertyCondition');
+    const manualBuildYear = searchParams.get('manualBuildYear') ? parseInt(searchParams.get('manualBuildYear')!) : null;
+    const manualEpcRating = searchParams.get('manualEpcRating');
+    const manualSquareFootage = searchParams.get('manualSquareFootage') ? parseInt(searchParams.get('manualSquareFootage')!) : null;
+    const manualHasGarage = searchParams.get('manualHasGarage') === 'true';
+    const manualHasGarden = searchParams.get('manualHasGarden') === 'true';
+    const manualHasParking = searchParams.get('manualHasParking') === 'true';
 
     if (!postcode && !address) {
       return NextResponse.json({ 
@@ -372,8 +382,8 @@ export async function GET(request: NextRequest) {
         estimatedValue = bedrooms * basePricePerBedroom;
       }
       
-            // Adjust for property type (use enhanced data if available, fallback to input)
-      const finalPropertyType = enhancedPropertyData?.propertyType || propertyType;
+            // Adjust for property type (use manual input first, then enhanced data, then fallback)
+      const finalPropertyType = manualPropertyType || enhancedPropertyData?.propertyType || propertyType;
       if (finalPropertyType && finalPropertyType !== 'Unknown') {
         switch (finalPropertyType.toLowerCase()) {
           case 'detached':
@@ -392,9 +402,9 @@ export async function GET(request: NextRequest) {
         }
       }
       
-      // Adjust for square footage using enhanced data
-      if (enhancedPropertyData?.squareFootage && enhancedPropertyData.squareFootage > 0) {
-        const actualSqFt = enhancedPropertyData.squareFootage;
+      // Adjust for square footage using manual input first, then enhanced data
+      const actualSqFt = manualSquareFootage || enhancedPropertyData?.squareFootage;
+      if (actualSqFt && actualSqFt > 0) {
         const avgSqFtPerBedroom = 150; // Average UK bedroom size
         const expectedSqFt = bedrooms * avgSqFtPerBedroom;
         const sizeMultiplier = actualSqFt / expectedSqFt;
@@ -412,8 +422,9 @@ export async function GET(request: NextRequest) {
         console.log('Square footage adjustment:', { actualSqFt, expectedSqFt, sizeMultiplier, adjustedValue: estimatedValue });
       }
       
-      // Adjust for EPC rating
-      if (enhancedPropertyData?.epcRating) {
+      // Adjust for EPC rating (use manual input first, then enhanced data)
+      const finalEpcRating = manualEpcRating || enhancedPropertyData?.epcRating;
+      if (finalEpcRating) {
         const epcMultipliers = {
           'A': 1.08,  // +8% for excellent energy efficiency
           'B': 1.05,  // +5% for very good
@@ -424,14 +435,15 @@ export async function GET(request: NextRequest) {
           'G': 0.92   // -8% for very poor
         };
         
-        const epcMultiplier = epcMultipliers[enhancedPropertyData.epcRating as keyof typeof epcMultipliers] || 1.0;
+        const epcMultiplier = epcMultipliers[finalEpcRating as keyof typeof epcMultipliers] || 1.0;
         estimatedValue = Math.round(estimatedValue * epcMultiplier);
         
-        console.log('EPC rating adjustment:', { epcRating: enhancedPropertyData.epcRating, epcMultiplier, adjustedValue: estimatedValue });
+        console.log('EPC rating adjustment:', { epcRating: finalEpcRating, epcMultiplier, adjustedValue: estimatedValue });
       }
       
-      // Adjust for house condition
-      if (enhancedPropertyData?.houseCondition) {
+      // Adjust for house condition (use manual input first, then enhanced data)
+      const finalHouseCondition = manualPropertyCondition || enhancedPropertyData?.houseCondition;
+      if (finalHouseCondition) {
         const conditionMultipliers = {
           'excellent': 1.1,    // +10% for excellent condition
           'very good': 1.05,   // +5% for very good
@@ -442,16 +454,17 @@ export async function GET(request: NextRequest) {
           'needs work': 0.85   // -15% for properties needing work
         };
         
-        const conditionMultiplier = conditionMultipliers[enhancedPropertyData.houseCondition.toLowerCase() as keyof typeof conditionMultipliers] || 1.0;
+        const conditionMultiplier = conditionMultipliers[finalHouseCondition.toLowerCase() as keyof typeof conditionMultipliers] || 1.0;
         estimatedValue = Math.round(estimatedValue * conditionMultiplier);
         
-        console.log('House condition adjustment:', { houseCondition: enhancedPropertyData.houseCondition, conditionMultiplier, adjustedValue: estimatedValue });
+        console.log('House condition adjustment:', { houseCondition: finalHouseCondition, conditionMultiplier, adjustedValue: estimatedValue });
       }
       
-      // Adjust for build year (newer properties often command premium)
-      if (enhancedPropertyData?.buildYear) {
+      // Adjust for build year (use manual input first, then enhanced data)
+      const finalBuildYear = manualBuildYear || enhancedPropertyData?.buildYear;
+      if (finalBuildYear) {
         const currentYear = new Date().getFullYear();
-        const age = currentYear - enhancedPropertyData.buildYear;
+        const age = currentYear - finalBuildYear;
         
         if (age <= 5) {
           estimatedValue = Math.round(estimatedValue * 1.05); // +5% for very new
@@ -461,7 +474,7 @@ export async function GET(request: NextRequest) {
           estimatedValue = Math.round(estimatedValue * 1.02); // +2% for period properties
         }
         
-        console.log('Build year adjustment:', { buildYear: enhancedPropertyData.buildYear, age, adjustedValue: estimatedValue });
+        console.log('Build year adjustment:', { buildYear: finalBuildYear, age, adjustedValue: estimatedValue });
       }
     }
     
@@ -478,7 +491,14 @@ export async function GET(request: NextRequest) {
         squareFootage: enhancedPropertyData.squareFootage,
         houseCondition: enhancedPropertyData.houseCondition,
         buildYear: enhancedPropertyData.buildYear
-      } : null
+      } : null,
+      manualInputs: {
+        propertyType: manualPropertyType,
+        propertyCondition: manualPropertyCondition,
+        buildYear: manualBuildYear,
+        epcRating: manualEpcRating,
+        squareFootage: manualSquareFootage
+      }
     });
     
     if (!monthlyRent) {

@@ -390,6 +390,25 @@ export default function UnifiedDealCalculator() {
             apiData: data.data
           }));
           
+          // Auto-populate manual fields with API data if available
+          if (data.data.enhancedPropertyData) {
+            const enhanced = data.data.enhancedPropertyData;
+            setInputs(prev => ({
+              ...prev,
+              // Only update if the field is empty or undefined (don't overwrite user input)
+              propertyType: enhanced.propertyType || prev.propertyType,
+              propertyCondition: enhanced.houseCondition || prev.propertyCondition,
+              buildYear: enhanced.buildYear || prev.buildYear,
+              epcRating: enhanced.epcRating || prev.epcRating,
+              squareFootage: enhanced.squareFootage || prev.squareFootage,
+              hasGarage: enhanced.hasGarage !== null ? enhanced.hasGarage : prev.hasGarage,
+              hasGarden: enhanced.hasGarden !== null ? enhanced.hasGarden : prev.hasGarden,
+              hasParking: enhanced.hasParking !== null ? enhanced.hasParking : prev.hasParking
+            }));
+            
+            console.log('Auto-populated manual fields with API data');
+          }
+          
           // Show success message
           console.log('Property data fetched successfully:', data.data);
           console.log('Enhanced property data available:', data.data.enhancedPropertyData);
@@ -1266,28 +1285,48 @@ export default function UnifiedDealCalculator() {
                       </div>
                     </div>
                     
-                    {/* Enhanced Property Characteristics - Manual Input */}
-                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
-                      <h4 className="text-sm font-medium text-gray-900 mb-3">Property Characteristics (Manual Input)</h4>
+                                         {/* Enhanced Property Characteristics - Manual Input */}
+                     <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+                       <div className="flex items-center justify-between mb-3">
+                         <h4 className="text-sm font-medium text-gray-900">Property Characteristics (Manual Input)</h4>
+                         {inputs.apiData?.enhancedPropertyData && (
+                           <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                             Auto-populated from API
+                           </span>
+                         )}
+                       </div>
+                       {inputs.apiData?.enhancedPropertyData && (
+                         <div className="mb-3 p-2 bg-blue-50 border border-blue-200 rounded text-xs text-blue-700">
+                           <span className="font-medium">Note:</span> Fields below have been automatically populated from the API data. 
+                           You can still edit these values if needed.
+                         </div>
+                       )}
                       <div className="grid gap-4 md:grid-cols-2">
-                        <div>
-                          <label className={fieldLabel}>Property Type</label>
-                          <select
-                            value={inputs.propertyType}
-                            onChange={(e) => setInputs(prev => ({ ...prev, propertyType: e.target.value }))}
-                            className={fieldSelect}
-                          >
-                            <option value="House">House</option>
-                            <option value="Detached">Detached</option>
-                            <option value="Semi-Detached">Semi-Detached</option>
-                            <option value="Terraced">Terraced</option>
-                            <option value="Flat">Flat</option>
-                            <option value="Apartment">Apartment</option>
-                            <option value="Maisonette">Maisonette</option>
-                            <option value="Bungalow">Bungalow</option>
-                          </select>
-                          <p className="mt-1 text-xs text-gray-500">Affects valuation accuracy</p>
-                        </div>
+                                                 <div>
+                           <label className={fieldLabel}>Property Type</label>
+                           <div className="relative">
+                             <select
+                               value={inputs.propertyType}
+                               onChange={(e) => setInputs(prev => ({ ...prev, propertyType: e.target.value }))}
+                               className={fieldSelect}
+                             >
+                               <option value="House">House</option>
+                               <option value="Detached">Detached</option>
+                               <option value="Semi-Detached">Semi-Detached</option>
+                               <option value="Terraced">Terraced</option>
+                               <option value="Flat">Flat</option>
+                               <option value="Apartment">Apartment</option>
+                               <option value="Maisonette">Maisonette</option>
+                               <option value="Bungalow">Bungalow</option>
+                             </select>
+                             {inputs.apiData?.enhancedPropertyData?.propertyType && (
+                               <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                                 <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                               </div>
+                             )}
+                           </div>
+                           <p className="mt-1 text-xs text-gray-500">Affects valuation accuracy</p>
+                         </div>
                         <div>
                           <label className={fieldLabel}>Property Condition</label>
                           <select
