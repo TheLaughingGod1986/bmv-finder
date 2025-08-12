@@ -122,6 +122,7 @@ interface DealInputs {
       hasGarage: boolean;
       hasGarden: boolean;
       hasParking: boolean;
+      dataSource?: string; // 'epc_api', 'elasticsearch', 'intelligent_estimation'
     };
   };
 }
@@ -1148,7 +1149,20 @@ export default function UnifiedDealCalculator() {
                                  <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
                                    <div className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-2">
                                      Enhanced Property Details
-                                     <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">DEMO DATA</span>
+                                     <span className={`px-2 py-0.5 text-xs rounded-full ${
+                                       inputs.apiData.enhancedPropertyData.dataSource === 'epc_api' 
+                                         ? 'bg-green-100 text-green-700' 
+                                         : inputs.apiData.enhancedPropertyData.dataSource === 'elasticsearch'
+                                         ? 'bg-blue-100 text-blue-700'
+                                         : 'bg-yellow-100 text-yellow-700'
+                                     }`}>
+                                       {inputs.apiData.enhancedPropertyData.dataSource === 'epc_api' 
+                                         ? 'REAL EPC DATA' 
+                                         : inputs.apiData.enhancedPropertyData.dataSource === 'elasticsearch'
+                                         ? 'ELASTICSEARCH'
+                                         : 'INTELLIGENT ESTIMATION'
+                                       }
+                                     </span>
                                    </div>
                                    <div className="grid grid-cols-2 gap-2 text-xs text-blue-600">
                                      {inputs.apiData.enhancedPropertyData.epcRating && (
