@@ -17,7 +17,27 @@ export async function GET(request: NextRequest) {
 
     console.log('Deal calculator data request:', { postcode, address, bedrooms, propertyType });
 
-    // 1. Get list of sold properties for selection
+    // 1. Validate and get postcode data from Postcodes.io
+    let postcodeData = null;
+    let region = null;
+    
+    if (postcode) {
+      try {
+        const postcodeResponse = await fetch(`https://postcodes.io/postcodes/${encodeURIComponent(postcode)}`);
+        if (postcodeResponse.ok) {
+          const postcodeResult = await postcodeResponse.json();
+          if (postcodeResult.result) {
+            postcodeData = postcodeResult.result;
+            region = postcodeData.region || postcodeData.admin_district;
+            console.log('Postcode data from Postcodes.io:', { region, postcodeData });
+          }
+        }
+      } catch (error) {
+        console.log('Failed to fetch from Postcodes.io, using fallback');
+      }
+    }
+
+    // 2. Get list of sold properties for selection
     let soldProperties = [];
     let confidence = 'low';
     
@@ -53,27 +73,29 @@ export async function GET(request: NextRequest) {
       console.log('No recent sales data available, using regional estimates');
     }
 
-    // 2. Get rental estimation data
+    // 3. Get rental estimation data using Postcodes.io region data
     let monthlyRent = null;
     let annualGrowth = 3; // Default 3%
     
-    try {
-      // Use regional rental data based on postcode area
-      const postcodeArea = postcode?.substring(0, 2).toUpperCase();
-      const regionalRates = getRegionalRates(postcodeArea);
-      
+    if (region) {
+      const regionalRates = getRegionalRates(region);
       if (regionalRates) {
         monthlyRent = regionalRates.rentalPerBedroom * bedrooms;
         annualGrowth = regionalRates.annualGrowth || 3;
       }
-    } catch (error) {
-      console.log('Using default rental and growth values');
+    } else {
+      // Fallback to postcode area if region not available
+      const postcodeArea = postcode?.substring(0, 2).toUpperCase();
+      const regionalRates = getRegionalRates(postcodeArea);
+      if (regionalRates) {
+        monthlyRent = regionalRates.rentalPerBedroom * bedrooms;
+        annualGrowth = regionalRates.annualGrowth || 3;
+      }
     }
 
-    // 3. Get HPI growth data for the region
-    try {
-      const region = getRegionFromPostcode(postcode || '');
-      if (region) {
+    // 4. Get HPI growth data for the region from Postcodes.io data
+    if (region) {
+      try {
         const hpiResponse = await esClient.search({
           index: 'house_price_index',
           size: 2,
@@ -90,12 +112,12 @@ export async function GET(request: NextRequest) {
             annualGrowth = Math.round(growth * 100) / 100; // Round to 2 decimal places
           }
         }
+      } catch (error) {
+        console.log('Using default growth rate');
       }
-    } catch (error) {
-      console.log('Using default growth rate');
     }
 
-    // 4. Fallback to reasonable defaults if no data available
+    // 5. Fallback to reasonable defaults if no data available
     let estimatedValue = null;
     if (soldProperties.length > 0) {
       // Use average of sold properties
@@ -118,7 +140,15 @@ export async function GET(request: NextRequest) {
         annualGrowth: Math.round(annualGrowth * 100) / 100,
         confidence,
         source: 'API',
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
+        postcodeInfo: postcodeData ? {
+          region: postcodeData.region,
+          adminDistrict: postcodeData.admin_district,
+          adminWard: postcodeData.admin_ward,
+          parish: postcodeData.parish,
+          latitude: postcodeData.latitude,
+          longitude: postcodeData.longitude
+        } : null
       }
     });
 
@@ -131,150 +161,39 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Regional data helper functions
-function getRegionalRates(postcodeArea: string) {
+// Regional data helper functions - now using actual UK regions from Postcodes.io
+function getRegionalRates(region: string) {
   const regionalRates: { [key: string]: { rentalPerBedroom: number; annualGrowth: number } } = {
+    // England Regions
+    'North East': { rentalPerBedroom: 420, annualGrowth: 2.1 },
+    'North West': { rentalPerBedroom: 480, annualGrowth: 3.2 },
+    'Yorkshire and The Humber': { rentalPerBedroom: 450, annualGrowth: 2.8 },
+    'East Midlands': { rentalPerBedroom: 480, annualGrowth: 3.0 },
+    'West Midlands': { rentalPerBedroom: 460, annualGrowth: 2.9 },
+    'East of England': { rentalPerBedroom: 520, annualGrowth: 3.5 },
+    'London': { rentalPerBedroom: 1200, annualGrowth: 4.2 },
+    'South East': { rentalPerBedroom: 680, annualGrowth: 3.8 },
+    'South West': { rentalPerBedroom: 520, annualGrowth: 3.1 },
+    
+    // Scotland
+    'Scotland': { rentalPerBedroom: 480, annualGrowth: 2.7 },
+    
+    // Wales
+    'Wales': { rentalPerBedroom: 520, annualGrowth: 2.9 },
+    
+    // Northern Ireland
+    'Northern Ireland': { rentalPerBedroom: 450, annualGrowth: 2.5 },
+    
+    // Fallback for postcode areas if region not found
     'L': { rentalPerBedroom: 450, annualGrowth: 2.5 }, // Liverpool
     'M': { rentalPerBedroom: 500, annualGrowth: 3.2 }, // Manchester
     'B': { rentalPerBedroom: 480, annualGrowth: 2.8 }, // Birmingham
     'S': { rentalPerBedroom: 420, annualGrowth: 2.1 }, // Sheffield
-    'L': { rentalPerBedroom: 450, annualGrowth: 2.5 }, // Leeds
     'N': { rentalPerBedroom: 1200, annualGrowth: 4.5 }, // London
     'E': { rentalPerBedroom: 700, annualGrowth: 3.8 }, // East of England
     'W': { rentalPerBedroom: 520, annualGrowth: 2.9 }, // Wales
-    'G': { rentalPerBedroom: 480, annualGrowth: 2.7 }, // Glasgow
-    'E': { rentalPerBedroom: 420, annualGrowth: 2.3 }  // Edinburgh
+    'G': { rentalPerBedroom: 480, annualGrowth: 2.7 }  // Glasgow
   };
 
-  return regionalRates[postcodeArea] || { rentalPerBedroom: 500, annualGrowth: 3.0 };
-}
-
-function getRegionFromPostcode(postcode: string): string | null {
-  const postcodeArea = postcode.substring(0, 2).toUpperCase();
-  
-  const regionMap: { [key: string]: string } = {
-    'AB': 'Scotland',
-    'AL': 'East of England',
-    'B': 'West Midlands',
-    'BA': 'South West',
-    'BB': 'North West',
-    'BD': 'Yorkshire and The Humber',
-    'BH': 'South West',
-    'BL': 'North West',
-    'BN': 'South East',
-    'BR': 'London',
-    'BS': 'South West',
-    'BT': 'Northern Ireland',
-    'CA': 'North West',
-    'CB': 'East of England',
-    'CF': 'Wales',
-    'CH': 'North West',
-    'CM': 'East of England',
-    'CO': 'East of England',
-    'CR': 'London',
-    'CT': 'South East',
-    'CV': 'West Midlands',
-    'CW': 'North West',
-    'DA': 'South East',
-    'DD': 'Scotland',
-    'DE': 'East Midlands',
-    'DG': 'Scotland',
-    'DH': 'North East',
-    'DL': 'Yorkshire and The Humber',
-    'DN': 'Yorkshire and The Humber',
-    'DT': 'South West',
-    'DY': 'West Midlands',
-    'E': 'London',
-    'EC': 'London',
-    'EH': 'Scotland',
-    'EN': 'London',
-    'EX': 'South West',
-    'FK': 'Scotland',
-    'FY': 'North West',
-    'G': 'Scotland',
-    'GL': 'South West',
-    'GU': 'South East',
-    'HA': 'London',
-    'HD': 'Yorkshire and The Humber',
-    'HG': 'Yorkshire and The Humber',
-    'HP': 'South East',
-    'HR': 'West Midlands',
-    'HS': 'Scotland',
-    'HU': 'Yorkshire and The Humber',
-    'HX': 'Yorkshire and The Humber',
-    'IG': 'London',
-    'IP': 'East of England',
-    'IV': 'Scotland',
-    'KA': 'Scotland',
-    'KT': 'South East',
-    'KW': 'Scotland',
-    'KY': 'Scotland',
-    'L': 'North West',
-    'LA': 'North West',
-    'LD': 'Wales',
-    'LE': 'East Midlands',
-    'LL': 'Wales',
-    'LN': 'East Midlands',
-    'LS': 'Yorkshire and The Humber',
-    'LU': 'East of England',
-    'M': 'North West',
-    'ME': 'South East',
-    'MK': 'South East',
-    'ML': 'Scotland',
-    'N': 'London',
-    'NE': 'North East',
-    'NG': 'East Midlands',
-    'NN': 'East Midlands',
-    'NP': 'Wales',
-    'NR': 'East of England',
-    'NW': 'London',
-    'OL': 'North West',
-    'OX': 'South East',
-    'PA': 'Scotland',
-    'PE': 'East of England',
-    'PH': 'Scotland',
-    'PL': 'South West',
-    'PO': 'South East',
-    'PR': 'North West',
-    'RG': 'South East',
-    'RH': 'South East',
-    'RM': 'London',
-    'S': 'Yorkshire and The Humber',
-    'SA': 'Wales',
-    'SE': 'London',
-    'SG': 'East of England',
-    'SK': 'East Midlands',
-    'SL': 'South East',
-    'SM': 'London',
-    'SN': 'South West',
-    'SO': 'South East',
-    'SP': 'South West',
-    'SR': 'North East',
-    'SS': 'East of England',
-    'ST': 'West Midlands',
-    'SW': 'London',
-    'SY': 'Wales',
-    'TA': 'South West',
-    'TD': 'Scotland',
-    'TF': 'West Midlands',
-    'TN': 'South East',
-    'TQ': 'South West',
-    'TR': 'South West',
-    'TS': 'North East',
-    'TW': 'London',
-    'UB': 'London',
-    'W': 'London',
-    'WA': 'North West',
-    'WC': 'London',
-    'WD': 'East of England',
-    'WF': 'Yorkshire and The Humber',
-    'WN': 'North West',
-    'WR': 'West Midlands',
-    'WS': 'West Midlands',
-    'WV': 'West Midlands',
-    'YO': 'Yorkshire and The Humber',
-    'ZE': 'Scotland'
-  };
-
-  return regionMap[postcodeArea] || null;
+  return regionalRates[region] || { rentalPerBedroom: 500, annualGrowth: 3.0 };
 }

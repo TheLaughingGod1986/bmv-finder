@@ -323,9 +323,31 @@ export default function UnifiedDealCalculator() {
     checkAuth();
   }, []);
 
+  // Function to validate postcode using Postcodes.io
+  const validatePostcode = async (postcode: string) => {
+    try {
+      const response = await fetch(`https://postcodes.io/postcodes/${encodeURIComponent(postcode)}/validate`);
+      if (response.ok) {
+        const result = await response.json();
+        return result.result;
+      }
+      return false;
+    } catch (error) {
+      console.error('Failed to validate postcode:', error);
+      return false;
+    }
+  };
+
   // Function to fetch property data from API
   const fetchPropertyData = async (postcode: string, bedrooms: number) => {
     try {
+      // First validate the postcode
+      const isValid = await validatePostcode(postcode);
+      if (!isValid) {
+        console.error('Invalid postcode format');
+        return;
+      }
+
       const response = await fetch(`/api/deal-calculator-data?postcode=${encodeURIComponent(postcode)}&bedrooms=${bedrooms}`);
       if (response.ok) {
         const data = await response.json();
@@ -1011,6 +1033,9 @@ export default function UnifiedDealCalculator() {
                           >
                             Fetch Data
                           </button>
+                        </div>
+                        <div className="mt-1 text-xs text-gray-500">
+                          Postcode validation powered by <a href="https://postcodes.io" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Postcodes.io</a>
                         </div>
                         {inputs.apiData && (
                           <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-lg">
