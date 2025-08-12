@@ -1110,7 +1110,10 @@ export default function UnifiedDealCalculator() {
                                {/* Enhanced Property Data Display */}
                                {inputs.apiData.enhancedPropertyData && (
                                  <div className="mt-3 p-2 bg-blue-50 border border-blue-200 rounded-lg">
-                                   <div className="text-xs font-medium text-blue-700 mb-2">Enhanced Property Details</div>
+                                   <div className="text-xs font-medium text-blue-700 mb-2 flex items-center gap-2">
+                                     Enhanced Property Details
+                                     <span className="px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">DEMO DATA</span>
+                                   </div>
                                    <div className="grid grid-cols-2 gap-2 text-xs text-blue-600">
                                      {inputs.apiData.enhancedPropertyData.epcRating && (
                                        <div className="flex items-center gap-1">

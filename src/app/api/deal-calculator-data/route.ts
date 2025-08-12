@@ -191,6 +191,27 @@ export async function GET(request: NextRequest) {
       } else {
         console.log('No enhanced property data found in properties-enhanced index');
       }
+      
+      // DEMO: Generate mock enhanced property data for demonstration
+      // Remove this when real data is available
+      if (!enhancedPropertyData && postcode) {
+        console.log('Generating mock enhanced property data for demonstration');
+        enhancedPropertyData = {
+          epcRating: ['A', 'B', 'C', 'D', 'E'][Math.floor(Math.random() * 5)],
+          epcScore: Math.floor(Math.random() * 50) + 50, // 50-100
+          epcSize: Math.floor(Math.random() * 100) + 80, // 80-180 sqm
+          propertyType: ['Detached', 'Semi-Detached', 'Terraced', 'Flat'][Math.floor(Math.random() * 4)],
+          houseCondition: ['Excellent', 'Very Good', 'Good', 'Fair', 'Poor'][Math.floor(Math.random() * 3)],
+          squareFootage: Math.floor(Math.random() * 100) + 80, // 80-180 sqm
+          buildYear: Math.floor(Math.random() * 50) + 1970, // 1970-2020
+          tenure: ['Freehold', 'Leasehold'][Math.floor(Math.random() * 2)],
+          hasGarage: Math.random() > 0.5,
+          hasGarden: Math.random() > 0.3,
+          hasParking: Math.random() > 0.4
+        };
+        
+        console.log('Generated mock enhanced property data:', enhancedPropertyData);
+      }
     } catch (error) {
       console.log('No enhanced property data available');
     }
