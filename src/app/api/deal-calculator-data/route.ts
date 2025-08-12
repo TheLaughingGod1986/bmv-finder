@@ -92,7 +92,8 @@ export async function GET(request: NextRequest) {
     // 2.5. Get enhanced property data (EPC, house type, condition, etc.)
     let enhancedPropertyData = null;
     try {
-      const enhancedResponse = await esClient.search({
+      // First try to find exact match with postcode and address
+      let enhancedResponse = await esClient.search({
         index: 'properties-enhanced',
         size: 1,
         query: {
@@ -109,8 +110,25 @@ export async function GET(request: NextRequest) {
         }
       });
 
+      // If no exact match, try just postcode with any property
+      if (enhancedResponse.hits.hits.length === 0) {
+        enhancedResponse = await esClient.search({
+          index: 'properties-enhanced',
+          size: 1,
+          query: {
+            bool: {
+              must: [
+                { match: { postcode: postcode || '' } }
+              ]
+            }
+          }
+        });
+      }
+
       if (enhancedResponse.hits.hits.length > 0) {
         const hit = enhancedResponse.hits.hits[0]._source;
+        console.log('Raw enhanced property data from ES:', hit);
+        
         enhancedPropertyData = {
           epcRating: hit.epc_rating || null,
           epcScore: hit.epc_score || null,
@@ -125,7 +143,9 @@ export async function GET(request: NextRequest) {
           hasParking: hit.has_parking || false
         };
         
-        console.log('Enhanced property data found:', enhancedPropertyData);
+        console.log('Processed enhanced property data:', enhancedPropertyData);
+      } else {
+        console.log('No enhanced property data found in properties-enhanced index');
       }
     } catch (error) {
       console.log('No enhanced property data available');

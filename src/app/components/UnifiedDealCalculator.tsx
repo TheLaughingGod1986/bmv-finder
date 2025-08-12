@@ -375,6 +375,7 @@ export default function UnifiedDealCalculator() {
           
           // Show success message
           console.log('Property data fetched successfully:', data.data);
+          console.log('Enhanced property data available:', data.data.enhancedPropertyData);
         }
       }
     } catch (error) {
