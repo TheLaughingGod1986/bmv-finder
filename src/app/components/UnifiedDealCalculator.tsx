@@ -1165,6 +1165,16 @@ export default function UnifiedDealCalculator() {
                                    </div>
                                  </div>
                                )}
+                               
+                               {/* Fallback message when no enhanced data */}
+                               {!inputs.apiData.enhancedPropertyData && (
+                                 <div className="mt-3 p-2 bg-gray-50 border border-gray-200 rounded-lg">
+                                   <div className="text-xs text-gray-600">
+                                     <span className="font-medium">Note:</span> Enhanced property data (EPC, condition, etc.) not available for this postcode. 
+                                     The system is using regional estimates and basic property characteristics.
+                                   </div>
+                                 </div>
+                               )}
                             </div>
                           </div>
                         )}

@@ -42,6 +42,7 @@ export async function GET(request: NextRequest) {
     let confidence = 'low';
     
     try {
+      // Try recent_sales index first
       const salesResponse = await esClient.search({
         index: 'recent_sales',
         size: 20,
@@ -86,7 +87,42 @@ export async function GET(request: NextRequest) {
         }
       }
     } catch (error) {
-      console.log('No recent sales data available, using regional estimates');
+      console.log('recent_sales index not available, trying properties-enhanced for sold properties');
+      
+      // Fallback: try to get some property data from properties-enhanced
+      try {
+        const fallbackResponse = await esClient.search({
+          index: 'properties-enhanced',
+          size: 10,
+          query: {
+            bool: {
+              must: [
+                { match: { postcode: postcode || '' } }
+              ]
+            }
+          },
+          sort: [{ date: { order: 'desc' } }]
+        });
+
+        if (fallbackResponse.hits.hits.length > 0) {
+          // Create mock sold properties from enhanced data
+          soldProperties = fallbackResponse.hits.hits.slice(0, 5).map((hit, index) => ({
+            id: `fallback_${index}`,
+            address: `${hit._source.paon || ''} ${hit._source.street || ''}`.trim() || 'Unknown Address',
+            postcode: hit._source.postcode,
+            price: hit._source.price || 0,
+            date: hit._source.date,
+            bedrooms: hit._source.epc_bedrooms || bedrooms,
+            propertyType: hit._source.property_type_label || 'Unknown',
+            squareFootage: hit._source.epc_size || 0
+          }));
+          
+          confidence = soldProperties.length >= 3 ? 'medium' : 'low';
+          console.log('Created fallback sold properties from properties-enhanced:', soldProperties.length);
+        }
+      } catch (fallbackError) {
+        console.log('No fallback property data available');
+      }
     }
 
     // 2.5. Get enhanced property data (EPC, house type, condition, etc.)
@@ -129,21 +165,29 @@ export async function GET(request: NextRequest) {
         const hit = enhancedResponse.hits.hits[0]._source;
         console.log('Raw enhanced property data from ES:', hit);
         
+        // Extract any available data, even if sparse
         enhancedPropertyData = {
           epcRating: hit.epc_rating || null,
           epcScore: hit.epc_score || null,
           epcSize: hit.epc_size || null, // in sqm
-          propertyType: hit.property_type || hit.propertyType || null,
+          propertyType: hit.property_type_label || hit.property_type || hit.propertyType || null,
           houseCondition: hit.condition || hit.house_condition || null,
           squareFootage: hit.square_footage || hit.epc_size || null,
           buildYear: hit.build_year || hit.year_built || null,
-          tenure: hit.tenure || null,
+          tenure: hit.estate_type_label || hit.tenure || null,
           hasGarage: hit.has_garage || false,
           hasGarden: hit.has_garden || false,
           hasParking: hit.has_parking || false
         };
         
-        console.log('Processed enhanced property data:', enhancedPropertyData);
+        // Only include if we have at least some meaningful data
+        const hasData = Object.values(enhancedPropertyData).some(value => value !== null && value !== false);
+        if (hasData) {
+          console.log('Processed enhanced property data:', enhancedPropertyData);
+        } else {
+          console.log('Enhanced property data found but all fields are empty/null');
+          enhancedPropertyData = null;
+        }
       } else {
         console.log('No enhanced property data found in properties-enhanced index');
       }
