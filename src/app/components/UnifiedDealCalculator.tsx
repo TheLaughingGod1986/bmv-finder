@@ -83,6 +83,15 @@ interface DealInputs {
   growthAnnualPct?: number; // % per year compounding
   refurbUpliftFactor?: number; // proportion of refurb that adds to value (0.8 = 80%)
   mortgageType?: 'repayment' | 'interest_only'; // Added mortgage type selection
+  
+  // Enhanced property characteristics
+  propertyCondition?: string;
+  buildYear?: number;
+  epcRating?: string;
+  hasGarage?: boolean;
+  hasGarden?: boolean;
+  hasParking?: boolean;
+  hasConservatory?: boolean;
   // API data
   apiData?: {
     estimatedValue: number;
@@ -199,6 +208,14 @@ export default function UnifiedDealCalculator() {
     refurbUpliftFactor: 0.8,
     desiredModel: undefined,
     mortgageType: 'repayment',
+    // Enhanced property characteristics
+    propertyCondition: 'Good',
+    buildYear: undefined,
+    epcRating: undefined,
+    hasGarage: false,
+    hasGarden: false,
+    hasParking: false,
+    hasConservatory: false,
   });
 
   const [addressMode, setAddressMode] = useState<'search' | 'manual' | 'watchlist'>('search');
@@ -1246,6 +1263,122 @@ export default function UnifiedDealCalculator() {
                           min={500}
                           max={5000}
                         />
+                      </div>
+                    </div>
+                    
+                    {/* Enhanced Property Characteristics - Manual Input */}
+                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200 mt-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Property Characteristics (Manual Input)</h4>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                          <label className={fieldLabel}>Property Type</label>
+                          <select
+                            value={inputs.propertyType}
+                            onChange={(e) => setInputs(prev => ({ ...prev, propertyType: e.target.value }))}
+                            className={fieldSelect}
+                          >
+                            <option value="House">House</option>
+                            <option value="Detached">Detached</option>
+                            <option value="Semi-Detached">Semi-Detached</option>
+                            <option value="Terraced">Terraced</option>
+                            <option value="Flat">Flat</option>
+                            <option value="Apartment">Apartment</option>
+                            <option value="Maisonette">Maisonette</option>
+                            <option value="Bungalow">Bungalow</option>
+                          </select>
+                          <p className="mt-1 text-xs text-gray-500">Affects valuation accuracy</p>
+                        </div>
+                        <div>
+                          <label className={fieldLabel}>Property Condition</label>
+                          <select
+                            value={inputs.propertyCondition || 'Good'}
+                            onChange={(e) => setInputs(prev => ({ ...prev, propertyCondition: e.target.value }))}
+                            className={fieldSelect}
+                          >
+                            <option value="Excellent">Excellent - Like new</option>
+                            <option value="Very Good">Very Good - Minimal wear</option>
+                            <option value="Good">Good - Standard condition</option>
+                            <option value="Fair">Fair - Some wear</option>
+                            <option value="Poor">Poor - Needs work</option>
+                            <option value="Very Poor">Very Poor - Major renovation</option>
+                            <option value="Needs Work">Needs Work - Uninhabitable</option>
+                          </select>
+                          <p className="mt-1 text-xs text-gray-500">Current state of the property</p>
+                        </div>
+                        <div>
+                          <label className={fieldLabel}>Build Year</label>
+                          <input
+                            type="number"
+                            value={inputs.buildYear || ''}
+                            onChange={(e) => setInputs(prev => ({ ...prev, buildYear: Number(e.target.value) || undefined }))}
+                            className={fieldInput}
+                            min={1800}
+                            max={new Date().getFullYear()}
+                            placeholder="e.g., 1995"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">Year property was built</p>
+                        </div>
+                        <div>
+                          <label className={fieldLabel}>EPC Rating</label>
+                          <select
+                            value={inputs.epcRating || ''}
+                            onChange={(e) => setInputs(prev => ({ ...prev, epcRating: e.target.value || undefined }))}
+                            className={fieldSelect}
+                          >
+                            <option value="">Unknown</option>
+                            <option value="A">A - Very energy efficient</option>
+                            <option value="B">B - Energy efficient</option>
+                            <option value="C">C - Average efficiency</option>
+                            <option value="D">D - Below average</option>
+                            <option value="E">E - Poor efficiency</option>
+                            <option value="F">F - Very poor</option>
+                            <option value="G">G - Extremely poor</option>
+                          </select>
+                          <p className="mt-1 text-xs text-gray-500">Energy Performance Certificate</p>
+                        </div>
+                      </div>
+                      
+                      {/* Additional Property Features */}
+                      <div className="mt-4">
+                        <label className="text-sm font-medium text-gray-700 mb-2">Property Features</label>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={inputs.hasGarage || false}
+                              onChange={(e) => setInputs(prev => ({ ...prev, hasGarage: e.target.checked }))}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Garage</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={inputs.hasGarden || false}
+                              onChange={(e) => setInputs(prev => ({ ...prev, hasGarden: e.target.checked }))}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Garden</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={inputs.hasParking || false}
+                              onChange={(e) => setInputs(prev => ({ ...prev, hasParking: e.target.checked }))}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Parking</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-sm">
+                            <input
+                              type="checkbox"
+                              checked={inputs.hasConservatory || false}
+                              onChange={(e) => setInputs(prev => ({ ...prev, hasConservatory: e.target.checked }))}
+                              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span>Conservatory</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
                   </div>

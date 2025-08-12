@@ -212,6 +212,21 @@ export async function GET(request: NextRequest) {
         
         console.log('Generated mock enhanced property data:', enhancedPropertyData);
       }
+      
+      // Check if we have manual property inputs from the frontend
+      // These would come from the user filling in the property characteristics fields
+      const manualPropertyInputs = {
+        propertyType: null, // Will be passed from frontend
+        propertyCondition: null, // Will be passed from frontend
+        buildYear: null, // Will be passed from frontend
+        epcRating: null, // Will be passed from frontend
+        squareFootage: null, // Will be passed from frontend
+        hasGarage: null, // Will be passed from frontend
+        hasGarden: null, // Will be passed from frontend
+        hasParking: null // Will be passed from frontend
+      };
+      
+      console.log('Manual property inputs available:', manualPropertyInputs);
     } catch (error) {
       console.log('No enhanced property data available');
     }
