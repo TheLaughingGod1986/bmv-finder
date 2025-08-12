@@ -67,7 +67,23 @@ export async function GET(request: NextRequest) {
           propertyType: hit._source.property_type || 'Unknown',
           squareFootage: hit._source.square_footage || 0
         }));
-        confidence = soldProperties.length >= 3 ? 'high' : soldProperties.length >= 1 ? 'medium' : 'low';
+        
+        // More sophisticated confidence calculation
+        if (soldProperties.length >= 5) {
+          confidence = 'very high';
+        } else if (soldProperties.length >= 3) {
+          confidence = 'high';
+        } else if (soldProperties.length >= 1) {
+          confidence = 'medium';
+        } else {
+          confidence = 'low';
+        }
+        
+        // Boost confidence if we have regional data from Postcodes.io
+        if (postcodeData && region) {
+          if (confidence === 'low') confidence = 'medium';
+          else if (confidence === 'medium') confidence = 'high';
+        }
       }
     } catch (error) {
       console.log('No recent sales data available, using regional estimates');
@@ -117,16 +133,138 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 5. Fallback to reasonable defaults if no data available
+    // 5. Calculate estimated value - more dynamic based on region and property type
     let estimatedValue = null;
     if (soldProperties.length > 0) {
       // Use average of sold properties
       const avgPrice = soldProperties.reduce((sum, prop) => sum + prop.price, 0) / soldProperties.length;
       estimatedValue = Math.round(avgPrice);
+      console.log('Using sold properties average:', { avgPrice, estimatedValue, soldPropertiesCount: soldProperties.length });
     } else {
-      estimatedValue = bedrooms * 80000; // £80k per bedroom as fallback
+      // More sophisticated fallback based on region and property characteristics
+      let basePricePerBedroom = 80000; // Default fallback
+      
+      if (region) {
+        // Use regional data to estimate property values
+        const regionalRates = getRegionalRates(region);
+        if (regionalRates) {
+          // Estimate property value based on rental yield (typically 4-6% for BTL)
+          const estimatedRentalYield = 0.05; // 5% average
+          const annualRent = regionalRates.rentalPerBedroom * bedrooms * 12;
+          estimatedValue = Math.round(annualRent / estimatedRentalYield);
+        } else {
+          // Fallback to regional averages
+          switch (region) {
+            case 'London':
+              basePricePerBedroom = 120000;
+              break;
+            case 'South East':
+              basePricePerBedroom = 90000;
+              break;
+            case 'East of England':
+              basePricePerBedroom = 85000;
+              break;
+            case 'South West':
+              basePricePerBedroom = 80000;
+              break;
+            case 'West Midlands':
+              basePricePerBedroom = 75000;
+              break;
+            case 'East Midlands':
+              basePricePerBedroom = 75000;
+              break;
+            case 'North West':
+              basePricePerBedroom = 70000;
+              break;
+            case 'Yorkshire and The Humber':
+              basePricePerBedroom = 68000;
+              break;
+            case 'North East':
+              basePricePerBedroom = 65000;
+              break;
+            case 'Scotland':
+              basePricePerBedroom = 70000;
+              break;
+            case 'Wales':
+              basePricePerBedroom = 75000;
+              break;
+            case 'Northern Ireland':
+              basePricePerBedroom = 65000;
+              break;
+            default:
+              basePricePerBedroom = 80000;
+          }
+          estimatedValue = bedrooms * basePricePerBedroom;
+        }
+      } else {
+        // Fallback to postcode area if region not available
+        const postcodeArea = postcode?.substring(0, 2).toUpperCase();
+        switch (postcodeArea) {
+          case 'N': // London
+            basePricePerBedroom = 120000;
+            break;
+          case 'E': // East of England
+            basePricePerBedroom = 85000;
+            break;
+          case 'W': // Wales
+            basePricePerBedroom = 75000;
+            break;
+          case 'G': // Glasgow
+            basePricePerBedroom = 70000;
+            break;
+          case 'L': // Liverpool
+            basePricePerBedroom = 70000;
+            break;
+          case 'M': // Manchester
+            basePricePerBedroom = 75000;
+            break;
+          case 'B': // Birmingham
+            basePricePerBedroom = 75000;
+            break;
+          case 'S': // Sheffield
+            basePricePerBedroom = 68000;
+            break;
+          default:
+            basePricePerBedroom = 80000;
+        }
+        estimatedValue = bedrooms * basePricePerBedroom;
+      }
+      
+      // Adjust for property type
+      if (propertyType && propertyType !== 'Unknown') {
+        switch (propertyType.toLowerCase()) {
+          case 'detached':
+            estimatedValue = Math.round(estimatedValue * 1.2);
+            break;
+          case 'semi-detached':
+            estimatedValue = Math.round(estimatedValue * 1.1);
+            break;
+          case 'terraced':
+            estimatedValue = Math.round(estimatedValue * 0.95);
+            break;
+          case 'flat':
+          case 'apartment':
+            estimatedValue = Math.round(estimatedValue * 0.9);
+            break;
+        }
+      }
+      
+      // Adjust for square footage if available (we'll use a default assumption)
+      // In a real implementation, this would come from the frontend inputs
+      const avgSqFtPerBedroom = 150; // Average UK bedroom size
+      const expectedSqFt = bedrooms * avgSqFtPerBedroom;
+            // For now, assume average size - this could be enhanced later
     }
-
+    
+    console.log('Estimated value calculation:', { 
+      region, 
+      propertyType, 
+      bedrooms, 
+      estimatedValue, 
+      soldPropertiesCount: soldProperties.length,
+      postcodeData: !!postcodeData
+    });
+    
     if (!monthlyRent) {
       monthlyRent = bedrooms * 500; // £500 per bedroom as fallback
     }
