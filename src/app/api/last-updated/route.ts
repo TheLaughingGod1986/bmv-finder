@@ -8,14 +8,12 @@ export async function GET() {
     const stats = await getRealTimeStats();
     
     return NextResponse.json({
-      lastUpdate: new Date().toISOString(),
       propertiesCount: stats.propertiesCount,
       recentSalesCount: stats.recentSalesCount,
       hpiCount: stats.hpiCount,
       epcCount: stats.epcCount,
-      updateStatus: 'live',
-      source: 'Real-time APIs',
-      notes: `Live data - Properties: ${stats.propertiesCount.toLocaleString()}, EPC: ${stats.epcCount.toLocaleString()}`
+      watchlistCount: stats.watchlistCount,
+      lastUpdated: new Date().toISOString()
     });
   } catch (error) {
     console.error('Error in last-updated API route:', error);
@@ -56,43 +54,45 @@ async function getRealTimeStats() {
       console.log('Properties index not accessible:', e.message);
     }
     
-    // Get recent sales count (if you have a sales index)
-    let recentSalesCount = 0;
-    try {
-      const salesResponse = await esClient.count({ index: 'recent-sales' });
-      recentSalesCount = salesResponse.count || 0;
-    } catch (e) {
-      // Sales index might not exist yet
-      console.log('Recent sales index not accessible:', e.message);
-    }
-    
     // Get HPI count (if you have an HPI index)
     let hpiCount = 0;
     try {
-      const hpiResponse = await esClient.count({ index: 'house-price-index' });
+      const hpiResponse = await esClient.count({ index: 'house_price_index' });
       hpiCount = hpiResponse.count || 0;
     } catch (e) {
       // HPI index might not exist yet - use fallback
       console.log('HPI index not accessible:', e.message);
       hpiCount = getFallbackValue('HPI_COUNT');
     }
-    
-    // Get EPC count from your working EPC API
+
+    // Get recent sales count
+    let recentSalesCount = 0;
+    try {
+      const salesResponse = await esClient.count({ index: 'recent_sales' });
+      recentSalesCount = salesResponse.count || 0;
+    } catch (e) {
+      console.log('Recent sales index not accessible:', e.message);
+      recentSalesCount = getFallbackValue('RECENT_SALES_COUNT');
+    }
+
+    // Get EPC count
     let epcCount = 0;
     try {
-      // Use your working EPC API to get a sample and estimate count
-      const epcApiUrl = CONFIG.API.BASE_URL;
-      const epcResponse = await fetch(`${epcApiUrl}/api/epc-data?postcode=${CONFIG.EPC.SAMPLE_POSTCODE}&number=${CONFIG.EPC.SAMPLE_NUMBER}`);
-      if (epcResponse.ok) {
-        const epcData = await epcResponse.json();
-        if (epcData.success && epcData.data) {
-          // Since this is demo data, we'll use a realistic estimate
-          // In production, you'd get this from your EPC database
-          epcCount = CONFIG.EPC.DEFAULT_COUNT;
-        }
-      }
+      const epcResponse = await esClient.count({ index: 'epc_data' });
+      epcCount = epcResponse.count || 0;
     } catch (e) {
-      console.log('EPC API not accessible:', e.message);
+      console.log('EPC index not accessible:', e.message);
+      epcCount = getFallbackValue('EPC_COUNT');
+    }
+
+    // Get watchlist count
+    let watchlistCount = 0;
+    try {
+      const watchlistResponse = await esClient.count({ index: 'watchlist' });
+      watchlistCount = watchlistResponse.count || 0;
+    } catch (e) {
+      console.log('Watchlist index not accessible:', e.message);
+      watchlistCount = 0; // No fallback for watchlist
     }
     
     // If we have very low counts, provide realistic estimates based on config
@@ -110,7 +110,8 @@ async function getRealTimeStats() {
       propertiesCount,
       recentSalesCount,
       hpiCount,
-      epcCount
+      epcCount,
+      watchlistCount
     };
   } catch (error) {
     console.error('Error getting real-time stats:', error);

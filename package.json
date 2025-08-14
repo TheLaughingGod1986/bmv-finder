@@ -21,7 +21,7 @@
     "analyze": "ANALYZE=true npm run build"
   },
   "dependencies": {
-    "@elastic/elasticsearch": "^9.1.1",
+    "@elastic/elasticsearch": "^8.19.0",
     "@heroicons/react": "^2.2.0",
     "@stripe/stripe-js": "^7.8.0",
     "@supabase/supabase-js": "^2.55.0",

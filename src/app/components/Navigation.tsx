@@ -21,16 +21,17 @@ import {
   Search as SearchIcon,
   Watch,
   Settings,
-  User
+  User,
+  Bookmark
 } from 'lucide-react';
 import { useToast } from '@/hooks/useToast';
 
 interface UpdateStats {
-  lastUpdated: string;
   propertiesCount: number;
   recentSalesCount: number;
   hpiCount: number;
-  epcCount?: number;
+  epcCount: number;
+  watchlistCount: number;
 }
 
 const navItems = [
@@ -332,16 +333,28 @@ export default function Navigation() {
           {error && <span className="text-red-600">Data update status unavailable: {error}</span>}
           {!stats && !error && <span>Loading data update status...</span>}
           {stats && (
-            <>
-              <span className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                Last update: <span className="font-medium">{formattedDate}</span>
-              </span>
-              <span className="hidden sm:inline text-gray-400">•</span>
-              <span>Properties: <span className="font-medium">{stats.propertiesCount.toLocaleString()}</span></span>
-              <span className="hidden sm:inline text-gray-400">•</span>
-              <span>EPC Data: <span className="font-medium">{stats.epcCount?.toLocaleString() || '0'}</span></span>
-            </>
+            <div className="flex items-center space-x-6 text-sm text-gray-600">
+              <div className="flex items-center space-x-2">
+                <Target className="h-4 w-4 text-blue-600" />
+                <span>{stats.propertiesCount.toLocaleString()} Properties</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <PoundSterling className="h-4 w-4 text-green-600" />
+                <span>{stats.recentSalesCount.toLocaleString()} Sales</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <PieChart className="h-4 w-4 text-purple-600" />
+                <span>{stats.hpiCount.toLocaleString()} HPI Records</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Eye className="h-4 w-4 text-orange-600" />
+                <span>{stats.epcCount.toLocaleString()} EPC Records</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <Bookmark className="h-4 w-4 text-red-600" />
+                <span>{stats.watchlistCount.toLocaleString()} Watchlist</span>
+              </div>
+            </div>
           )}
         </div>
       </div>

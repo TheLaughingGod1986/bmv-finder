@@ -1,55 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { Client } from '@elastic/elasticsearch';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
-
-// Only create client if we have valid credentials
-const supabase = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseKey !== 'placeholder-key'
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
+// Elasticsearch client
+const esClient = new Client({
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
+  requestTimeout: 60000,
+  maxRetries: 3,
+  retryOnTimeout: true
+});
 
 export async function GET(request: NextRequest) {
   try {
-    // Check if Supabase is properly configured
-    if (!supabase) {
-      return NextResponse.json({ 
-        error: 'Watchlist count service not configured',
-        message: 'Please configure Supabase environment variables'
-      }, { status: 503 });
-    }
-
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('user_id') || 'user_123'; // Default for demo
     
-    // Verify the token and get user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const response = await esClient.count({
+      index: 'watchlist',
+      body: {
+        query: {
+          match: {
+            user_id: userId
+          }
+        }
+      }
+    });
     
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
-    }
-
-    // Get watchlist count
-    const { count, error: countError } = await supabase
-      .from('watchlist_properties')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', user.id);
-
-    if (countError) {
-      console.error('Watchlist count error:', countError);
-      return NextResponse.json({ error: 'Failed to get watchlist count' }, { status: 500 });
-    }
-
-    return NextResponse.json({ count: count || 0 });
-
+    return NextResponse.json({
+      success: true,
+      count: response.count
+    });
+    
   } catch (error) {
-    console.error('Watchlist count API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error counting watchlist:', error);
+    return NextResponse.json({ 
+      error: 'Failed to count watchlist',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }

@@ -1,114 +1,198 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { Client } from '@elastic/elasticsearch';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+// Elasticsearch client
+const esClient = new Client({
+  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
+  requestTimeout: 60000,
+  maxRetries: 3,
+  retryOnTimeout: true
+});
 
-// Only create client if we have valid credentials
-const supabase = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseKey !== 'placeholder-key'
-  ? createClient(supabaseUrl, supabaseKey)
-  : null;
-
+// GET - Fetch watchlist for a user
 export async function GET(request: NextRequest) {
   try {
-    // Check if Supabase is properly configured
-    if (!supabase) {
-      return NextResponse.json({ 
-        error: 'Watchlist service not configured',
-        message: 'Please configure Supabase environment variables'
-      }, { status: 503 });
-    }
-
-    // Get the authorization header
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
-    }
-
-    const token = authHeader.substring(7);
+    const { searchParams } = new URL(request.url);
+    const userId = searchParams.get('user_id') || 'user_123'; // Default for demo
     
-    // Verify the token and get user
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const response = await esClient.search({
+      index: 'watchlist',
+      body: {
+        query: {
+          match: {
+            user_id: userId
+          }
+        },
+        sort: [
+          { date_added: { order: 'desc' } }
+        ],
+        size: 100
+      }
+    });
     
-    if (authError || !user) {
-      console.error('Auth error:', authError);
-      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
-    }
-
-    // Fetch user's watchlist properties
-    const { data: watchlist, error: watchlistError } = await supabase
-      .from('watchlist_properties')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
-
-    if (watchlistError) {
-      console.error('Watchlist fetch error:', watchlistError);
-      return NextResponse.json({ error: 'Failed to fetch watchlist' }, { status: 500 });
-    }
-
-    return NextResponse.json(watchlist || []);
-
+    const watchlist = response.hits.hits.map(hit => ({
+      ...hit._source,
+      _id: hit._id
+    }));
+    
+    return NextResponse.json({
+      success: true,
+      data: watchlist,
+      total: response.hits.total.value
+    });
+    
   } catch (error) {
-    console.error('Watchlist API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error fetching watchlist:', error);
+    return NextResponse.json({ 
+      error: 'Failed to fetch watchlist',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
 
+// POST - Add property to watchlist
 export async function POST(request: NextRequest) {
   try {
-    // Check if Supabase is properly configured
-    if (!supabase) {
-      return NextResponse.json({ 
-        error: 'Watchlist service not configured',
-        message: 'Please configure Supabase environment variables'
-      }, { status: 503 });
-    }
-
     const body = await request.json();
-    const { propertyData, userId } = body;
-
-    if (!propertyData || !userId) {
-      return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
+    const {
+      user_id = 'user_123',
+      property_id,
+      postcode,
+      address,
+      house_number,
+      street,
+      town,
+      county,
+      property_type,
+      price,
+      notes = '',
+      status = 'watching',
+      source = 'chrome_extension'
+    } = body;
+    
+    if (!postcode || !address || !price) {
+      return NextResponse.json({ 
+        error: 'Missing required fields',
+        message: 'postcode, address, and price are required'
+      }, { status: 400 });
     }
-
-    // Check if property already exists in watchlist
-    const { data: existing, error: checkError } = await supabase
-      .from('watchlist_properties')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('property_id', propertyData.id)
-      .single();
-
-    if (checkError && checkError.code !== 'PGRST116') {
-      console.error('Watchlist check error:', checkError);
-      return NextResponse.json({ error: 'Failed to check watchlist' }, { status: 500 });
-    }
-
-    if (existing) {
-      return NextResponse.json({ error: 'Property already in watchlist' }, { status: 409 });
-    }
-
-    // Add property to watchlist
-    const { data, error } = await supabase
-      .from('watchlist_properties')
-      .insert([{
-        user_id: userId,
-        property_id: propertyData.id,
-        property_data: propertyData,
-        created_at: new Date().toISOString()
-      }])
-      .select();
-
-    if (error) {
-      console.error('Watchlist add error:', error);
-      return NextResponse.json({ error: 'Failed to add property to watchlist' }, { status: 500 });
-    }
-
-    return NextResponse.json(data[0]);
-
+    
+    const watchlistItem = {
+      id: `watch_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      user_id,
+      property_id: property_id || `prop_${Date.now()}`,
+      postcode,
+      address,
+      house_number,
+      street,
+      town,
+      county,
+      property_type,
+      price: parseFloat(price),
+      date_added: new Date().toISOString(),
+      notes,
+      status,
+      source,
+      last_updated: new Date().toISOString()
+    };
+    
+    const response = await esClient.index({
+      index: 'watchlist',
+      body: watchlistItem
+    });
+    
+    // Refresh index
+    await esClient.indices.refresh({ index: 'watchlist' });
+    
+    return NextResponse.json({
+      success: true,
+      data: watchlistItem,
+      id: response._id
+    });
+    
   } catch (error) {
-    console.error('Watchlist add API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('Error adding to watchlist:', error);
+    return NextResponse.json({ 
+      error: 'Failed to add to watchlist',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// PUT - Update watchlist item
+export async function PUT(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { id, updates } = body;
+    
+    if (!id) {
+      return NextResponse.json({ 
+        error: 'Missing ID',
+        message: 'ID is required for updates'
+      }, { status: 400 });
+    }
+    
+    const updateBody = {
+      doc: {
+        ...updates,
+        last_updated: new Date().toISOString()
+      }
+    };
+    
+    await esClient.update({
+      index: 'watchlist',
+      id,
+      body: updateBody
+    });
+    
+    // Refresh index
+    await esClient.indices.refresh({ index: 'watchlist' });
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Watchlist item updated successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error updating watchlist:', error);
+    return NextResponse.json({ 
+      error: 'Failed to update watchlist',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// DELETE - Remove property from watchlist
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    
+    if (!id) {
+      return NextResponse.json({ 
+        error: 'Missing ID',
+        message: 'ID is required for deletion'
+      }, { status: 400 });
+    }
+    
+    await esClient.delete({
+      index: 'watchlist',
+      id
+    });
+    
+    // Refresh index
+    await esClient.indices.refresh({ index: 'watchlist' });
+    
+    return NextResponse.json({
+      success: true,
+      message: 'Watchlist item removed successfully'
+    });
+    
+  } catch (error) {
+    console.error('Error removing from watchlist:', error);
+    return NextResponse.json({ 
+      error: 'Failed to remove from watchlist',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
   }
 }
