@@ -16,6 +16,7 @@ import {
 import type { TooltipItem } from 'chart.js';
 import type { SoldPrice } from '../../../types/sold-price';
 import { cn } from '../../lib/utils';
+import { formatDate } from '@/lib/formatters';
 
 // Register Chart.js components
 Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, BarElement, ArcElement);
@@ -471,7 +472,7 @@ function PriceDistributionHistogram({ soldPrices }: { soldPrices: SoldPrice[] })
 
 function RecentSalesTable({ soldPrices }: { soldPrices: SoldPrice[] }) {
   const recent = [...soldPrices].sort((a, b) => new Date(b.dateOfTransfer).getTime() - new Date(a.dateOfTransfer).getTime()).slice(0, 5);
-  const formatDate = (date: string) => new Date(date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  // Formatting functions now imported from centralized utilities
   const typeLabels: { [key: string]: string } = { 'D': 'Detached', 'S': 'Semi-Detached', 'T': 'Terraced', 'F': 'Flat/Maisonette', 'O': 'Other' };
   return (
     <div className="mb-8">

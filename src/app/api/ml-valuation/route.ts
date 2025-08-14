@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MLValuationModel, MLValuationFeatures, ExternalSignals } from '@/lib/mlValuationModel';
 import { esClient } from '@/lib/esClient';
+import { CONFIG } from '@/lib/config';
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,20 +89,12 @@ export async function GET(request: NextRequest) {
  */
 async function getPropertyEnrichmentData(postcode: string, number: string) {
   try {
-    const serviceUrl = process.env.PROPERTY_ENRICHMENT_SERVICE_URL || 'http://localhost:3002';
-    const response = await fetch(`${serviceUrl}/enrich`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        postcode,
-        houseNumber: number
-      })
-    });
+    // Call property enrichment service
+    const serviceUrl = CONFIG.API.PROPERTY_ENRICHMENT_URL;
+    const enrichmentResponse = await fetch(`${serviceUrl}/api/property-info?postcode=${postcode}&number=${number}`);
 
-    if (response.ok) {
-      return await response.json();
+    if (enrichmentResponse.ok) {
+      return await enrichmentResponse.json();
     }
     return null;
   } catch (error) {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { formatPrice, formatDate } from '@/lib/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronUp,
@@ -150,24 +151,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     }
   };
 
-  const formatDate = (date: string) => {
-    if (!date) return 'N/A';
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
-  const formatPrice = (price: number) => {
-    if (!price) return 'N/A';
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
-  };
+  // Formatting functions now imported from centralized utilities
 
   const getSalesCount = (property: any) => {
     if (!property) return null;

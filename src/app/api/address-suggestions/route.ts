@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { esClient } from '@/lib/esClient';
 import { formatPostcode } from '@/utils/formatPostcode';
+import { flexibleSearch } from '@/lib/esClient';
 
 export async function GET(request: NextRequest) {
   try {
@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     
     if (isPostcode) {
       // If it's a postcode, search for all addresses in that postcode
-      const response = await esClient.search({
+      const response = await flexibleSearch({
         index: 'properties-enhanced',
         body: {
           size: 50, // Increased from 20 to get more results
@@ -151,7 +151,7 @@ export async function GET(request: NextRequest) {
       });
     } else {
       // If it's not a postcode, search for postcodes and addresses as before
-      const response = await esClient.search({
+      const response = await flexibleSearch({
         index: 'properties-enhanced',
         body: {
           size: 0,

@@ -13,6 +13,11 @@ const clientConfig: ClientOptions = {
 
 export const esClient = new Client(clientConfig);
 
+// Create a more flexible search method that bypasses strict typing
+export const flexibleSearch = async (params: any) => {
+  return esClient.search(params as any);
+};
+
 // Test the connection
 esClient.ping()
   .then(() => console.log('✅ Elasticsearch connection successful'))

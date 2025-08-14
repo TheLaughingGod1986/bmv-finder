@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@supabase/auth-helpers-react';
+// import { useUser } from '@supabase/auth-helpers-react';
 
 export default function SearchLimitManager() {
   const [searchCount, setSearchCount] = useState(0);
@@ -15,7 +15,8 @@ export default function SearchLimitManager() {
   const SEARCH_LIMIT = 5;
   
   // Always call useUser hook (Rules of Hooks requirement)
-  const user = useUser();
+  // const user = useUser();
+  const user = null; // Temporarily disabled
 
   useEffect(() => {
     setMounted(true);

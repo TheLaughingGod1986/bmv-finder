@@ -1,83 +1,80 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+
+// Only create client if we have valid credentials
+const supabase = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseKey !== 'placeholder-key'
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 export async function POST(request: NextRequest) {
   try {
-    // Get request body
-    const { watchlistId } = await request.json();
-    
-    if (!watchlistId) {
-      return NextResponse.json({ error: 'Watchlist ID is required' }, { status: 400 });
-    }
-
-    // Get the captured property item
-    const { data: capturedProperty, error: propertyError } = await supabase
-      .from('captured_properties')
-      .select('*')
-      .eq('id', watchlistId)
-      .single();
-
-    if (propertyError || !capturedProperty) {
-      console.error('Property not found:', propertyError);
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
-    }
-
-    // Check if property already exists in portfolio (using a simple check)
-    const { data: existingProperty } = await supabase
-      .from('captured_properties')
-      .select('id')
-      .eq('postcode', capturedProperty.postcode)
-      .eq('address', capturedProperty.address)
-      .eq('status', 'portfolio')
-      .single();
-
-    if (existingProperty) {
+    // Check if Supabase is properly configured
+    if (!supabase) {
       return NextResponse.json({ 
-        error: 'This property is already in your portfolio' 
-      }, { status: 409 });
+        error: 'Watchlist add-to-portfolio service not configured',
+        message: 'Please configure Supabase environment variables'
+      }, { status: 503 });
     }
 
-    // Instead of adding to a separate portfolio table, we'll mark it as portfolio status
-    // and add portfolio-specific data to the notes
-    const portfolioNotes = `PORTFOLIO PROPERTY - Added on ${new Date().toLocaleDateString()}
-Purchase Price: £${capturedProperty.price.toLocaleString()}
-Current Value: £${capturedProperty.price.toLocaleString()}
-Property Type: ${capturedProperty.property_type || 'Unknown'}
-Bedrooms: ${capturedProperty.bedrooms || 0}
-Original URL: ${capturedProperty.original_url}
-Captured from: ${capturedProperty.source} on ${new Date(capturedProperty.captured_at).toLocaleDateString()}
+    const body = await request.json();
+    const { propertyData, userId } = body;
 
-${capturedProperty.notes || ''}`;
+    if (!propertyData || !userId) {
+      return NextResponse.json({ error: 'Missing required data' }, { status: 400 });
+    }
 
-    // Update the captured property to mark it as portfolio
-    const { data: updatedProperty, error: updateError } = await supabase
-      .from('captured_properties')
-      .update({ 
-        status: 'portfolio',
-        notes: portfolioNotes
-      })
-      .eq('id', watchlistId)
-      .select()
+    // Check if property already exists in portfolio
+    const { data: existing, error: checkError } = await supabase
+      .from('portfolio_properties')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('property_id', propertyData.id)
       .single();
 
-    if (updateError) {
-      console.error('Portfolio update error:', updateError);
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Portfolio check error:', checkError);
+      return NextResponse.json({ error: 'Failed to check portfolio' }, { status: 500 });
+    }
+
+    if (existing) {
+      return NextResponse.json({ error: 'Property already in portfolio' }, { status: 409 });
+    }
+
+    // Add property to portfolio
+    const { data, error } = await supabase
+      .from('portfolio_properties')
+      .insert([{
+        user_id: userId,
+        property_id: propertyData.id,
+        property_data: propertyData,
+        created_at: new Date().toISOString()
+      }])
+      .select();
+
+    if (error) {
+      console.error('Portfolio add error:', error);
       return NextResponse.json({ error: 'Failed to add property to portfolio' }, { status: 500 });
     }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Property added to portfolio successfully',
-      property: updatedProperty
-    });
+    // Remove from watchlist
+    const { error: removeError } = await supabase
+      .from('watchlist_properties')
+      .delete()
+      .eq('user_id', userId)
+      .eq('property_id', propertyData.id);
+
+    if (removeError) {
+      console.error('Watchlist remove error:', removeError);
+      // Don't fail the request if removing from watchlist fails
+    }
+
+    return NextResponse.json(data[0]);
 
   } catch (error) {
-    console.error('Add to portfolio error:', error);
+    console.error('Watchlist add-to-portfolio API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

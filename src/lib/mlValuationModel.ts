@@ -1,4 +1,5 @@
 import { esClient } from '@/lib/esClient';
+import { CONFIG } from './config';
 
 // External signals with predictive power ratings
 export interface ExternalSignals {
@@ -183,7 +184,7 @@ export class MLValuationModel {
    */
   private static async randomForestPrediction(features: MLValuationFeatures): Promise<number> {
     // Simulate Random Forest prediction using feature engineering
-    const baseValue = features.lastSoldPrice || 200000;
+    const baseValue = features.lastSoldPrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     
     // Feature engineering for Random Forest
     const engineeredFeatures = {
@@ -222,7 +223,7 @@ export class MLValuationModel {
    */
   private static async lstmPrediction(features: MLValuationFeatures): Promise<number> {
     if (features.hpiData.length < 12) {
-      return features.lastSoldPrice || 200000;
+      return features.lastSoldPrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     }
     
     // Simulate LSTM prediction using time-series analysis
@@ -235,7 +236,7 @@ export class MLValuationModel {
     const volatility = this.calculateVolatility(hpiValues);
     
     // LSTM-style prediction
-    const baseValue = features.lastSoldPrice || 200000;
+    const baseValue = features.lastSoldPrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     const timeMultiplier = 1 + (trend * 0.1) + (seasonality * 0.05);
     const volatilityAdjustment = 1 + (volatility * 0.02);
     
@@ -311,7 +312,7 @@ export class MLValuationModel {
     const seasonality = this.calculateSeasonality(recentHPI.map(hpi => hpi.hpi_value));
     
     // Generate forecasts
-    const baseValue = features.lastSoldPrice || 200000;
+    const baseValue = features.lastSoldPrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     const forecast = {
       threeMonth: Math.round(baseValue * (1 + trend * 0.25)),
       sixMonth: Math.round(baseValue * (1 + trend * 0.5)),

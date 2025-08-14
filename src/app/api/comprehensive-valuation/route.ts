@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
 import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
+import { CONFIG } from '@/lib/config';
 
 // Realistic market rates for NE5 area (Newcastle)
 const NE5_MARKET_RATES = {
@@ -820,74 +821,51 @@ async function getEnhancedRegionalRent(property: PropertyData): Promise<{ monthl
     console.warn('Indexed rental data fetch failed, falling back to hardcoded values:', error);
     
     // Fallback to hardcoded regional rental data
-    const region = getRegionFromPostcode(property.postcode);
-    const propertyType = property.propertyType;
-    const bedrooms = property.bedrooms || 2;
-    
-    // Regional rental data (based on 2024 market research)
     const regionalRentalData = {
-      'E12000007': { // London
-        'D': { 1: 1800, 2: 2800, 3: 4200, 4: 5800, 5: 7500 }, // Detached
-        'S': { 1: 1600, 2: 2400, 3: 3600, 4: 4800, 5: 6200 }, // Semi-detached
-        'T': { 1: 1400, 2: 2200, 3: 3200, 4: 4200, 5: 5400 }, // Terraced
-        'F': { 1: 1200, 2: 1800, 3: 2800, 4: 3800, 5: 4800 }, // Flat
-        'O': { 1: 1000, 2: 1600, 3: 2400, 4: 3200, 5: 4000 }  // Other
+      [CONFIG.REGIONS.LONDON]: { // London
+        averageRent: 1800,
+        yield: 0.045,
+        growth: 0.08
       },
-      'E12000008': { // South East
-        'D': { 1: 1200, 2: 1800, 3: 2800, 4: 3800, 5: 4800 },
-        'S': { 1: 1000, 2: 1600, 3: 2400, 4: 3200, 5: 4000 },
-        'T': { 1: 900, 2: 1400, 3: 2200, 4: 3000, 5: 3800 },
-        'F': { 1: 800, 2: 1200, 3: 1800, 4: 2400, 5: 3000 },
-        'O': { 1: 700, 2: 1100, 3: 1700, 4: 2300, 5: 2900 }
+      [CONFIG.REGIONS.SOUTH_EAST]: { // South East
+        averageRent: 1200,
+        yield: 0.06,
+        growth: 0.06
       },
-      'E12000009': { // South West
-        'D': { 1: 1000, 2: 1600, 3: 2400, 4: 3200, 5: 4000 },
-        'S': { 1: 900, 2: 1400, 3: 2200, 4: 3000, 5: 3800 },
-        'T': { 1: 800, 2: 1200, 3: 2000, 4: 2800, 5: 3600 },
-        'F': { 1: 700, 2: 1100, 3: 1800, 4: 2500, 5: 3200 },
-        'O': { 1: 600, 2: 1000, 3: 1600, 4: 2200, 5: 2800 }
+      [CONFIG.REGIONS.SOUTH_WEST]: { // South West
+        averageRent: 900,
+        yield: 0.065,
+        growth: 0.05
       },
-      'E12000006': { // East of England
-        'D': { 1: 1100, 2: 1700, 3: 2600, 4: 3500, 5: 4400 },
-        'S': { 1: 950, 2: 1500, 3: 2300, 4: 3100, 5: 3900 },
-        'T': { 1: 850, 2: 1300, 3: 2100, 4: 2900, 5: 3700 },
-        'F': { 1: 750, 2: 1150, 3: 1900, 4: 2600, 5: 3300 },
-        'O': { 1: 650, 2: 1050, 3: 1700, 4: 2300, 5: 2900 }
+      [CONFIG.REGIONS.EAST_ENGLAND]: { // East of England
+        averageRent: 1000,
+        yield: 0.075,
+        growth: 0.07
       },
-      'E12000005': { // West Midlands
-        'D': { 1: 900, 2: 1400, 3: 2200, 4: 3000, 5: 3800 },
-        'S': { 1: 800, 2: 1200, 3: 2000, 4: 2800, 5: 3600 },
-        'T': { 1: 700, 2: 1100, 3: 1800, 4: 2600, 5: 3400 },
-        'F': { 1: 600, 2: 1000, 3: 1600, 4: 2400, 5: 3200 },
-        'O': { 1: 500, 2: 900, 3: 1500, 4: 2200, 5: 2900 }
+      [CONFIG.REGIONS.WEST_MIDLANDS]: { // West Midlands
+        averageRent: 800,
+        yield: 0.07,
+        growth: 0.04
       },
-      'E12000004': { // East Midlands
-        'D': { 1: 850, 2: 1300, 3: 2100, 4: 2900, 5: 3700 },
-        'S': { 1: 750, 2: 1150, 3: 1900, 4: 2700, 5: 3500 },
-        'T': { 1: 650, 2: 1050, 3: 1700, 4: 2500, 5: 3300 },
-        'F': { 1: 550, 2: 950, 3: 1500, 4: 2200, 5: 2900 },
-        'O': { 1: 450, 2: 850, 3: 1400, 4: 2000, 5: 2600 }
+      [CONFIG.REGIONS.EAST_MIDLANDS]: { // East Midlands
+        averageRent: 750,
+        yield: 0.072,
+        growth: 0.05
       },
-      'E12000003': { // Yorkshire and The Humber
-        'D': { 1: 800, 2: 1200, 3: 2000, 4: 2800, 5: 3600 },
-        'S': { 1: 700, 2: 1100, 3: 1800, 4: 2600, 5: 3400 },
-        'T': { 1: 600, 2: 1000, 3: 1600, 4: 2400, 5: 3200 },
-        'F': { 1: 500, 2: 900, 3: 1400, 4: 2100, 5: 2800 },
-        'O': { 1: 400, 2: 800, 3: 1300, 4: 1900, 5: 2500 }
+      [CONFIG.REGIONS.YORKSHIRE_HUMBER]: { // Yorkshire and The Humber
+        averageRent: 700,
+        yield: 0.068,
+        growth: 0.03
       },
-      'E12000002': { // North West
-        'D': { 1: 800, 2: 1200, 3: 2000, 4: 2800, 5: 3600 },
-        'S': { 1: 700, 2: 1100, 3: 1800, 4: 2600, 5: 3400 },
-        'T': { 1: 600, 2: 1000, 3: 1600, 4: 2400, 5: 3200 },
-        'F': { 1: 500, 2: 900, 3: 1400, 4: 2100, 5: 2800 },
-        'O': { 1: 400, 2: 800, 3: 1300, 4: 1900, 5: 2500 }
+      [CONFIG.REGIONS.NORTH_WEST]: { // North West
+        averageRent: 750,
+        yield: 0.07,
+        growth: 0.04
       },
-      'E12000001': { // North East
-        'D': { 1: 750, 2: 1100, 3: 1900, 4: 2700, 5: 3500 },
-        'S': { 1: 650, 2: 1000, 3: 1700, 4: 2500, 5: 3300 },
-        'T': { 1: 550, 2: 900, 3: 1500, 4: 2300, 5: 3100 },
-        'F': { 1: 450, 2: 800, 3: 1300, 4: 2000, 5: 2700 },
-        'O': { 1: 350, 2: 700, 3: 1200, 4: 1800, 5: 2400 }
+      [CONFIG.REGIONS.NORTH_EAST]: { // North East
+        averageRent: 650,
+        yield: 0.065,
+        growth: 0.02
       }
     };
 
@@ -904,7 +882,7 @@ async function getEnhancedRegionalRent(property: PropertyData): Promise<{ monthl
 
     // Get rent for bedroom count (cap at 5+ bedrooms)
     const bedroomCount = Math.min(bedrooms, 5);
-    const baseRent = propertyTypeData[bedroomCount];
+    const baseRent = propertyTypeData.averageRent;
     if (!baseRent) {
       throw new Error(`No rental data available for ${bedroomCount} bedroom ${propertyType} in region ${region}`);
     }

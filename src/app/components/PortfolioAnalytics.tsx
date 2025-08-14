@@ -24,7 +24,7 @@ import {
   Calendar,
   Calculator
 } from 'lucide-react';
-import { useUser } from '@supabase/auth-helpers-react';
+// import { useUser } from '@supabase/auth-helpers-react';
 
 interface PortfolioAnalytics {
   overview: {
@@ -81,7 +81,8 @@ export default function PortfolioAnalytics() {
   const [analytics, setAnalytics] = useState<PortfolioAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'overview' | 'performance' | 'diversification' | 'risk' | 'recommendations'>('overview');
-  const user = useUser();
+  // const user = useUser();
+  const user = null; // Temporarily disabled
 
   useEffect(() => {
     if (user?.id) {

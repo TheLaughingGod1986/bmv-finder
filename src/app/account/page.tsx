@@ -1,12 +1,10 @@
 "use client";
 import UserProfile from '../components/UserProfile';
 import Link from 'next/link';
-import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast, { Toaster } from 'react-hot-toast';
-import { useSession } from '@supabase/auth-helpers-react';
 import { parseSubscriptionMetadata, getSubscriptionStatusText, canManageSubscription } from '@/utils/subscriptionUtils';
 import { CalendarIcon, ArrowUpRightIcon } from '@heroicons/react/24/outline';
 import { useToast } from '../components/ToastProvider';
@@ -76,8 +74,9 @@ const PLANS = [
 ];
 
 export default function AccountPage() {
-  const user = useUser();
-  const session = useSession();
+  // Mock user data for development
+  const user = { id: 'mock-user-id', email: 'user@example.com', user_metadata: { full_name: 'Demo User' } };
+  const session = { user: user, access_token: 'mock-token' };
   const { tier, loading: tierLoading } = useUserTier(user?.id || null);
   const [profile, setProfile] = useState<any>(null);
   const router = useRouter();

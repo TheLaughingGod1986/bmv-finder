@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient';
+import { CONFIG } from './config';
 
 // Types for ML predictions and learning
 interface PropertyOutcome {
@@ -85,7 +86,7 @@ class MLPredictionEngine {
       const predictions = this.calculateWeightedPredictions(features, similarOutcomes);
       
       // Calculate confidence based on data availability
-      const confidence = this.calculateConfidence(similarOutcomes.length, features);
+      const confidence = this.calculateConfidence(features, similarOutcomes.length);
       
       // Identify key factors influencing the prediction
       const factors = this.identifyKeyFactors(features, similarOutcomes);
@@ -191,16 +192,18 @@ class MLPredictionEngine {
     return (priceSimilarity + typeSimilarity + locationSimilarity) / 3 * recencyFactor;
   }
 
-  private calculateConfidence(outcomeCount: number, features: PredictionFeatures): number {
-    // Base confidence on data availability and feature completeness
-    let confidence = Math.min(0.95, outcomeCount / 20); // Max 95% confidence
+  private static calculateConfidence(features: PredictionFeatures, outcomeCount: number): number {
+    let confidence = Math.min(0.95, outcomeCount / 20); // Base confidence
     
     // Boost confidence for well-represented property types and locations
     if (outcomeCount >= 10) confidence += 0.1;
     if (outcomeCount >= 25) confidence += 0.1;
     
+    // Price-based confidence adjustments
+    if (features.purchasePrice > CONFIG.VALUATION.HIGH_VALUE_THRESHOLD) confidence *= 0.8; // High-value properties
+    if (features.purchasePrice < CONFIG.VALUATION.MIN_PROPERTY_VALUE) confidence *= 0.7; // Very low-value properties
+    
     // Reduce confidence for unusual property characteristics
-    if (features.purchasePrice > 1000000) confidence *= 0.8; // High-value properties
     if (features.refurbishmentCost > features.purchasePrice * 0.3) confidence *= 0.9; // High refurb costs
     
     return Math.max(0.1, Math.min(0.95, confidence));

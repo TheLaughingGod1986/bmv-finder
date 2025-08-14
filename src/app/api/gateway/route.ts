@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { CONFIG } from '@/lib/config';
 
 interface GatewayConfig {
   [key: string]: {
@@ -13,112 +14,112 @@ interface GatewayConfig {
 const SERVICES: GatewayConfig = {
   // Property Services
   'property-es': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/property-es',
+    url: CONFIG.API.BASE_URL + '/api/property-es',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'property-csv': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/property-csv',
+    url: CONFIG.API.BASE_URL + '/api/property-csv',
     method: 'GET',
     headers: {}
   },
   'property-trend': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/property-trend',
+    url: CONFIG.API.BASE_URL + '/api/property-trend',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'property-history': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/property-history',
+    url: CONFIG.API.BASE_URL + '/api/property-history',
     method: 'GET',
     headers: {}
   },
   'enhance-properties': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/enhance-properties',
+    url: CONFIG.API.BASE_URL + '/api/enhance-properties',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'recent-sales': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/recent-sales',
+    url: CONFIG.API.BASE_URL + '/api/recent-sales',
     method: 'GET',
     headers: {}
   },
   'what-should-i-pay': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/what-should-i-pay',
+    url: CONFIG.API.BASE_URL + '/api/what-should-i-pay',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'top-roi': {
-    url: process.env.PROPERTY_SERVICE_URL || 'http://localhost:3000/api/top-roi',
+    url: CONFIG.API.BASE_URL + '/api/top-roi',
     method: 'GET',
     headers: {}
   },
   
   // HPI Services
   'hpi': {
-    url: process.env.HPI_SERVICE_URL || 'http://localhost:3000/api/hpi',
+    url: CONFIG.API.BASE_URL + '/api/hpi',
     method: 'GET',
     headers: {}
   },
   'hpi-postcode': {
-    url: process.env.HPI_SERVICE_URL || 'http://localhost:3000/api/hpi/postcode',
+    url: CONFIG.API.BASE_URL + '/api/hpi/postcode',
     method: 'GET',
     headers: {}
   },
   'hpi-date-range': {
-    url: process.env.HPI_SERVICE_URL || 'http://localhost:3000/api/hpi/date-range',
+    url: CONFIG.API.BASE_URL + '/api/hpi/date-range',
     method: 'GET',
     headers: {}
   },
   'test-hpi-fetch': {
-    url: process.env.HPI_SERVICE_URL || 'http://localhost:3000/api/test-hpi-fetch',
+    url: CONFIG.API.BASE_URL + '/api/test-hpi-fetch',
     method: 'GET',
     headers: {}
   },
   
   // BMV Scoring Services
   'enhanced-bmv-score': {
-    url: process.env.BMV_SERVICE_URL || 'http://localhost:3000/api/enhanced-bmv-score',
+    url: CONFIG.API.BASE_URL + '/api/enhanced-bmv-score',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'suggest-postcodes': {
-    url: process.env.BMV_SERVICE_URL || 'http://localhost:3000/api/suggest-postcodes',
+    url: CONFIG.API.BASE_URL + '/api/suggest-postcodes',
     method: 'GET',
     headers: {}
   },
   
   // User Management Services
   'profile-usage': {
-    url: process.env.USER_SERVICE_URL || 'http://localhost:3000/api/profile-usage',
+    url: CONFIG.API.BASE_URL + '/api/profile-usage',
     method: 'GET',
     headers: {}
   },
   'increment-usage': {
-    url: process.env.USER_SERVICE_URL || 'http://localhost:3000/api/increment-usage',
+    url: CONFIG.API.BASE_URL + '/api/increment-usage',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'create-checkout-session': {
-    url: process.env.USER_SERVICE_URL || 'http://localhost:3000/api/create-checkout-session',
+    url: CONFIG.API.BASE_URL + '/api/create-checkout-session',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'create-customer-portal-session': {
-    url: process.env.USER_SERVICE_URL || 'http://localhost:3000/api/create-customer-portal-session',
+    url: CONFIG.API.BASE_URL + '/api/create-customer-portal-session',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -127,40 +128,40 @@ const SERVICES: GatewayConfig = {
   
   // Analytics & Monitoring Services
   'summary': {
-    url: process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3000/api/summary',
+    url: CONFIG.API.BASE_URL + '/api/summary',
     method: 'GET',
     headers: {}
   },
   'analytics': {
-    url: process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3000/api/analytics',
+    url: CONFIG.API.BASE_URL + '/api/analytics',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'monitoring': {
-    url: process.env.ANALYTICS_SERVICE_URL || 'http://localhost:3000/api/monitoring',
+    url: CONFIG.API.BASE_URL + '/api/monitoring',
     method: 'GET',
     headers: {}
   },
   
   // External Integrations
   'stripe-webhook': {
-    url: process.env.PAYMENT_SERVICE_URL || 'http://localhost:3000/api/stripe-webhook',
+    url: CONFIG.API.BASE_URL + '/api/stripe-webhook',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
   },
   'search': {
-    url: process.env.SEARCH_SERVICE_URL || 'http://localhost:3000/api/search',
+    url: CONFIG.API.BASE_URL + '/api/search',
     method: 'GET',
     headers: {}
   },
   
   // System Services
   'last-updated': {
-    url: process.env.SYSTEM_SERVICE_URL || 'http://localhost:3000/api/last-updated',
+    url: CONFIG.API.BASE_URL + '/api/last-updated',
     method: 'GET',
     headers: {}
   }

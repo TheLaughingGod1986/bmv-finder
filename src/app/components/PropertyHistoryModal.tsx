@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Fragment, useCallback } from 'react';
 import { SoldPrice } from '../../../types/sold-price';
-import { formatPrice } from '../../lib/utils';
+import { formatPrice, formatDate } from '@/lib/formatters';
 import AreaPriceTrendChart from './AreaPriceTrendChart';
 import BMVScoreExplanation from './BMVScoreExplanation';
 import PriceIndicatorLegend from './PriceIndicatorLegend';
@@ -105,13 +105,7 @@ export default function PropertyHistoryModal({
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
+  // Formatting functions now imported from centralized utilities
 
   const formatPropertyType = (type: string) => {
     const typeMap: Record<string, string> = {

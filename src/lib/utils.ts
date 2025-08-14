@@ -5,22 +5,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(price);
-}
+// Formatting functions moved to src/lib/formatters.ts
 
-export function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
+// Formatting functions moved to src/lib/formatters.ts
 
 export function debounce<T extends (...args: unknown[]) => unknown>(
   func: T,

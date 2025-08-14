@@ -5,6 +5,7 @@ import { X, MapPin, Calendar, PoundSterling, Home, TrendingUp, TrendingDown, Inf
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
 import { apiClient } from '@/lib/apiClient';
+import { formatPrice, formatDate, getMonthName } from '@/lib/formatters';
 
 export interface PropertyData {
   id: string;
@@ -67,31 +68,7 @@ export default function PropertyModal({ isOpen, onClose, property }: PropertyMod
     }
   }, [isOpen, property, fetchSimilarProperties]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    });
-  };
-
-  const getMonthName = (month: number) => {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1];
-  };
+  // Formatting functions now imported from centralized utilities
 
   if (!property) return null;
 

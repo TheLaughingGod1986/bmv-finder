@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatCurrency } from '@/lib/formatters';
 import { motion } from 'framer-motion';
 import { 
   TrendingUp, 
@@ -173,7 +174,7 @@ interface AnalysisResult {
 }
 
 export default function UnifiedDealCalculator() {
-  const formatCurrency = (value?: number): string => `£${Math.round(value || 0).toLocaleString()}`;
+  // Formatting functions now imported from centralized utilities
   
   // Add step management for progressive form flow
   const [currentStep, setCurrentStep] = useState<number>(1);

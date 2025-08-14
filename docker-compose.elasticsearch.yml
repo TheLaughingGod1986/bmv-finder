@@ -47,4 +47,4 @@ services:
 
 volumes:
   elasticsearch_data:
-    driver: local 
+    driver: local

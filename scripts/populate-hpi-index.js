@@ -3,13 +3,26 @@ const readline = require('readline');
 const { Client } = require('@elastic/elasticsearch');
 require('dotenv').config();
 
-// Elasticsearch client - using localhost
+// Elasticsearch client - using localhost with proper headers for v8/v9 compatibility
 const esClient = new Client({
   node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
   requestTimeout: 60000,
   maxRetries: 3,
   retryOnTimeout: true,
+  headers: {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  }
 });
+
+// Helper functions to bypass strict typing
+async function flexibleIndices() {
+  return esClient.indices;
+}
+
+async function flexibleBulk() {
+  return esClient.bulk;
+}
 
 const INDEX_NAME = 'house_price_index';
 const BATCH_SIZE = 1000;
@@ -28,7 +41,8 @@ function loadCheckpoint() {
 
 async function createHPIIndex() {
   try {
-    const indexExists = await esClient.indices.exists({ index: INDEX_NAME });
+    const indices = await flexibleIndices();
+    const indexExists = await indices.exists({ index: INDEX_NAME });
     
     if (indexExists) {
       console.log(`Index '${INDEX_NAME}' already exists. Skipping creation.`);
@@ -37,7 +51,7 @@ async function createHPIIndex() {
 
     console.log(`Creating index '${INDEX_NAME}'...`);
     
-    await esClient.indices.create({
+    await indices.create({
       index: INDEX_NAME,
       body: {
         settings: {

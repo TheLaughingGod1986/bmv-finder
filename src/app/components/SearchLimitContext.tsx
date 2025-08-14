@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { useUser } from '@supabase/auth-helpers-react';
+// import { useUser } from '@supabase/auth-helpers-react';
 import { supabase } from '../../lib/supabaseClient';
 
 interface SearchLimitContextType {
@@ -22,7 +22,8 @@ export function SearchLimitProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   
   // Always call useUser hook, but handle the case where supabase might not be available
-  const user = useUser();
+  // const user = useUser();
+  const user = null; // Temporarily disabled
 
   // Load search count from localStorage on mount
   useEffect(() => {

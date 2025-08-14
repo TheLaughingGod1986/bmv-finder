@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatPrice, formatDate } from '@/lib/formatters';
 import { TrendingUp, TrendingDown, Minus, Info, MapPin, Calendar, PoundSterling, X, Home, Building } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '../../lib/utils';
@@ -77,23 +78,7 @@ const RecentSalesDisplay: React.FC<RecentSalesDisplayProps> = ({ postcode, isVis
     fetchRecentSales();
   }, [postcode, isVisible]);
 
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
-  };
+  // Formatting functions now imported from centralized utilities
 
   const getMarketSignalIcon = (signal: string) => {
     switch (signal) {

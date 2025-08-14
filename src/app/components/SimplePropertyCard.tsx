@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { Home, TrendingUp, PoundSterling, Calendar, Edit, CheckCircle, Trash2 } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { formatPrice } from '@/lib/formatters';
 
 interface SimplePropertyCardProps {
   property: any;
@@ -17,15 +18,7 @@ export default function SimplePropertyCard({ property, onEdit, onSold, onRemove,
   const [isLoadingStreet, setIsLoadingStreet] = useState(false);
   const hasLookedUp = useRef(false);
 
-  const formatPrice = (price: number) => {
-    if (!price || isNaN(price)) return 'N/A';
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
+  // Formatting functions now imported from centralized utilities
 
   // Extract house number and postcode
   const getAddressInfo = (address: string, postcode: string) => {

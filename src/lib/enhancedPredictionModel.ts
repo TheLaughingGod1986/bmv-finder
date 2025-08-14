@@ -1,4 +1,5 @@
 import { esClient } from './esClient';
+import { CONFIG } from './config';
 
 export interface EnhancedPropertyFeatures {
   // Basic property info
@@ -338,7 +339,7 @@ export class EnhancedPredictionModel {
       return null;
     }
 
-    const baseValue = features.lastSoldPrice || features.localAveragePrice || 200000;
+    const baseValue = features.lastSoldPrice || features.localAveragePrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     const epcMultiplier = this.EPC_MULTIPLIERS[features.epcRating as keyof typeof this.EPC_MULTIPLIERS] || 1.0;
     
     const energyAdjustedValue = baseValue * epcMultiplier;
@@ -368,7 +369,7 @@ export class EnhancedPredictionModel {
     const recentHPI = features.hpiData.slice(0, 6);
     const averageMonthlyGrowth = recentHPI.reduce((sum, hpi) => sum + hpi.hpiChange, 0) / recentHPI.length;
     
-    const baseValue = features.lastSoldPrice || features.localAveragePrice || 200000;
+    const baseValue = features.lastSoldPrice || features.localAveragePrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     const trendMultiplier = 1 + (averageMonthlyGrowth / 100) * 6; // 6-month trend
     const trendAdjustedValue = baseValue * trendMultiplier;
 
@@ -389,7 +390,7 @@ export class EnhancedPredictionModel {
    * Calculate economic factors prediction with enhanced inflation
    */
   private static calculateEconomicFactorsPrediction(features: EnhancedPropertyFeatures) {
-    const baseValue = features.lastSoldPrice || features.localAveragePrice || 200000;
+    const baseValue = features.lastSoldPrice || features.localAveragePrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     let economicMultiplier = 1.0;
     let inflationAdjustment = 0;
     let interestRateImpact = 1.0;
@@ -478,7 +479,7 @@ export class EnhancedPredictionModel {
    * Calculate detailed breakdown with enhanced inflation
    */
   private static calculateBreakdown(features: EnhancedPropertyFeatures, predictedValue: number) {
-    const baseValue = features.lastSoldPrice || features.localAveragePrice || 200000;
+    const baseValue = features.lastSoldPrice || features.localAveragePrice || CONFIG.VALUATION.DEFAULT_BASE_VALUE;
     
     // HPI multiplier
     let hpiMultiplier = 1.0;

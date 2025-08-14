@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Client } from '@elastic/elasticsearch';
+import { CONFIG } from '@/lib/config';
 
 // Function to get realistic price per m² based on postcode area
 function getRegionalPricePerSqm(postcodeArea: string): number {
@@ -64,12 +65,13 @@ function getRegionalPricePerSqm(postcodeArea: string): number {
   return 2200;
 }
 
+// Connect to Elasticsearch
 const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
+  node: CONFIG.API.ELASTICSEARCH_URL,
   auth: {
     username: process.env.ELASTICSEARCH_USERNAME || 'elastic',
-    password: process.env.ELASTICSEARCH_PASSWORD || 'changeme',
-  },
+    password: process.env.ELASTICSEARCH_PASSWORD || 'changeme'
+  }
 });
 
 export async function GET(request: NextRequest) {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { formatDate, formatCurrency, formatPercentage } from '@/lib/formatters';
 import { Brain, TrendingUp, Target, Info, CheckCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 
 interface MLPrediction {
@@ -102,9 +103,9 @@ export default function MLPredictionCard({ propertyFeatures, onPredictionUpdate 
     }
   };
 
-  const formatPercentage = (value: number) => `${(value * 100).toFixed(1)}%`;
-  const formatCurrency = (value: number) => `£${value.toLocaleString()}`;
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString();
+  // Formatting functions now imported from centralized utilities
+  // Formatting functions now imported from centralized utilities
+  // Formatting functions now imported from centralized utilities
 
   if (!prediction) {
     return (

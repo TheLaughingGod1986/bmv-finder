@@ -1,3 +1,5 @@
+import { CONFIG } from './config';
+
 export type PurchaseType = 'personal' | 'second_home' | 'ltd' | 'first_time';
 
 // Compute SDLT for England/NI residential property with an optional 3% surcharge for
@@ -21,8 +23,8 @@ export function computeStampDuty(price: number, type: PurchaseType): number {
     // Fall-through to normal residential rates if above £625k
     type = 'personal';
   }
-  const bands = [250000, 925000, 1500000];
-  const rates = [0, 0.05, 0.10, 0.12];
+  const bands = CONFIG.STAMP_DUTY.BANDS;
+  const rates = CONFIG.STAMP_DUTY.RATES;
 
   let remaining = price;
   let tax = 0;

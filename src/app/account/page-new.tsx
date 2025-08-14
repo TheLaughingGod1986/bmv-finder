@@ -1,22 +1,14 @@
 "use client";
 
 import { useEffect, useState } from 'react';
-import { useUser } from '@supabase/auth-helpers-react';
 import { useUserTier } from '@/hooks/useUserTier';
 import { useRouter } from 'next/navigation';
-import { useSession } from '@supabase/auth-helpers-react';
 import { parseSubscriptionMetadata, getSubscriptionStatusText, canManageSubscription } from '@/utils/subscriptionUtils';
 import { CalendarIcon, ArrowUpRightIcon, ShieldCheckIcon, UserIcon, CreditCardIcon, CogIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 
-// New UI Components
-import { 
-  Header, 
-  Section, 
-  Button, 
-  FeatureCard,
-  ManageSubscriptionButton 
-} from '../components/ui';
+// UI Components
+import { LoadingSpinner, ErrorMessage } from '../components/ui';
 
 // Existing Components
 import UserProfile from '../components/UserProfile';
@@ -61,8 +53,9 @@ const PLANS = [
 ];
 
 export default function AccountPageNew() {
-  const user = useUser();
-  const session = useSession();
+  // Mock user data for development
+  const user = { id: 'mock-user-id' };
+  const session = { user: user };
   const { tier, loading: tierLoading } = useUserTier(user?.id || null);
   const [profile, setProfile] = useState<any>(null);
   const router = useRouter();
@@ -125,37 +118,37 @@ export default function AccountPageNew() {
   if (!user) {
     return (
       <div className="min-h-screen bg-neutral-100">
-        <Header />
-        <Section background="white">
+        {/* Header placeholder */}
+        <div className="bg-white p-8">
           <div className="text-center py-12">
             <h1 className="text-3xl font-bold text-primary-blue-dark mb-4">Please Log In</h1>
             <p className="text-primary-green-dark mb-6">You need to be logged in to access your account.</p>
             <Link href="/">
-              <Button variant="primary">
+              <button className="inline-flex items-center px-6 py-3 bg-primary-blue text-white rounded-lg hover:bg-primary-blue-dark transition-colors">
                 Go to Home
-              </Button>
+              </button>
             </Link>
           </div>
-        </Section>
+        </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-neutral-100">
-      <Header />
+              {/* Header placeholder */}
       
       {/* Account Header */}
-      <Section background="white">
+      <div className="bg-white p-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-primary-blue-dark mb-2">Your Account</h1>
           <p className="text-lg text-primary-green-dark">Manage your subscription and profile settings</p>
         </div>
-      </Section>
+      </div>
 
       {/* Current Plan Section */}
       {subscriptionInfo && (
-        <Section background="light">
+        <div className="bg-neutral-100 p-8">
           <div className="max-w-4xl mx-auto">
             <div className={`rounded-2xl border-4 shadow-lg p-8 flex flex-col items-center relative ${
               subscriptionInfo.tier !== 'free' 
@@ -210,38 +203,34 @@ export default function AccountPageNew() {
               )}
             </div>
           </div>
-        </Section>
+        </div>
       )}
 
       {/* Action Buttons */}
-      <Section background="white">
+      <div className="bg-white p-8">
         <div className="max-w-4xl mx-auto">
           <div className="flex flex-col md:flex-row gap-4 justify-center items-center mb-8">
             <Link href="/account/upgrade">
-              <Button 
-                variant="primary" 
-                size="lg"
-                className="min-w-[200px]"
+              <button 
+                className="min-w-[200px] inline-flex items-center px-6 py-3 bg-primary-blue text-white rounded-lg hover:bg-primary-blue-dark transition-colors text-lg"
               >
                 {derivedTier === 'free' ? 'Upgrade Plan' : 'Change Plan'}
-              </Button>
+              </button>
             </Link>
             
             {canManage && (
-              <ManageSubscriptionButton
-                variant="outline"
-                size="lg"
-                className="min-w-[200px]"
+              <button
+                className="min-w-[200px] inline-flex items-center px-6 py-3 border border-primary-blue text-primary-blue rounded-lg hover:bg-primary-blue hover:text-white transition-colors text-lg"
               >
                 Manage Subscription
-              </ManageSubscriptionButton>
+              </button>
             )}
           </div>
         </div>
-      </Section>
+      </div>
 
       {/* Account Features */}
-      <Section background="light">
+      <div className="bg-neutral-100 p-8">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-primary-blue-dark mb-4">Account Features</h2>
@@ -249,34 +238,34 @@ export default function AccountPageNew() {
           </div>
           
           <div className="grid md:grid-cols-3 gap-8">
-            <FeatureCard
-              icon="👤"
-              title="Profile Management"
-              description="Update your personal information and preferences"
-            />
-            <FeatureCard
-              icon="💳"
-              title="Billing & Subscriptions"
-              description="Manage your subscription, billing, and payment methods"
-            />
-            <FeatureCard
-              icon="⚙️"
-              title="Account Settings"
-              description="Configure notifications, privacy, and security settings"
-            />
+            <div className="bg-white p-6 rounded-lg shadow-md border border-neutral-200">
+              <div className="text-4xl mb-4">👤</div>
+              <h3 className="text-xl font-semibold text-primary-blue-dark mb-2">Profile Management</h3>
+              <p className="text-primary-green-dark">Update your personal information and preferences</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md border border-neutral-200">
+              <div className="text-4xl mb-4">💳</div>
+              <h3 className="text-xl font-semibold text-primary-blue-dark mb-2">Billing & Subscriptions</h3>
+              <p className="text-primary-green-dark">Manage your subscription, billing, and payment methods</p>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow-md border border-neutral-200">
+              <div className="text-4xl mb-4">⚙️</div>
+              <h3 className="text-xl font-semibold text-primary-blue-dark mb-2">Account Settings</h3>
+              <p className="text-primary-green-dark">Configure notifications, privacy, and security settings</p>
+            </div>
           </div>
         </div>
-      </Section>
+      </div>
 
       {/* User Profile Component */}
-      <Section background="white">
+      <div className="bg-white p-8">
         <div className="max-w-4xl mx-auto">
           <UserProfile />
         </div>
-      </Section>
+      </div>
 
       {/* Quick Links */}
-      <Section background="light">
+      <div className="bg-neutral-100 p-8">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-primary-blue-dark mb-6">Quick Actions</h2>
@@ -285,47 +274,43 @@ export default function AccountPageNew() {
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Link href="/">
-              <Button
-                variant="outline"
-                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              <button
+                className="flex flex-col items-center p-6 h-auto space-y-3 border border-primary-blue text-primary-blue rounded-lg hover:bg-primary-blue hover:text-white transition-colors"
               >
                 <UserIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Search Properties</span>
-              </Button>
+              </button>
             </Link>
             
             <Link href="/what-should-i-pay">
-              <Button
-                variant="outline"
-                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              <button
+                className="flex flex-col items-center p-6 h-auto space-y-3 border border-primary-blue text-primary-blue rounded-lg hover:bg-primary-blue hover:text-white transition-colors"
               >
                 <ShieldCheckIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Property Valuations</span>
-              </Button>
+              </button>
             </Link>
             
             <Link href="/deal-calculator">
-              <Button
-                variant="outline"
-                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              <button
+                className="flex flex-col items-center p-6 h-auto space-y-3 border border-primary-blue text-primary-blue rounded-lg hover:bg-primary-blue hover:text-white transition-colors"
               >
                 <CogIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Deal Calculator</span>
-              </Button>
+              </button>
             </Link>
             
             <Link href="/hpi-dashboard">
-              <Button
-                variant="outline"
-                className="flex flex-col items-center p-6 h-auto space-y-3 hover-lift"
+              <button
+                className="flex flex-col items-center p-6 h-auto space-y-3 border border-primary-blue text-primary-blue rounded-lg hover:bg-primary-blue hover:text-white transition-colors"
               >
                 <ArrowUpRightIcon className="w-8 h-8 text-primary-blue" />
                 <span className="font-semibold">Market Trends</span>
-              </Button>
+              </button>
             </Link>
           </div>
         </div>
-      </Section>
+      </div>
     </div>
   );
 } 

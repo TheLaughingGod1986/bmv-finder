@@ -1,4 +1,5 @@
 import { SoldPrice } from '../../types/sold-price';
+import { CONFIG } from './config';
 
 export interface BMVScoreData {
   bmvScore: number;
@@ -227,8 +228,7 @@ export class BMVScoreEngine {
    */
   private static async fetchHPIData(postcode: string): Promise<PostcodeMetrics['hpiData']> {
     try {
-      // Use absolute URL for server-side fetch
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+      const baseUrl = CONFIG.API.BASE_URL;
       
       // First try postcode-level HPI data
       let response = await fetch(`${baseUrl}/api/hpi/postcode?postcode=${encodeURIComponent(postcode)}`);

@@ -11,7 +11,7 @@ import {
   FileText, Building, Eye, ArrowUpRight, Lock, PieChart, Download
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useUser } from '@supabase/auth-helpers-react';
+// import { useUser } from '@supabase/auth-helpers-react';
 import { useToast } from './components/ToastProvider';
 import AddressSearchInput from './components/AddressSearchInput';
 import MobileSearchBar from './components/MobileSearchBar';
@@ -69,29 +69,29 @@ export default function Home() {
   const router = useRouter();
   
   // User authentication and search limits
-  const user = useUser();
+  // const user = useUser();
   
   // Use search limit context with fallback
   const searchLimitData = useSearchLimit();
   
   const canSearch = searchLimitData?.canSearch || (() => {
     // If context not available, check localStorage directly
-    if (typeof window !== 'undefined' && !user) {
-      const storedCount = localStorage.getItem('anonymous_search_count');
-      const count = storedCount ? parseInt(storedCount, 10) : 0;
-      return count < 5; // SEARCH_LIMIT
-    }
+    // if (typeof window !== 'undefined' && !user) {
+    //   const storedCount = localStorage.getItem('anonymous_search_count');
+    //   const count = storedCount ? parseInt(storedCount, 10) : 0;
+    //   return count < 5; // SEARCH_LIMIT
+    // }
     return true; // Allow search for logged-in users or if context not available
   });
   
   const incrementSearchCount = searchLimitData?.incrementSearchCount || (() => {
     // If context not available, increment localStorage directly
-    if (typeof window !== 'undefined' && !user) {
-      const storedCount = localStorage.getItem('anonymous_search_count');
-      const count = storedCount ? parseInt(storedCount, 10) : 0;
-      const newCount = count + 1;
-      localStorage.setItem('anonymous_search_count', newCount.toString());
-    }
+    // if (typeof window !== 'undefined' && !user) {
+    //   const storedCount = localStorage.getItem('anonymous_search_count');
+    //   const count = storedCount ? parseInt(storedCount, 10) : 0;
+    //   const newCount = count + 1;
+    //   localStorage.setItem('anonymous_search_count', newCount.toString());
+    // }
   });
   const [hpiData, setHpiData] = useState<any[]>([]);
   const [localPriceData, setLocalPriceData] = useState<any[]>([]);
@@ -261,7 +261,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, user, canSearch, incrementSearchCount, lastToastTime, isLoading]);
+  }, [showToast, canSearch, incrementSearchCount, lastToastTime, isLoading]);
 
   const handlePageChange = useCallback(async (page: number, after?: any) => {
     if (!searchTerm.trim()) return;

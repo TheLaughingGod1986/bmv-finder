@@ -1,79 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { CONFIG } from '@/lib/config';
 
-// Realistic market rates for different regions
+// Regional market rates (per month for 2-bed property)
 const REGIONAL_MARKET_RATES = {
-  'E12000001': { // North East
-    rentalPerBedroom: 400,
-    capRate: 0.065,
-    constructionCostPerSqm: 1200,
-    landValuePerSqm: 200,
-    valuePerBedroom: 45000,
-    valuePerSqm: 1800
+  [CONFIG.REGIONS.NORTH_EAST]: { // North East
+    '1-bed': 450,
+    '2-bed': 550,
+    '3-bed': 650,
+    '4-bed': 750,
+    '5-bed': 850
   },
-  'E12000002': { // North West
-    rentalPerBedroom: 450,
-    capRate: 0.07,
-    constructionCostPerSqm: 1300,
-    landValuePerSqm: 250,
-    valuePerBedroom: 50000,
-    valuePerSqm: 2000
+  [CONFIG.REGIONS.NORTH_WEST]: { // North West
+    '1-bed': 500,
+    '2-bed': 600,
+    '3-bed': 700,
+    '4-bed': 800,
+    '5-bed': 900
   },
-  'E12000003': { // Yorkshire and The Humber
-    rentalPerBedroom: 420,
-    capRate: 0.068,
-    constructionCostPerSqm: 1250,
-    landValuePerSqm: 220,
-    valuePerBedroom: 48000,
-    valuePerSqm: 1900
+  [CONFIG.REGIONS.YORKSHIRE_HUMBER]: { // Yorkshire and The Humber
+    '1-bed': 475,
+    '2-bed': 575,
+    '3-bed': 675,
+    '4-bed': 775,
+    '5-bed': 875
   },
-  'E12000004': { // East Midlands
-    rentalPerBedroom: 480,
-    capRate: 0.072,
-    constructionCostPerSqm: 1350,
-    landValuePerSqm: 280,
-    valuePerBedroom: 52000,
-    valuePerSqm: 2100
+  [CONFIG.REGIONS.EAST_MIDLANDS]: { // East Midlands
+    '1-bed': 500,
+    '2-bed': 600,
+    '3-bed': 700,
+    '4-bed': 800,
+    '5-bed': 900
   },
-  'E12000005': { // West Midlands
-    rentalPerBedroom: 460,
-    capRate: 0.07,
-    constructionCostPerSqm: 1300,
-    landValuePerSqm: 260,
-    valuePerBedroom: 50000,
-    valuePerSqm: 2000
+  [CONFIG.REGIONS.WEST_MIDLANDS]: { // West Midlands
+    '1-bed': 525,
+    '2-bed': 625,
+    '3-bed': 725,
+    '4-bed': 825,
+    '5-bed': 925
   },
-  'E12000006': { // East of England
-    rentalPerBedroom: 550,
-    capRate: 0.075,
-    constructionCostPerSqm: 1400,
-    landValuePerSqm: 350,
-    valuePerBedroom: 60000,
-    valuePerSqm: 2400
+  [CONFIG.REGIONS.EAST_ENGLAND]: { // East of England
+    '1-bed': 550,
+    '2-bed': 650,
+    '3-bed': 750,
+    '4-bed': 850,
+    '5-bed': 950
   },
-  'E12000007': { // London
-    rentalPerBedroom: 1200,
-    capRate: 0.045,
-    constructionCostPerSqm: 2000,
-    landValuePerSqm: 800,
-    valuePerBedroom: 120000,
-    valuePerSqm: 5000
+  [CONFIG.REGIONS.LONDON]: { // London
+    '1-bed': 1200,
+    '2-bed': 1500,
+    '3-bed': 1800,
+    '4-bed': 2200,
+    '5-bed': 2600
   },
-  'E12000008': { // South East
-    rentalPerBedroom: 700,
-    capRate: 0.06,
-    constructionCostPerSqm: 1600,
-    landValuePerSqm: 450,
-    valuePerBedroom: 75000,
-    valuePerSqm: 3000
+  [CONFIG.REGIONS.SOUTH_EAST]: { // South East
+    '1-bed': 700,
+    '2-bed': 800,
+    '3-bed': 900,
+    '4-bed': 1000,
+    '5-bed': 1100
   },
-  'E12000009': { // South West
-    rentalPerBedroom: 520,
-    capRate: 0.065,
-    constructionCostPerSqm: 1400,
-    landValuePerSqm: 300,
-    valuePerBedroom: 55000,
-    valuePerSqm: 2200
+  [CONFIG.REGIONS.SOUTH_WEST]: { // South West
+    '1-bed': 600,
+    '2-bed': 700,
+    '3-bed': 800,
+    '4-bed': 900,
+    '5-bed': 1000
   }
 };
 
@@ -142,7 +134,7 @@ async function calculateRentEstimation(request: RentEstimationRequest): Promise<
   
   // Get region from postcode
   const region = getRegionFromPostcode(postcode);
-  const marketRates = REGIONAL_MARKET_RATES[region] || REGIONAL_MARKET_RATES['E12000001']; // Default to North East
+  const marketRates = REGIONAL_MARKET_RATES[region] || REGIONAL_MARKET_RATES[CONFIG.REGIONS.NORTH_EAST]; // Default to North East
   
   // Try to get rental data from Elasticsearch first
   const elasticsearchRent = await getElasticsearchRent(postcode, propertyType, bedrooms);
@@ -166,15 +158,15 @@ async function calculateRentEstimation(request: RentEstimationRequest): Promise<
         totalAdjustment: 0
       },
       marketComparison: {
-        regionalAverage: marketRates.rentalPerBedroom * bedrooms,
-        propertyTypeAverage: marketRates.rentalPerBedroom * bedrooms,
-        bedroomAverage: marketRates.rentalPerBedroom * bedrooms
+        regionalAverage: marketRates['2-bed'] * bedrooms,
+        propertyTypeAverage: marketRates['2-bed'] * bedrooms,
+        bedroomAverage: marketRates['2-bed'] * bedrooms
       }
     };
   }
   
   // Fallback to market-based calculation
-  const baseRent = bedrooms * marketRates.rentalPerBedroom;
+  const baseRent = bedrooms * marketRates['2-bed'];
   
   // Calculate adjustments
   const adjustments = calculateRentAdjustments(propertyType, epcRating, region, marketRates);
@@ -195,9 +187,9 @@ async function calculateRentEstimation(request: RentEstimationRequest): Promise<
       totalAdjustment
     },
     marketComparison: {
-      regionalAverage: marketRates.rentalPerBedroom * bedrooms,
-      propertyTypeAverage: marketRates.rentalPerBedroom * bedrooms,
-      bedroomAverage: marketRates.rentalPerBedroom * bedrooms
+      regionalAverage: marketRates['2-bed'] * bedrooms,
+      propertyTypeAverage: marketRates['2-bed'] * bedrooms,
+      bedroomAverage: marketRates['2-bed'] * bedrooms
     }
   };
 }
@@ -305,13 +297,13 @@ function calculateRentAdjustments(propertyType: string, epcRating?: string, regi
   // Location adjustments (based on region)
   if (region) {
     switch (region) {
-      case 'E12000007': // London
+      case CONFIG.REGIONS.LONDON: // London
         adjustments.location = 0.2;
         break;
-      case 'E12000008': // South East
+      case CONFIG.REGIONS.SOUTH_EAST: // South East
         adjustments.location = 0.1;
         break;
-      case 'E12000006': // East of England
+      case CONFIG.REGIONS.EAST_ENGLAND: // East of England
         adjustments.location = 0.05;
         break;
       default:
@@ -336,64 +328,64 @@ function getRegionFromPostcode(postcode: string): string {
   
   // Map postcode areas to regions
   const regionMap: { [key: string]: string } = {
-    'NE': 'E12000001', // North East
-    'SR': 'E12000001', // North East
-    'DL': 'E12000001', // North East
-    'CA': 'E12000002', // North West
-    'LA': 'E12000002', // North West
-    'PR': 'E12000002', // North West
-    'BB': 'E12000002', // North West
-    'OL': 'E12000002', // North West
-    'BL': 'E12000002', // North West
-    'SK': 'E12000003', // Yorkshire and The Humber
-    'HD': 'E12000003', // Yorkshire and The Humber
-    'HG': 'E12000003', // Yorkshire and The Humber
-    'LS': 'E12000003', // Yorkshire and The Humber
-    'S': 'E12000003',  // Yorkshire and The Humber
-    'WF': 'E12000003', // Yorkshire and The Humber
-    'YO': 'E12000003', // Yorkshire and The Humber
-    'DE': 'E12000004', // East Midlands
-    'LE': 'E12000004', // East Midlands
-    'NG': 'E12000004', // East Midlands
-    'B': 'E12000005',  // West Midlands
-    'CV': 'E12000005', // West Midlands
-    'DY': 'E12000005', // West Midlands
-    'HR': 'E12000005', // West Midlands
-    'ST': 'E12000005', // West Midlands
-    'WS': 'E12000005', // West Midlands
-    'WR': 'E12000005', // West Midlands
-    'CB': 'E12000006', // East of England
-    'CM': 'E12000006', // East of England
-    'CO': 'E12000006', // East of England
-    'IP': 'E12000006', // East of England
-    'LU': 'E12000006', // East of England
-    'MK': 'E12000006', // East of England
-    'NN': 'E12000006', // East of England
-    'PE': 'E12000006', // East of England
-    'SG': 'E12000006', // East of England
-    'SS': 'E12000006', // East of England
-    'E': 'E12000007',  // London
-    'EC': 'E12000007', // London
-    'N': 'E12000007',  // London
-    'NW': 'E12000007', // London
-    'SE': 'E12000007', // London
-    'SW': 'E12000007', // London
-    'W': 'E12000007',  // London
-    'WC': 'E12000007', // London
-    'AL': 'E12000008', // South East
-    'BA': 'E12000009', // South West
-    'BH': 'E12000009', // South West
-    'BS': 'E12000009', // South West
-    'DT': 'E12000009', // South West
-    'EX': 'E12000009', // South West
-    'GL': 'E12000009', // South West
-    'PL': 'E12000009', // South West
-    'SN': 'E12000009', // South West
-    'SP': 'E12000009', // South West
-    'TA': 'E12000009', // South West
-    'TQ': 'E12000009', // South West
-    'TR': 'E12000009'  // South West
+    'NE': CONFIG.REGIONS.NORTH_EAST, // North East
+    'SR': CONFIG.REGIONS.NORTH_EAST, // North East
+    'DL': CONFIG.REGIONS.NORTH_EAST, // North East
+    'CA': CONFIG.REGIONS.NORTH_WEST, // North West
+    'LA': CONFIG.REGIONS.NORTH_WEST, // North West
+    'PR': CONFIG.REGIONS.NORTH_WEST, // North West
+    'BB': CONFIG.REGIONS.NORTH_WEST, // North West
+    'OL': CONFIG.REGIONS.NORTH_WEST, // North West
+    'BL': CONFIG.REGIONS.NORTH_WEST, // North West
+    'SK': CONFIG.REGIONS.YORKSHIRE_HUMBER, // Yorkshire and The Humber
+    'HD': CONFIG.REGIONS.YORKSHIRE_HUMBER, // Yorkshire and The Humber
+    'HG': CONFIG.REGIONS.YORKSHIRE_HUMBER, // Yorkshire and The Humber
+    'LS': CONFIG.REGIONS.YORKSHIRE_HUMBER, // Yorkshire and The Humber
+    'S': CONFIG.REGIONS.YORKSHIRE_HUMBER,  // Yorkshire and The Humber
+    'WF': CONFIG.REGIONS.YORKSHIRE_HUMBER, // Yorkshire and The Humber
+    'YO': CONFIG.REGIONS.YORKSHIRE_HUMBER, // Yorkshire and The Humber
+    'DE': CONFIG.REGIONS.EAST_MIDLANDS, // East Midlands
+    'LE': CONFIG.REGIONS.EAST_MIDLANDS, // East Midlands
+    'NG': CONFIG.REGIONS.EAST_MIDLANDS, // East Midlands
+    'B': CONFIG.REGIONS.WEST_MIDLANDS,  // West Midlands
+    'CV': CONFIG.REGIONS.WEST_MIDLANDS, // West Midlands
+    'DY': CONFIG.REGIONS.WEST_MIDLANDS, // West Midlands
+    'HR': CONFIG.REGIONS.WEST_MIDLANDS, // West Midlands
+    'ST': CONFIG.REGIONS.WEST_MIDLANDS, // West Midlands
+    'WS': CONFIG.REGIONS.WEST_MIDLANDS, // West Midlands
+    'WR': CONFIG.REGIONS.WEST_MIDLANDS, // West Midlands
+    'CB': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'CM': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'CO': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'IP': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'LU': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'MK': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'NN': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'PE': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'SG': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'SS': CONFIG.REGIONS.EAST_ENGLAND, // East of England
+    'E': CONFIG.REGIONS.LONDON,  // London
+    'EC': CONFIG.REGIONS.LONDON, // London
+    'N': CONFIG.REGIONS.LONDON,  // London
+    'NW': CONFIG.REGIONS.LONDON, // London
+    'SE': CONFIG.REGIONS.LONDON, // London
+    'SW': CONFIG.REGIONS.LONDON, // London
+    'W': CONFIG.REGIONS.LONDON,  // London
+    'WC': CONFIG.REGIONS.LONDON, // London
+    'AL': CONFIG.REGIONS.SOUTH_EAST, // South East
+    'BA': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'BH': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'BS': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'DT': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'EX': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'GL': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'PL': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'SN': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'SP': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'TA': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'TQ': CONFIG.REGIONS.SOUTH_WEST, // South West
+    'TR': CONFIG.REGIONS.SOUTH_WEST  // South West
   };
   
-  return regionMap[postcodeArea] || 'E12000001'; // Default to North East
+  return regionMap[postcodeArea] || CONFIG.REGIONS.NORTH_EAST; // Default to North East
 } 

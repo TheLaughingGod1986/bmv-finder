@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables');
-}
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Only create client if we have valid credentials
+const supabase = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseKey !== 'placeholder-key'
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if Supabase is properly configured
+    if (!supabase) {
+      return NextResponse.json({ 
+        error: 'Portfolio service not configured',
+        message: 'Please configure Supabase environment variables'
+      }, { status: 503 });
+    }
+
     // Get the authorization header
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -46,4 +53,4 @@ export async function GET(request: NextRequest) {
     console.error('Portfolio API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

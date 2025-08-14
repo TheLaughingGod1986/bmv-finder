@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ArrowUpDown, 
@@ -21,6 +21,7 @@ import {
   Target
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import { formatDate, formatPrice } from '@/lib/formatters';
 import { SoldPrice } from '../../../types/sold-price';
 import BMVScoreBadge from './BMVScoreBadge';
 import { getEnhancedPriceIndicator, getPriceIndicatorLegend } from '@/utils/priceIndicator';
@@ -91,22 +92,7 @@ const EnhancedSoldPricesTable: React.FC<EnhancedSoldPricesTableProps> = ({
     return icons[type as keyof typeof icons] || <Home className="w-4 h-4" />;
   };
 
-  const formatDate = (date: string) => {
-    return new Date(date).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(price);
-  };
+  // Formatting functions now imported from centralized utilities
 
   const [priceIndicators, setPriceIndicators] = useState<Record<string, any>>({});
 
