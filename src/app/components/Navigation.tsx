@@ -31,6 +31,7 @@ interface UpdateStats {
   recentSalesCount: number;
   hpiCount: number;
   epcCount: number;
+  rentalPricesCount: number;
   watchlistCount: number;
 }
 
@@ -216,7 +217,7 @@ export default function Navigation() {
     });
   };
 
-  const formattedDate = stats ? formatDate(stats.lastUpdated) : '';
+  const formattedDate = stats ? formatDate(new Date().toISOString()) : '';
 
   const handleDropdownEnter = (name: string) => {
     setActiveDropdown(name);
@@ -339,8 +340,8 @@ export default function Navigation() {
                 <span>{stats.propertiesCount.toLocaleString()} Properties</span>
               </div>
               <div className="flex items-center space-x-2">
-                <PoundSterling className="h-4 w-4 text-green-600" />
-                <span>{stats.recentSalesCount.toLocaleString()} Sales</span>
+                <BarChart3 className="h-4 w-4 text-green-600" />
+                <span>{stats.recentSalesCount.toLocaleString()} Sales Records</span>
               </div>
               <div className="flex items-center space-x-2">
                 <PieChart className="h-4 w-4 text-purple-600" />
@@ -349,6 +350,10 @@ export default function Navigation() {
               <div className="flex items-center space-x-2">
                 <Eye className="h-4 w-4 text-orange-600" />
                 <span>{stats.epcCount.toLocaleString()} EPC Records</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-4 w-4 text-indigo-600" />
+                <span>{stats.rentalPricesCount.toLocaleString()} Rental Prices</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Bookmark className="h-4 w-4 text-red-600" />

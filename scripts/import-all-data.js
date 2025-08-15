@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const readline = require('readline');
 const { Client } = require('@elastic/elasticsearch');
 require('dotenv').config();
@@ -28,6 +29,30 @@ async function flexibleCount() {
   return esClient.count;
 }
 
+// Helper function to find the latest cleaned data file
+function findLatestCleanedFile(pattern) {
+  const cleanedDir = path.join(__dirname, '../data/cleaned-datasets');
+  if (!fs.existsSync(cleanedDir)) {
+    throw new Error(`Cleaned datasets directory not found: ${cleanedDir}`);
+  }
+  
+  const files = fs.readdirSync(cleanedDir)
+    .filter(file => file.includes(pattern))
+    .map(file => ({
+      name: file,
+      path: path.join(cleanedDir, file),
+      time: fs.statSync(path.join(cleanedDir, file)).mtime.getTime()
+    }))
+    .sort((a, b) => b.time - a.time);
+  
+  if (files.length === 0) {
+    throw new Error(`No cleaned ${pattern} files found in ${cleanedDir}`);
+  }
+  
+  console.log(`📁 Using latest ${pattern} file: ${files[0].name}`);
+  return files[0].path;
+}
+
 // Index configurations
 const INDICES = {
   HPI: {
@@ -41,7 +66,7 @@ const INDICES = {
         id: { type: 'keyword' },
         region: { type: 'keyword' },
         regionLabel: { type: 'text' },
-        date: { type: 'date', format: 'yyyy-MM' },
+        date: { type: 'date', format: 'yyyy-MM-dd' },
         year: { type: 'integer' },
         month: { type: 'integer' },
         hpiIndex: { type: 'float' },
@@ -52,7 +77,21 @@ const INDICES = {
         propertyType: { type: 'keyword' },
         buyerType: { type: 'keyword' },
         purchaseType: { type: 'keyword' },
-        buildType: { type: 'keyword' }
+        buildType: { type: 'keyword' },
+        // Additional detailed data
+        detachedPrice: { type: 'float' },
+        detachedIndex: { type: 'float' },
+        semiDetachedPrice: { type: 'float' },
+        semiDetachedIndex: { type: 'float' },
+        terracedPrice: { type: 'float' },
+        terracedIndex: { type: 'float' },
+        flatPrice: { type: 'float' },
+        flatIndex: { type: 'float' },
+        cashPrice: { type: 'float' },
+        mortgagePrice: { type: 'float' },
+        ftbPrice: { type: 'float' },
+        newPrice: { type: 'float' },
+        oldPrice: { type: 'float' }
       }
     }
   },
@@ -166,22 +205,46 @@ async function createIndex(indexConfig) {
   }
 }
 
+// Parse CSV line with proper handling of quoted fields
+function parseCSVLine(line) {
+  const fields = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  
+  fields.push(current.trim());
+  return fields;
+}
+
 // Parse HPI data line
 function parseHPILine(line, lineNumber) {
   if (!line || line.trim() === '') return null;
   
-  const values = line.split(',');
-  if (values.length < 12) return null;
+  // Use proper CSV parsing for quoted fields
+  const values = parseCSVLine(line);
+  if (values.length < 27) return null; // Updated to expect 27 fields
 
-  const [region, regionLabel, date, year, month, hpiIndex, averagePrice, percentageChangeYearly, percentageChangeMonthly, salesVolume, propertyType, buyerType, purchaseType, buildType] = values;
+  const [region, regionLabel, date, year, month, hpiIndex, averagePrice, percentageChangeYearly, percentageChangeMonthly, salesVolume, propertyType, buyerType, purchaseType, buildType, detachedPrice, detachedIndex, semiDetachedPrice, semiDetachedIndex, terracedPrice, terracedIndex, flatPrice, flatIndex, cashPrice, mortgagePrice, ftbPrice, newPrice, oldPrice] = values;
   
   if (!region || !date || !hpiIndex) return null;
   
   const hpiValue = parseFloat(hpiIndex);
   const avgPrice = parseFloat(averagePrice);
-  const yearlyChange = parseFloat(percentageChangeYearly);
-  const monthlyChange = parseFloat(percentageChangeMonthly);
-  const salesVol = parseInt(salesVolume);
+  const yearlyChange = parseFloat(percentageChangeYearly) || 0;
+  const monthlyChange = parseFloat(percentageChangeMonthly) || 0;
+  const salesVol = parseInt(salesVolume) || 0;
   
   if (isNaN(hpiValue) || isNaN(avgPrice)) return null;
   
@@ -200,7 +263,21 @@ function parseHPILine(line, lineNumber) {
     propertyType: propertyType || 'All',
     buyerType: buyerType || 'All',
     purchaseType: purchaseType || 'All',
-    buildType: buildType || 'All'
+    buildType: buildType || 'All',
+    // Additional detailed data
+    detachedPrice: parseFloat(detachedPrice) || 0,
+    detachedIndex: parseFloat(detachedIndex) || 0,
+    semiDetachedPrice: parseFloat(semiDetachedPrice) || 0,
+    semiDetachedIndex: parseFloat(semiDetachedIndex) || 0,
+    terracedPrice: parseFloat(terracedPrice) || 0,
+    terracedIndex: parseFloat(terracedIndex) || 0,
+    flatPrice: parseFloat(flatPrice) || 0,
+    flatIndex: parseFloat(flatIndex) || 0,
+    cashPrice: parseFloat(cashPrice) || 0,
+    mortgagePrice: parseFloat(mortgagePrice) || 0,
+    ftbPrice: parseFloat(ftbPrice) || 0,
+    newPrice: parseFloat(newPrice) || 0,
+    oldPrice: parseFloat(oldPrice) || 0
   };
 }
 
@@ -208,8 +285,9 @@ function parseHPILine(line, lineNumber) {
 function parsePropertySalesLine(line, lineNumber) {
   if (!line || line.trim() === '') return null;
   
-  const values = line.split(',');
-  if (values.length < 22) return null;
+  // Use proper CSV parsing for quoted fields
+  const values = parseCSVLine(line);
+  if (values.length < 23) return null; // Updated to expect 23 fields
 
   const [id, postcode, address, house_number, street, town, county, property_type, tenure, price, date_of_transfer, new_build, estate_type, transaction_category, primary_addressable_object_name, secondary_addressable_object_name, street_description, locality, town_city, district, transaction_id, entry_date, status] = values;
   
@@ -350,8 +428,9 @@ async function importHPIData() {
     let isFirstLine = true;
     
     try {
+      const hpiFile = findLatestCleanedFile('uk-hpi-cleaned');
       const rl = readline.createInterface({
-        input: fs.createReadStream('data/hpi-full.csv'),
+        input: fs.createReadStream(hpiFile),
         crlfDelay: Infinity
       });
       
@@ -398,18 +477,19 @@ async function importHPIData() {
   });
 }
 
-// Import property sales data
-async function importPropertySalesData() {
+// Import Price Paid data
+async function importPricePaidData() {
   return new Promise(async (resolve, reject) => {
-    console.log('Importing property sales data...');
+    console.log('Importing Price Paid data...');
     
     const documents = [];
     let lineCount = 0;
     let isFirstLine = true;
     
     try {
+      const propertySalesFile = findLatestCleanedFile('price-paid-cleaned');
       const rl = readline.createInterface({
-        input: fs.createReadStream('data/property-sales.csv'),
+        input: fs.createReadStream(propertySalesFile), // Use real Price Paid data
         crlfDelay: Infinity
       });
       
@@ -588,7 +668,7 @@ async function importAllData() {
     
     // Import all data
     const hpiCount = await importHPIData();
-    const salesCount = await importPropertySalesData();
+    const pricePaidCount = await importPricePaidData();
     const rentalCount = await importRentalData();
     const epcCount = await importEPCData();
     
@@ -598,12 +678,12 @@ async function importAllData() {
     }
     
     const totalTime = (Date.now() - startTime) / 1000;
-    const totalRecords = hpiCount + salesCount + rentalCount + epcCount;
+    const totalRecords = hpiCount + pricePaidCount + rentalCount + epcCount;
     
     console.log('\n🎉 Data import completed successfully!');
     console.log(`📊 Total records imported: ${totalRecords.toLocaleString()}`);
     console.log(`  • HPI data: ${hpiCount.toLocaleString()}`);
-    console.log(`  • Property sales: ${salesCount.toLocaleString()}`);
+    console.log(`  • Price Paid data: ${pricePaidCount.toLocaleString()}`);
     console.log(`  • Rental prices: ${rentalCount.toLocaleString()}`);
     console.log(`  • EPC data: ${epcCount.toLocaleString()}`);
     console.log(`⏱️  Total time: ${totalTime.toFixed(2)} seconds`);

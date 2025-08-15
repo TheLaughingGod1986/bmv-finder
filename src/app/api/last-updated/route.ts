@@ -12,6 +12,7 @@ export async function GET() {
       recentSalesCount: stats.recentSalesCount,
       hpiCount: stats.hpiCount,
       epcCount: stats.epcCount,
+      rentalPricesCount: stats.rentalPricesCount,
       watchlistCount: stats.watchlistCount,
       lastUpdated: new Date().toISOString()
     });
@@ -51,7 +52,7 @@ async function getRealTimeStats() {
       const propertiesResponse = await esClient.count({ index: 'properties' });
       propertiesCount = propertiesResponse.count || 0;
     } catch (e) {
-      console.log('Properties index not accessible:', e.message);
+      console.log('Properties index not accessible:', e instanceof Error ? e.message : String(e));
     }
     
     // Get HPI count (if you have an HPI index)
@@ -61,7 +62,7 @@ async function getRealTimeStats() {
       hpiCount = hpiResponse.count || 0;
     } catch (e) {
       // HPI index might not exist yet - use fallback
-      console.log('HPI index not accessible:', e.message);
+      console.log('HPI index not accessible:', e instanceof Error ? e.message : String(e));
       hpiCount = getFallbackValue('HPI_COUNT');
     }
 
@@ -71,7 +72,7 @@ async function getRealTimeStats() {
       const salesResponse = await esClient.count({ index: 'recent_sales' });
       recentSalesCount = salesResponse.count || 0;
     } catch (e) {
-      console.log('Recent sales index not accessible:', e.message);
+      console.log('Recent sales index not accessible:', e instanceof Error ? e.message : String(e));
       recentSalesCount = getFallbackValue('RECENT_SALES_COUNT');
     }
 
@@ -81,8 +82,18 @@ async function getRealTimeStats() {
       const epcResponse = await esClient.count({ index: 'epc_data' });
       epcCount = epcResponse.count || 0;
     } catch (e) {
-      console.log('EPC index not accessible:', e.message);
+      console.log('EPC index not accessible:', e instanceof Error ? e.message : String(e));
       epcCount = getFallbackValue('EPC_COUNT');
+    }
+
+    // Get rental prices count
+    let rentalPricesCount = 0;
+    try {
+      const rentalResponse = await esClient.count({ index: 'rental_prices' });
+      rentalPricesCount = rentalResponse.count || 0;
+    } catch (e) {
+      console.log('Rental prices index not accessible:', e instanceof Error ? e.message : String(e));
+      rentalPricesCount = 0; // No fallback for rental prices
     }
 
     // Get watchlist count
@@ -91,7 +102,7 @@ async function getRealTimeStats() {
       const watchlistResponse = await esClient.count({ index: 'watchlist' });
       watchlistCount = watchlistResponse.count || 0;
     } catch (e) {
-      console.log('Watchlist index not accessible:', e.message);
+      console.log('Watchlist index not accessible:', e instanceof Error ? e.message : String(e));
       watchlistCount = 0; // No fallback for watchlist
     }
     
@@ -111,6 +122,7 @@ async function getRealTimeStats() {
       recentSalesCount,
       hpiCount,
       epcCount,
+      rentalPricesCount,
       watchlistCount
     };
   } catch (error) {

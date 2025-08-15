@@ -40,7 +40,7 @@ const flexibleBulk = async (params) => {
 };
 
 // EPC Index configuration
-const EPC_INDEX = 'epc_property_data';
+const EPC_INDEX = 'epc_data';
 const EPC_MAPPING = {
   mappings: {
     properties: {
@@ -100,132 +100,131 @@ const EPC_MAPPING = {
   }
 };
 
-// Sample EPC data for testing
-const SAMPLE_EPC_DATA = [
-  {
-    address: '1 Buckingham Palace Road',
-    postcode: 'SW1A1AA',
-    house_number: '1',
-    street: 'Buckingham Palace Road',
-    town: 'London',
-    county: 'Greater London',
-    epc_rating: 'C',
-    current_energy_rating: 'C',
-    potential_energy_rating: 'B',
-    epc_score: 72,
-    potential_score: 85,
-    epc_date: '2023-01-15',
-    inspection_date: '2023-01-15',
-    property_type: 'Terraced',
-    tenure: 'Freehold',
-    construction_year: 1985,
-    floor_area_m2: 95.5,
-    total_floor_area: 95.5,
-    bedrooms: 3,
-    heating_cost: 850,
-    lighting_cost: 120,
-    hot_water_cost: 180,
-    total_cost: 1150,
-    co2_rating: 'C',
-    co2_emissions: 2.8,
-    windows: 'Double glazed',
-    walls: 'Cavity wall, insulated',
-    roof: 'Pitched, 200mm insulation',
-    floor: 'Suspended, insulated',
-    main_heating: 'Gas boiler',
-    main_heating_controls: 'Programmer, room thermostat',
-    secondary_heating: 'None',
-    hot_water: 'From main system',
-    lighting: 'Low energy lighting',
-    renewable_technologies: 'None',
-    certificate_id: 'EPC001',
-    lodgement_date: '2023-01-15',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    address: '10 Downing Street',
-    postcode: 'SW1A2AA',
-    house_number: '10',
-    street: 'Downing Street',
-    town: 'London',
-    county: 'Greater London',
-    epc_rating: 'B',
-    current_energy_rating: 'B',
-    potential_energy_rating: 'A',
-    epc_score: 82,
-    potential_score: 92,
-    epc_date: '2023-02-20',
-    inspection_date: '2023-02-20',
-    property_type: 'Terraced',
-    tenure: 'Freehold',
-    construction_year: 1680,
-    floor_area_m2: 120.0,
-    total_floor_area: 120.0,
-    bedrooms: 4,
-    heating_cost: 720,
-    lighting_cost: 150,
-    hot_water_cost: 200,
-    total_cost: 1070,
-    co2_rating: 'B',
-    co2_emissions: 1.8,
-    windows: 'Triple glazed',
-    walls: 'Solid wall, externally insulated',
-    roof: 'Pitched, 300mm insulation',
-    floor: 'Solid, insulated',
-    main_heating: 'Heat pump',
-    main_heating_controls: 'Smart controls, room sensors',
-    secondary_heating: 'None',
-    hot_water: 'Heat pump',
-    lighting: 'LED lighting throughout',
-    renewable_technologies: 'Solar panels, heat pump',
-    certificate_id: 'EPC002',
-    lodgement_date: '2023-02-20',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    address: '221B Baker Street',
-    postcode: 'NW1 6XE',
-    house_number: '221B',
-    street: 'Baker Street',
-    town: 'London',
-    county: 'Greater London',
-    epc_rating: 'D',
-    current_energy_rating: 'D',
-    potential_energy_rating: 'C',
-    epc_score: 58,
-    potential_score: 72,
-    epc_date: '2023-03-10',
-    inspection_date: '2023-03-10',
-    property_type: 'Terraced',
-    tenure: 'Leasehold',
-    construction_year: 1900,
-    floor_area_m2: 85.0,
-    total_floor_area: 85.0,
-    bedrooms: 2,
-    heating_cost: 1100,
-    lighting_cost: 100,
-    hot_water_cost: 160,
-    total_cost: 1360,
-    co2_rating: 'D',
-    co2_emissions: 3.5,
-    windows: 'Single glazed',
-    walls: 'Solid wall, uninsulated',
-    roof: 'Pitched, minimal insulation',
-    floor: 'Suspended, uninsulated',
-    main_heating: 'Gas boiler (old)',
-    main_heating_controls: 'Basic timer',
-    secondary_heating: 'Open fire',
-    hot_water: 'From main system',
-    lighting: 'Standard lighting',
-    renewable_technologies: 'None',
-    certificate_id: 'EPC003',
-    lodgement_date: '2023-03-10',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+// EPC data file path
+const EPC_CSV_FILE = path.join(__dirname, '..', 'data', 'cleaned-datasets', 'epc-cleaned.csv');
+
+// CSV parsing function
+function parseCSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === ',' && !inQuotes) {
+      result.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
   }
-];
+  
+  result.push(current.trim());
+  return result;
+}
+
+// Transform CSV row to EPC document
+function transformEPCRecord(values) {
+  if (values.length < 85) return null; // Skip incomplete records
+  
+  const [
+    lmk_key, address1, address2, address3, postcode, building_ref, current_rating, potential_rating,
+    current_efficiency, potential_efficiency, property_type, built_form, inspection_date, local_authority,
+    constituency, county, lodgement_date, transaction_type, env_impact_current, env_impact_potential,
+    energy_consumption_current, energy_consumption_potential, co2_current, co2_per_floor, co2_potential,
+    lighting_cost_current, lighting_cost_potential, heating_cost_current, heating_cost_potential,
+    hot_water_cost_current, hot_water_cost_potential, total_floor_area, energy_tariff, mains_gas_flag,
+    floor_level, flat_top_storey, flat_storey_count, main_heating_controls, multi_glaze_proportion,
+    glazed_type, glazed_area, extension_count, number_habitable_rooms, number_heated_rooms,
+    low_energy_lighting, number_open_fireplaces, hotwater_description, hot_water_energy_eff,
+    hot_water_env_eff, floor_description, floor_energy_eff, floor_env_eff, windows_description,
+    windows_energy_eff, windows_env_eff, walls_description, walls_energy_eff, walls_env_eff,
+    secondheat_description, sheating_energy_eff, sheating_env_eff, roof_description, roof_energy_eff,
+    roof_env_eff, mainheat_description, mainheat_energy_eff, mainheat_env_eff, mainheatcont_description,
+    mainheatc_energy_eff, mainheatc_env_eff, lighting_description, lighting_energy_eff, lighting_env_eff,
+    main_fuel, wind_turbine_count, heat_loss_corridor, unheated_corridor_length, floor_height,
+    photo_supply, solar_water_heating_flag, mechanical_ventilation, address, local_authority_label,
+    constituency_label, posttown, construction_age_band, lodgement_datetime, tenure,
+    fixed_lighting_outlets_count, low_energy_fixed_light_count, uprn, uprn_source, report_type,
+    id, full_address
+  ] = values;
+
+  // Calculate total cost
+  const total_cost = (parseFloat(heating_cost_current) || 0) + 
+                     (parseFloat(lighting_cost_current) || 0) + 
+                     (parseFloat(hot_water_cost_current) || 0);
+
+  return {
+    lmk_key: lmk_key || '',
+    address: full_address || address || '',
+    postcode: postcode || '',
+    house_number: address1 || '',
+    street: address2 || address1 || '',
+    town: posttown || '',
+    county: county || '',
+    epc_rating: current_rating || '',
+    current_energy_rating: current_rating || '',
+    potential_energy_rating: potential_rating || '',
+    epc_score: parseInt(current_efficiency) || 0,
+    potential_score: parseInt(potential_efficiency) || 0,
+    epc_date: inspection_date || '',
+    inspection_date: inspection_date || '',
+    property_type: property_type || '',
+    tenure: tenure || '',
+    construction_year: 0, // Not available in EPC data
+    floor_area_m2: parseFloat(total_floor_area) || 0,
+    total_floor_area: parseFloat(total_floor_area) || 0,
+    bedrooms: parseInt(number_habitable_rooms) || 0,
+    heating_cost: parseFloat(heating_cost_current) || 0,
+    lighting_cost: parseFloat(lighting_cost_current) || 0,
+    hot_water_cost: parseFloat(hot_water_cost_current) || 0,
+    total_cost: total_cost,
+    co2_rating: current_rating || '',
+    co2_emissions: parseFloat(co2_current) || 0,
+    windows: windows_description || '',
+    walls: walls_description || '',
+    roof: roof_description || '',
+    floor: floor_description || '',
+    main_heating: mainheat_description || '',
+    main_heating_controls: main_heating_controls || '',
+    secondary_heating: secondheat_description || '',
+    hot_water: hotwater_description || '',
+    lighting: lighting_description || '',
+    renewable_technologies: '',
+    certificate_id: lmk_key || '',
+    lodgement_date: lodgement_date || '',
+    local_authority: local_authority_label || '',
+    constituency: constituency_label || '',
+    transaction_type: transaction_type || '',
+    built_form: built_form || '',
+    energy_consumption_current: parseFloat(energy_consumption_current) || 0,
+    energy_consumption_potential: parseFloat(energy_consumption_potential) || 0,
+    co2_emissions_potential: parseFloat(co2_potential) || 0,
+    co2_emissions_per_floor_area: parseFloat(co2_per_floor) || 0,
+    environmental_impact_current: parseInt(env_impact_current) || 0,
+    environmental_impact_potential: parseInt(env_impact_potential) || 0,
+    mains_gas: mains_gas_flag || '',
+    energy_tariff: energy_tariff || '',
+    glazed_type: glazed_type || '',
+    glazed_area: parseFloat(glazed_area) || 0,
+    extension_count: parseInt(extension_count) || 0,
+    number_heated_rooms: parseInt(number_heated_rooms) || 0,
+    low_energy_lighting_percentage: parseFloat(low_energy_lighting) || 0,
+    open_fireplaces: parseInt(number_open_fireplaces) || 0,
+    wind_turbines: parseInt(wind_turbine_count) || 0,
+    floor_height: parseFloat(floor_height) || 0,
+    solar_water_heating: solar_water_heating_flag || '',
+    mechanical_ventilation: mechanical_ventilation || '',
+    construction_age_band: construction_age_band || '',
+    uprn: uprn || '',
+    report_type: report_type || '',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString()
+  };
+}
 
 async function createEPCIndex() {
   try {
@@ -255,27 +254,99 @@ async function createEPCIndex() {
 
 async function importEPCData() {
   try {
-    console.log('🔄 Importing EPC data...');
+    console.log('🔄 Importing EPC data from CSV...');
     
-    // Bulk insert the sample data
-    const operations = [];
-    SAMPLE_EPC_DATA.forEach(property => {
-      operations.push({ index: { _index: EPC_INDEX } });
-      operations.push(property);
-    });
-    
-    if (operations.length > 0) {
-      const result = await flexibleBulk({ body: operations });
-      
-      if (result.errors) {
-        console.error('❌ Some documents failed to index:', result.items.filter(item => item.index?.error));
-      }
-      
-      console.log(`✅ Successfully indexed ${SAMPLE_EPC_DATA.length} EPC properties`);
-      return SAMPLE_EPC_DATA.length;
+    // Check if CSV file exists
+    if (!fs.existsSync(EPC_CSV_FILE)) {
+      console.error(`❌ EPC CSV file not found: ${EPC_CSV_FILE}`);
+      return 0;
     }
     
-    return 0;
+    console.log(`📁 Reading EPC data from: ${EPC_CSV_FILE}`);
+    
+    // Process CSV file using streaming to avoid memory issues
+    const readStream = fs.createReadStream(EPC_CSV_FILE, { encoding: 'utf8' });
+    const BATCH_SIZE = 1000;
+    let totalProcessed = 0;
+    let totalBatches = 0;
+    let buffer = '';
+    let lineNumber = 0;
+    let operations = [];
+    
+    return new Promise((resolve, reject) => {
+      readStream.on('data', async (chunk) => {
+        buffer += chunk;
+        let newlineIndex;
+        
+        while ((newlineIndex = buffer.indexOf('\n')) !== -1) {
+          const line = buffer.substring(0, newlineIndex);
+          buffer = buffer.substring(newlineIndex + 1);
+          lineNumber++;
+          
+          // Skip header line
+          if (lineNumber === 1) continue;
+          
+          // Skip empty lines
+          if (line.trim() === '') continue;
+          
+          try {
+            const values = parseCSVLine(line);
+            const record = transformEPCRecord(values);
+            
+            if (record) {
+              operations.push({ index: { _index: EPC_INDEX } });
+              operations.push(record);
+            }
+          } catch (error) {
+            console.warn(`⚠️  Skipping invalid line ${lineNumber}: ${error.message}`);
+          }
+          
+          // Process batch when it reaches the size limit
+          if (operations.length >= BATCH_SIZE * 2) {
+            await processBatch(operations);
+            operations = [];
+          }
+        }
+      });
+      
+      readStream.on('end', async () => {
+        // Process remaining operations
+        if (operations.length > 0) {
+          await processBatch(operations);
+        }
+        
+        console.log(`✅ Successfully processed ${totalProcessed.toLocaleString()} EPC properties in ${totalBatches} batches`);
+        resolve(totalProcessed);
+      });
+      
+      readStream.on('error', reject);
+    });
+    
+    async function processBatch(batchOperations) {
+      try {
+        const result = await flexibleBulk({ body: batchOperations });
+        
+        if (result.errors) {
+          const errors = result.items.filter(item => item.index?.error);
+          console.warn(`⚠️  ${errors.length} documents failed to index in batch ${totalBatches + 1}`);
+        }
+        
+        totalProcessed += batchOperations.length / 2; // Divide by 2 because each record has 2 operations (index + data)
+        totalBatches++;
+        
+        console.log(`📦 Batch ${totalBatches}: Processed ${batchOperations.length / 2} records (Total: ${totalProcessed.toLocaleString()})`);
+        
+        // Small delay to prevent overwhelming Elasticsearch
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+      } catch (error) {
+        console.error(`❌ Error processing batch ${totalBatches + 1}:`, error.message);
+      }
+    }
+    
+    console.log(`✅ Successfully processed ${totalProcessed.toLocaleString()} EPC properties in ${totalBatches} batches`);
+    return totalProcessed;
+    
   } catch (error) {
     console.error('❌ Error importing EPC data:', error.message);
     return 0;
