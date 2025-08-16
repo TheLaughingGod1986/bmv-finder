@@ -49,74 +49,28 @@ interface ComprehensiveValuationData {
   };
   methods: {
     salesComparison: {
-      name: string;
       value: number;
       confidence: number;
-      breakdown: {
-        comparableSales: number;
-        locationPremium: number;
-        adjustments: number;
-        finalValue: number;
-      };
-      factors: {
-        positive: string[];
-        negative: string[];
-        neutral: string[];
-      };
-      formula: string;
+      source: string;
+      dataQuality: string;
+      method: string;
       description: string;
-      valuationType: string;
-      whyThisMethod: string;
-      whyThisResult: string;
     };
     incomeApproach: {
-      name: string;
       value: number;
       confidence: number;
-      breakdown: {
-        grossRent: number;
-        operatingExpenses: number;
-        netOperatingIncome: number;
-        capRate: number;
-        propertyValue: number;
-        dataSource: string;
-        dataQuality: string;
-      };
-      factors: {
-        positive: string[];
-        negative: string[];
-        neutral: string[];
-      };
-      formula: string;
+      source: string;
+      dataQuality: string;
+      method: string;
       description: string;
-      valuationType: string;
-      whyThisMethod: string;
-      whyThisResult: string;
     };
     costApproach: {
-      name: string;
       value: number;
       confidence: number;
-      breakdown: {
-        constructionCost: number;
-        constructionCostPerSqm: number;
-        floorArea: number;
-        depreciation: number;
-        depreciatedCost: number;
-        landValue: number;
-        landValueRatio: number;
-        propertyValue: number;
-      };
-      factors: {
-        positive: string[];
-        negative: string[];
-        neutral: string[];
-      };
-      formula: string;
+      source: string;
+      dataQuality: string;
+      method: string;
       description: string;
-      valuationType: string;
-      whyThisMethod: string;
-      whyThisResult: string;
     };
   };
   summary: {
@@ -585,8 +539,8 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
               {Object.entries(valuationData.methods).map(([key, method]) => (
                 <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
-                    <div className="font-medium">{method.name}</div>
-                    <div className="text-sm text-gray-600">{method.valuationType}</div>
+                    <div className="font-medium">{method.method}</div>
+                    <div className="text-sm text-gray-600">{method.source}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-bold">{formatCurrency(method.value)}</div>
@@ -758,7 +712,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Calculator className="h-5 w-5" />
-                    {method.name}
+                    {method.method}
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="text-2xl font-bold text-primary-700">
@@ -773,47 +727,26 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h4 className="font-medium mb-2">Breakdown</h4>
+                    <h4 className="font-medium mb-2">Method Details</h4>
                     <div className="space-y-2 text-sm">
-                      {Object.entries(method.breakdown).map(([key, value]) => (
-                        <div key={key} className="flex justify-between">
-                          <span className="text-gray-600 capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                          </span>
-                          <span className="font-medium">
-                            {typeof value === 'number' ? formatCurrency(value) : value}
-                          </span>
-                        </div>
-                      ))}
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Source</span>
+                        <span className="font-medium">{method.source}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Data Quality</span>
+                        <span className="font-medium">{method.dataQuality}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Confidence</span>
+                        <span className="font-medium">{Math.round(method.confidence * 100)}%</span>
+                      </div>
                     </div>
                   </div>
                   <div>
-                    <h4 className="font-medium mb-2">Factors</h4>
-                    <div className="space-y-2">
-                      {method.factors.positive.map((factor, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm text-green-700">
-                          <CheckCircle className="h-3 w-3" />
-                          {factor}
-                        </div>
-                      ))}
-                      {method.factors.negative.map((factor, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm text-red-700">
-                          <AlertTriangle className="h-3 w-3" />
-                          {factor}
-                        </div>
-                      ))}
-                      {method.factors.neutral.map((factor, index) => (
-                        <div key={index} className="flex items-center gap-2 text-sm text-gray-600">
-                          <Info className="h-3 w-3" />
-                          {factor}
-                        </div>
-                      ))}
-                    </div>
+                    <h4 className="font-medium mb-2">Description</h4>
+                    <p className="text-sm text-gray-600">{method.description}</p>
                   </div>
-                </div>
-                <div className="border-t pt-4">
-                  <h4 className="font-medium mb-2">Analysis</h4>
-                  <p className="text-sm text-gray-600">{method.whyThisResult}</p>
                 </div>
               </CardContent>
             </Card>

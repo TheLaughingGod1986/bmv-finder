@@ -50,12 +50,7 @@ const navItems = [
         href: '/analysis/deal-analysis',
         icon: Target
       },
-      {
-        title: 'Property Analyzer',
-        description: 'Investment analysis & insights',
-        href: '/analysis/property-analyzer',
-        icon: Eye
-      },
+
       {
         title: 'Valuation',
         description: 'What should I pay?',
@@ -153,12 +148,7 @@ const navItems = [
         href: '/search/properties',
         icon: SearchIcon
       },
-      {
-        title: 'Property Analyzer',
-        description: 'Watchlist & investment analysis',
-        href: '/analysis/property-analyzer',
-        icon: Eye
-      },
+
       {
         title: 'Recent Sales',
         description: 'Latest property sales',
