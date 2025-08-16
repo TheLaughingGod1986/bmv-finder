@@ -6,37 +6,15 @@ import { Input } from '../../components/SimpleInput';
 import Button from '../../components/Button';
 import { Search, Target, Loader2, Home, TrendingUp, BarChart3, Info, DollarSign, PoundSterling } from 'lucide-react';
 import { useToast } from '../../components/ToastProvider';
-import EnhancedDealAnalysisCard from '../../components/EnhancedDealAnalysisCard';
-import { formatPostcode } from '@/utils/formatPostcode';
-import { usePostcodeHistory } from '@/utils/usePostcodeHistory';
+import ComprehensiveDealAnalysisCard from '../../components/ComprehensiveDealAnalysisCard';
+import { formatPostcode } from '../../../utils/formatPostcode';
+import { usePostcodeHistory } from '../../../utils/usePostcodeHistory';
 import AddressSearchInput from '../../components/AddressSearchInput';
 import { motion } from 'framer-motion';
 import PredictionExplanationCard from '../../components/PredictionExplanationCard';
 
-interface Comparable {
-  address: string;
-  postcode: string;
-  price: number;
-  date: string;
-  propertyType: string;
-  bedrooms?: number;
-}
-
-interface SubjectProperty {
-  address?: string;
-  fullAddress?: string;
-  postcode?: string;
-  propertyNumber?: string;
-  propertyType?: string;
-  bedrooms?: number;
-}
-
 interface DealAnalysisData {
-  estimatedValue: number | null;
-  confidence: 'low' | 'medium' | 'high';
-  comparables: Comparable[];
-  usedBedroomFilter: boolean;
-  subject: SubjectProperty | null;
+  success: boolean;
 }
 
 export default function AdvancedDealAnalysisPage() {
@@ -65,31 +43,23 @@ export default function AdvancedDealAnalysisPage() {
     saveToHistory(formattedPostcode);
 
     try {
-      const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(formattedPostcode)}&number=${encodeURIComponent(houseNumberValue.trim())}`);
-      const data = await response.json();
+      // The ComprehensiveDealAnalysisCard will handle the API call directly
+      // Just set the search state to trigger the component
+      setDealAnalysis({ success: true } as any);
       
-      if (data.success) {
-        setDealAnalysis(data);
-        // Smooth scroll to content section after successful search
-        setTimeout(() => {
-          const contentElement = document.getElementById('content-section');
-          if (contentElement) {
-            // Scroll to the content section with a small offset
-            const elementTop = contentElement.offsetTop;
-            const offset = 50; // Small offset to scroll a bit more
-            window.scrollTo({
-              top: elementTop - offset,
-              behavior: 'smooth'
-            });
-          }
-        }, 100);
-      } else {
-        showToast({
-          type: 'error',
-          title: 'Analysis Failed',
-          message: data.error || 'Failed to analyze property.',
-        });
-      }
+      // Smooth scroll to content section after successful search
+      setTimeout(() => {
+        const contentElement = document.getElementById('content-section');
+        if (contentElement) {
+          // Scroll to the content section with a small offset
+          const elementTop = contentElement.offsetTop;
+          const offset = 50; // Small offset to scroll a bit more
+          window.scrollTo({
+            top: elementTop - offset,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
     } catch (error) {
       console.error('Error in search:', error);
       showToast({
@@ -189,35 +159,48 @@ export default function AdvancedDealAnalysisPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Search for a Property</label>
-                    <AddressSearchInput
-                      value={inputValue}
-                      onChange={(query) => {
-                        setInputValue(query);
-                        setSelectedAddress(null);
-                      }}
-                      onAddressSelect={(address) => {
-                        setSelectedAddress({
-                          postcode: address.postcode,
-                          number: address.number,
-                          street: address.street
-                        });
-                        // Use the full address display instead of just number and postcode
-                        setInputValue(`${address.number} ${address.street}`);
-                        // Auto-trigger search when address is selected
-                        setTimeout(() => {
-                          const formattedPostcode = formatPostcode(address.postcode.trim());
-                          if (formattedPostcode && address.number.trim()) {
-                            performSearch(formattedPostcode, address.number.trim());
+                    <div className="flex gap-3">
+                      <AddressSearchInput
+                        value={inputValue}
+                        onChange={(query) => {
+                          setInputValue(query);
+                          setSelectedAddress(null);
+                        }}
+                        onAddressSelect={(address) => {
+                          setSelectedAddress({
+                            postcode: address.postcode,
+                            number: address.number,
+                            street: address.street
+                          });
+                          // Use the full address display instead of just number and postcode
+                          setInputValue(`${address.number} ${address.street}`);
+                          // Auto-trigger search when address is selected
+                          setTimeout(() => {
+                            const formattedPostcode = formatPostcode(address.postcode.trim());
+                            if (formattedPostcode && address.number.trim()) {
+                              performSearch(formattedPostcode, address.number.trim());
+                            }
+                          }, 100);
+                        }}
+                        placeholder="Enter a postcode to see available addresses..."
+                        showHistory={true}
+                        showSuggestions={true}
+                        debounceMs={300}
+                        minSearchLength={2}
+                        className="flex-1"
+                      />
+                      <button
+                        onClick={() => {
+                          if (selectedAddress) {
+                            performSearch(selectedAddress.postcode, selectedAddress.number);
                           }
-                        }, 100);
-                      }}
-                      placeholder="Enter a postcode to see available addresses..."
-                      showHistory={true}
-                      showSuggestions={true}
-                      debounceMs={300}
-                      minSearchLength={2}
-                      className=""
-                    />
+                        }}
+                        disabled={!selectedAddress}
+                        className="px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-2xl font-medium transition-colors disabled:cursor-not-allowed"
+                      >
+                        Search
+                      </button>
+                    </div>
                   </div>
 
                 </div>
@@ -232,14 +215,16 @@ export default function AdvancedDealAnalysisPage() {
         {/* Results */}
         {hasSearched && (
           <div id="analysis-results" className="space-y-8">
-            {/* Deal Analysis Card */}
-            <EnhancedDealAnalysisCard 
-              estimatedValue={dealAnalysis?.estimatedValue || null}
-              confidence={dealAnalysis?.confidence || 'low'}
-              comparables={dealAnalysis?.comparables || []}
-              usedBedroomFilter={dealAnalysis?.usedBedroomFilter || false}
-              subject={dealAnalysis?.subject || null}
+
+
+            {/* Comprehensive Valuation Card */}
+            <ComprehensiveDealAnalysisCard 
+              postcode={selectedAddress?.postcode || ''}
+              houseNumber={selectedAddress?.number || ''}
               loading={isAnalyzing}
+              onAnalysisComplete={() => {
+                // Optional: handle analysis completion
+              }}
             />
 
             {/* Prediction Explanation */}

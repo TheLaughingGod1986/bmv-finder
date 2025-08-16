@@ -6,13 +6,14 @@ export async function GET() {
   try {
     // Get real-time stats from multiple sources
     const stats = await getRealTimeStats();
-    
+
     return NextResponse.json({
       propertiesCount: stats.propertiesCount,
       recentSalesCount: stats.recentSalesCount,
       hpiCount: stats.hpiCount,
       epcCount: stats.epcCount,
       rentalPricesCount: stats.rentalPricesCount,
+      onspdCount: stats.onspdCount,
       watchlistCount: stats.watchlistCount,
       lastUpdated: new Date().toISOString()
     });
@@ -96,6 +97,16 @@ async function getRealTimeStats() {
       rentalPricesCount = 0; // No fallback for rental prices
     }
 
+    // Get ONSPD count
+    let onspdCount = 0;
+    try {
+      const onspdResponse = await esClient.count({ index: 'onspd' });
+      onspdCount = onspdResponse.count || 0;
+    } catch (e) {
+      console.log('ONSPD index not accessible:', e instanceof Error ? e.message : String(e));
+      onspdCount = 0; // No fallback for ONSPD
+    }
+
     // Get watchlist count
     let watchlistCount = 0;
     try {
@@ -123,6 +134,7 @@ async function getRealTimeStats() {
       hpiCount,
       epcCount,
       rentalPricesCount,
+      onspdCount,
       watchlistCount
     };
   } catch (error) {

@@ -32,6 +32,7 @@ interface UpdateStats {
   hpiCount: number;
   epcCount: number;
   rentalPricesCount: number;
+  onspdCount: number;
   watchlistCount: number;
 }
 
@@ -87,12 +88,7 @@ const navItems = [
         href: '/tools/calculator',
         icon: CalcIcon
       },
-      {
-        title: 'BTL Calculator',
-        description: 'Buy-to-let analysis',
-        href: '/btl-calculator',
-        icon: CalcIcon
-      },
+
       {
         title: 'Portfolio Tracker',
         description: 'Track your investments',
@@ -354,6 +350,10 @@ export default function Navigation() {
               <div className="flex items-center space-x-2">
                 <TrendingUp className="h-4 w-4 text-indigo-600" />
                 <span>{stats.rentalPricesCount.toLocaleString()} Rental Prices</span>
+              </div>
+              <div className="flex items-center space-x-2">
+                <MapPin className="h-4 w-4 text-teal-600" />
+                <span>{stats.onspdCount.toLocaleString()} Postcodes</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Bookmark className="h-4 w-4 text-red-600" />

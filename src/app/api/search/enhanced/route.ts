@@ -82,14 +82,14 @@ export async function GET(request: NextRequest) {
       },
       size: Math.min(size, 100), // Limit to 100 results
       sort: [
-        { date: { order: 'desc' } }
+        { date_of_transfer: { order: 'desc' } }
       ]
     };
 
-    // Search for properties in the enhanced index
+    // Search for properties in the recent_sales index
     console.log('Elasticsearch query:', JSON.stringify(searchBody, null, 2));
     const response = await esClient.search({
-      index: 'properties-enhanced',
+      index: 'recent_sales',
       body: searchBody
     });
     console.log('Elasticsearch response:', response.hits.total, 'total hits');
@@ -98,47 +98,47 @@ export async function GET(request: NextRequest) {
       const source = hit._source as any;
       return {
         // Basic property information
-        guid: source.guid,
-        address: source.full_address || `${source.paon} ${source.street}, ${source.postcode}`,
+        guid: source.transaction_id || source.guid,
+        address: source.full_address || `${source.paon || ''} ${source.street || ''}, ${source.postcode || ''}`.trim(),
         postcode: source.postcode,
         price: source.price,
-        date: source.date,
+        date: source.date_of_transfer || source.date,
         property_type: source.property_type,
-        property_type_label: source.property_type_label,
-        new_build: source.new_build,
-        new_build_label: source.new_build_label,
+        property_type_label: source.property_type_label || source.property_type,
+        new_build: source.old_new === 'Y',
+        new_build_label: source.old_new === 'Y' ? 'New Build' : 'Existing',
         estate_type: source.estate_type,
-        estate_type_label: source.estate_type_label,
+        estate_type_label: source.estate_type_label || source.estate_type,
         transaction_category: source.transaction_category,
-        transaction_category_label: source.transaction_category_label,
+        transaction_category_label: source.transaction_category_label || source.transaction_category,
         
-        // Enhanced EPC data
-        epc_bedrooms: source.epc_bedrooms,
-        epc_size: source.epc_size,
-        epc_rating: source.epc_rating,
-        match_type: source.match_type,
-        match_confidence: source.match_confidence,
-        match_score: source.match_score,
-        has_epc: source.has_epc,
-        energy_efficient: source.energy_efficient,
+        // Enhanced EPC data (will be populated when we integrate EPC data)
+        epc_bedrooms: source.epc_bedrooms || null,
+        epc_size: source.epc_size || null,
+        epc_rating: source.epc_rating || null,
+        match_type: source.match_type || null,
+        match_confidence: source.match_confidence || null,
+        match_score: source.match_score || null,
+        has_epc: source.has_epc || false,
+        energy_efficient: source.energy_efficient || false,
         
-        // Enhanced HPI data
-        hpi_value: source.hpi_value,
-        hpi_region: source.hpi_region,
-        hpi_date: source.hpi_date,
-        has_hpi: source.has_hpi,
+        // Enhanced HPI data (will be populated when we integrate HPI data)
+        hpi_value: source.hpi_value || null,
+        hpi_region: source.hpi_region || null,
+        hpi_date: source.hpi_date || null,
+        has_hpi: source.has_hpi || false,
         
         // Computed fields
-        year: source.year,
-        month: source.month,
-        price_range: source.price_range,
+        year: source.year || (source.date_of_transfer ? new Date(source.date_of_transfer).getFullYear() : null),
+        month: source.month || (source.date_of_transfer ? new Date(source.date_of_transfer).getMonth() + 1 : null),
+        price_range: source.price_range || null,
         
         // Additional address fields
         paon: source.paon,
         saon: source.saon,
         street: source.street,
         locality: source.locality,
-        town_city: source.town_city,
+        town_city: source.town || source.town_city,
         district: source.district,
         county: source.county
       };
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
       },
       size: Math.min(size * 10, 1000), // Get more results to group client-side
       sort: [
-        { date: { order: 'desc' } }
+        { date_of_transfer: { order: 'desc' } }
       ]
     };
 
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         searchBody.query.bool.must.push({
           multi_match: {
             query: query,
-            fields: ['full_address', 'street', 'locality', 'town_city', 'postcode'],
+            fields: ['full_address', 'street', 'locality', 'town', 'postcode'],
             type: 'best_fields',
             fuzziness: 'AUTO'
           }
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
     }
 
     const response = await esClient.search({
-      index: 'properties-enhanced',
+      index: 'recent_sales',
       body: searchBody
     });
 
@@ -260,97 +260,75 @@ export async function POST(request: NextRequest) {
       const source = hit._source as any;
       return {
         // Basic property information
-        guid: source.guid,
-        address: source.full_address || `${source.paon} ${source.street}, ${source.postcode}`,
+        guid: source.transaction_id || source.guid,
+        address: source.full_address || `${source.paon || ''} ${source.street || ''}, ${source.postcode || ''}`.trim(),
         postcode: source.postcode,
         price: source.price,
-        date: source.date,
+        date: source.date_of_transfer || source.date,
         property_type: source.property_type,
-        property_type_label: source.property_type_label,
-        new_build: source.new_build,
-        new_build_label: source.new_build_label,
+        property_type_label: source.property_type_label || source.property_type,
+        new_build: source.old_new === 'Y',
+        new_build_label: source.old_new === 'Y' ? 'New Build' : 'Existing',
         estate_type: source.estate_type,
-        estate_type_label: source.estate_type_label,
+        estate_type_label: source.estate_type_label || source.estate_type,
         transaction_category: source.transaction_category,
-        transaction_category_label: source.transaction_category_label,
+        transaction_category_label: source.transaction_category_label || source.transaction_category,
         
-        // Enhanced EPC data
-        epc_bedrooms: source.epc_bedrooms,
-        epc_size: source.epc_size,
-        epc_rating: source.epc_rating,
-        match_type: source.match_type,
-        match_confidence: source.match_confidence,
-        match_score: source.match_score,
-        has_epc: source.has_epc,
-        energy_efficient: source.energy_efficient,
+        // Enhanced EPC data (will be populated when we integrate EPC data)
+        epc_bedrooms: source.epc_bedrooms || null,
+        epc_size: source.epc_size || null,
+        epc_rating: source.epc_rating || null,
+        match_type: source.match_type || null,
+        match_confidence: source.match_confidence || null,
+        match_score: source.match_score || null,
+        has_epc: source.has_epc || false,
+        energy_efficient: source.energy_efficient || false,
         
-        // Enhanced HPI data
-        hpi_value: source.hpi_value,
-        hpi_region: source.hpi_region,
-        hpi_date: source.hpi_date,
-        has_hpi: source.has_hpi,
+        // Enhanced HPI data (will be populated when we integrate HPI data)
+        hpi_value: source.hpi_value || null,
+        hpi_region: source.hpi_region || null,
+        hpi_date: source.hpi_date || null,
+        has_hpi: source.has_hpi || false,
         
         // Computed fields
-        year: source.year,
-        month: source.month,
-        price_range: source.price_range,
+        year: source.year || (source.date_of_transfer ? new Date(source.date_of_transfer).getFullYear() : null),
+        month: source.month || (source.date_of_transfer ? new Date(source.date_of_transfer).getMonth() + 1 : null),
+        price_range: source.price_range || null,
         
         // Additional address fields
         paon: source.paon,
         saon: source.saon,
         street: source.street,
         locality: source.locality,
-        town_city: source.town_city,
+        town_city: source.town || source.town_city,
         district: source.district,
         county: source.county
       };
     });
 
-    // Group by address (paon + street + postcode)
-    const groupedResults = new Map();
+    // Group results by year and calculate averages
+    const groupedResults = groupResultsByYear(allHits);
     
-    allHits.forEach(hit => {
-      const addressKey = `${hit.paon}|${hit.street}|${hit.postcode}`;
-      
-      if (!groupedResults.has(addressKey)) {
-        groupedResults.set(addressKey, {
-          ...hit,
-          sales_count: 0,
-          all_sales: [],
-          address_key: addressKey
-        });
-      }
-      
-      const group = groupedResults.get(addressKey);
-      group.sales_count++;
-      group.all_sales.push(hit);
-      
-      // Keep the latest sale as the main record
-      if (new Date(hit.date) > new Date(group.date)) {
-        Object.assign(group, hit);
-      }
-    });
-
-    // Convert to array and sort by latest sale date
-    const results = Array.from(groupedResults.values())
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice((page - 1) * size, page * size);
+    // Apply pagination
+    const startIndex = (page - 1) * size;
+    const endIndex = startIndex + size;
+    const paginatedResults = groupedResults.slice(startIndex, endIndex);
 
     return NextResponse.json({
       success: true,
-      total: groupedResults.size,
-      results: results,
+      total: groupedResults.length,
+      results: paginatedResults,
       pagination: {
         page,
         size,
-        has_more: (page * size) < groupedResults.size,
-        total_pages: Math.ceil(groupedResults.size / size)
+        has_more: endIndex < groupedResults.length,
+        after_key: endIndex < groupedResults.length ? endIndex : null
       },
       query: searchBody.query
     });
 
   } catch (error) {
-    console.error('Enhanced search POST error:', error);
+    console.error('Enhanced search error:', error);
     return NextResponse.json(
       { 
         error: 'Search failed', 
@@ -359,4 +337,36 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Helper function to group results by year and calculate averages
+function groupResultsByYear(properties: any[]): any[] {
+  const yearGroups: { [key: number]: any[] } = {};
+  
+  properties.forEach(property => {
+    const year = property.year;
+    if (year && !isNaN(year)) {
+      if (!yearGroups[year]) {
+        yearGroups[year] = [];
+      }
+      yearGroups[year].push(property);
+    }
+  });
+
+  return Object.keys(yearGroups).map(year => {
+    const yearNum = parseInt(year);
+    const propertiesInYear = yearGroups[yearNum];
+    const avgPrice = propertiesInYear.reduce((sum, p) => sum + (p.price || 0), 0) / propertiesInYear.length;
+    
+    return {
+      year: yearNum,
+      count: propertiesInYear.length,
+      avgPrice: Math.round(avgPrice),
+      properties: propertiesInYear.slice(0, 5), // Show first 5 properties for the year
+      priceRange: {
+        min: Math.min(...propertiesInYear.map(p => p.price || 0)),
+        max: Math.max(...propertiesInYear.map(p => p.price || 0))
+      }
+    };
+  }).sort((a, b) => b.year - a.year); // Sort by year descending
 } 

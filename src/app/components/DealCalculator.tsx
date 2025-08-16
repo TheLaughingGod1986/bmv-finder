@@ -276,18 +276,19 @@ export default function DealCalculator() {
   const searchLandRegistry = async (searchPostcode: string) => {
     setIsSearchingProperty(true);
     try {
-      const response = await fetch(`/api/property-analysis?postcode=${encodeURIComponent(searchPostcode)}`);
+      // Use comprehensive valuation API for more accurate property data
+      const response = await fetch(`/api/comprehensive-valuation?postcode=${encodeURIComponent(searchPostcode)}&number=1`);
       if (response.ok) {
         const data = await response.json();
-        if (data.success && data.estimatedValue) {
+        if (data.success && data.data?.summary?.finalValue) {
           setLandRegistryData({
-            address: data.subject?.address || '',
+            address: data.data.property?.address || '',
             postcode: searchPostcode,
-            propertyType: data.subject?.propertyType || 'House',
-            currentValue: data.estimatedValue || 0,
-            lastSoldPrice: data.subject?.lastSale?.price || 0,
-            lastSoldDate: data.subject?.lastSale?.date || '',
-            priceHistory: data.comparables || [],
+            propertyType: data.data.property?.propertyType || 'House',
+            currentValue: data.data.summary.finalValue || 0,
+            lastSoldPrice: data.data.property?.lastSoldPrice || 0,
+            lastSoldDate: data.data.property?.lastSoldDate || '',
+            priceHistory: [], // Will be populated from sales comparison
             averageGrowthRate: 0.03
           });
           
