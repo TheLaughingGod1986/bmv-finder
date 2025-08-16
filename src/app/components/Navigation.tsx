@@ -58,6 +58,12 @@ const navItems = [
         icon: PoundSterling
       },
       {
+        title: 'Property Watchlist',
+        description: 'Track & analyze properties',
+        href: '/watchlist',
+        icon: Eye
+      },
+      {
         title: 'Comprehensive Valuation',
         description: 'Detailed property valuation',
         href: '/analysis/comprehensive',
