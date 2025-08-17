@@ -20,7 +20,8 @@ import {
   Trash2,
   Eye as ViewIcon,
   TrendingUp,
-  BarChart3
+  BarChart3,
+  Zap
 } from 'lucide-react';
 
 interface WatchlistItem {
@@ -40,13 +41,15 @@ interface WatchlistItem {
   status: 'watching' | 'interested' | 'purchased';
   source: string;
   last_updated: string;
-  // Additional fields for enhanced display
-  bedrooms?: number;
-  bathrooms?: number;
-  square_feet?: number;
-  garden?: boolean;
-  parking?: boolean;
-  condition?: string;
+  // EPC data fields
+  epc_rating?: string;
+  floor_area_m2?: number;
+  total_floor_area?: number;
+  current_energy_rating?: string;
+  potential_energy_rating?: string;
+  current_energy_cost?: number;
+  potential_energy_cost?: number;
+  // Additional calculated fields
   estimated_rent?: number;
   yield_percentage?: number;
 }
@@ -74,19 +77,44 @@ export default function WatchlistPage() {
       if (response.ok) {
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {
-          // Add mock data for enhanced display
-          const enhancedData = data.data.map((item: WatchlistItem) => ({
-            ...item,
-            bedrooms: Math.floor(Math.random() * 4) + 1,
-            bathrooms: Math.floor(Math.random() * 2) + 1,
-            square_feet: Math.floor(Math.random() * 1000) + 500,
-            garden: Math.random() > 0.3,
-            parking: Math.random() > 0.4,
-            condition: ['Excellent', 'Good', 'Fair', 'Needs Work'][Math.floor(Math.random() * 4)],
-            estimated_rent: Math.floor(item.price * 0.004),
-            yield_percentage: Math.floor((item.price * 0.004 * 12) / item.price * 100)
-          }));
-          setWatchlist(enhancedData);
+          // Enhance watchlist items with EPC data
+          const enhancedWatchlist = await Promise.all(
+            data.data.map(async (item: WatchlistItem) => {
+              try {
+                // Fetch EPC data for each property
+                const epcResponse = await fetch(`/api/epc-data?postcode=${item.postcode}&number=${item.house_number}`);
+                if (epcResponse.ok) {
+                  const epcData = await epcResponse.json();
+                  if (epcData.success && epcData.data) {
+                    const epc = epcData.data;
+                    return {
+                      ...item,
+                      epc_rating: epc.currentEnergyRating || epc.epcRating,
+                      floor_area_m2: epc.floorArea || epc.totalFloorArea || epc.floor_area_m2,
+                      total_floor_area: epc.totalFloorArea || epc.floorArea || epc.floor_area_m2,
+                      current_energy_rating: epc.currentEnergyRating || epc.epcRating,
+                      potential_energy_rating: epc.potentialEnergyRating,
+                      current_energy_cost: epc.currentEnergyCost,
+                      potential_energy_cost: epc.potentialEnergyCost,
+                      estimated_rent: Math.floor(item.price * 0.004),
+                      yield_percentage: Math.floor((item.price * 0.004 * 12) / item.price * 100)
+                    };
+                  }
+                }
+              } catch (epcError) {
+                console.log(`No EPC data found for ${item.address}:`, epcError);
+              }
+              
+              // Return item with default values if no EPC data
+              return {
+                ...item,
+                estimated_rent: Math.floor(item.price * 0.004),
+                yield_percentage: Math.floor((item.price * 0.004 * 12) / item.price * 100)
+              };
+            })
+          );
+          
+          setWatchlist(enhancedWatchlist);
         } else {
           setWatchlist([]);
         }
@@ -127,6 +155,10 @@ export default function WatchlistPage() {
         case 'yield_percentage':
           aValue = a.yield_percentage || 0;
           bValue = b.yield_percentage || 0;
+          break;
+        case 'floor_area':
+          aValue = a.floor_area_m2 || a.total_floor_area || 0;
+          bValue = b.floor_area_m2 || b.total_floor_area || 0;
           break;
         default:
           aValue = a.date_added;
@@ -175,6 +207,23 @@ export default function WatchlistPage() {
     }
   };
 
+  const getEPCRatingColor = (rating: string) => {
+    switch (rating?.toUpperCase()) {
+      case 'A': return 'bg-green-100 text-green-800 border-green-200';
+      case 'B': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'C': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'D': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'E': return 'bg-red-100 text-red-800 border-red-200';
+      case 'F': return 'bg-red-100 text-red-800 border-red-200';
+      case 'G': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  const getFloorArea = (item: WatchlistItem) => {
+    return item.floor_area_m2 || item.total_floor_area || 'N/A';
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -193,13 +242,13 @@ export default function WatchlistPage() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Property Watchlist</h1>
           <p className="text-gray-600 mt-2">
-            Track and analyze properties you're interested in
+            Track and analyze properties you're interested in with EPC data
           </p>
         </div>
 
         {/* Stats */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-6 gap-6">
             <div className="text-center">
               <div className="text-2xl font-bold text-blue-600">{watchlist.length}</div>
               <div className="text-sm text-gray-600">Total Properties</div>
@@ -229,6 +278,12 @@ export default function WatchlistPage() {
                 }%
               </div>
               <div className="text-sm text-gray-600">Avg Yield</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-emerald-600">
+                {watchlist.filter(p => p.floor_area_m2 || p.total_floor_area).length}
+              </div>
+              <div className="text-sm text-gray-600">With EPC Data</div>
             </div>
           </div>
         </div>
@@ -268,6 +323,7 @@ export default function WatchlistPage() {
                 <option value="date_added">Date Added</option>
                 <option value="price">Price</option>
                 <option value="yield_percentage">Yield %</option>
+                <option value="floor_area">Floor Area</option>
               </select>
 
               <button
@@ -354,25 +410,38 @@ export default function WatchlistPage() {
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-2 mb-4 text-sm">
-                          <div className="text-center">
-                            <p className="font-medium">{property.bedrooms}</p>
-                            <p className="text-gray-500">Beds</p>
+                        {/* EPC Data Section */}
+                        {(property.floor_area_m2 || property.total_floor_area || property.epc_rating) && (
+                          <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                            <div className="flex items-center gap-2 mb-2">
+                              <Zap className="w-4 h-4 text-yellow-600" />
+                              <span className="text-sm font-medium text-gray-700">EPC Data</span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              {property.floor_area_m2 || property.total_floor_area ? (
+                                <div>
+                                  <p className="font-medium text-gray-900">
+                                    {getFloorArea(property)} m²
+                                  </p>
+                                  <p className="text-gray-500">Floor Area</p>
+                                </div>
+                              ) : null}
+                              {property.epc_rating ? (
+                                <div>
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getEPCRatingColor(property.epc_rating)}`}>
+                                    {property.epc_rating}
+                                  </span>
+                                  <p className="text-gray-500 mt-1">EPC Rating</p>
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
-                          <div className="text-center">
-                            <p className="font-medium">{property.bathrooms}</p>
-                            <p className="text-gray-500">Baths</p>
-                          </div>
-                          <div className="text-center">
-                            <p className="font-medium">{property.square_feet?.toLocaleString()}</p>
-                            <p className="text-gray-500">Sq ft</p>
-                          </div>
-                        </div>
+                        )}
 
                         <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
                           <span>Added: {formatDate(property.date_added)}</span>
-                          <span className={`px-2 py-1 rounded text-xs ${property.condition === 'Excellent' ? 'bg-green-100 text-green-800' : property.condition === 'Good' ? 'bg-blue-100 text-blue-800' : property.condition === 'Fair' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                            {property.condition}
+                          <span className="text-xs text-gray-500">
+                            {property.floor_area_m2 || property.total_floor_area ? 'EPC Available' : 'No EPC Data'}
                           </span>
                         </div>
 
@@ -420,9 +489,17 @@ export default function WatchlistPage() {
                               <p className="text-sm text-gray-500">Yield</p>
                             </div>
                             <div className="text-center">
-                              <p className="font-medium">{property.bedrooms} bed</p>
-                              <p className="text-sm text-gray-500">{property.bathrooms} bath</p>
+                              <p className="font-medium">{getFloorArea(property)} m²</p>
+                              <p className="text-sm text-gray-500">Floor Area</p>
                             </div>
+                            {property.epc_rating && (
+                              <div className="text-center">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getEPCRatingColor(property.epc_rating)}`}>
+                                  {property.epc_rating}
+                                </span>
+                                <p className="text-sm text-gray-500 mt-1">EPC</p>
+                              </div>
+                            )}
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
@@ -450,7 +527,8 @@ export default function WatchlistPage() {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Property</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Yield</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-xs font-medium text-gray-500 uppercase tracking-wider">Floor Area</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">EPC Rating</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Added</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -480,11 +558,17 @@ export default function WatchlistPage() {
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="text-sm text-gray-900">
-                                {property.bedrooms} bed, {property.bathrooms} bath
+                                {getFloorArea(property)} m²
                               </div>
-                              <div className="text-sm text-gray-500">
-                                {property.square_feet?.toLocaleString()} sq ft
-                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {property.epc_rating ? (
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getEPCRatingColor(property.epc_rating)}`}>
+                                  {property.epc_rating}
+                                </span>
+                              ) : (
+                                <span className="text-sm text-gray-400">N/A</span>
+                              )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(property.status)}`}>
