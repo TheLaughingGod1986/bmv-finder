@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { formatPrice } from '@/lib/formatters';
 import { 
   Eye, 
   List, 
@@ -171,15 +172,6 @@ export default function WatchlistPage() {
         return aValue < bValue ? 1 : -1;
       }
     });
-
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {

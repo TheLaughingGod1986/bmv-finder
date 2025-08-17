@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TrendingUp, Calendar, MapPin, BarChart3, Info } from 'lucide-react';
+import { formatPrice } from '@/lib/formatters';
 
 interface HpiDataCardProps {
   postcode: string;
@@ -117,16 +118,6 @@ export default function HpiDataCard({ postcode, className = '' }: HpiDataCardPro
     
   const dataPoints = hpiData.length;
   const timeSpan = oldestData ? `${oldestData.date} - ${latestData.date}` : '';
-
-  // Format price
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(price);
-  };
 
   // Get growth color
   const getGrowthColor = (growth: number) => {

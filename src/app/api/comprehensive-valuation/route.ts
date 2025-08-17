@@ -182,6 +182,7 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
         }
       }
     } catch (enrichmentError) {
+      console.log('Property enrichment service not available, trying direct EPC API');
     }
     
     // Fallback to Elasticsearch search strategies
@@ -244,6 +245,8 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
       }
     ];
 
+    let propertyData = null;
+
     for (const searchQuery of searchQueries) {
       try {
         console.log(`Trying search query: ${searchQuery.index}`);
@@ -290,7 +293,7 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
             address = [houseNumber, street, town].filter(Boolean).join(', ');
           }
           
-          const result = {
+          propertyData = {
             address: address || `${houseNumber} ${street}, ${town}`,
             postcode: property.postcode,
             propertyType: mappedPropertyType,
@@ -302,15 +305,36 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
             lastSoldDate: property.date_of_transfer || property.date || property.dateOfTransfer
           };
           
-          console.log(`[DEBUG] Property data extracted from ${searchQuery.index}:`, result);
-          return result;
-        } else {
+          console.log(`[DEBUG] Property data extracted from ${searchQuery.index}:`, propertyData);
+          break; // Found data, exit the loop
         }
       } catch (searchError) {
         continue;
       }
     }
-    return null;
+
+    // If we found property data but don't have floor area, try to get it from EPC API
+    if (propertyData && !propertyData.floorArea) {
+      try {
+        console.log('[DEBUG] No floor area found, trying EPC API directly');
+        const epcResponse = await fetch(`http://localhost:3000/api/epc-data?postcode=${encodeURIComponent(cleanPostcode)}&number=${encodeURIComponent(cleanNumber)}`);
+        
+        if (epcResponse.ok) {
+          const epcData = await epcResponse.json();
+          if (epcData.success && epcData.data) {
+            const epc = epcData.data;
+            // Update property data with EPC information
+            propertyData.floorArea = epc.floorArea || epc.totalFloorArea || epc.floor_area_m2;
+            propertyData.epcRating = epc.currentEnergyRating || epc.epcRating;
+            console.log(`[DEBUG] EPC data fetched: floorArea=${propertyData.floorArea}, epcRating=${propertyData.epcRating}`);
+          }
+        }
+      } catch (epcError) {
+        console.log('[DEBUG] EPC API call failed:', epcError);
+      }
+    }
+
+    return propertyData;
   } catch (err) {
     console.error('[DEBUG] getPropertyData error:', err);
     return null;
