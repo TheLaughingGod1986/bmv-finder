@@ -7,24 +7,40 @@
  * Format price as GBP currency
  */
 export function formatPrice(price: number): string {
-  return new Intl.NumberFormat('en-GB', {
+  // Force GBP locale and ensure pound symbol is displayed
+  const formatted = new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(price);
+  
+  // Ensure pound symbol is displayed (fallback if browser doesn't respect locale)
+  if (!formatted.includes('£')) {
+    return `£${price.toLocaleString('en-GB')}`;
+  }
+  
+  return formatted;
 }
 
 /**
  * Format currency as GBP (alternative to formatPrice)
  */
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-GB', {
+  // Force GBP locale and ensure pound symbol is displayed
+  const formatted = new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
+  
+  // Ensure pound symbol is displayed (fallback if browser doesn't respect locale)
+  if (!formatted.includes('£')) {
+    return `£${value.toLocaleString('en-GB')}`;
+  }
+  
+  return formatted;
 }
 
 /**

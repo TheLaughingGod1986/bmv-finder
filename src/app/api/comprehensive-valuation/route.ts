@@ -322,10 +322,10 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
         if (epcResponse.ok) {
           const epcData = await epcResponse.json();
           if (epcData.success && epcData.data) {
-            const epc = epcData.data;
-            // Update property data with EPC information
-            propertyData.floorArea = epc.floorArea || epc.totalFloorArea || epc.floor_area_m2;
-            propertyData.epcRating = epc.currentEnergyRating || epc.epcRating;
+            const epc = epcData.data.bestMatch || epcData.data;
+            // Update property data with EPC information - fix field mapping
+            propertyData.floorArea = epc.totalFloorArea || epc.floorArea || epc.floor_area_m2;
+            propertyData.epcRating = epc.epcRating || epc.currentEnergyRating;
             console.log(`[DEBUG] EPC data fetched: floorArea=${propertyData.floorArea}, epcRating=${propertyData.epcRating}`);
           }
         }
