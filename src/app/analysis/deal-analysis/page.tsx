@@ -2,89 +2,81 @@
 
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/SimpleCard';
-import { Input } from '../../components/SimpleInput';
-import Button from '../../components/Button';
-import { Search, Target, Loader2, Home, TrendingUp, BarChart3, Info, DollarSign, PoundSterling } from 'lucide-react';
-import { useToast } from '../../components/ToastProvider';
-import ComprehensiveDealAnalysisCard from '../../components/ComprehensiveDealAnalysisCard';
-import { formatPostcode } from '../../../utils/formatPostcode';
-import { usePostcodeHistory } from '../../../utils/usePostcodeHistory';
-import AddressSearchInput from '../../components/AddressSearchInput';
-import { motion } from 'framer-motion';
-import PredictionExplanationCard from '../../components/PredictionExplanationCard';
 
-interface DealAnalysisData {
-  success: boolean;
+import EnhancedSearchResults from '../../components/EnhancedSearchResults';
+import PropertyInputSelector from '../../components/PropertyInputSelector';
+import { motion } from 'framer-motion';
+import { Home, TrendingUp, BarChart3, Target, PoundSterling, Calculator, MapPin, Eye } from 'lucide-react';
+
+interface Property {
+  id: string;
+  address: string;
+  postcode: string;
+  propertyType?: string;
+  bedrooms?: number;
+  floorArea?: number;
+  lastSoldPrice?: number;
+  lastSoldDate?: string;
+  epcRating?: string;
 }
 
 export default function AdvancedDealAnalysisPage() {
-  const [inputValue, setInputValue] = useState('');
-  const [selectedAddress, setSelectedAddress] = useState<{postcode: string, number: string, street?: string} | null>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [inputProperty, setInputProperty] = useState<Property | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [dealAnalysis, setDealAnalysis] = useState<DealAnalysisData | null>(null);
-  const { showToast } = useToast();
-  const { history, saveToHistory } = usePostcodeHistory();
+  const [dealAnalysis, setDealAnalysis] = useState<any>(null);
 
-  const performSearch = async (postcodeValue: string, houseNumberValue: string) => {
-    const formattedPostcode = formatPostcode(postcodeValue.trim());
-    
-    if (!formattedPostcode || !houseNumberValue.trim()) {
-      showToast({
-        type: 'error',
-        title: 'Missing Information',
-        message: 'Please select a complete address from the dropdown.',
-      });
-      return;
-    }
-
-    setIsAnalyzing(true);
+  const handlePropertySelect = (property: Property) => {
+    setSelectedProperty(property);
     setHasSearched(true);
-    saveToHistory(formattedPostcode);
-
-    try {
-      // The ComprehensiveDealAnalysisCard will handle the API call directly
-      // Just set the search state to trigger the component
-      setDealAnalysis({ success: true } as any);
-      
-      // Smooth scroll to content section after successful search
-      setTimeout(() => {
-        const contentElement = document.getElementById('content-section');
-        if (contentElement) {
-          // Scroll to the content section with a small offset
-          const elementTop = contentElement.offsetTop;
-          const offset = 50; // Small offset to scroll a bit more
-          window.scrollTo({
-            top: elementTop - offset,
-            behavior: 'smooth'
-          });
-        }
-      }, 100);
-    } catch (error) {
-      console.error('Error in search:', error);
-      showToast({
-        type: 'error',
-        title: 'Network Error',
-        message: 'Failed to connect to the analysis service.',
-      });
-    } finally {
-      setIsAnalyzing(false);
-    }
+    setDealAnalysis({ success: true });
+    
+    // Smooth scroll to content section
+    setTimeout(() => {
+      const contentElement = document.getElementById('content-section');
+      if (contentElement) {
+        const elementTop = contentElement.offsetTop;
+        const offset = 50;
+        window.scrollTo({
+          top: elementTop - offset,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   };
 
-  const handleSearch = async () => {
-    if (selectedAddress) {
-      await performSearch(selectedAddress.postcode, selectedAddress.number);
-    }
+  const handlePropertyInput = (property: Property) => {
+    setInputProperty(property);
+    setSelectedProperty(property);
+    setHasSearched(true);
+    setDealAnalysis({ success: true });
+    
+    // Smooth scroll to content section
+    setTimeout(() => {
+      const contentElement = document.getElementById('content-section');
+      if (contentElement) {
+        const elementTop = contentElement.offsetTop;
+        const offset = 50;
+        window.scrollTo({
+          top: elementTop - offset,
+          behavior: 'smooth'
+        });
+      }
+    }, 100);
   };
 
+  // Extract house number from address
+  const getHouseNumber = (address: string) => {
+    const parts = address.split(' ');
+    return parts[0];
+  };
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
-      {/* Hero Section with Search */}
+      {/* Hero Section */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 opacity-10"></div>
-        <div className="relative max-w-screen-2xl w-[90vw] mx-auto pt-12 pb-12">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-12">
           <div className="text-center">
             {/* Portfolio Notification Banner */}
             <motion.div
@@ -98,28 +90,28 @@ export default function AdvancedDealAnalysisPage() {
                 </div>
                 <div className="flex-1">
                   <h3 className="text-sm font-semibold text-blue-900 mb-2">
-                    🎉 New Portfolio Tracking Feature
+                    🎉 Enhanced Property Analysis with Consolidated APIs
                   </h3>
                   <p className="text-sm text-blue-800 mb-3">
-                    Add properties to your portfolio to track their value, growth, and performance over time. 
-                    Get monthly updates, portfolio analytics, and personalized investment insights.
+                    Now powered by our new consolidated APIs providing comprehensive property data including EPC analysis, 
+                    BMV scoring, market trends, and predictions - all from unified endpoints.
                   </p>
                   <div className="flex flex-wrap gap-3 text-xs text-blue-700">
                     <span className="flex items-center gap-1">
+                      <MapPin className="w-3 h-3" />
+                      Enhanced search results
+                    </span>
+                    <span className="flex items-center gap-1">
                       <TrendingUp className="w-3 h-3" />
-                      Monthly value updates
+                      Market analysis
                     </span>
                     <span className="flex items-center gap-1">
-                      <BarChart3 className="w-3 h-3" />
-                      Portfolio analytics
+                      <Eye className="w-3 h-3" />
+                      BMV scoring
                     </span>
                     <span className="flex items-center gap-1">
-                      <PoundSterling className="w-3 h-3" />
-                      Total asset tracking
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Target className="w-3 h-3" />
-                      Investment insights
+                      <Calculator className="w-3 h-3" />
+                      Property predictions
                     </span>
                   </div>
                 </div>
@@ -132,7 +124,7 @@ export default function AdvancedDealAnalysisPage() {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
             >
-              Comprehensive
+              Enhanced
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
                 Property Analysis
               </span>
@@ -144,146 +136,190 @@ export default function AdvancedDealAnalysisPage() {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto"
             >
-              Get complete property insights including comprehensive valuation methods, rental yields, location analysis, 
-              market trends, and investment metrics. Perfect for serious property investors and developers.
+              Get complete property insights using our new consolidated APIs. Comprehensive data including EPC analysis, 
+              BMV scoring, market trends, and AI-powered predictions - all in one unified interface.
             </motion.p>
 
-            {/* Search Form */}
+            {/* Property Input Selector */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 }}
-              className="max-w-2xl mx-auto mb-6"
+              className="max-w-4xl mx-auto mb-6"
             >
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-5">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2 text-gray-700">Search for a Property</label>
-                    <div className="flex gap-3">
-                      <AddressSearchInput
-                        value={inputValue}
-                        onChange={(query) => {
-                          setInputValue(query);
-                          setSelectedAddress(null);
-                        }}
-                        onAddressSelect={(address) => {
-                          setSelectedAddress({
-                            postcode: address.postcode,
-                            number: address.number,
-                            street: address.street
-                          });
-                          // Use the full address display instead of just number and postcode
-                          setInputValue(`${address.number} ${address.street}`);
-                          // Auto-trigger search when address is selected
-                          setTimeout(() => {
-                            const formattedPostcode = formatPostcode(address.postcode.trim());
-                            if (formattedPostcode && address.number.trim()) {
-                              performSearch(formattedPostcode, address.number.trim());
-                            }
-                          }, 100);
-                        }}
-                        placeholder="Enter a postcode to see available addresses..."
-                        showHistory={true}
-                        showSuggestions={true}
-                        debounceMs={300}
-                        minSearchLength={2}
-                        className="flex-1"
-                      />
-                      <button
-                        onClick={() => {
-                          if (selectedAddress) {
-                            performSearch(selectedAddress.postcode, selectedAddress.number);
-                          }
-                        }}
-                        disabled={!selectedAddress}
-                        className="px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white rounded-2xl font-medium transition-colors disabled:cursor-not-allowed"
-                      >
-                        Search
-                      </button>
-                    </div>
-                  </div>
-
-                </div>
-              </div>
+              <PropertyInputSelector
+                onPropertySelect={handlePropertySelect}
+                onPropertyInput={handlePropertyInput}
+                title="Select Property for Analysis"
+                description="Choose how you'd like to input property details for comprehensive analysis"
+                showManualInput={true}
+                showPortfolio={true}
+                showWatchlist={true}
+                showPostcodeSearch={true}
+              />
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* Content Section */}
-      <div id="content-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Results */}
-        {hasSearched && (
-          <div id="analysis-results" className="space-y-8">
-
-
-            {/* Comprehensive Valuation Card */}
-            <ComprehensiveDealAnalysisCard 
-              postcode={selectedAddress?.postcode || ''}
-              houseNumber={selectedAddress?.number || ''}
-              loading={isAnalyzing}
-              onAnalysisComplete={() => {
-                // Optional: handle analysis completion
-              }}
-            />
-
-            {/* Prediction Explanation */}
-            <PredictionExplanationCard showAdvanced={true} />
-          </div>
-        )}
-
-        {/* Sample Properties for Quick Testing */}
-        {!hasSearched && (
+      {hasSearched && (
+        <section id="content-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.6 }}
+            className="space-y-6"
           >
-            <Card className="bg-white border border-gray-200 shadow-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-3 text-gray-900 text-xl">
-                  <Info className="h-6 w-6 text-blue-600" />
-                  Try These Sample Properties
-                </CardTitle>
-                <p className="text-gray-600 mt-2">
-                  Test the system with these example properties to see comprehensive analysis in action.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {[
-                    { number: '21', postcode: 'NE5 2PR', description: 'Fourstones, Newcastle' },
-                    { number: '16', postcode: 'NE5 4PR', description: 'Lowbiggin, Newcastle' },
-                    { number: '25', postcode: 'NE17 7JH', description: 'Newcastle upon Tyne' },
-                  ].map((property, index) => (
-                    <Card key={index} className="border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all duration-200 cursor-pointer bg-gray-50 hover:bg-white">
-                      <CardContent className="p-6">
-                        <div className="flex items-center gap-3 mb-3">
-                          <Home className="h-5 w-5 text-blue-600" />
-                          <span className="font-semibold text-gray-900">{property.number} {property.postcode}</span>
-                        </div>
-                        <p className="text-gray-600 mb-4">{property.description}</p>
-                        <Button
-                          onClick={() => {
-                            setSelectedAddress({
-                              postcode: property.postcode,
-                              number: property.number
-                            });
-                            performSearch(property.postcode, property.number);
-                          }}
-                          className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm py-2"
-                        >
-                          Analyze This Property
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Selected Property Info */}
+            {(selectedProperty || inputProperty) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Home className="h-5 w-5" />
+                    Selected Property
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm text-gray-600">Address</p>
+                      <p className="font-medium text-gray-900">{(selectedProperty || inputProperty)?.address}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Postcode</p>
+                      <p className="font-medium text-gray-900">{(selectedProperty || inputProperty)?.postcode}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Property Type</p>
+                      <p className="font-medium text-gray-900">{(selectedProperty || inputProperty)?.propertyType || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Bedrooms</p>
+                      <p className="font-medium text-gray-900">{(selectedProperty || inputProperty)?.bedrooms || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Floor Area</p>
+                      <p className="font-medium text-gray-900">
+                        {(selectedProperty || inputProperty)?.floorArea ? `${(selectedProperty || inputProperty)?.floorArea}m²` : 'N/A'}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">EPC Rating</p>
+                      <p className="font-medium text-gray-900">{(selectedProperty || inputProperty)?.epcRating || 'N/A'}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Enhanced Search Results */}
+            {dealAnalysis && (selectedProperty || inputProperty) && (
+              <EnhancedSearchResults
+                postcode={(selectedProperty || inputProperty)?.postcode || ''}
+                houseNumber={getHouseNumber((selectedProperty || inputProperty)?.address || '')}
+                onAnalysisComplete={() => {
+                  console.log('Analysis complete');
+                }}
+              />
+            )}
           </motion.div>
-        )}
-      </div>
+        </section>
+      )}
+
+      {/* Features Section */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+          className="text-center mb-12"
+        >
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Comprehensive Analysis Features</h2>
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            Our new consolidated APIs provide comprehensive property insights in one unified interface
+          </p>
+        </motion.div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+            className="text-center"
+          >
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+              <BarChart3 className="h-12 w-12 text-blue-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Market Analysis</h3>
+              <p className="text-gray-600 text-sm">
+                Comprehensive market trends, growth rates, and sales performance data
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.6 }}
+            className="text-center"
+          >
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+              <Target className="h-12 w-12 text-green-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">BMV Scoring</h3>
+              <p className="text-gray-600 text-sm">
+                Advanced Below Market Value analysis with enhanced scoring algorithms
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.7 }}
+            className="text-center"
+          >
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+              <Zap className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">EPC Analysis</h3>
+              <p className="text-gray-600 text-sm">
+                Energy performance insights and efficiency ratings for the area
+              </p>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.8 }}
+            className="text-center"
+          >
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+              <CrystalBall className="h-12 w-12 text-orange-600 mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Predictions</h3>
+              <p className="text-gray-600 text-sm">
+                Machine learning powered property value predictions and market insights
+              </p>
+            </div>
+          </motion.div>
+        </div>
+      </section>
     </main>
+  );
+}
+
+// Placeholder icon component
+function Zap({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+    </svg>
+  );
+}
+
+function CrystalBall({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+    </svg>
   );
 } 

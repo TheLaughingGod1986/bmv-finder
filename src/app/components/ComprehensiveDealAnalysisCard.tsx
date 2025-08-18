@@ -25,7 +25,7 @@ import {
   ShoppingBag,
   Shield,
   Clock,
-  DollarSign,
+  PoundSterling,
   Bus,
   School,
   Store,
@@ -463,7 +463,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
         {[
           { id: 'overview', label: 'Overview', icon: BarChart3 },
           { id: 'valuation', label: 'Valuation', icon: Calculator },
-          { id: 'rental', label: 'Rental & Yield', icon: DollarSign },
+          { id: 'rental', label: 'Rental & Yield', icon: TrendingUp },
           { id: 'location', label: 'Location', icon: MapPin },
           { id: 'market', label: 'Market', icon: TrendingUp },
           { id: 'improve', label: 'Improve', icon: Target }
@@ -637,7 +637,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
                   <h4 className="font-semibold text-green-800 text-sm">Portfolio Features</h4>
                   <ul className="text-xs text-green-700 space-y-1">
                     <li className="flex items-center gap-2">
-                      <DollarSign className="w-3 h-3" />
+                      <TrendingUp className="w-3 h-3" />
                       Total asset value tracking
                     </li>
                     <li className="flex items-center gap-2">
@@ -760,7 +760,7 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
+                <PoundSterling className="h-5 w-5" />
                 Rental Analysis
               </CardTitle>
             </CardHeader>

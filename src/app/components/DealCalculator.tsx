@@ -335,10 +335,14 @@ export default function DealCalculator() {
     
     setIsSearchingProperties(true);
     try {
-      const response = await fetch(`/api/search-properties?postcode=${encodeURIComponent(searchPostcode)}&limit=10`);
+              const response = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(searchPostcode)}&limit=10&includeRental=true&includeHPI=true`);
       if (response.ok) {
         const data = await response.json();
-        setPropertySearchResults(data.properties || []);
+        if (data.success && data.data?.properties) {
+          setPropertySearchResults(data.data.properties);
+        } else {
+          setPropertySearchResults([]);
+        }
         setShowPropertySearch(true);
       } else {
         showToast({
@@ -363,21 +367,38 @@ export default function DealCalculator() {
 
   // Select a property from search results
   const selectProperty = (property: any) => {
-    setPropertyName(property.title || property.address || '');
+    setPropertyName(property.address || '');
     setPostcode(property.postcode || '');
-    setPropertyType(property.property_type || 'House');
-    setPurchasePrice(property.price?.toString() || '');
-    setCurrentValue(property.price?.toString() || '');
+    setPropertyType(property.propertyType || 'House');
     
-    // Estimate monthly rent based on price (typical 0.5% of price)
-    const estimatedRent = property.price ? (property.price * 0.005) : 0;
-    setMonthlyRent(estimatedRent.toString());
+    // Use rental data if available, otherwise estimate based on price
+    if (property.rental?.estimatedMonthlyRent) {
+      setMonthlyRent(property.rental.estimatedMonthlyRent.toString());
+    } else {
+      // Estimate monthly rent based on price (typical 0.5% of price)
+      const estimatedRent = property.price ? (property.price * 0.005) : 0;
+      setMonthlyRent(estimatedRent.toString());
+    }
+    
+    // Use sold price data if available, otherwise use estimated value
+    if (property.soldPriceData?.priceStats?.averagePrice) {
+      const avgPrice = property.soldPriceData.priceStats.averagePrice;
+      setPurchasePrice(avgPrice.toString());
+      setCurrentValue(avgPrice.toString());
+    } else if (property.marketTrends?.averagePrice) {
+      setPurchasePrice(property.marketTrends.averagePrice.toString());
+      setCurrentValue(property.marketTrends.averagePrice.toString());
+    } else {
+      // Fallback to estimated values
+      setPurchasePrice('0');
+      setCurrentValue('0');
+    }
     
     // Estimate refurbishment costs based on property type
     let estimatedRefurb = 0;
-    if (property.property_type?.toLowerCase().includes('flat')) {
+    if (property.propertyType?.toLowerCase().includes('flat')) {
       estimatedRefurb = 15000;
-    } else if (property.property_type?.toLowerCase().includes('house')) {
+    } else if (property.propertyType?.toLowerCase().includes('house')) {
       estimatedRefurb = 25000;
     } else {
       estimatedRefurb = 20000;

@@ -13,27 +13,13 @@ interface GatewayConfig {
 // Configuration for all your backend services
 const SERVICES: GatewayConfig = {
   // Property Services
-  'property-es': {
-    url: CONFIG.API.BASE_URL + '/api/property-es',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  },
-  'property-csv': {
-    url: CONFIG.API.BASE_URL + '/api/property-csv',
+  'property-search': {
+    url: CONFIG.API.BASE_URL + '/api/property-search',
     method: 'GET',
     headers: {}
   },
-  'property-trend': {
-    url: CONFIG.API.BASE_URL + '/api/property-trend',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    }
-  },
-  'property-history': {
-    url: CONFIG.API.BASE_URL + '/api/property-history',
+  'enhanced-property-search': {
+    url: CONFIG.API.BASE_URL + '/api/enhanced-property-search',
     method: 'GET',
     headers: {}
   },
@@ -78,24 +64,24 @@ const SERVICES: GatewayConfig = {
     method: 'GET',
     headers: {}
   },
-  'test-hpi-fetch': {
-    url: CONFIG.API.BASE_URL + '/api/test-hpi-fetch',
+  
+  // Property Valuation Services
+  'valuation': {
+    url: CONFIG.API.BASE_URL + '/api/valuation',
     method: 'GET',
     headers: {}
   },
-  
-  // BMV Scoring Services
+  'property-valuation': {
+    url: CONFIG.API.BASE_URL + '/api/property-valuation',
+    method: 'GET',
+    headers: {}
+  },
   'enhanced-bmv-score': {
     url: CONFIG.API.BASE_URL + '/api/enhanced-bmv-score',
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     }
-  },
-  'suggest-postcodes': {
-    url: CONFIG.API.BASE_URL + '/api/suggest-postcodes',
-    method: 'GET',
-    headers: {}
   },
   
   // User Management Services
@@ -153,6 +139,11 @@ const SERVICES: GatewayConfig = {
       'Content-Type': 'application/json'
     }
   },
+  'predictions': {
+    url: CONFIG.API.BASE_URL + '/api/predictions',
+    method: 'GET',
+    headers: {}
+  },
   'search': {
     url: CONFIG.API.BASE_URL + '/api/search',
     method: 'GET',
@@ -170,6 +161,7 @@ const SERVICES: GatewayConfig = {
 // Rate limiting configuration
 const RATE_LIMITS = {
   // Property Services (higher limits for core functionality)
+  'property-search': { requests: 300, window: 60000 }, // 300 requests per minute (consolidated)
   'property-es': { requests: 200, window: 60000 }, // 200 requests per minute
   'property-csv': { requests: 50, window: 60000 }, // 50 requests per minute
   'property-trend': { requests: 100, window: 60000 },
@@ -185,7 +177,9 @@ const RATE_LIMITS = {
   'hpi-date-range': { requests: 100, window: 60000 },
   'test-hpi-fetch': { requests: 50, window: 60000 },
   
-  // BMV Scoring Services
+  // Property Valuation Services
+  'valuation': { requests: 200, window: 60000 }, // 200 requests per minute (consolidated)
+  'property-valuation': { requests: 150, window: 60000 }, // 150 requests per minute (consolidated)
   'enhanced-bmv-score': { requests: 100, window: 60000 },
   'suggest-postcodes': { requests: 500, window: 60000 }, // High limit for autocomplete
   
@@ -202,6 +196,7 @@ const RATE_LIMITS = {
   
   // External Integrations
   'stripe-webhook': { requests: 1000, window: 60000 }, // High limit for webhooks
+  'predictions': { requests: 250, window: 60000 }, // 250 requests per minute (consolidated)
   'search': { requests: 200, window: 60000 },
   
   // System Services
