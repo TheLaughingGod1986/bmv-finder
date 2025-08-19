@@ -1189,11 +1189,11 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                 <CardContent>
                   {/* Timeline Chart */}
                   <div className="mb-6">
-                    <div className="relative h-64 bg-white rounded-lg border border-indigo-200 p-6 shadow-sm">
+                    <div className="relative h-72 bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 p-8 shadow-lg">
                       {/* Chart Container */}
                       <div className="relative h-full">
                         {/* Y-axis labels */}
-                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-600 font-medium">
+                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-700 font-semibold">
                           {(() => {
                             const yearlyData = valuationData.marketAnalysis.yearlySales
                               .sort((a, b) => a.year - b.year)
@@ -1204,8 +1204,8 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                             const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
                             const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
                             
-                            // Add 10% padding to the price range for better visualization
-                            const padding = (maxPrice - minPrice) * 0.1;
+                            // Add 15% padding to the price range for better visualization
+                            const padding = (maxPrice - minPrice) * 0.15;
                             const adjustedMax = maxPrice + padding;
                             const adjustedMin = Math.max(0, minPrice - padding);
                             const priceRange = adjustedMax - adjustedMin;
@@ -1215,7 +1215,7 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                             for (let i = 5; i >= 0; i--) {
                               const price = adjustedMin + (priceRange * i / 5);
                               labels.push(
-                                <span key={i} className="text-right block w-12">
+                                <span key={i} className="text-right block w-16 pr-3 text-gray-600">
                                   £{(price / 1000).toFixed(0)}k
                                 </span>
                               );
@@ -1226,11 +1226,14 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         </div>
                         
                         {/* Chart Area */}
-                        <div className="absolute left-16 right-4 top-2 bottom-8">
+                        <div className="absolute left-20 right-6 top-3 bottom-10">
                           {/* Grid lines */}
                           <div className="h-full flex flex-col justify-between">
                             {[0, 1, 2, 3, 4, 5].map((i) => (
-                              <div key={i} className="border-b border-gray-200" style={{ opacity: i === 0 || i === 5 ? 0.6 : 0.3 }} />
+                              <div key={i} className="border-b border-gray-200" style={{ 
+                                opacity: i === 0 || i === 5 ? 0.4 : 0.15,
+                                borderStyle: i === 0 || i === 5 ? 'solid' : 'dashed'
+                              }} />
                             ))}
                           </div>
                           
@@ -1246,8 +1249,8 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
                               const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
                               
-                              // Add 10% padding for better visualization
-                              const padding = (maxPrice - minPrice) * 0.1;
+                              // Add 15% padding for better visualization
+                              const padding = (maxPrice - minPrice) * 0.15;
                               const adjustedMax = maxPrice + padding;
                               const adjustedMin = Math.max(0, minPrice - padding);
                               const priceRange = adjustedMax - adjustedMin;
@@ -1260,51 +1263,74 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               
                               return (
                                 <>
-                                  {/* Area fill under the line */}
+                                  {/* Area fill under the line with better gradient */}
                                   <defs>
                                     <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.2"/>
-                                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.05"/>
+                                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.15"/>
+                                      <stop offset="50%" stopColor="#6366f1" stopOpacity="0.08"/>
+                                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.02"/>
                                     </linearGradient>
                                   </defs>
+                                  
+                                  {/* Subtle area fill */}
                                   <polygon
                                     points={`0,100 ${points} 100,100`}
                                     fill="url(#priceGradient)"
                                   />
                                   
-                                  {/* Line connecting points */}
+                                  {/* Smooth line with glow effect */}
                                   <polyline
                                     points={points}
                                     fill="none"
                                     stroke="#6366f1"
-                                    strokeWidth="3"
+                                    strokeWidth="4"
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
+                                    style={{ filter: 'drop-shadow(0px 1px 3px rgba(99, 102, 241, 0.3))' }}
                                   />
                                   
-                                  {/* Data points */}
+                                  {/* Enhanced data points */}
                                   {yearlyData.map((year, index) => {
                                     const x = (index / (yearlyData.length - 1)) * 100;
                                     const y = 100 - ((year.averagePrice - adjustedMin) / priceRange) * 100;
                                     return (
                                       <g key={year.year}>
-                                        <circle
-                                          cx={x}
-                                          cy={y}
-                                          r="5"
-                                          fill="#6366f1"
-                                          stroke="white"
-                                          strokeWidth="3"
-                                          style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }}
-                                        />
-                                        {/* Hover effect circle with tooltip */}
+                                        {/* Outer glow circle */}
                                         <circle
                                           cx={x}
                                           cy={y}
                                           r="8"
+                                          fill="rgba(99, 102, 241, 0.1)"
+                                          className="animate-pulse"
+                                        />
+                                        {/* Main data point */}
+                                        <circle
+                                          cx={x}
+                                          cy={y}
+                                          r="6"
+                                          fill="#6366f1"
+                                          stroke="white"
+                                          strokeWidth="3"
+                                          style={{ 
+                                            filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.15))',
+                                            filter: 'drop-shadow(0px 0px 8px rgba(99, 102, 241, 0.3))'
+                                          }}
+                                        />
+                                        {/* Inner highlight */}
+                                        <circle
+                                          cx={x}
+                                          cy={y}
+                                          r="2"
+                                          fill="rgba(255, 255, 255, 0.8)"
+                                        />
+                                        {/* Interactive hover area */}
+                                        <circle
+                                          cx={x}
+                                          cy={y}
+                                          r="12"
                                           fill="transparent"
                                           stroke="transparent"
-                                          className="hover:stroke-indigo-300 hover:stroke-2 transition-all duration-200 cursor-pointer"
+                                          className="hover:stroke-indigo-400 hover:stroke-2 transition-all duration-300 cursor-pointer"
                                         >
                                           <title>{year.year}: £{year.averagePrice.toLocaleString()}</title>
                                         </circle>
@@ -1318,7 +1344,7 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         </div>
                         
                         {/* X-axis labels */}
-                        <div className="absolute bottom-0 left-16 right-4 h-6">
+                        <div className="absolute bottom-0 left-20 right-6 h-8">
                           {(() => {
                             const yearlyData = valuationData.marketAnalysis.yearlySales
                               .sort((a, b) => a.year - b.year)
@@ -1345,10 +1371,10 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               const index = yearlyData.indexOf(year);
                               const x = (index / (yearlyData.length - 1)) * 100;
                               return (
-                                <div key={year.year} className="absolute text-xs text-gray-600 font-medium" style={{ 
+                                <div key={year.year} className="absolute text-sm text-gray-700 font-semibold" style={{ 
                                   left: `${x}%`, 
                                   transform: 'translateX(-50%)',
-                                  top: '4px'
+                                  top: '8px'
                                 }}>
                                   {year.year}
                                 </div>
