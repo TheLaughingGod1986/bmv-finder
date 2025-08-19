@@ -1189,11 +1189,11 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                 <CardContent>
                   {/* Timeline Chart */}
                   <div className="mb-6">
-                    <div className="relative h-48 bg-white rounded-lg border border-indigo-200 p-4">
+                    <div className="relative h-64 bg-white rounded-lg border border-indigo-200 p-6 shadow-sm">
                       {/* Chart Container */}
                       <div className="relative h-full">
                         {/* Y-axis labels */}
-                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500">
+                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-600 font-medium">
                           {(() => {
                             const yearlyData = valuationData.marketAnalysis.yearlySales
                               .sort((a, b) => a.year - b.year)
@@ -1203,14 +1203,19 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                             
                             const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
                             const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
-                            const priceRange = maxPrice - minPrice;
+                            
+                            // Add 10% padding to the price range for better visualization
+                            const padding = (maxPrice - minPrice) * 0.1;
+                            const adjustedMax = maxPrice + padding;
+                            const adjustedMin = Math.max(0, minPrice - padding);
+                            const priceRange = adjustedMax - adjustedMin;
                             
                             // Create 6 evenly spaced price points
                             const labels = [];
                             for (let i = 5; i >= 0; i--) {
-                              const price = minPrice + (priceRange * i / 5);
+                              const price = adjustedMin + (priceRange * i / 5);
                               labels.push(
-                                <span key={i}>
+                                <span key={i} className="text-right block w-12">
                                   £{(price / 1000).toFixed(0)}k
                                 </span>
                               );
@@ -1221,11 +1226,11 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         </div>
                         
                         {/* Chart Area */}
-                        <div className="absolute left-12 right-0 top-0 h-full">
+                        <div className="absolute left-16 right-4 top-2 bottom-8">
                           {/* Grid lines */}
                           <div className="h-full flex flex-col justify-between">
                             {[0, 1, 2, 3, 4, 5].map((i) => (
-                              <div key={i} className="border-b border-gray-100" />
+                              <div key={i} className="border-b border-gray-200" style={{ opacity: i === 0 || i === 5 ? 0.6 : 0.3 }} />
                             ))}
                           </div>
                           
@@ -1240,39 +1245,70 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               
                               const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
                               const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
-                              const priceRange = maxPrice - minPrice;
+                              
+                              // Add 10% padding for better visualization
+                              const padding = (maxPrice - minPrice) * 0.1;
+                              const adjustedMax = maxPrice + padding;
+                              const adjustedMin = Math.max(0, minPrice - padding);
+                              const priceRange = adjustedMax - adjustedMin;
                               
                               const points = yearlyData.map((year, index) => {
                                 const x = (index / (yearlyData.length - 1)) * 100;
-                                const y = 100 - ((year.averagePrice - minPrice) / priceRange) * 100;
+                                const y = 100 - ((year.averagePrice - adjustedMin) / priceRange) * 100;
                                 return `${x},${y}`;
                               }).join(' ');
                               
                               return (
                                 <>
+                                  {/* Area fill under the line */}
+                                  <defs>
+                                    <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.2"/>
+                                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.05"/>
+                                    </linearGradient>
+                                  </defs>
+                                  <polygon
+                                    points={`0,100 ${points} 100,100`}
+                                    fill="url(#priceGradient)"
+                                  />
+                                  
                                   {/* Line connecting points */}
                                   <polyline
                                     points={points}
                                     fill="none"
                                     stroke="#6366f1"
-                                    strokeWidth="2"
+                                    strokeWidth="3"
                                     strokeLinecap="round"
                                     strokeLinejoin="round"
                                   />
+                                  
                                   {/* Data points */}
                                   {yearlyData.map((year, index) => {
                                     const x = (index / (yearlyData.length - 1)) * 100;
-                                    const y = 100 - ((year.averagePrice - minPrice) / priceRange) * 100;
+                                    const y = 100 - ((year.averagePrice - adjustedMin) / priceRange) * 100;
                                     return (
-                                      <circle
-                                        key={year.year}
-                                        cx={x}
-                                        cy={y}
-                                        r="3"
-                                        fill="#6366f1"
-                                        stroke="white"
-                                        strokeWidth="2"
-                                      />
+                                      <g key={year.year}>
+                                        <circle
+                                          cx={x}
+                                          cy={y}
+                                          r="5"
+                                          fill="#6366f1"
+                                          stroke="white"
+                                          strokeWidth="3"
+                                          style={{ filter: 'drop-shadow(0px 2px 4px rgba(0,0,0,0.1))' }}
+                                        />
+                                        {/* Hover effect circle with tooltip */}
+                                        <circle
+                                          cx={x}
+                                          cy={y}
+                                          r="8"
+                                          fill="transparent"
+                                          stroke="transparent"
+                                          className="hover:stroke-indigo-300 hover:stroke-2 transition-all duration-200 cursor-pointer"
+                                        >
+                                          <title>{year.year}: £{year.averagePrice.toLocaleString()}</title>
+                                        </circle>
+                                      </g>
                                     );
                                   })}
                                 </>
@@ -1282,7 +1318,7 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         </div>
                         
                         {/* X-axis labels */}
-                        <div className="absolute bottom-0 left-12 right-0 flex justify-between text-xs text-gray-500">
+                        <div className="absolute bottom-0 left-16 right-4 h-6">
                           {(() => {
                             const yearlyData = valuationData.marketAnalysis.yearlySales
                               .sort((a, b) => a.year - b.year)
@@ -1290,20 +1326,29 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                             
                             if (yearlyData.length === 0) return null;
                             
-                            // Show only every 3rd year or so to avoid overcrowding
-                            const step = Math.max(1, Math.floor(yearlyData.length / 6));
-                            const displayYears = yearlyData.filter((_, index) => 
-                              index === 0 || index === yearlyData.length - 1 || index % step === 0
-                            );
+                            // Show first, last, and evenly spaced years
+                            const displayYears = [];
+                            displayYears.push(yearlyData[0]); // First year
+                            
+                            if (yearlyData.length > 2) {
+                              const step = Math.max(1, Math.floor(yearlyData.length / 4));
+                              for (let i = step; i < yearlyData.length - 1; i += step) {
+                                displayYears.push(yearlyData[i]);
+                              }
+                            }
+                            
+                            if (yearlyData.length > 1) {
+                              displayYears.push(yearlyData[yearlyData.length - 1]); // Last year
+                            }
                             
                             return displayYears.map((year) => {
                               const index = yearlyData.indexOf(year);
                               const x = (index / (yearlyData.length - 1)) * 100;
                               return (
-                                <div key={year.year} className="text-center" style={{ 
-                                  position: 'absolute', 
+                                <div key={year.year} className="absolute text-xs text-gray-600 font-medium" style={{ 
                                   left: `${x}%`, 
-                                  transform: 'translateX(-50%)' 
+                                  transform: 'translateX(-50%)',
+                                  top: '4px'
                                 }}>
                                   {year.year}
                                 </div>
@@ -1383,11 +1428,11 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         
                         if (yearlyData.length < 2) return <div className="text-xs text-gray-500">Insufficient data for evolution analysis</div>;
                         
-                        const firstPrice = yearlyData[0].averagePrice;
-                        const lastPrice = yearlyData[yearlyData.length - 1].averagePrice;
-                        const totalGrowth = ((lastPrice - firstPrice) / firstPrice) * 100;
-                        const years = yearlyData[yearlyData.length - 1].year - yearlyData[0].year;
-                        const annualGrowth = totalGrowth / years;
+                                                 const firstPrice = yearlyData[0].averagePrice;
+                         const lastPrice = yearlyData[yearlyData.length - 1].averagePrice;
+                         const totalGrowth = ((lastPrice - firstPrice) / firstPrice) * 100;
+                         const years = yearlyData[yearlyData.length - 1].year - yearlyData[0].year;
+                         const annualGrowth = years > 0 ? totalGrowth / years : 0;
                         
                         return (
                           <div className="space-y-2 text-xs">
