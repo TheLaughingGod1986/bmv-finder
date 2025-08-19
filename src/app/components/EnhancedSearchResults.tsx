@@ -1174,6 +1174,268 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
               </CardContent>
             </Card>
 
+            {/* Historical Sales Timeline */}
+            {valuationData?.marketAnalysis?.yearlySales && valuationData.marketAnalysis.yearlySales.length > 0 && (
+              <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-indigo-800">
+                    <BarChart3 className="h-5 w-5" />
+                    Historical Sales Timeline (1995-2024)
+                  </CardTitle>
+                  <p className="text-sm text-indigo-600 mt-1">
+                    {valuationData.marketAnalysis.yearlySales.length} years of market data • {valuationData.marketAnalysis.totalSales} total sales
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  {/* Timeline Chart */}
+                  <div className="mb-6">
+                    <div className="relative h-48 bg-white rounded-lg border border-indigo-200 p-4">
+                      {/* Chart Container */}
+                      <div className="relative h-full">
+                        {/* Y-axis labels */}
+                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-500">
+                          {(() => {
+                            const yearlyData = valuationData.marketAnalysis.yearlySales
+                              .sort((a, b) => a.year - b.year)
+                              .filter(year => year.averagePrice > 0);
+                            
+                            if (yearlyData.length === 0) return null;
+                            
+                            const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
+                            const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
+                            const priceRange = maxPrice - minPrice;
+                            
+                            // Create 6 evenly spaced price points
+                            const labels = [];
+                            for (let i = 5; i >= 0; i--) {
+                              const price = minPrice + (priceRange * i / 5);
+                              labels.push(
+                                <span key={i}>
+                                  £{(price / 1000).toFixed(0)}k
+                                </span>
+                              );
+                            }
+                            
+                            return labels;
+                          })()}
+                        </div>
+                        
+                        {/* Chart Area */}
+                        <div className="absolute left-12 right-0 top-0 h-full">
+                          {/* Grid lines */}
+                          <div className="h-full flex flex-col justify-between">
+                            {[0, 1, 2, 3, 4, 5].map((i) => (
+                              <div key={i} className="border-b border-gray-100" />
+                            ))}
+                          </div>
+                          
+                          {/* Data points and lines */}
+                          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                            {(() => {
+                              const yearlyData = valuationData.marketAnalysis.yearlySales
+                                .sort((a, b) => a.year - b.year)
+                                .filter(year => year.averagePrice > 0);
+                              
+                              if (yearlyData.length === 0) return null;
+                              
+                              const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
+                              const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
+                              const priceRange = maxPrice - minPrice;
+                              
+                              const points = yearlyData.map((year, index) => {
+                                const x = (index / (yearlyData.length - 1)) * 100;
+                                const y = 100 - ((year.averagePrice - minPrice) / priceRange) * 100;
+                                return `${x},${y}`;
+                              }).join(' ');
+                              
+                              return (
+                                <>
+                                  {/* Line connecting points */}
+                                  <polyline
+                                    points={points}
+                                    fill="none"
+                                    stroke="#6366f1"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                  />
+                                  {/* Data points */}
+                                  {yearlyData.map((year, index) => {
+                                    const x = (index / (yearlyData.length - 1)) * 100;
+                                    const y = 100 - ((year.averagePrice - minPrice) / priceRange) * 100;
+                                    return (
+                                      <circle
+                                        key={year.year}
+                                        cx={x}
+                                        cy={y}
+                                        r="3"
+                                        fill="#6366f1"
+                                        stroke="white"
+                                        strokeWidth="2"
+                                      />
+                                    );
+                                  })}
+                                </>
+                              );
+                            })()}
+                          </svg>
+                        </div>
+                        
+                        {/* X-axis labels */}
+                        <div className="absolute bottom-0 left-12 right-0 flex justify-between text-xs text-gray-500">
+                          {(() => {
+                            const yearlyData = valuationData.marketAnalysis.yearlySales
+                              .sort((a, b) => a.year - b.year)
+                              .filter(year => year.averagePrice > 0);
+                            
+                            if (yearlyData.length === 0) return null;
+                            
+                            // Show only every 3rd year or so to avoid overcrowding
+                            const step = Math.max(1, Math.floor(yearlyData.length / 6));
+                            const displayYears = yearlyData.filter((_, index) => 
+                              index === 0 || index === yearlyData.length - 1 || index % step === 0
+                            );
+                            
+                            return displayYears.map((year) => {
+                              const index = yearlyData.indexOf(year);
+                              const x = (index / (yearlyData.length - 1)) * 100;
+                              return (
+                                <div key={year.year} className="text-center" style={{ 
+                                  position: 'absolute', 
+                                  left: `${x}%`, 
+                                  transform: 'translateX(-50%)' 
+                                }}>
+                                  {year.year}
+                                </div>
+                              );
+                            });
+                          })()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key Insights */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="p-4 bg-white rounded-lg border border-indigo-200">
+                      <div className="text-sm font-semibold text-indigo-800 mb-2">Market Cycles</div>
+                      {(() => {
+                        const yearlyData = valuationData.marketAnalysis.yearlySales
+                          .sort((a, b) => a.year - b.year)
+                          .filter(year => year.averagePrice > 0);
+                        
+                        if (yearlyData.length < 3) return <div className="text-xs text-gray-500">Insufficient data for cycle analysis</div>;
+                        
+                        const prices = yearlyData.map(y => y.averagePrice);
+                        const maxPrice = Math.max(...prices);
+                        const minPrice = Math.min(...prices);
+                        const maxYear = yearlyData.find(y => y.averagePrice === maxPrice)?.year;
+                        const minYear = yearlyData.find(y => y.averagePrice === minPrice)?.year;
+                        const currentPrice = yearlyData[yearlyData.length - 1]?.averagePrice;
+                        const currentYear = yearlyData[yearlyData.length - 1]?.year;
+                        
+                        let cyclePhase = '';
+                        let cycleDescription = '';
+                        
+                        if (currentPrice >= maxPrice * 0.95) {
+                          cyclePhase = 'Peak';
+                          cycleDescription = 'Market appears to be at or near peak levels';
+                        } else if (currentPrice <= minPrice * 1.05) {
+                          cyclePhase = 'Trough';
+                          cycleDescription = 'Market appears to be at or near bottom levels';
+                        } else if (currentPrice > (maxPrice + minPrice) / 2) {
+                          cyclePhase = 'Recovery';
+                          cycleDescription = 'Market is in recovery phase, above mid-point';
+                        } else {
+                          cyclePhase = 'Decline';
+                          cycleDescription = 'Market is in decline phase, below mid-point';
+                        }
+                        
+                        return (
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Peak:</span>
+                              <span className="font-medium">{maxYear} (£{maxPrice.toLocaleString()})</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Trough:</span>
+                              <span className="font-medium">{minYear} (£{minPrice.toLocaleString()})</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Current:</span>
+                              <span className="font-medium">{currentYear} (£{currentPrice.toLocaleString()})</span>
+                            </div>
+                            <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-200">
+                              <div className="font-medium text-indigo-800">{cyclePhase} Phase</div>
+                              <div className="text-indigo-600">{cycleDescription}</div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    
+                    <div className="p-4 bg-white rounded-lg border border-indigo-200">
+                      <div className="text-sm font-semibold text-indigo-800 mb-2">Price Evolution</div>
+                      {(() => {
+                        const yearlyData = valuationData.marketAnalysis.yearlySales
+                          .sort((a, b) => a.year - b.year)
+                          .filter(year => year.averagePrice > 0);
+                        
+                        if (yearlyData.length < 2) return <div className="text-xs text-gray-500">Insufficient data for evolution analysis</div>;
+                        
+                        const firstPrice = yearlyData[0].averagePrice;
+                        const lastPrice = yearlyData[yearlyData.length - 1].averagePrice;
+                        const totalGrowth = ((lastPrice - firstPrice) / firstPrice) * 100;
+                        const years = yearlyData[yearlyData.length - 1].year - yearlyData[0].year;
+                        const annualGrowth = totalGrowth / years;
+                        
+                        return (
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Total Growth:</span>
+                              <span className={`font-medium ${totalGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {totalGrowth >= 0 ? '+' : ''}{totalGrowth.toFixed(1)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Annual Average:</span>
+                              <span className={`font-medium ${annualGrowth >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {annualGrowth >= 0 ? '+' : ''}{annualGrowth.toFixed(1)}%
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Period:</span>
+                              <span className="font-medium">{years} years</span>
+                            </div>
+                            <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-200">
+                              <div className="text-xs text-indigo-800">
+                                <strong>Market Performance:</strong> {totalGrowth >= 0 ? 'Positive' : 'Negative'} long-term growth
+                                {totalGrowth >= 0 ? ` with ${annualGrowth.toFixed(1)}% annual average` : ''}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Data Quality Indicator */}
+                  <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
+                    <div className="text-xs text-indigo-800 text-center">
+                      <strong>Data Quality:</strong> {valuationData.marketAnalysis.yearlySales.length >= 20 ? 'Excellent' : 
+                        valuationData.marketAnalysis.yearlySales.length >= 15 ? 'Very Good' :
+                        valuationData.marketAnalysis.yearlySales.length >= 10 ? 'Good' :
+                        valuationData.marketAnalysis.yearlySales.length >= 5 ? 'Fair' : 'Limited'} 
+                      ({valuationData.marketAnalysis.yearlySales.length} years of data)
+                      {valuationData.marketAnalysis.yearlySales.length >= 20 && ' • 30-year market visibility achieved'}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+
+
             {valuationData?.marketAnalysis && (
               <Card>
                 <CardHeader>
