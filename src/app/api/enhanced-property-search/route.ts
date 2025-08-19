@@ -1,24 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
+import { getRentalRate, getRegionCode, getHPIRegion } from '@/lib/marketConfig';
 
-// Map local authorities to HPI regions
-const localAuthorityToHPIRegion: { [key: string]: string } = {
-  'Newcastle upon Tyne': 'E12000001',
-  'North Tyneside': 'E12000001',
-  'South Tyneside': 'E12000001',
-  'Sunderland': 'E12000001',
-  'Gateshead': 'E12000001',
-  'Durham': 'E12000001',
-  'Northumberland': 'E12000001',
-  'Stockton-on-Tees': 'E12000001',
-  'Middlesbrough': 'E12000001',
-  'Redcar and Cleveland': 'E12000001',
-  'Hartlepool': 'E12000001',
-  'Darlington': 'E12000001',
-  'County Durham': 'E12000001',
-  'Tyne and Wear': 'E12000001',
-  'North East': 'E12000001'
-};
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -184,56 +169,8 @@ async function searchEPCData(postcode: string, limit: number) {
 
 async function enrichWithRentalData(properties: any[]) {
   try {
-    // Map postcode areas to rental regions
-    const postcodeToRegion: { [key: string]: string } = {
-      'HP': 'E12000009', // South West
-      'AL': 'E12000002', // East of England
-      'NE': 'E12000001', // North East
-      'NW': 'E12000002', // North West
-      'YO': 'E12000003', // Yorkshire and The Humber
-      'LE': 'E12000004', // East Midlands
-      'B': 'E12000005',  // West Midlands
-      'CV': 'E12000005', // West Midlands
-      'WS': 'E12000005', // West Midlands
-      'ST': 'E12000005', // West Midlands
-      'CB': 'E12000006', // East of England
-      'IP': 'E12000006', // East of England
-      'NR': 'E12000006', // East of England
-      'CM': 'E12000006', // East of England
-      'SS': 'E12000007', // London
-      'E': 'E12000007',  // London
-      'N': 'E12000007',  // London
-      'W': 'E12000007',  // London
-      'SW': 'E12000007', // London
-      'SE': 'E12000007', // London
-      'BR': 'E12000007', // London
-      'CR': 'E12000007', // London
-      'DA': 'E12000007', // London
-      'EN': 'E12000007', // London
-      'HA': 'E12000007', // London
-      'IG': 'E12000007', // London
-      'KT': 'E12000007', // London
-      'RM': 'E12000007', // London
-      'SM': 'E12000007', // London
-      'TN': 'E12000008', // South East
-      'GU': 'E12000008', // South East
-      'PO': 'E12000008', // South East
-      'RG': 'E12000008', // South East
-      'SL': 'E12000008', // South East
-      'SO': 'E12000008', // South East
-      'BH': 'E12000009', // South West
-      'BS': 'E12000009', // South West
-      'DT': 'E12000009', // South West
-      'EX': 'E12000009', // South West
-      'GL': 'E12000009', // South West
-      'PL': 'E12000009', // South West
-      'SN': 'E12000009', // South West
-      'TA': 'E12000009', // South West
-      'TR': 'E12000009', // South West
-    };
-    
     const postcodeArea = properties[0]?.postcode?.substring(0, 2) || 'NE';
-    const regionCode = postcodeToRegion[postcodeArea] || 'E92000001'; // Default to England
+    const regionCode = getRegionCode(properties[0]?.postcode || 'NE');
     
     const rentalResponse = await esClient.search({
       index: 'rental_prices',
@@ -255,8 +192,8 @@ async function enrichWithRentalData(properties: any[]) {
       const rentalData = rentalResponse.hits.hits[0]._source;
       
       return properties.map(property => {
-        // Estimate rental based on property characteristics
-        const baseRent = estimateBaseRent(property);
+        // Estimate rental based on property characteristics using config
+        const baseRent = estimateBaseRent(property, regionCode);
         const rentalAdjustments = calculateRentalAdjustments(property);
         const estimatedRent = baseRent + rentalAdjustments;
         
@@ -269,7 +206,8 @@ async function enrichWithRentalData(properties: any[]) {
             confidence: 85, // High confidence with real EPC data
             source: 'rental_prices + epc_data',
             calculation: `Based on ${property.bedrooms || property.habitableRooms || 'unknown'} bedroom(s) - market rate for area`,
-            note: 'Bedroom-based estimate for area'
+            note: getRegionCode(property.postcode) === 'E12000007' 
+                  ? 'London premium market rates' : 'Bedroom-based estimate for area'
           }
         };
       });
@@ -286,7 +224,7 @@ async function enrichWithRentalData(properties: any[]) {
 async function enrichWithHPIData(properties: any[]) {
   try {
     const localAuthority = properties[0]?.localAuthority || properties[0]?.local_authority || 'Newcastle upon Tyne';
-    const hpiRegion = localAuthorityToHPIRegion[localAuthority] || 'E12000001'; // Default to North East
+    const hpiRegion = getHPIRegion(localAuthority);
     
     // Fetch HPI data from the correct index: 'house_price_index'
     const hpiResponse = await esClient.search({
@@ -295,84 +233,40 @@ async function enrichWithHPIData(properties: any[]) {
         query: {
           bool: {
             must: [
-              { term: { region: hpiRegion } },
-              { range: { date: { gte: 'now-1y' } } }
+              { term: { region: hpiRegion } }
             ]
           }
         },
-        sort: [{ date: { order: 'desc' } }],
-        size: 12
+        size: 1,
+        sort: [{ date: { order: 'desc' } }]
       }
     });
 
-    if (hpiResponse.hits.hits.length === 0) {
-      // No HPI data available - return properties without HPI enrichment
-      console.log('No HPI data found in Elasticsearch for region:', hpiRegion);
+    if (hpiResponse.hits.hits.length > 0) {
+      const hpiData = hpiResponse.hits.hits[0]._source;
+      
       return properties.map(property => ({
         ...property,
-        hpiData: null,
-        marketTrends: null
+        hpiData: {
+          currentIndex: hpiData.hpiIndex || hpiData.index_value || null,
+          yoyGrowth: hpiData.percentageChangeYearly || hpiData.yearly_change || null,
+          averagePrice: hpiData.averagePrice || hpiData.avg_price || null,
+          salesVolume: hpiData.salesVolume || hpiData.sales_volume || null,
+          regionLabel: hpiData.regionLabel || hpiData.region_label || null,
+          lastUpdated: hpiData.date || hpiData.last_updated || new Date().toISOString()
+        }
       }));
     }
 
-    const hpiData = hpiResponse.hits.hits.map((hit: any) => hit._source);
-    
-    return properties.map(property => {
-      if (hpiData.length === 0) {
-        return {
-          ...property,
-          hpiData: null,
-          marketTrends: null
-        };
-      }
-
-      const latestHPI = hpiData[0];
-      const yearAgoHPI = hpiData[hpiData.length - 1];
-      
-      // Use the actual field names from Elasticsearch
-      const yoyGrowth = latestHPI?.percentageChangeYearly || null;
-      const currentIndex = latestHPI?.hpiIndex || null;
-
-      let trend = 'stable';
-      if (yoyGrowth !== null) {
-        if (yoyGrowth > 2) trend = 'rising';
-        else if (yoyGrowth < -2) trend = 'falling';
-      }
-
-      return {
-        ...property,
-        hpiData: {
-          currentIndex: currentIndex,
-          yoyGrowth: yoyGrowth,
-          trend: trend,
-          lastUpdated: latestHPI?.date || null,
-          region: hpiRegion,
-          regionLabel: latestHPI?.regionLabel || localAuthority,
-          averagePrice: latestHPI?.averagePrice || null,
-          salesVolume: latestHPI?.salesVolume || null,
-          source: 'elasticsearch'
-        },
-        marketTrends: {
-          region: hpiRegion,
-          regionLabel: latestHPI?.regionLabel || localAuthority,
-          latestHPI: currentIndex,
-          latestDate: latestHPI?.date || null,
-          monthlyChange: yoyGrowth ? yoyGrowth / 12 : null,
-          averagePrice: latestHPI?.averagePrice || null,
-          salesVolume: latestHPI?.salesVolume || null,
-          source: 'elasticsearch'
-        }
-      };
-    });
+    // If no HPI data found, return properties with null HPI data
+    return properties.map(property => ({
+      ...property,
+      hpiData: null
+    }));
 
   } catch (error) {
     console.error('HPI enrichment error:', error);
-    // Return properties without HPI data - no fallbacks
-    return properties.map(property => ({
-      ...property,
-      hpiData: null,
-      marketTrends: null
-    }));
+    return properties;
   }
 }
 
@@ -460,35 +354,12 @@ async function enrichWithSoldPriceData(properties: any[]) {
   }
 }
 
-function estimateBaseRent(property: any): number {
-  // Base rental rates by property type and bedrooms
-  const baseRates = {
-    'Flat': { 1: 600, 2: 750, 3: 900, 4: 1100, 5: 1300 },
-    'Terraced': { 1: 650, 2: 800, 3: 950, 4: 1100, 5: 1300 },
-    'Semi-Detached': { 1: 700, 2: 850, 3: 1000, 4: 1200, 5: 1400 },
-    'Detached': { 1: 800, 2: 1000, 3: 1200, 4: 1400, 5: 1600 },
-    'House': { 1: 700, 2: 850, 3: 1000, 4: 1200, 5: 1400 } // Treat "House" as Semi-Detached
-  };
-
+function estimateBaseRent(property: any, regionCode: string): number {
   const propertyType = property.propertyType || 'Semi-Detached';
   const bedrooms = property.bedrooms || property.habitableRooms || 3;
-  const bedroomCount = Math.min(bedrooms, 5);
   
-  // NE5 area specific rates (higher than general rates)
-  if (property.postcode?.startsWith('NE5')) {
-    const ne5Rates = {
-      'Flat': { 1: 650, 2: 800, 3: 950, 4: 1150, 5: 1350 },
-      'Terraced': { 1: 700, 2: 850, 3: 1000, 4: 1150, 5: 1350 },
-      'Semi-Detached': { 1: 750, 2: 900, 3: 1050, 4: 1250, 5: 1450 },
-      'Detached': { 1: 850, 2: 1050, 3: 1250, 4: 1450, 5: 1650 },
-      'House': { 1: 750, 2: 900, 3: 1050, 4: 1250, 5: 1450 }
-    };
-    return ne5Rates[propertyType as keyof typeof ne5Rates]?.[bedroomCount] || 900;
-  }
-  
-  const baseRate = baseRates[propertyType as keyof typeof baseRates]?.[bedroomCount] || 800;
-  
-  return baseRate;
+  // Use the centralized configuration function
+  return getRentalRate(regionCode, propertyType, bedrooms);
 }
 
 function calculateRentalAdjustments(property: any): number {

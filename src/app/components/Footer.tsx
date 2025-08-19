@@ -38,14 +38,14 @@ export default function Footer({ className = '' }: FooterProps) {
 
   const productLinks = [
     { name: 'Home', href: '/', icon: Home, description: 'Property Intelligence Platform' },
-    { name: 'Deal Analysis', href: '/advanced-deal-analysis', icon: Target, description: 'BMV & investment analysis' },
-    { name: 'Investment Calculator', href: '/deal-calculator', icon: Calculator, description: 'ROI & yield calculations' },
-    { name: 'Market Intelligence', href: '/market-analysis', icon: BarChart3, description: 'Regional market insights' },
-    { name: 'HPI Dashboard', href: '/hpi-dashboard', icon: TrendingUp, description: 'House Price Index data' },
-    { name: 'Valuation', href: '/what-should-i-pay', icon: PoundSterling, description: 'Fair value analysis' },
-    { name: 'Property Analyzer', href: '/watchlist', icon: Eye, description: 'Investment analysis & comparison' },
-    { name: 'Investment Portfolio', href: '/portfolio-tracker', icon: PieChart, description: 'Track your investments' },
-    { name: 'Comprehensive Valuation', href: '/comprehensive-valuation', icon: FileTextIcon, description: 'Detailed property reports' }
+    { name: 'Deal Analysis', href: '/analysis/deal-analysis', icon: Target, description: 'BMV & investment analysis' },
+    { name: 'Investment Calculator', href: '/tools/calculator', icon: Calculator, description: 'ROI & yield calculations' },
+    { name: 'Market Intelligence', href: '/market/analysis', icon: BarChart3, description: 'Regional market insights' },
+    { name: 'HPI Dashboard', href: '/market/hpi', icon: TrendingUp, description: 'House Price Index data' },
+    { name: 'Valuation', href: '/analysis/valuation', icon: PoundSterling, description: 'Fair value analysis' },
+    { name: 'Property Watchlist', href: '/watchlist', icon: Eye, description: 'Investment analysis & comparison' },
+    { name: 'Portfolio Tracker', href: '/tools/portfolio', icon: PieChart, description: 'Track your investments' },
+    { name: 'Comprehensive Valuation', href: '/analysis/comprehensive', icon: FileTextIcon, description: 'Detailed property reports' }
   ];
 
   const companyLinks = [

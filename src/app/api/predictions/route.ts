@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
+import defaultMarketConfig, { 
+  calculateDataConfidence, 
+  calculateValueRange, 
+  getFallbackPropertyValue 
+} from '@/lib/marketConfig';
 import PredictiveModel from '@/lib/predictiveModel';
 import { EnhancedPredictionModel } from '@/lib/enhancedPredictionModel';
 import { mlPredictionEngine } from '../../../lib/mlPredictionEngine';
@@ -37,10 +42,10 @@ export async function GET(request: NextRequest) {
 
     switch (predictionType) {
       case 'comprehensive':
-        results = await performComprehensivePrediction(postcode, number, propertyType, bedrooms, price);
+        results = await performComprehensivePrediction(postcode, number);
         break;
       case 'basic':
-        results = await performBasicPrediction(postcode, propertyType, undefined, false);
+        results = await performBasicPrediction(postcode, number);
         break;
       case 'enhanced':
         if (!number) {
@@ -61,7 +66,7 @@ export async function GET(request: NextRequest) {
             { status: 400 }
           );
         }
-        results = await performPriceIndicatorPrediction(postcode, propertyType, bedrooms, price);
+        results = await performPriceIndicatorPrediction(postcode, number, price);
         break;
       default:
         return NextResponse.json(
@@ -70,11 +75,56 @@ export async function GET(request: NextRequest) {
         );
     }
 
+    // Always apply property type adjustment regardless of method
+    let finalPredictedValue = results.predictedValue;
+    let propertyTypeAdjustment = 1.0;
+    let adjustmentNote = '';
+    
+    try {
+      const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+      
+      if (enhancedResponse.ok) {
+        const enhancedData = await enhancedResponse.json();
+        const property = enhancedData.data?.properties?.[0];
+        
+        if (property?.propertyType === 'Flat') {
+          propertyTypeAdjustment = 0.7; // Flats 30% less than houses
+          adjustmentNote = ' (Flat: 30% reduction applied)';
+        } else if (property?.propertyType === 'Terraced') {
+          propertyTypeAdjustment = 0.8; // Terraced 20% less than houses
+          adjustmentNote = ' (Terraced: 20% reduction applied)';
+        } else if (property?.propertyType === 'Semi-Detached') {
+          propertyTypeAdjustment = 0.9; // Semi-detached 10% less than houses
+          adjustmentNote = ' (Semi-Detached: 10% reduction applied)';
+        } else if (property?.propertyType === 'Detached') {
+          propertyTypeAdjustment = 1.1; // Detached 10% more than houses
+          adjustmentNote = ' (Detached: 10% premium applied)';
+        }
+        
+        if (propertyTypeAdjustment !== 1.0 && finalPredictedValue) {
+          finalPredictedValue = Math.round(finalPredictedValue * propertyTypeAdjustment);
+          console.log(`Applied property type adjustment: ${property.propertyType} -> factor ${propertyTypeAdjustment}, new value: ${finalPredictedValue}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error applying property type adjustment:', error);
+    }
+    
+    // Update the results with adjusted values
+    if (finalPredictedValue !== results.predictedValue) {
+      results.predictedValue = finalPredictedValue;
+      if (results.valueRange?.min && results.valueRange?.max) {
+        results.valueRange.min = Math.round(results.valueRange.min * propertyTypeAdjustment);
+        results.valueRange.max = Math.round(results.valueRange.max * propertyTypeAdjustment);
+      }
+      results.note = (results.note || '') + adjustmentNote;
+    }
+
     const response = NextResponse.json({
       success: true,
       predictionType,
       postcode: postcode.toUpperCase(),
-      ...results
+      prediction: results
     });
 
     return applyRateLimitHeaders(response, rateLimitResult.headers);
@@ -136,10 +186,10 @@ export async function POST(request: NextRequest) {
 
     switch (predictionType) {
       case 'comprehensive':
-        results = await performComprehensivePrediction(postcode, number, propertyType, bedrooms, price);
+        results = await performComprehensivePrediction(postcode, number);
         break;
       case 'basic':
-        results = await performBasicPrediction(postcode, propertyType, currentValue, includeMarketInsights);
+        results = await performBasicPrediction(postcode, number);
         break;
       case 'enhanced':
         if (!number) {
@@ -160,20 +210,20 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-        results = await performPriceIndicatorPrediction(postcode, propertyType, bedrooms, price);
+        results = await performPriceIndicatorPrediction(postcode, number, price);
         break;
       default:
         return NextResponse.json(
           { error: 'Invalid prediction type. Use: comprehensive, basic, enhanced, ml, or price-indicator' },
           { status: 400 }
-        );
+      );
     }
 
     const response = NextResponse.json({
       success: true,
       predictionType,
       postcode: postcode.toUpperCase(),
-      ...results
+      prediction: results
     });
 
     return applyRateLimitHeaders(response, rateLimitResult.headers);
@@ -181,7 +231,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Prediction POST error:', error);
     const errorResponse = NextResponse.json(
-      { 
+      {
         success: false, 
         error: 'Prediction failed',
         details: error instanceof Error ? error.message : 'Unknown error'
@@ -229,10 +279,10 @@ export async function PUT(request: NextRequest) {
           
           switch (predictionType) {
             case 'comprehensive':
-              results = await performComprehensivePrediction(postcode, number, propertyType, bedrooms, price);
+              results = await performComprehensivePrediction(postcode, number);
               break;
             case 'basic':
-              results = await performBasicPrediction(postcode, propertyType, currentValue, false);
+              results = await performBasicPrediction(postcode, number);
               break;
             case 'enhanced':
               if (number) {
@@ -246,7 +296,7 @@ export async function PUT(request: NextRequest) {
               break;
             case 'price-indicator':
               if (propertyType && price) {
-                results = await performPriceIndicatorPrediction(postcode, propertyType, bedrooms, price);
+                results = await performPriceIndicatorPrediction(postcode, number, price);
               } else {
                 results = { error: 'Property type and price required for price indicator' };
               }
@@ -295,331 +345,316 @@ export async function PUT(request: NextRequest) {
 }
 
 // Comprehensive Prediction (combines all methods)
-async function performComprehensivePrediction(postcode: string, number?: string, propertyType?: string, bedrooms?: string, price?: string) {
+async function performComprehensivePrediction(postcode: string, number?: string): Promise<any> {
   try {
-    // Get enhanced property data first (includes HPI growth)
-    let enhancedPropertyData = null;
-    let recentSalesBaseline = 0;
+    // Fetch enhanced property data
+    const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
     
-    try {
-      const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
-      if (enhancedResponse.ok) {
-        const enhancedResult = await enhancedResponse.json();
-        if (enhancedResult.data?.properties?.length > 0) {
-          enhancedPropertyData = enhancedResult.data.properties.find((prop: any) => 
-            prop.address.includes(number || '') || 
-            prop.address.startsWith((number || '') + ',') ||
-            prop.address.startsWith((number || '') + ' ')
-          );
-          
-          if (enhancedPropertyData?.soldPriceData?.priceStats?.averagePrice) {
-            recentSalesBaseline = enhancedPropertyData.soldPriceData.priceStats.averagePrice;
-          }
-        }
-      }
-    } catch (error) {
-      console.log('Could not fetch enhanced property data:', error);
+    if (!enhancedResponse.ok) {
+      return {
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'comprehensive_fallback',
+        dataQuality: 'low',
+        note: 'Unable to fetch enhanced property data'
+      };
     }
 
+    const enhancedPropertyData = await enhancedResponse.json();
+    
+    if (!enhancedPropertyData.data?.properties || enhancedPropertyData.data.properties.length === 0) {
+      return {
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'comprehensive_fallback',
+        dataQuality: 'low',
+        note: 'No property data available'
+      };
+    }
+
+    // Find the specific property by number if provided
+    let property = enhancedPropertyData.data.properties[0]; // Default to first property
+    
+    if (number) {
+      const specificProperty = enhancedPropertyData.data.properties.find((p: any) => 
+        p.address.includes(number) || 
+        p.address.startsWith(number + ' ') ||
+        p.address.startsWith(number + ',')
+      );
+      
+      if (specificProperty) {
+        property = specificProperty;
+        console.log('Found specific property:', property.address);
+      } else {
+        console.log('Specific property not found, using first property:', property.address);
+      }
+    }
+    
+    // Log property details for debugging
+    console.log('Selected property details:', {
+      address: property.address,
+      propertyType: property.propertyType,
+      bedrooms: property.bedrooms,
+      floorArea: property.floorArea,
+      requestedNumber: number
+    });
+    
+    // Get property valuation with property characteristics for accurate analysis
+    const propertyValuationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        postcode,
+        propertyData: {
+          propertyType: property.propertyType,
+          bedrooms: property.bedrooms || property.habitableRooms,
+          floorArea: property.floorArea,
+          address: property.address
+        },
+        analysisType: 'comprehensive'
+      })
+    });
+    
+    let propertyValuationData = null;
+    if (propertyValuationResponse.ok) {
+      propertyValuationData = await propertyValuationResponse.json();
+      console.log('Property valuation data:', propertyValuationData);
+    }
+    
     // Get market analysis
     const marketAnalysis = await getMarketAnalysis(postcode, number);
     
-    // If we have enhanced property data, use its HPI growth data
-    if (enhancedPropertyData?.hpiData) {
-      if (marketAnalysis) {
-        marketAnalysis.yoyGrowth = enhancedPropertyData.hpiData.yoyGrowth;
-        marketAnalysis.marketTrend = enhancedPropertyData.hpiData.trend;
-        marketAnalysis.region = enhancedPropertyData.hpiData.regionLabel;
-      }
-    }
-    
-    // Calculate predictions based on real data only
-    const predictions = [];
+    // Calculate prediction using property-specific data
+    let predictions: any[] = [];
     let totalWeight = 0;
     
-    // 1. Recent sales baseline (if available)
-    if (recentSalesBaseline > 0) {
-      const recentSalesPrediction = recentSalesBaseline * (1 + (marketAnalysis?.yoyGrowth || 0) / 100);
-      predictions.push({
-        value: recentSalesPrediction,
-        weight: 0.4,
-        confidence: 0.8,
-        method: 'Recent Sales Baseline',
-        source: 'Sales Data'
-      });
-      totalWeight += 0.4;
-    }
-    
-    // 2. Enhanced prediction (if available)
-    if (enhancedPropertyData?.hpiData?.yoyGrowth !== undefined) {
-      const enhancedPrediction = recentSalesBaseline > 0 ? 
-        recentSalesBaseline * (1 + enhancedPropertyData.hpiData.yoyGrowth / 100) :
-        (enhancedPropertyData?.prediction?.predictedValue || 0);
+    // 1. Property-specific sales data (highest weight)
+    if (propertyValuationData?.marketAnalysis?.averagePrice > 0) {
+      const propertySpecificPrice = propertyValuationData.marketAnalysis.averagePrice;
+      const propertySpecificGrowth = propertyValuationData.marketAnalysis.yoyGrowth || marketAnalysis?.yoyGrowth || defaultMarketConfig.marketAnalysis.defaultYoYGrowth;
       
       predictions.push({
-        value: enhancedPrediction,
-        weight: 0.3,
-        confidence: 0.85,
-        method: 'Enhanced HPI Analysis',
-        source: 'HPI Data'
+        value: Math.round(propertySpecificPrice * (1 + propertySpecificGrowth / 100)),
+        weight: 0.5,
+        source: 'property_specific_sales'
       });
-      totalWeight += 0.3;
+      totalWeight += 0.5;
+      console.log('Added property-specific sales prediction:', propertySpecificPrice);
     }
     
-    // 3. Basic prediction (if available)
-    try {
-      const basicPrediction = await performBasicPrediction(postcode, number);
-      if (basicPrediction && basicPrediction.predictedValue > 0) {
+    // 2. Enhanced HPI Analysis with property characteristics
+    if (enhancedPropertyData.hpiData?.yoyGrowth !== null) {
+      const hpiPrediction = property.currentValue || property.estimatedValue || 0;
+      if (hpiPrediction > 0) {
+        const hpiAdjustedPrediction = hpiPrediction * (1 + enhancedPropertyData.hpiData.yoyGrowth / 100);
         predictions.push({
-          value: basicPrediction.predictedValue,
-          weight: 0.2,
-          confidence: 0.7,
-          method: 'Basic Market Analysis',
-          source: 'Market Data'
+          value: hpiAdjustedPrediction,
+          weight: 0.3,
+          source: 'hpi_analysis'
         });
-        totalWeight += 0.2;
+        totalWeight += 0.3;
       }
-    } catch (error) {
-      console.log('Basic prediction failed:', error);
     }
     
-    // 4. Price indicator prediction (if available)
-    try {
-      const priceIndicatorPrediction = await performPriceIndicatorPrediction(
-        recentSalesBaseline || 0,
-        enhancedPropertyData?.bedrooms || 3,
-        postcode
-      );
-      if (priceIndicatorPrediction && priceIndicatorPrediction.predictedValue > 0) {
-        predictions.push({
-          value: priceIndicatorPrediction.predictedValue,
-          weight: 0.1,
-          confidence: 0.6,
-          method: 'Price Indicator',
-          source: 'Comparable Sales'
-        });
-        totalWeight += 0.1;
-      }
-    } catch (error) {
-      console.log('Price indicator prediction failed:', error);
+    // 3. Market analysis fallback
+    if (marketAnalysis?.averagePrice > 0 && (!propertyValuationData?.marketAnalysis?.averagePrice || propertyValuationData.marketAnalysis.averagePrice === 0)) {
+      predictions.push({
+        value: marketAnalysis.averagePrice,
+        weight: 0.2,
+        source: 'market_analysis_fallback'
+      });
+      totalWeight += 0.2;
     }
     
-    // Calculate weighted average prediction
-    let finalPrediction = 0;
-    let overallConfidence = 0;
+    // Calculate weighted average
+    if (totalWeight === 0) {
+      return {
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'comprehensive_fallback',
+        dataQuality: 'low',
+        note: 'No valid prediction data available'
+      };
+    }
     
-    if (predictions.length > 0 && totalWeight > 0) {
-      const weightedSum = predictions.reduce((sum, pred) => sum + (pred.value * pred.weight), 0);
-      finalPrediction = weightedSum / totalWeight;
-      
-      const confidenceSum = predictions.reduce((sum, pred) => sum + (pred.confidence * pred.weight), 0);
-      overallConfidence = confidenceSum / totalWeight;
+    const weightedSum = predictions.reduce((sum, pred) => sum + (pred.value * pred.weight), 0);
+    let predictedValue = Math.round(weightedSum / totalWeight);
+    
+    // Apply property type adjustments for final accuracy
+    let propertyTypeAdjustment = 1.0;
+    let adjustmentNote = '';
+    
+    console.log('Applying property type adjustment for:', property.propertyType);
+    
+    if (property.propertyType === 'Flat') {
+      propertyTypeAdjustment = 0.75; // Flats 25% less than houses
+      adjustmentNote = ' (Flat adjustment: 25% reduction)';
+      console.log('Flat detected - applying 25% reduction');
+    } else if (property.propertyType === 'Terraced') {
+      propertyTypeAdjustment = 0.85; // Terraced 15% less than houses
+      adjustmentNote = ' (Terraced adjustment: 15% reduction)';
+      console.log('Terraced detected - applying 15% reduction');
+    } else if (property.propertyType === 'Semi-Detached') {
+      propertyTypeAdjustment = 0.95; // Semi-detached 5% less than houses
+      adjustmentNote = ' (Semi-detached adjustment: 5% reduction)';
+      console.log('Semi-detached detected - applying 5% reduction');
+    } else if (property.propertyType === 'Detached') {
+      propertyTypeAdjustment = 1.1; // Detached 10% more than houses
+      adjustmentNote = ' (Detached adjustment: 10% premium)';
+      console.log('Detached detected - applying 10% premium');
+    } else if (property.propertyType === 'House') {
+      propertyTypeAdjustment = 1.0; // Houses get no adjustment
+      adjustmentNote = ' (House: no adjustment)';
+      console.log('House detected - no adjustment needed');
     } else {
-      // No valid predictions available
-      finalPrediction = recentSalesBaseline || 0;
-      overallConfidence = 0.5;
+      console.log('Unknown property type:', property.propertyType, '- no adjustment applied');
     }
     
-    // Ensure prediction is realistic (not below recent sales baseline)
-    if (recentSalesBaseline > 0 && finalPrediction < recentSalesBaseline) {
-      finalPrediction = recentSalesBaseline * 1.01; // Minimum 1% above baseline
-      overallConfidence = Math.max(overallConfidence, 0.6);
-    }
+    // Apply the adjustment
+    const originalValue = predictedValue;
+    predictedValue = Math.round(predictedValue * propertyTypeAdjustment);
+    console.log(`Property type adjustment: ${property.propertyType} -> factor ${propertyTypeAdjustment}`);
+    console.log(`Final prediction: ${originalValue} -> ${predictedValue} (${Math.round(propertyTypeAdjustment * 100)}%)`);
     
-    // Calculate value range based on confidence
-    const confidenceRange = 1 - overallConfidence;
-    const minValue = finalPrediction * (1 - confidenceRange);
-    const maxValue = finalPrediction * (1 + confidenceRange);
+    // Calculate confidence and value range
+    const confidence = calculateDataConfidence(predictions.length, 'high');
+    const valueRange = calculateValueRange(predictedValue, confidence);
     
     return {
-      success: true,
-      prediction: {
-        predictedValue: Math.round(finalPrediction),
-        confidence: overallConfidence,
-        valueRange: {
-          min: Math.round(minValue),
-          max: Math.round(maxValue)
-        },
-        method: predictions.length > 0 ? 
-          `${predictions.length} Data Sources (Weighted Average)` : 
-          'Limited Data Available'
-      },
-      marketAnalysis: marketAnalysis || {
-        marketTrend: 'unknown',
-        yoyGrowth: null,
-        marketCondition: 'unknown',
-        region: 'Unknown',
-        dataSource: 'No Data Available',
-        recentSalesCount: 0
-      },
-      modelMetrics: {
-        accuracy: overallConfidence,
-        growthAccuracy: marketAnalysis?.yoyGrowth !== null ? 0.8 : 0.3,
-        marketAccuracy: marketAnalysis ? 0.7 : 0.3
-      },
-      predictions: predictions,
-      dataQuality: {
-        hpiData: enhancedPropertyData?.hpiData ? 'Available' : 'Not Available',
-        salesData: recentSalesBaseline > 0 ? 'Available' : 'Not Available',
-        marketData: marketAnalysis ? 'Available' : 'Not Available'
-      }
+      predictedValue,
+      confidence,
+      valueRange,
+      method: 'property_specific_comprehensive',
+      dataQuality: 'high',
+      dataSources: predictions.map(p => p.source),
+      note: `Based on property-specific data with ${Math.round(propertyTypeAdjustment * 100)}% property type adjustment${adjustmentNote}`
     };
+
   } catch (error) {
     console.error('Comprehensive prediction error:', error);
-    
-    // Return conservative fallback based on recent sales if available
-    try {
-      const salesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
-      if (salesResponse.ok) {
-        const salesData = await salesResponse.json();
-        if (salesData.comparables && salesData.comparables.length > 0) {
-          const recentSales = salesData.comparables
-            .filter((sale: any) => sale.price > 0)
-            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
-          
-          if (recentSales.length > 0) {
-            const latestPrice = recentSales[0].price;
-            const conservativeGrowth = 0.01; // 1% annual growth
-            const monthsSinceLastSale = 6;
-            const fallbackPrediction = latestPrice * (1 + (conservativeGrowth * monthsSinceLastSale / 12));
-            
-            return {
-              prediction: {
-                predictedValue: Math.round(fallbackPrediction),
-                confidence: 0.6,
-                valueRange: {
-                  min: Math.round(fallbackPrediction * 0.95),
-                  max: Math.round(fallbackPrediction * 1.05)
-                },
-                method: 'Conservative Fallback (Recent Sales)'
-              },
-              methods: { basic: null, enhanced: null, ml: null, priceIndicator: null },
-              marketInsights: null,
-              marketAnalysis: { marketTrend: 'stable', yoyGrowth: 0, marketCondition: 'normal', region: 'Unknown' },
-              dataPoints: 1,
-              lastUpdated: new Date().toISOString()
-            };
-          }
-        }
-      }
-    } catch (fallbackError) {
-      console.log('Fallback prediction also failed:', fallbackError);
-    }
-    
-    // Final fallback
     return {
-      prediction: {
-        predictedValue: 95000, // Use the actual purchase price as fallback
-        confidence: 0.5,
-        valueRange: { min: 90000, max: 100000 },
-        method: 'Purchase Price Fallback'
-      },
-      methods: { basic: null, enhanced: null, ml: null, priceIndicator: null },
-      marketInsights: null,
-      marketAnalysis: { marketTrend: 'stable', yoyGrowth: 0, marketCondition: 'normal', region: 'Unknown' },
-      dataPoints: 0,
-      lastUpdated: new Date().toISOString()
+      predictedValue: null,
+      confidence: 0,
+      valueRange: { min: null, max: null },
+      method: 'comprehensive_fallback',
+      dataQuality: 'low',
+      note: 'Error occurred during prediction calculation'
     };
   }
 }
 
 // Basic Prediction (original predictions functionality)
-async function performBasicPrediction(postcode: string, propertyType?: string, currentValue?: number, includeMarketInsights = false) {
+async function performBasicPrediction(postcode: string, number?: string): Promise<any> {
   try {
-    // Fetch historical HPI data for the postcode
-            const hpiResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/hpi/postcode?postcode=${postcode}`);
+    // Fetch recent sales data to establish baseline
+    const salesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
     
-    if (!hpiResponse.ok) {
-      console.log('HPI API response not ok:', hpiResponse.status, hpiResponse.statusText);
-      // Return fallback data instead of failing
+    if (!salesResponse.ok) {
       return {
-        error: 'HPI data unavailable',
-        prediction: {
-          predictedValue: currentValue || 250000,
-          confidence: 60,
-          valueRange: { min: (currentValue || 250000) * 0.9, max: (currentValue || 250000) * 1.1 },
-          method: 'Fallback Basic Model'
-        },
-        marketInsights: null,
-        dataPoints: 0
-      };
-    }
-    
-    const hpiData = await hpiResponse.json();
-
-    if (!hpiData.results || hpiData.results.length === 0) {
-      // Return fallback data instead of failing
-      return {
-        error: 'No historical data available for this postcode',
-        prediction: {
-          predictedValue: currentValue || 95000,
-          confidence: 60,
-          valueRange: { min: (currentValue || 95000) * 0.9, max: (currentValue || 95000) * 1.1 },
-          method: 'Fallback Basic Model'
-        },
-        marketInsights: null,
-        dataPoints: 0
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'basic_fallback',
+        dataQuality: 'low',
+        note: 'Unable to fetch sales data for prediction'
       };
     }
 
-    // Prepare features for prediction
-    const features = {
-      postcode,
-      propertyType: propertyType || 'Unknown',
-      region: hpiData.results[0]?.region || 'Unknown',
-      currentValue,
-      historicalData: hpiData.results.map((result: any) => ({
-        date: result.date,
-        index: result.index,
-        year: result.year,
-        month: result.month,
-      })),
-    };
+    const salesData = await salesResponse.json();
+    
+    const valuation = salesData.marketAnalysis || salesData.data?.marketAnalysis;
+    if (!valuation?.yearlySales || valuation.yearlySales.length === 0) {
+      return {
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'basic_fallback',
+        dataQuality: 'low',
+        note: 'No sales data available for prediction'
+      };
+    }
 
-    // Get prediction
-    const prediction = await predictiveModel.predictPropertyValue(features);
+    // Use actual sales data for prediction
+    const recentSales = valuation.yearlySales;
+    const latestSale = recentSales[recentSales.length - 1];
+    const baselineValue = latestSale.averagePrice || 0;
+    
+    if (baselineValue === 0) {
+      return {
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'basic_fallback',
+        dataQuality: 'low',
+        note: 'No valid sales data for prediction'
+      };
+    }
 
-    // Get market insights if requested
-    let marketInsights = null;
-    if (includeMarketInsights) {
-      try {
-        marketInsights = await predictiveModel.getMarketInsights(
-          features.region,
-          features.historicalData
-        );
-      } catch (insightsError) {
-        console.log('Market insights failed, using fallback:', insightsError);
-        marketInsights = {
-          region: features.region,
-          trend: 'stable',
-          confidence: 60
-        };
+    // Get property characteristics for adjustment
+    const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+    let propertyTypeAdjustment = 1.0;
+    
+    if (enhancedResponse.ok) {
+      const enhancedData = await enhancedResponse.json();
+      const property = enhancedData.data?.properties?.[0];
+      
+      console.log('Basic prediction: Property data:', {
+        address: property?.address,
+        propertyType: property?.propertyType,
+        propertyTypeRaw: JSON.stringify(property?.propertyType),
+        bedrooms: property?.bedrooms,
+        floorArea: property?.floorArea
+      });
+      
+      if (property?.propertyType === 'Flat') {
+        propertyTypeAdjustment = 0.7; // Flats 30% less than houses
+        console.log('Basic prediction: Flat detected - applying 30% reduction');
+      } else if (property?.propertyType === 'Terraced') {
+        propertyTypeAdjustment = 0.8; // Terraced 20% less than houses
+      } else if (property?.propertyType === 'Semi-Detached') {
+        propertyTypeAdjustment = 0.9; // Semi-detached 10% less than houses
+      } else if (property?.propertyType === 'Detached') {
+        propertyTypeAdjustment = 1.1; // Detached 10% more than houses
       }
+      
+      console.log('Basic prediction: Property type adjustment factor:', propertyTypeAdjustment);
+    } else {
+      console.log('Basic prediction: Failed to fetch enhanced property data');
     }
 
+    // Apply conservative growth based on market conditions
+    const growthRate = defaultMarketConfig.predictions.growthMultipliers.conservative;
+    let predictedValue = Math.round(baselineValue * (1 + growthRate / 100));
+    
+    // Apply property type adjustment
+    predictedValue = Math.round(predictedValue * propertyTypeAdjustment);
+    console.log('Basic prediction: Final value after adjustment:', predictedValue, '(factor:', propertyTypeAdjustment, ')');
+    
+    // Calculate confidence and value range
+    const confidence = calculateDataConfidence(recentSales.length, 'medium');
+    const valueRange = calculateValueRange(predictedValue, confidence);
+    
     return {
-      prediction: {
-        predictedValue: prediction.predictedValue,
-        confidence: prediction.confidence,
-        valueRange: prediction.valueRange,
-        method: 'Basic Predictive Model'
-      },
-      marketInsights,
-      dataPoints: features.historicalData.length
+      predictedValue,
+      confidence,
+      valueRange,
+      method: 'recent_sales_baseline_adjusted',
+      dataQuality: 'medium',
+      note: `Based on recent sales data with ${growthRate}% growth and property type adjustment (${propertyTypeAdjustment}x)`
     };
+
   } catch (error) {
     console.error('Basic prediction error:', error);
-    // Return fallback data instead of failing
     return {
-      error: 'Basic prediction failed',
-              prediction: {
-          predictedValue: currentValue || 95000,
-          confidence: 55,
-          valueRange: { min: (currentValue || 95000) * 0.85, max: (currentValue || 95000) * 1.15 },
-          method: 'Fallback Basic Model'
-        },
-      marketInsights: null,
-      dataPoints: 0
+      predictedValue: null,
+      confidence: 0,
+      valueRange: { min: null, max: null },
+      method: 'basic_fallback',
+      dataQuality: 'low',
+      note: 'Error occurred during prediction calculation'
     };
   }
 }
@@ -691,159 +726,178 @@ async function performEnhancedPrediction(postcode: string, number: string) {
 }
 
 // ML Prediction (ml-predictions functionality)
-async function performMLPrediction(postcode: string, propertyType?: string, bedrooms?: string, price?: string) {
+async function performMLPrediction(postcode: string, propertyType?: string, bedrooms?: string, price?: string): Promise<any> {
   try {
-    // Build ML features with proper fallbacks
-    const features = {
-      propertyType: propertyType || 'T',
-      postcode,
-      purchasePrice: price ? parseFloat(price) : 250000,
-      refurbishmentCost: 0,
-      stampDuty: 0,
-      legalFees: 0,
-      mortgageRate: 4.5,
-      ltv: 75,
-      marketTrend: 2.5,
-      locationScore: 7,
-      propertyAge: 25,
-      bedrooms: bedrooms ? parseInt(bedrooms) : 3,
-      propertyCondition: 'Good'
-    };
-
-    // Try to generate ML predictions, but provide fallbacks if it fails
-    let predictions;
-    try {
-      predictions = await mlPredictionEngine.generatePredictions(features);
-    } catch (mlError) {
-      console.log('ML engine failed, using fallback predictions:', mlError);
-      // Provide fallback predictions
-      predictions = {
-        propertyGrowth: 2.5,
-        rentalYield: 4.2,
-        roi: 6.8,
-        confidence: 65,
-        factors: ['Market trend', 'Location', 'Property type'],
-        lastUpdated: new Date().toISOString()
+    // Fetch enhanced property data for ML features
+    const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+    
+    if (!enhancedResponse.ok) {
+      return {
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'ml_fallback',
+        dataQuality: 'low',
+        note: 'Unable to fetch property data for ML prediction'
       };
     }
 
-    return {
-      prediction: {
-        predictedValue: price ? parseFloat(price) * (1 + (predictions.propertyGrowth / 100)) : 250000,
-        confidence: predictions.confidence || 65,
-        valueRange: {
-          min: price ? parseFloat(price) * 0.9 : 225000,
-          max: price ? parseFloat(price) * 1.1 : 275000
-        },
-        method: 'Machine Learning Model'
-      },
-      mlFeatures: features,
-      modelMetrics: {
-        growthAccuracy: predictions.growthAccuracy || 75,
-        rentAccuracy: predictions.rentAccuracy || 70,
-        roiAccuracy: predictions.roiAccuracy || 72,
-        totalPredictions: predictions.totalPredictions || 100
-      }
+    const enhancedPropertyData = await enhancedResponse.json();
+    
+    if (!enhancedPropertyData.data?.properties || enhancedPropertyData.data.properties.length === 0) {
+      return {
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'ml_fallback',
+        dataQuality: 'low',
+        note: 'No property data available for ML prediction'
+      };
+    }
+
+    const property = enhancedPropertyData.data.properties[0];
+    
+    // Prepare features for ML model
+    const features = {
+      postcode: postcode,
+      propertyType: property.propertyType || 'Unknown',
+      bedrooms: property.bedrooms || property.habitableRooms || 0,
+      floorArea: property.floorArea || 0,
+      currentValue: property.currentValue || property.estimatedValue || 0,
+      lastSoldPrice: property.lastSoldPrice || 0,
+      lastSoldDate: property.lastSoldDate || null,
+      hpiGrowth: enhancedPropertyData.hpiData?.yoyGrowth || defaultMarketConfig.marketAnalysis.defaultYoYGrowth,
+      rentalEstimate: enhancedPropertyData.rentalData?.monthly || 0,
+      salesVolume: enhancedPropertyData.soldPriceData?.priceStats?.totalSales || 0,
+      averagePrice: enhancedPropertyData.soldPriceData?.priceStats?.averagePrice || 0,
+      inflationRate: defaultMarketConfig.economicIndicators.inflation.current,
+      projectedInflation: defaultMarketConfig.economicIndicators.inflation.projected,
+      projectedInterestRate: defaultMarketConfig.economicIndicators.interestRates.projected
     };
+
+    // Calculate cumulative inflation impact
+    if (features.lastSoldDate && features.lastSoldPrice > 0) {
+      const soldDate = new Date(features.lastSoldDate);
+      const currentDate = new Date();
+      const yearsSinceSale = (currentDate.getTime() - soldDate.getTime()) / (1000 * 60 * 60 * 24 * 365.25);
+      
+      if (yearsSinceSale > 0) {
+        let cumulative = 1;
+        const inflationRates = [
+          defaultMarketConfig.economicIndicators.inflation.current,
+          defaultMarketConfig.economicIndicators.inflation.projected
+        ];
+        
+        inflationRates.forEach(rate => {
+          cumulative *= (1 + rate / 100);
+        });
+        
+        features.inflationImpact = {
+          yearsSinceSale: Math.round(yearsSinceSale * 100) / 100,
+          cumulative: (cumulative - 1) * 100
+        };
+      }
+    }
+
+    // Use ML model for prediction
+    const mlModel = new PredictiveModel();
+    const mlPrediction = await mlModel.predict(features);
+    
+    if (!mlPrediction || mlPrediction.error) {
+      // Fallback to enhanced prediction if ML fails
+      return await performEnhancedPrediction(postcode, number);
+    }
+
+    // Calculate confidence based on data quality
+    const confidence = calculateDataConfidence(
+      Object.values(features).filter(v => v !== null && v !== undefined && v !== 0).length,
+      'high'
+    );
+    
+    // Calculate value range
+    const valueRange = calculateValueRange(mlPrediction.predictedValue, confidence);
+    
+    return {
+      predictedValue: Math.round(mlPrediction.predictedValue),
+      confidence,
+      valueRange,
+      method: 'ml_model_prediction',
+      dataQuality: 'high',
+      features: Object.keys(features).filter(key => features[key] !== null && features[key] !== undefined),
+      note: `ML model prediction using ${Object.keys(features).filter(key => features[key] !== null && features[key] !== undefined).length} features`
+    };
+
   } catch (error) {
     console.error('ML prediction error:', error);
-    // Return fallback prediction instead of failing
     return {
-      prediction: {
-        predictedValue: price ? parseFloat(price) : 250000,
-        confidence: 60,
-        valueRange: {
-          min: price ? parseFloat(price) * 0.85 : 212500,
-          max: price ? parseFloat(price) * 1.15 : 287500
-        },
-        method: 'Fallback ML Model'
-      },
-      mlFeatures: { postcode, propertyType: propertyType || 'T', bedrooms: bedrooms ? parseInt(bedrooms) : 3 },
-      modelMetrics: { growthAccuracy: 0, rentAccuracy: 0, roiAccuracy: 0, totalPredictions: 0 }
+      predictedValue: null,
+      confidence: 0,
+      valueRange: { min: null, max: null },
+      method: 'ml_fallback',
+      dataQuality: 'low',
+      note: 'Error occurred during ML prediction calculation'
     };
   }
 }
 
 // Price Indicator Prediction (enhanced-price-indicator functionality)
-async function performPriceIndicatorPrediction(postcode: string, propertyType: string, price: string, bedrooms?: string) {
+async function performPriceIndicatorPrediction(postcode: string, number?: string, price?: string): Promise<any> {
   try {
-    const priceNum = parseFloat(price);
-    const bedroomsNum = bedrooms ? parseInt(bedrooms) : undefined;
-
-    if (isNaN(priceNum)) {
+    if (!price) {
       return {
-        error: 'Invalid price parameter',
-        indicator: null
+        predictedValue: null,
+        confidence: 0,
+        valueRange: { min: null, max: null },
+        method: 'price_indicator_fallback',
+        dataQuality: 'low',
+        note: 'No price provided for price indicator prediction'
       };
     }
 
-    // Map postcode to region for HPI data
-    const region = getRegionFromPostcode(postcode);
-
-    // Try to fetch HPI data and comparables, but provide fallbacks if they fail
-    let hpiData: any[] = [];
-    let comparables: any[] = [];
+    const priceNum = parseFloat(price) || getFallbackPropertyValue(postcode, 'Unknown');
     
-    try {
-      hpiData = await fetchHpiData(region);
-    } catch (hpiError) {
-      console.log('HPI data fetch failed, using fallback:', hpiError);
-      hpiData = [];
-    }
+    // Fetch market analysis for growth calculation
+    const marketResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
     
-    try {
-      comparables = await fetchComparableProperties(postcode, propertyType, bedroomsNum);
-    } catch (compError) {
-      console.log('Comparables fetch failed, using fallback:', compError);
-      comparables = [];
+    let growthRate = defaultMarketConfig.predictions.growthMultipliers.moderate;
+    let confidence = defaultMarketConfig.predictions.defaultConfidence;
+    
+    if (marketResponse.ok) {
+      const marketData = await marketResponse.json();
+      const valuation = marketData.marketAnalysis || marketData.data?.marketAnalysis;
+      if (valuation?.yoyGrowth !== null && valuation?.yoyGrowth !== undefined) {
+        growthRate = valuation.yoyGrowth;
+        confidence = calculateDataConfidence(
+          valuation.totalSales || 1,
+          'medium'
+        );
+      }
     }
 
-    // Get enhanced price indicator with fallback
-    let indicator;
-    try {
-      indicator = getOptimizedPriceIndicator(
-        priceNum,
-        comparables,
-        propertyType,
-        bedroomsNum,
-        hpiData
-      );
-    } catch (indicatorError) {
-      console.log('Price indicator calculation failed, using fallback:', indicatorError);
-      // Provide fallback indicator
-      indicator = {
-        predictedValue: priceNum,
-        confidence: 65,
-        valueRange: { min: priceNum * 0.9, max: priceNum * 1.1 },
-        method: 'Fallback Price Indicator'
-      };
-    }
-
+    // Calculate prediction based on price and growth
+    const predictedValue = Math.round(priceNum * (1 + growthRate / 100));
+    
+    // Calculate value range
+    const valueRange = calculateValueRange(predictedValue, confidence);
+    
     return {
-      indicator: {
-        predictedValue: indicator.predictedValue || priceNum,
-        confidence: indicator.confidence || 70,
-        valueRange: indicator.valueRange || { min: priceNum * 0.9, max: priceNum * 1.1 },
-        method: indicator.method || 'Enhanced Price Indicator'
-      },
-      region,
-      hpiDataAvailable: hpiData.length > 0,
-      comparablesCount: comparables.length
+      predictedValue,
+      confidence,
+      valueRange,
+      method: 'price_indicator_growth',
+      dataQuality: confidence > defaultMarketConfig.dataQuality.confidenceThresholds.high ? 'high' : 'medium',
+      note: `Based on provided price with ${growthRate}% market growth`
     };
+
   } catch (error) {
     console.error('Price indicator prediction error:', error);
-    // Return fallback instead of failing
-    const priceNum = parseFloat(price) || 250000;
     return {
-      indicator: {
-        predictedValue: priceNum,
-        confidence: 60,
-        valueRange: { min: priceNum * 0.85, max: priceNum * 1.15 },
-        method: 'Fallback Price Indicator'
-      },
-      region: 'Unknown',
-      hpiDataAvailable: false,
-      comparablesCount: 0
+      predictedValue: null,
+      confidence: 0,
+      valueRange: { min: null, max: null },
+      method: 'price_indicator_fallback',
+      dataQuality: 'low',
+      note: 'Error occurred during price indicator prediction calculation'
     };
   }
 }
@@ -851,104 +905,59 @@ async function performPriceIndicatorPrediction(postcode: string, propertyType: s
 // Helper Functions
 async function getMarketAnalysis(postcode: string, number?: string) {
   try {
-    // Try to get market analysis from enhanced property search first (most reliable)
+    // 1) Prefer the valuation API which returns full marketAnalysis (averagePrice, yearlySales, yoyGrowth, etc.)
+    try {
+      const valuationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
+      if (valuationResponse.ok) {
+        const valuationResult = await valuationResponse.json();
+        const market = valuationResult.marketAnalysis || valuationResult.data?.marketAnalysis;
+        if (market && (Array.isArray(market.yearlySales) || typeof market.averagePrice === 'number')) {
+          // If yoyGrowth is missing, compute from last two years when available
+          if ((market.yoyGrowth === undefined || market.yoyGrowth === null) && Array.isArray(market.yearlySales) && market.yearlySales.length >= 2) {
+            const ys = market.yearlySales;
+            const current = ys[ys.length - 1];
+            const prev = ys[ys.length - 2];
+            if (current?.averagePrice && prev?.averagePrice) {
+              market.yoyGrowth = ((current.averagePrice - prev.averagePrice) / prev.averagePrice) * 100;
+            }
+          }
+          return market;
+        }
+      }
+    } catch (valuationError) {
+      console.log('Property valuation API fetch failed:', valuationError);
+    }
+
+    // 2) Fallback to enhanced property search minimal insights
     try {
       const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
       if (enhancedResponse.ok) {
         const enhancedResult = await enhancedResponse.json();
         if (enhancedResult.data?.properties?.length > 0) {
           const targetProperty = enhancedResult.data.properties.find((prop: any) => 
-            prop.address.includes(number || '') || 
-            prop.address.startsWith((number || '') + ',') ||
-            prop.address.startsWith((number || '') + ' ')
+            (number && typeof prop.address === 'string' && (
+              prop.address.includes(number) || 
+              prop.address.startsWith(`${number},`) ||
+              prop.address.startsWith(`${number} `)
+            )) || true // allow any if number not provided
           );
-          
-          if (targetProperty?.hpiData?.yoyGrowth !== undefined) {
-            const yoyGrowth = targetProperty.hpiData.yoyGrowth;
-            let marketTrend = 'stable';
-            let marketCondition = 'normal';
-            
-            if (yoyGrowth > 2) {
-              marketTrend = 'rising';
-              marketCondition = 'strong';
-            } else if (yoyGrowth > 0) {
-              marketTrend = 'rising';
-              marketCondition = 'normal';
-            } else if (yoyGrowth > -2) {
-              marketTrend = 'stable';
-              marketCondition = 'normal';
-            } else {
-              marketTrend = 'falling';
-              marketCondition = 'weak';
-            }
-            
+          const yoyGrowth = targetProperty?.hpiData?.yoyGrowth;
+          if (yoyGrowth !== undefined && yoyGrowth !== null) {
             return {
-              marketTrend,
+              marketTrend: yoyGrowth > 2 ? 'rising' : yoyGrowth < -2 ? 'falling' : 'stable',
               yoyGrowth: Math.round(yoyGrowth * 100) / 100,
-              marketCondition,
-              region: targetProperty.hpiData.regionLabel || 'Unknown',
-              dataSource: 'Enhanced Property Data',
-              recentSalesCount: targetProperty.soldPriceData?.recentSales?.length || 0
-            };
+              region: targetProperty?.hpiData?.regionLabel || 'Unknown',
+              recentSalesCount: targetProperty?.soldPriceData?.recentSales?.length || 0
+            } as any;
           }
         }
       }
     } catch (enhancedError) {
       console.log('Enhanced property data fetch failed:', enhancedError);
     }
-    
-    // Fallback to property valuation API
-    try {
-      const valuationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
-      if (valuationResponse.ok) {
-        const valuationResult = await valuationResponse.json();
-        
-        if (valuationResult.marketAnalysis?.yearlySales && valuationResult.marketAnalysis.yearlySales.length > 0) {
-          const yearlySales = valuationResult.marketAnalysis.yearlySales;
-          const recentSales = yearlySales.slice(-2); // Last 2 years
-          
-          if (recentSales.length >= 2) {
-            const currentYear = recentSales[recentSales.length - 1];
-            const previousYear = recentSales[recentSales.length - 2];
-            
-            const yoyGrowth = ((currentYear.averagePrice - previousYear.averagePrice) / previousYear.averagePrice) * 100;
-            
-            let marketTrend = 'stable';
-            let marketCondition = 'normal';
-            
-            if (yoyGrowth > 2) {
-              marketTrend = 'rising';
-              marketCondition = 'strong';
-            } else if (yoyGrowth > 0) {
-              marketTrend = 'rising';
-              marketCondition = 'normal';
-            } else if (yoyGrowth > -2) {
-              marketTrend = 'stable';
-              marketCondition = 'normal';
-            } else {
-              marketTrend = 'falling';
-              marketCondition = 'weak';
-            }
-            
-            return {
-              marketTrend,
-              yoyGrowth: Math.round(yoyGrowth * 100) / 100,
-              marketCondition,
-              region: 'Unknown',
-              dataSource: 'Property Valuation API',
-              recentSalesCount: yearlySales.length
-            };
-          }
-        }
-      }
-    } catch (valuationError) {
-      console.log('Property valuation API fetch failed:', valuationError);
-    }
-    
-    // No market data available - return null instead of hard-coded values
-    console.log('No market analysis data available for postcode:', postcode);
+
+    // No market data available
     return null;
-    
   } catch (error) {
     console.error('Market analysis error:', error);
     return null;

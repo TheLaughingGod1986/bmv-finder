@@ -180,7 +180,7 @@ export default function EnhancedPredictionCard({ data, loading = false }: Enhanc
                 </Badge>
                 <Badge variant="outline" className="flex items-center gap-1">
                   <Target className="h-3 w-3" />
-                  {Math.round(data.prediction.confidence * 100)}%
+                  {Math.round(data.prediction.confidence)}%
                 </Badge>
               </div>
             </div>
