@@ -145,11 +145,52 @@ interface MarketTrendsData {
   }>;
 }
 
+interface InvestmentRecommendationData {
+  recommendation: {
+    action: 'BUY' | 'HOLD' | 'SELL' | 'WAIT';
+    confidence: number;
+    reasoning: string[];
+    riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+    timeHorizon: 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
+    expectedReturn: number;
+    riskFactors: Array<{
+      category: string;
+      score: number;
+      description: string;
+      mitigation: string;
+    }>;
+    portfolioImpact: {
+      diversification: number;
+      riskAdjustment: number;
+      correlation: number;
+      rebalancing: boolean;
+    };
+  };
+  strategies: Array<{
+    name: string;
+    description: string;
+    riskTolerance: 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE';
+    timeHorizon: 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
+    targetReturn: number;
+    maxRisk: number;
+    recommendations: string[];
+  }>;
+  analysis: {
+    postcode: string;
+    propertyAddress: string;
+    propertyType: string;
+    bedrooms: number;
+    epcRating: string;
+    timestamp: string;
+  };
+}
+
 export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysisComplete }: EnhancedSearchResultsProps) {
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
   const [valuationData, setValuationData] = useState<ValuationData | null>(null);
   const [predictionData, setPredictionData] = useState<PredictionData | null>(null);
   const [marketTrendsData, setMarketTrendsData] = useState<MarketTrendsData | null>(null);
+  const [investmentRecommendationData, setInvestmentRecommendationData] = useState<InvestmentRecommendationData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -201,6 +242,13 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
       if (trendsResponse.ok) {
         const trendsResult = await trendsResponse.json();
         setMarketTrendsData(trendsResult.data);
+      }
+
+      // Fetch investment recommendations
+      const recommendationsResponse = await fetch(`/api/investment-recommendations?postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
+      if (recommendationsResponse.ok) {
+        const recommendationsResult = await recommendationsResponse.json();
+        setInvestmentRecommendationData(recommendationsResult.data);
       }
 
       setLoading(false);
@@ -402,9 +450,10 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
     { id: 'predictions', label: 'AI Predictions', icon: Zap },
     { id: 'comparables', label: 'Comparables', icon: Building2 },
     { id: 'valuation', label: 'Predicted Valuation', icon: Calculator },
-            { id: 'property-analysis', label: 'Property Analysis', icon: Building2 },
-        { id: 'market-trends', label: 'Market Trends', icon: TrendingUp },
-      ];
+    { id: 'property-analysis', label: 'Property Analysis', icon: Building2 },
+    { id: 'market-trends', label: 'Market Trends', icon: TrendingUp },
+    { id: 'investment-recommendations', label: 'Investment Recommendations', icon: TrendingUp },
+  ];
 
   return (
     <div className="space-y-6">
@@ -3189,6 +3238,264 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Investment Recommendations Tab */}
+        <div className={activeTab === 'investment-recommendations' ? 'block' : 'hidden'}>
+          <div className="space-y-6">
+            {/* Main Recommendation */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Investment Recommendation</h3>
+              
+              {investmentRecommendationData?.recommendation ? (
+                <div className="space-y-6">
+                  {/* Action Card */}
+                  <div className={`p-6 rounded-lg border-2 ${
+                    investmentRecommendationData.recommendation.action === 'BUY' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
+                    investmentRecommendationData.recommendation.action === 'SELL' ? 'bg-gradient-to-r from-red-50 to-rose-50 border-red-200' :
+                    investmentRecommendationData.recommendation.action === 'HOLD' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' :
+                    'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200'
+                  }`}>
+                    <div className="text-center">
+                      <div className={`text-4xl font-bold mb-2 ${
+                        investmentRecommendationData.recommendation.action === 'BUY' ? 'text-green-600' :
+                        investmentRecommendationData.recommendation.action === 'SELL' ? 'text-red-600' :
+                        investmentRecommendationData.recommendation.action === 'HOLD' ? 'text-blue-600' :
+                        'text-yellow-600'
+                      }`}>
+                        {investmentRecommendationData.recommendation.action}
+                      </div>
+                      <div className="text-sm text-gray-600 mb-2">
+                        {investmentRecommendationData.recommendation.action === 'BUY' ? 'Recommended Action' :
+                         investmentRecommendationData.recommendation.action === 'SELL' ? 'Consider Selling' :
+                         investmentRecommendationData.recommendation.action === 'HOLD' ? 'Maintain Position' :
+                         'Wait for Better Conditions'}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Confidence: {investmentRecommendationData.recommendation.confidence}%
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-gray-800">
+                        {investmentRecommendationData.recommendation.expectedReturn > 0 ? '+' : ''}{investmentRecommendationData.recommendation.expectedReturn}%
+                      </div>
+                      <div className="text-sm text-gray-600">Expected Return</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className={`text-2xl font-bold ${
+                        investmentRecommendationData.recommendation.riskLevel === 'LOW' ? 'text-green-600' :
+                        investmentRecommendationData.recommendation.riskLevel === 'MEDIUM' ? 'text-yellow-600' :
+                        'text-red-600'
+                      }`}>
+                        {investmentRecommendationData.recommendation.riskLevel}
+                      </div>
+                      <div className="text-sm text-gray-600">Risk Level</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-gray-800">
+                        {investmentRecommendationData.recommendation.timeHorizon.replace('_', ' ')}
+                      </div>
+                      <div className="text-sm text-gray-600">Time Horizon</div>
+                    </div>
+                    <div className="text-center p-4 bg-gray-50 rounded-lg">
+                      <div className="text-2xl font-bold text-gray-800">
+                        {investmentRecommendationData.recommendation.portfolioImpact.diversification}%
+                      </div>
+                      <div className="text-sm text-gray-600">Diversification</div>
+                    </div>
+                  </div>
+
+                  {/* Reasoning */}
+                  <div>
+                    <h4 className="font-medium text-gray-700 mb-3">Recommendation Reasoning</h4>
+                    <div className="space-y-2">
+                      {investmentRecommendationData.recommendation.reasoning.map((reason, index) => (
+                        <div key={index} className="flex items-start gap-2">
+                          <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                          <span className="text-sm text-gray-700">{reason}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-center py-8">
+                  Investment recommendations not available
+                </div>
+              )}
+            </div>
+
+            {/* Risk Assessment */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Risk Assessment</h3>
+              
+              {investmentRecommendationData?.recommendation?.riskFactors ? (
+                <div className="space-y-4">
+                  {investmentRecommendationData.recommendation.riskFactors.map((factor, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="font-medium text-gray-800">{factor.category}</div>
+                          <div className="text-sm text-gray-600 mt-1">{factor.description}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-lg font-semibold ${
+                            factor.score <= 8 ? 'text-green-600' :
+                            factor.score <= 15 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`}>
+                            {factor.score}/25
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {factor.score <= 8 ? 'Low Risk' :
+                             factor.score <= 15 ? 'Medium Risk' :
+                             'High Risk'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <div className="text-xs text-blue-800 font-medium mb-1">Mitigation Strategy:</div>
+                        <div className="text-xs text-blue-700">{factor.mitigation}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-500 text-center py-4">
+                  Risk assessment not available
+                </div>
+              )}
+            </div>
+
+            {/* Portfolio Impact */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Portfolio Impact</h3>
+              
+              {investmentRecommendationData?.recommendation?.portfolioImpact ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-700 mb-2">Diversification Score</h4>
+                      <div className="text-2xl font-bold text-gray-800">
+                        {investmentRecommendationData.recommendation.portfolioImpact.diversification}%
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {investmentRecommendationData.recommendation.portfolioImpact.diversification >= 70 ? 'Excellent diversification' :
+                         investmentRecommendationData.recommendation.portfolioImpact.diversification >= 50 ? 'Good diversification' :
+                         'Consider diversifying further'}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-700 mb-2">Risk Adjustment</h4>
+                      <div className={`text-2xl font-bold ${
+                        investmentRecommendationData.recommendation.portfolioImpact.riskAdjustment >= 0 ? 'text-red-600' : 'text-green-600'
+                      }`}>
+                        {investmentRecommendationData.recommendation.portfolioImpact.riskAdjustment >= 0 ? '+' : ''}{investmentRecommendationData.recommendation.portfolioImpact.riskAdjustment}%
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {investmentRecommendationData.recommendation.portfolioImpact.riskAdjustment >= 0 ? 'Increases portfolio risk' : 'Reduces portfolio risk'}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-700 mb-2">Market Correlation</h4>
+                      <div className="text-2xl font-bold text-gray-800">
+                        {(investmentRecommendationData.recommendation.portfolioImpact.correlation * 100).toFixed(0)}%
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {investmentRecommendationData.recommendation.portfolioImpact.correlation <= 0.3 ? 'Low correlation (good for diversification)' :
+                         investmentRecommendationData.recommendation.portfolioImpact.correlation <= 0.7 ? 'Moderate correlation' :
+                         'High correlation (limited diversification benefit)'}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium text-gray-700 mb-2">Rebalancing</h4>
+                      <div className={`text-2xl font-bold ${
+                        investmentRecommendationData.recommendation.portfolioImpact.rebalancing ? 'text-blue-600' : 'text-gray-600'
+                      }`}>
+                        {investmentRecommendationData.recommendation.portfolioImpact.rebalancing ? 'RECOMMENDED' : 'NOT NEEDED'}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {investmentRecommendationData.recommendation.portfolioImpact.rebalancing ? 'Consider rebalancing portfolio' : 'Portfolio is well-balanced'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-gray-500 text-center py-4">
+                  Portfolio impact analysis not available
+                </div>
+              )}
+            </div>
+
+            {/* Investment Strategies */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Investment Strategies</h3>
+              
+              {investmentRecommendationData?.strategies ? (
+                <div className="space-y-4">
+                  {investmentRecommendationData.strategies.map((strategy, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div>
+                          <div className="font-medium text-gray-800">{strategy.name}</div>
+                          <div className="text-sm text-gray-600 mt-1">{strategy.description}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-sm font-semibold px-2 py-1 rounded ${
+                            strategy.riskTolerance === 'CONSERVATIVE' ? 'bg-green-100 text-green-800' :
+                            strategy.riskTolerance === 'MODERATE' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-red-100 text-red-800'
+                          }`}>
+                            {strategy.riskTolerance}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-3">
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-lg font-bold text-gray-800">{strategy.targetReturn}%</div>
+                          <div className="text-xs text-gray-600">Target Return</div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-lg font-bold text-gray-800">{strategy.maxRisk}%</div>
+                          <div className="text-xs text-gray-600">Max Risk</div>
+                        </div>
+                        <div className="text-center p-3 bg-gray-50 rounded-lg">
+                          <div className="text-lg font-bold text-gray-800">
+                            {strategy.timeHorizon.replace('_', ' ')}
+                          </div>
+                          <div className="text-xs text-gray-600">Time Horizon</div>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h5 className="font-medium text-gray-700 mb-2">Key Recommendations:</h5>
+                        <div className="space-y-1">
+                          {strategy.recommendations.map((rec, recIndex) => (
+                            <div key={recIndex} className="flex items-start gap-2">
+                              <div className="w-1.5 h-1.5 bg-blue-600 rounded-full mt-2 flex-shrink-0"></div>
+                              <span className="text-sm text-gray-700">{rec}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-500 text-center py-4">
+                  Investment strategies not available
+                </div>
+              )}
             </div>
           </div>
         </div>
