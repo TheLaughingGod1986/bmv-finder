@@ -98,6 +98,11 @@ interface PredictionData {
     confidence: string;
     factors: string[];
   };
+  marketAnalysis?: {
+    marketTrend?: string;
+    marketCondition?: string;
+    yoyGrowth?: number;
+  };
   modelMetrics: {
     accuracy: number;
     growthAccuracy: number;
@@ -105,10 +110,46 @@ interface PredictionData {
   };
 }
 
+interface MarketTrendsData {
+  cycles: Array<{
+    phase: string;
+    confidence: number;
+    startDate: string;
+    endDate?: string;
+    duration: number;
+    priceChange: number;
+    volumeChange: number;
+    indicators: any[];
+  }>;
+  trends: {
+    shortTerm: string;
+    mediumTerm: string;
+    longTerm: string;
+    momentum: number;
+    strength: number;
+    seasonalPattern?: any;
+  };
+  timing: {
+    recommendation: string;
+    confidence: number;
+    reasoning: string[];
+    riskLevel: string;
+    timeHorizon: string;
+  };
+  indicators: Array<{
+    name: string;
+    value: number;
+    threshold: number;
+    signal: string;
+    weight: number;
+  }>;
+}
+
 export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysisComplete }: EnhancedSearchResultsProps) {
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
   const [valuationData, setValuationData] = useState<ValuationData | null>(null);
   const [predictionData, setPredictionData] = useState<PredictionData | null>(null);
+  const [marketTrendsData, setMarketTrendsData] = useState<MarketTrendsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
@@ -118,12 +159,7 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
   }, [postcode, houseNumber]);
 
   useEffect(() => {
-    // Debug logging for EPC rating
-    if (propertyData) {
-        console.log('Property Data EPC Rating:', propertyData?.epcRating);
-  console.log('Property Data Current Energy Rating:', propertyData?.currentEnergyRating);
-      console.log('Full Property Data:', propertyData);
-    }
+    // Property data is ready for use
   }, [propertyData]);
 
   const fetchData = async () => {
@@ -158,6 +194,13 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
       if (predictionResponse.ok) {
         const predictionResult = await predictionResponse.json();
         setPredictionData(predictionResult);
+      }
+
+      // Fetch market trends data
+      const trendsResponse = await fetch(`/api/market-trends?postcode=${encodeURIComponent(postcode)}`);
+      if (trendsResponse.ok) {
+        const trendsResult = await trendsResponse.json();
+        setMarketTrendsData(trendsResult.data);
       }
 
       setLoading(false);
@@ -359,7 +402,9 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
     { id: 'predictions', label: 'AI Predictions', icon: Zap },
     { id: 'comparables', label: 'Comparables', icon: Building2 },
     { id: 'valuation', label: 'Predicted Valuation', icon: Calculator },
-  ];
+            { id: 'property-analysis', label: 'Property Analysis', icon: Building2 },
+        { id: 'market-trends', label: 'Market Trends', icon: TrendingUp },
+      ];
 
   return (
     <div className="space-y-6">
@@ -1183,13 +1228,22 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                     Historical Sales Timeline (1995-2024)
                   </CardTitle>
                   <p className="text-sm text-indigo-600 mt-1">
-                    {valuationData.marketAnalysis.yearlySales.length} years of market data • {valuationData.marketAnalysis.totalSales} total sales
+                    {(() => {
+                      const yearlyData = valuationData.marketAnalysis.yearlySales
+                        .sort((a, b) => a.year - b.year)
+                        .filter(year => year.averagePrice > 0);
+                      
+                      if (yearlyData.length === 0) return 'No market data available';
+                      
+                      const yearSpan = yearlyData[yearlyData.length - 1].year - yearlyData[0].year + 1;
+                      return `${yearSpan} years of market data • ${valuationData.marketAnalysis.totalSales} total sales`;
+                    })()}
                   </p>
                 </CardHeader>
                 <CardContent>
                   {/* Timeline Chart */}
                   <div className="mb-6">
-                    <div className="relative h-72 bg-gradient-to-br from-white to-gray-50 rounded-xl border border-gray-200 p-8 shadow-lg">
+                    <div className="relative h-72 bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 p-8 shadow-xl">
                       {/* Chart Container */}
                       <div className="relative h-full">
                         {/* Y-axis labels */}
@@ -1215,7 +1269,7 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                             for (let i = 5; i >= 0; i--) {
                               const price = adjustedMin + (priceRange * i / 5);
                               labels.push(
-                                <span key={i} className="text-right block w-16 pr-3 text-gray-600">
+                                <span key={i} className="text-right block w-16 pr-3 text-gray-700 font-medium text-sm">
                                   £{(price / 1000).toFixed(0)}k
                                 </span>
                               );
@@ -1226,25 +1280,39 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         </div>
                         
                         {/* Chart Area */}
-                        <div className="absolute left-20 right-6 top-3 bottom-10">
-                          {/* Grid lines */}
+                        <div className="absolute left-4 right-4 top-3 bottom-10">
+                          {/* Professional grid lines */}
                           <div className="h-full flex flex-col justify-between">
                             {[0, 1, 2, 3, 4, 5].map((i) => (
-                              <div key={i} className="border-b border-gray-200" style={{ 
-                                opacity: i === 0 || i === 5 ? 0.4 : 0.15,
-                                borderStyle: i === 0 || i === 5 ? 'solid' : 'dashed'
+                              <div key={i} className="border-b" style={{ 
+                                opacity: i === 0 || i === 5 ? 0.2 : 0.06,
+                                borderStyle: 'solid',
+                                borderColor: '#e5e7eb',
+                                borderWidth: i === 0 || i === 5 ? '1px' : '0.5px'
                               }} />
                             ))}
                           </div>
                           
-                          {/* Data points and lines */}
-                          <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+                          {/* Bar Chart */}
+                          <div className="flex items-end justify-between gap-3" style={{ height: '100%' }}>
                             {(() => {
-                              const yearlyData = valuationData.marketAnalysis.yearlySales
-                                .sort((a, b) => a.year - b.year)
-                                .filter(year => year.averagePrice > 0);
+                              // Debug: Log the raw data
+                              console.log('Raw marketAnalysis:', valuationData.marketAnalysis);
+                              console.log('Raw yearlySales:', valuationData.marketAnalysis?.yearlySales);
                               
-                              if (yearlyData.length === 0) return null;
+                              const yearlyData = valuationData.marketAnalysis?.yearlySales
+                                ?.sort((a, b) => a.year - b.year)
+                                ?.filter(year => year.averagePrice > 0) || [];
+                              
+                              console.log('Processed yearlyData:', yearlyData);
+                              
+                              if (yearlyData.length === 0) {
+                                console.log('No yearly data available for chart');
+                                return <div className="w-full text-center text-gray-500">No chart data available</div>;
+                              }
+                              
+                              // Debug: Show raw data
+                              console.log('Raw yearlyData for chart:', yearlyData);
                               
                               const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
                               const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
@@ -1255,132 +1323,121 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               const adjustedMin = Math.max(0, minPrice - padding);
                               const priceRange = adjustedMax - adjustedMin;
                               
-                              const points = yearlyData.map((year, index) => {
-                                const x = (index / (yearlyData.length - 1)) * 100;
-                                const y = 100 - ((year.averagePrice - adjustedMin) / priceRange) * 100;
-                                return `${x},${y}`;
-                              }).join(' ');
+                              console.log('Bar chart data:', { 
+                                yearlyData: yearlyData.map(y => ({ year: y.year, price: y.averagePrice })), 
+                                maxPrice, 
+                                minPrice, 
+                                adjustedMax, 
+                                adjustedMin, 
+                                priceRange 
+                              });
                               
-                              return (
-                                <>
-                                  {/* Area fill under the line with better gradient */}
-                                  <defs>
-                                    <linearGradient id="priceGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.15"/>
-                                      <stop offset="50%" stopColor="#6366f1" stopOpacity="0.08"/>
-                                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.02"/>
-                                    </linearGradient>
-                                  </defs>
-                                  
-                                  {/* Subtle area fill */}
-                                  <polygon
-                                    points={`0,100 ${points} 100,100`}
-                                    fill="url(#priceGradient)"
-                                  />
-                                  
-                                  {/* Smooth line with glow effect */}
-                                  <polyline
-                                    points={points}
-                                    fill="none"
-                                    stroke="#6366f1"
-                                    strokeWidth="4"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    style={{ filter: 'drop-shadow(0px 1px 3px rgba(99, 102, 241, 0.3))' }}
-                                  />
-                                  
-                                  {/* Enhanced data points */}
-                                  {yearlyData.map((year, index) => {
-                                    const x = (index / (yearlyData.length - 1)) * 100;
-                                    const y = 100 - ((year.averagePrice - adjustedMin) / priceRange) * 100;
-                                    return (
-                                      <g key={year.year}>
-                                        {/* Outer glow circle */}
-                                        <circle
-                                          cx={x}
-                                          cy={y}
-                                          r="8"
-                                          fill="rgba(99, 102, 241, 0.1)"
-                                          className="animate-pulse"
-                                        />
-                                        {/* Main data point */}
-                                        <circle
-                                          cx={x}
-                                          cy={y}
-                                          r="6"
-                                          fill="#6366f1"
-                                          stroke="white"
-                                          strokeWidth="3"
-                                          style={{ 
-                                            filter: 'drop-shadow(0px 2px 6px rgba(0,0,0,0.15))',
-                                            filter: 'drop-shadow(0px 0px 8px rgba(99, 102, 241, 0.3))'
-                                          }}
-                                        />
-                                        {/* Inner highlight */}
-                                        <circle
-                                          cx={x}
-                                          cy={y}
-                                          r="2"
-                                          fill="rgba(255, 255, 255, 0.8)"
-                                        />
-                                        {/* Interactive hover area */}
-                                        <circle
-                                          cx={x}
-                                          cy={y}
-                                          r="12"
-                                          fill="transparent"
-                                          stroke="transparent"
-                                          className="hover:stroke-indigo-400 hover:stroke-2 transition-all duration-300 cursor-pointer"
-                                        >
-                                          <title>{year.year}: £{year.averagePrice.toLocaleString()}</title>
-                                        </circle>
-                                      </g>
-                                    );
-                                  })}
-                                </>
-                              );
+                              // Debug: Log each year's price for comparison
+                              yearlyData.forEach(year => {
+                                console.log(`Year ${year.year}: £${year.averagePrice} - Peak: ${year.averagePrice === maxPrice}, Trough: ${year.averagePrice === minPrice}`);
+                              });
+                              
+                              // Additional debugging for peak detection
+                              console.log('Peak detection debug:', {
+                                maxPrice,
+                                maxPriceType: typeof maxPrice,
+                                yearsWithMaxPrice: yearlyData.filter(y => y.averagePrice === maxPrice).map(y => y.year),
+                                allPrices: yearlyData.map(y => ({ year: y.year, price: y.averagePrice, type: typeof y.averagePrice })),
+                                '2007 data': yearlyData.find(y => y.year === 2007),
+                                '2007 price': yearlyData.find(y => y.year === 2007)?.averagePrice,
+                                '2007 === maxPrice': yearlyData.find(y => y.year === 2007)?.averagePrice === maxPrice
+                              });
+                              
+                              return yearlyData.map((year, index) => {
+                                // Calculate bar height as percentage of the price range (0-100)
+                                const height = Math.max(0, Math.min(100, ((year.averagePrice - adjustedMin) / priceRange) * 100));
+                                // Use tolerance for floating point comparison to avoid precision issues
+                                const tolerance = 0.01;
+                                const isPeak = Math.abs(year.averagePrice - maxPrice) < tolerance;
+                                const isTrough = Math.abs(year.averagePrice - minPrice) < tolerance;
+                                
+                                console.log(`Bar ${year.year}:`, { 
+                                  price: year.averagePrice, 
+                                  height, 
+                                  isPeak, 
+                                  isTrough, 
+                                  maxPrice, 
+                                  minPrice,
+                                  comparison: `${year.averagePrice} === ${maxPrice}`
+                                });
+                                
+                                // Use simple pixel-based heights for guaranteed visibility
+                                const baseHeight = 200; // Base height in pixels
+                                const barHeight = Math.max(height * 3, 40); // Scale height by 3x for better visibility
+                                
+                                // Debug height calculation
+                                console.log(`Height calculation for ${year.year}:`, {
+                                  height,
+                                  baseHeight,
+                                  calculatedHeight: height * 3,
+                                  finalHeight: barHeight,
+                                  price: year.averagePrice,
+                                  adjustedMin,
+                                  priceRange
+                                });
+                                
+                                // Ensure minimum height for visibility
+                                const finalHeight = Math.max(barHeight, 40);
+                                
+                                // Determine bar color with fallback
+                                let barColor = 'bg-blue-500'; // Default
+                                let forceColor = null; // For inline style override
+                                
+                                if (isPeak) {
+                                  barColor = 'bg-green-500';
+                                  forceColor = '#10b981'; // Force green
+                                  console.log(`Setting ${year.year} to GREEN (peak) - price: ${year.averagePrice}, maxPrice: ${maxPrice}`);
+                                } else if (isTrough) {
+                                  barColor = 'bg-red-500';
+                                  forceColor = '#ef4444'; // Force red
+                                  console.log(`Setting ${year.year} to RED (trough) - price: ${year.averagePrice}, minPrice: ${minPrice}`);
+                                } else {
+                                  forceColor = '#3b82f6'; // Force blue
+                                  console.log(`Setting ${year.year} to BLUE (normal) - price: ${year.averagePrice}`);
+                                }
+                                
+                                return (
+                                  <div key={year.year} className="flex flex-col items-center" style={{ flex: '1 1 0' }}>
+                                    {/* Bar */}
+                                    <div 
+                                      className={`w-full rounded-t transition-all duration-300 hover:opacity-80 cursor-pointer ${barColor}`}
+                                      style={{ 
+                                        height: `${finalHeight}px`,
+                                        minHeight: '40px',
+                                        maxHeight: '200px',
+                                        position: 'relative',
+                                        zIndex: 10,
+                                        // Force the color with inline styles to override any CSS conflicts
+                                        backgroundColor: forceColor,
+                                        // Professional styling
+                                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                                        borderRadius: '4px 4px 0 0'
+                                      }}
+                                      title={`${year.year}: £${year.averagePrice.toLocaleString()}`}
+                                    />
+                                    
+                                    {/* Year label */}
+                                    <div className="text-xs text-gray-700 mt-2 font-semibold">
+                                      {year.year}
+                                    </div>
+                                  </div>
+                                );
+                              });
                             })()}
-                          </svg>
+                          </div>
+                          
+
                         </div>
                         
-                        {/* X-axis labels */}
+                        {/* Bar chart doesn't need separate X-axis labels */}
                         <div className="absolute bottom-0 left-20 right-6 h-8">
-                          {(() => {
-                            const yearlyData = valuationData.marketAnalysis.yearlySales
-                              .sort((a, b) => a.year - b.year)
-                              .filter(year => year.averagePrice > 0);
-                            
-                            if (yearlyData.length === 0) return null;
-                            
-                            // Show first, last, and evenly spaced years
-                            const displayYears = [];
-                            displayYears.push(yearlyData[0]); // First year
-                            
-                            if (yearlyData.length > 2) {
-                              const step = Math.max(1, Math.floor(yearlyData.length / 4));
-                              for (let i = step; i < yearlyData.length - 1; i += step) {
-                                displayYears.push(yearlyData[i]);
-                              }
-                            }
-                            
-                            if (yearlyData.length > 1) {
-                              displayYears.push(yearlyData[yearlyData.length - 1]); // Last year
-                            }
-                            
-                            return displayYears.map((year) => {
-                              const index = yearlyData.indexOf(year);
-                              const x = (index / (yearlyData.length - 1)) * 100;
-                              return (
-                                <div key={year.year} className="absolute text-sm text-gray-700 font-semibold" style={{ 
-                                  left: `${x}%`, 
-                                  transform: 'translateX(-50%)',
-                                  top: '8px'
-                                }}>
-                                  {year.year}
-                                </div>
-                              );
-                            });
-                          })()}
+                          {/* Year labels are now part of each bar */}
                         </div>
                       </div>
                     </div>
@@ -1388,8 +1445,8 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
 
                   {/* Key Insights */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="p-4 bg-white rounded-lg border border-indigo-200">
-                      <div className="text-sm font-semibold text-indigo-800 mb-2">Market Cycles</div>
+                    <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                      <div className="text-sm font-semibold text-slate-800 mb-2">Market Cycles</div>
                       {(() => {
                         const yearlyData = valuationData.marketAnalysis.yearlySales
                           .sort((a, b) => a.year - b.year)
@@ -1436,17 +1493,17 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               <span className="text-gray-600">Current:</span>
                               <span className="font-medium">{currentYear} (£{currentPrice.toLocaleString()})</span>
                             </div>
-                            <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-200">
-                              <div className="font-medium text-indigo-800">{cyclePhase} Phase</div>
-                              <div className="text-indigo-600">{cycleDescription}</div>
+                            <div className="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                              <div className="font-medium text-slate-800">{cyclePhase} Phase</div>
+                              <div className="text-slate-600 text-xs">{cycleDescription}</div>
                             </div>
                           </div>
                         );
                       })()}
                     </div>
                     
-                    <div className="p-4 bg-white rounded-lg border border-indigo-200">
-                      <div className="text-sm font-semibold text-indigo-800 mb-2">Price Evolution</div>
+                    <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
+                      <div className="text-sm font-semibold text-slate-800 mb-2">Price Evolution</div>
                       {(() => {
                         const yearlyData = valuationData.marketAnalysis.yearlySales
                           .sort((a, b) => a.year - b.year)
@@ -1478,8 +1535,8 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               <span className="text-gray-600">Period:</span>
                               <span className="font-medium">{years} years</span>
                             </div>
-                            <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-200">
-                              <div className="text-xs text-indigo-800">
+                            <div className="mt-2 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                              <div className="text-xs text-slate-800">
                                 <strong>Market Performance:</strong> {totalGrowth >= 0 ? 'Positive' : 'Negative'} long-term growth
                                 {totalGrowth >= 0 ? ` with ${annualGrowth.toFixed(1)}% annual average` : ''}
                               </div>
@@ -1491,8 +1548,8 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                   </div>
 
                   {/* Data Quality Indicator */}
-                  <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-                    <div className="text-xs text-indigo-800 text-center">
+                  <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="text-xs text-slate-800 text-center">
                       <strong>Data Quality:</strong> {valuationData.marketAnalysis.yearlySales.length >= 20 ? 'Excellent' : 
                         valuationData.marketAnalysis.yearlySales.length >= 15 ? 'Very Good' :
                         valuationData.marketAnalysis.yearlySales.length >= 10 ? 'Good' :
@@ -2503,6 +2560,638 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
             </div>
           </div>
         )}
+
+        {/* Comparables Tab */}
+        <div className={activeTab === 'comparables' ? 'block' : 'hidden'}>
+          <div className="space-y-6">
+            {/* Sales History */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Sales History</h3>
+              
+              {valuationData?.comparables && valuationData.comparables.length > 0 ? (
+                <div className="space-y-4">
+                  {valuationData.comparables.slice(0, 10).map((sale: any, index: number) => {
+                    const saleDate = new Date(sale.date);
+                    const enrichedSale = {
+                      ...sale,
+                      bedrooms: propertyData?.bedrooms || 'Unknown',
+                      propertyType: propertyData?.propertyType || 'Unknown',
+                      epcRating: propertyData?.epcRating || 'Unknown'
+                    };
+                    
+                    return (
+                      <div key={index} className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm text-gray-500">
+                              {saleDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              Property {houseNumber} • {enrichedSale.bedrooms} {enrichedSale.bedrooms === 1 ? 'bedroom' : 'bedrooms'} • {enrichedSale.propertyType}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              EPC: {enrichedSale.epcRating}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-semibold text-gray-800">£{sale.price.toLocaleString()}</div>
+                          <div className="text-xs text-gray-500">Original Price</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Building2 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <p>No comparable sales data available</p>
+                </div>
+              )}
+            </div>
+
+            {/* Recent Sales Adjustments */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Recent Sales Adjustments</h3>
+              
+              {valuationData?.comparables && valuationData.comparables.length > 0 ? (
+                <div className="space-y-4">
+                  {valuationData.comparables.slice(0, 3).map((sale: any, index: number) => {
+                    // Enrich sale data with property characteristics
+                    const enrichedSale = {
+                      ...sale,
+                      bedrooms: propertyData?.bedrooms || 'Unknown',
+                      epcRating: propertyData?.epcRating || 'Unknown',
+                      propertyType: propertyData?.propertyType || 'Unknown'
+                    };
+                    
+                    return (
+                      <div key={index} className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
+                        <div className="flex justify-between items-start mb-2">
+                          <div className="flex-1">
+                            <div className="font-semibold text-gray-800 text-sm">Property {sale.address}</div>
+                            <div className="text-xs text-gray-500 mt-1">{formatDate(sale.date)}</div>
+                            <div className="text-xs text-gray-400 mt-1">
+                              {enrichedSale.bedrooms} {enrichedSale.bedrooms === 1 ? 'bedroom' : 'bedrooms'} • {enrichedSale.propertyType} • EPC: {enrichedSale.epcRating}
+                            </div>
+                          </div>
+                          <div className="text-right ml-4">
+                            <div className="text-xs text-gray-500 line-through">{formatCurrency(sale.price)}</div>
+                            <div className="font-bold text-blue-700 text-sm">{formatCurrency(enrichedSale.adjustedPrice)}</div>
+                          </div>
+                        </div>
+                        {sale.adjustmentDetails && sale.adjustmentDetails !== 'none' && (
+                          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-2 border border-blue-200">
+                            <div className="text-xs text-blue-800 font-medium mb-1">
+                              Adjustment Breakdown:
+                            </div>
+                            <div className="text-xs text-blue-700 leading-relaxed">
+                              {sale.adjustmentDetails}
+                            </div>
+                            <div className="text-xs text-blue-600 mt-2 font-semibold">
+                              Total: <span className="bg-blue-200 px-2 py-1 rounded">{sale.totalAdjustment > 0 ? '+' : ''}{sale.totalAdjustment}%</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <BarChart3 className="h-12 w-12 mx-auto text-gray-300 mb-3" />
+                  <p>No adjustment data available</p>
+                </div>
+                )}
+            </div>
+          </div>
+        </div>
+
+        {/* Property Analysis Tab */}
+        <div className={activeTab === 'property-analysis' ? 'block' : 'hidden'}>
+          <div className="space-y-6">
+            {/* Property Characteristics vs Area Averages */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Property Characteristics vs Area Averages</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Property Details */}
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3">This Property</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-sm text-gray-600">Property Type</span>
+                      <span className="font-semibold text-blue-800">{propertyData?.propertyType || 'Unknown'}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-sm text-gray-600">Bedrooms</span>
+                      <span className="font-semibold text-blue-800">{propertyData?.bedrooms || 'Unknown'}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-sm text-gray-600">Floor Area</span>
+                      <span className="font-semibold text-blue-800">{propertyData?.floorArea ? `${propertyData.floorArea}m²` : 'Unknown'}</span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                      <span className="text-sm text-gray-600">EPC Rating</span>
+                      <span className="font-semibold text-blue-800">{propertyData?.epcRating || 'Unknown'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Area Averages */}
+                <div>
+                  <h4 className="font-medium text-gray-700 mb-3">Area Averages</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-gray-600">Avg Bedrooms</span>
+                      <span className="font-semibold text-gray-800">
+                        {(() => {
+                          const avgBedrooms = valuationData?.comparables?.reduce((sum: number, sale: any) => 
+                            sum + (sale.bedrooms || 3), 0) / (valuationData?.comparables?.length || 1);
+                          return avgBedrooms ? avgBedrooms.toFixed(1) : 'Unknown';
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-gray-600">Avg Floor Area</span>
+                      <span className="font-semibold text-gray-800">
+                        {(() => {
+                          const avgArea = valuationData?.comparables?.reduce((sum: number, sale: any) => 
+                            sum + (sale.floorArea || 80), 0) / (valuationData?.comparables?.length || 1);
+                          return avgArea ? `${avgArea.toFixed(0)}m²` : 'Unknown';
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-gray-600">Most Common EPC</span>
+                      <span className="font-semibold text-gray-800">
+                        {(() => {
+                          const epcCounts: { [key: string]: number } = {};
+                          valuationData?.comparables?.forEach((sale: any) => {
+                            const epc = sale.epcRating || 'Unknown';
+                            epcCounts[epc] = (epcCounts[epc] || 0) + 1;
+                          });
+                          const mostCommon = Object.entries(epcCounts).sort((a, b) => b[1] - a[1])[0];
+                          return mostCommon ? mostCommon[0] : 'Unknown';
+                        })()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <span className="text-sm text-gray-600">Market Average Price</span>
+                      <span className="font-semibold text-gray-800">
+                        {valuationData?.marketAnalysis?.averagePrice ? 
+                          `£${valuationData.marketAnalysis.averagePrice.toLocaleString()}` : 'Unknown'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Property Market Positioning */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Market Positioning</h3>
+              
+              {(() => {
+                const currentPrice = predictionData?.prediction?.predictedValue;
+                const marketAverage = valuationData?.marketAnalysis?.averagePrice;
+                
+                if (!currentPrice || !marketAverage) {
+                  return <div className="text-gray-500 text-center py-4">Market positioning data not available</div>;
+                }
+
+                const difference = currentPrice - marketAverage;
+                const percentageDiff = (difference / marketAverage) * 100;
+                const isAboveMarket = difference > 0;
+                
+                return (
+                  <div className="space-y-4">
+                    <div className={`p-4 rounded-lg border-2 ${isAboveMarket ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold text-gray-800">
+                            {isAboveMarket ? 'Above Market Average' : 'Below Market Average'}
+                          </div>
+                          <div className="text-sm text-gray-600 mt-1">
+                            {isAboveMarket ? 'This property is positioned above the area average' : 'This property is positioned below the area average'}
+                          </div>
+                        </div>
+                        <div className={`text-2xl font-bold ${isAboveMarket ? 'text-green-600' : 'text-red-600'}`}>
+                          {isAboveMarket ? '+' : ''}{percentageDiff.toFixed(1)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-800">
+                          £{currentPrice.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-600">Predicted Value</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-800">
+                          £{marketAverage.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-600">Market Average</div>
+                      </div>
+                      <div className="text-center p-4 bg-gray-50 rounded-lg">
+                        <div className={`text-2xl font-bold ${isAboveMarket ? 'text-green-600' : 'text-red-600'}`}>
+                          £{Math.abs(difference).toLocaleString()}
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          {isAboveMarket ? 'Premium' : 'Discount'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Detailed Adjustment Breakdowns */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Adjustment Analysis</h3>
+              
+              <div className="space-y-4">
+                {valuationData?.comparables?.slice(0, 5).map((sale: any, index: number) => (
+                  <div key={index} className="border border-gray-200 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <div className="font-semibold text-gray-800">Property {sale.address}</div>
+                        <div className="text-sm text-gray-600">{formatDate(sale.date)}</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xs text-gray-500 line-through">£{sale.price.toLocaleString()}</div>
+                        <div className="font-bold text-blue-700">£{sale.adjustedPrice.toLocaleString()}</div>
+                      </div>
+                    </div>
+                    
+                    {sale.adjustmentDetails && sale.adjustmentDetails !== 'none' && (
+                      <div className="bg-blue-50 rounded-lg p-3 border border-blue-200">
+                        <div className="text-xs text-blue-800 font-medium mb-2">Adjustment Breakdown:</div>
+                        <div className="text-xs text-blue-700 leading-relaxed">
+                          {sale.adjustmentDetails}
+                        </div>
+                        <div className="text-xs text-blue-600 mt-2 font-semibold">
+                          Total Adjustment: <span className="bg-blue-200 px-2 py-1 rounded">
+                            {sale.totalAdjustment > 0 ? '+' : ''}{sale.totalAdjustment}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Property Quality Scoring */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Property Quality Score</h3>
+              
+              {(() => {
+                let totalScore = 0;
+                let maxScore = 0;
+                const factors: { name: string; score: number; maxScore: number; description: string }[] = [];
+
+                // EPC Rating Score (0-25 points)
+                const epcScore = (() => {
+                  const epc = propertyData?.epcRating;
+                  if (!epc || epc === 'Unknown') return { score: 10, maxScore: 25, description: 'EPC Unknown: baseline score' };
+                  
+                  const scores: { [key: string]: number } = { 'A': 25, 'B': 22, 'C': 20, 'D': 15, 'E': 10, 'F': 5, 'G': 0 };
+                  return { score: scores[epc] || 10, maxScore: 25, description: `EPC ${epc}: ${scores[epc] || 10}/25 points` };
+                })();
+                factors.push({ name: 'Energy Efficiency', ...epcScore });
+                totalScore += epcScore.score;
+                maxScore += epcScore.maxScore;
+
+                // Bedroom Score (0-25 points)
+                const bedroomScore = (() => {
+                  const bedrooms = propertyData?.bedrooms;
+                  if (!bedrooms || bedrooms === 'Unknown' || bedrooms === 0) return { score: 15, maxScore: 25, description: 'Bedrooms Unknown: baseline score' };
+                  
+                  const scores: { [key: number]: number } = { 1: 15, 2: 20, 3: 25, 4: 22, 5: 18, 6: 15 };
+                  return { score: scores[bedrooms] || 15, maxScore: 25, description: `${bedrooms} bedrooms: ${scores[bedrooms] || 15}/25 points` };
+                })();
+                factors.push({ name: 'Bedroom Count', ...bedroomScore });
+                totalScore += bedroomScore.score;
+                maxScore += bedroomScore.maxScore;
+
+                // Floor Area Score (0-25 points)
+                const areaScore = (() => {
+                  const area = propertyData?.floorArea;
+                  if (!area || area === 'Unknown' || area === 0) return { score: 15, maxScore: 25, description: 'Floor Area Unknown: baseline score' };
+                  
+                  let score = 15; // Baseline
+                  if (area >= 100) score = 25;
+                  else if (area >= 80) score = 22;
+                  else if (area >= 60) score = 18;
+                  else if (area < 40) score = 10;
+                  
+                  return { score, maxScore: 25, description: `${area}m²: ${score}/25 points` };
+                })();
+                factors.push({ name: 'Floor Area', ...areaScore });
+                totalScore += areaScore.score;
+                maxScore += areaScore.maxScore;
+
+                // Property Type Score (0-25 points)
+                const typeScore = (() => {
+                  const type = propertyData?.propertyType;
+                  if (!type || type === 'Unknown') return { score: 15, maxScore: 25, description: 'Property Type Unknown: baseline score' };
+                  
+                  const scores: { [key: string]: number } = { 'Detached': 25, 'Semi-Detached': 22, 'Terraced': 18, 'House': 20, 'Flat': 15 };
+                  return { score: scores[type] || 15, maxScore: 25, description: `${type}: ${scores[type] || 15}/25 points` };
+                })();
+                factors.push({ name: 'Property Type', ...typeScore });
+                totalScore += typeScore.score;
+                maxScore += typeScore.maxScore;
+
+                const percentage = Math.round((totalScore / maxScore) * 100);
+                const grade = percentage >= 90 ? 'A' : percentage >= 80 ? 'B' : percentage >= 70 ? 'C' : percentage >= 60 ? 'D' : 'E';
+
+                return (
+                  <div className="space-y-4">
+                    {/* Overall Score */}
+                    <div className="text-center p-6 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <div className="text-4xl font-bold text-blue-600 mb-2">{grade}</div>
+                      <div className="text-2xl font-semibold text-gray-800 mb-1">{percentage}%</div>
+                      <div className="text-sm text-gray-600">{totalScore}/{maxScore} points</div>
+                    </div>
+
+                    {/* Factor Breakdown */}
+                    <div className="space-y-3">
+                      {factors.map((factor, index) => (
+                        <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <div className="font-medium text-gray-800">{factor.name}</div>
+                            <div className="text-xs text-gray-600">{factor.description}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-gray-800">{factor.score}/{factor.maxScore}</div>
+                            <div className="text-xs text-gray-500">{Math.round((factor.score / factor.maxScore) * 100)}%</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          </div>
+        </div>
+
+        {/* Market Trends Tab */}
+        <div className={activeTab === 'market-trends' ? 'block' : 'hidden'}>
+          <div className="space-y-6">
+            {/* Market Cycle Analysis */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Market Cycle Analysis</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Current Market Phase */}
+                <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                  <h4 className="font-medium text-gray-700 mb-3">Current Market Phase</h4>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-600 mb-2">
+                      {marketTrendsData?.cycles?.[marketTrendsData.cycles.length - 1]?.phase || 'Unknown'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Market is in {marketTrendsData?.cycles?.[marketTrendsData.cycles.length - 1]?.phase?.toLowerCase() || 'unknown'} phase
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Confidence: {marketTrendsData?.cycles?.[marketTrendsData.cycles.length - 1]?.confidence || 0}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Cycle Duration */}
+                <div className="p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-gray-700 mb-3">Cycle Duration</h4>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600 mb-2">
+                      {marketTrendsData?.cycles?.[marketTrendsData.cycles.length - 1]?.duration || 0} years
+                    </div>
+                    <div className="text-sm text-gray-600">Current cycle length</div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Started: {marketTrendsData?.cycles?.[marketTrendsData.cycles.length - 1]?.startDate ? 
+                        new Date(marketTrendsData.cycles[marketTrendsData.cycles.length - 1].startDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : 'Unknown'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cycle History */}
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-700 mb-3">Recent Market Cycles</h4>
+                <div className="space-y-3">
+                  {marketTrendsData?.cycles?.slice(-3).map((cycle, index) => (
+                    <div key={index} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-gray-800">{cycle.phase} Phase</div>
+                        <div className="text-sm text-gray-600">
+                          {new Date(cycle.startDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })} - 
+                          {cycle.endDate ? new Date(cycle.endDate).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : 'Present'}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-sm ${cycle.priceChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {cycle.priceChange >= 0 ? '+' : ''}{cycle.priceChange.toFixed(1)}%
+                        </div>
+                        <div className="text-xs text-gray-500">Price change</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Market Trends */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Market Trends</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="text-2xl font-bold text-blue-600">{marketTrendsData?.trends?.shortTerm || 'Unknown'}</div>
+                  <div className="text-sm text-gray-600">Short-term</div>
+                  <div className="text-xs text-gray-500">Last 2 years</div>
+                </div>
+                <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-2xl font-bold text-green-600">{marketTrendsData?.trends?.mediumTerm || 'Unknown'}</div>
+                  <div className="text-sm text-gray-600">Medium-term</div>
+                  <div className="text-xs text-gray-500">Last 5 years</div>
+                </div>
+                <div className="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-200">
+                  <div className="text-2xl font-bold text-indigo-600">{marketTrendsData?.trends?.longTerm || 'Unknown'}</div>
+                  <div className="text-sm text-gray-600">Long-term</div>
+                  <div className="text-xs text-gray-500">Since 1995</div>
+                </div>
+              </div>
+
+              {/* Trend Strength & Momentum */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium text-gray-700 mb-2">Trend Strength</h4>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-gray-800">
+                      {marketTrendsData?.trends?.strength ? Math.round(marketTrendsData.trends.strength) : 0}%
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {marketTrendsData?.trends?.strength && marketTrendsData.trends.strength > 70 ? 'Strong upward trend' : 
+                       marketTrendsData?.trends?.strength && marketTrendsData.trends.strength > 50 ? 'Moderate trend' : 'Weak trend'}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h4 className="font-medium text-gray-700 mb-2">Market Momentum</h4>
+                  <div className="text-center">
+                    <div className={`text-2xl font-bold ${(marketTrendsData?.trends?.momentum || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {(marketTrendsData?.trends?.momentum || 0) >= 0 ? '+' : ''}{marketTrendsData?.trends?.momentum || 0}%
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {(marketTrendsData?.trends?.momentum || 0) >= 0 ? 'Positive' : 'Negative'} momentum
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Market Indicators */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Market Indicators</h3>
+              
+              <div className="space-y-4">
+                {marketTrendsData?.indicators?.map((indicator, index) => {
+                  const getIcon = () => {
+                    switch (indicator.signal) {
+                      case 'Bullish': return <CheckCircle className="h-5 w-5 text-green-600" />;
+                      case 'Bearish': return <TrendingDown className="h-5 w-5 text-red-600" />;
+                      default: return <Minus className="h-5 w-5 text-yellow-600" />;
+                    }
+                  };
+
+                  const getBgColor = () => {
+                    switch (indicator.signal) {
+                      case 'Bullish': return 'bg-green-50 border-green-200';
+                      case 'Bearish': return 'bg-red-50 border-red-200';
+                      default: return 'bg-yellow-50 border-yellow-200';
+                    }
+                  };
+
+                  const getTextColor = () => {
+                    switch (indicator.signal) {
+                      case 'Bullish': return 'text-green-600';
+                      case 'Bearish': return 'text-red-600';
+                      default: return 'text-yellow-600';
+                    }
+                  };
+
+                  return (
+                    <div key={index} className={`flex justify-between items-center p-3 ${getBgColor()} rounded-lg border`}>
+                      <div className="flex items-center gap-3">
+                        {getIcon()}
+                        <div>
+                          <div className="font-medium text-gray-800">{indicator.name}</div>
+                          <div className="text-sm text-gray-600">
+                            {indicator.name === 'Price Momentum' && indicator.value > 0.05 ? 'Strong upward movement' :
+                             indicator.name === 'Price Momentum' && indicator.value < -0.05 ? 'Strong downward movement' :
+                             indicator.name === 'HPI Trend' ? `Regional growth ${indicator.value > 0 ? '+' : ''}${indicator.value.toFixed(1)}%` :
+                             indicator.name === 'Market Volatility' && indicator.value > 0.25 ? 'High volatility' :
+                             indicator.name === 'Market Volatility' && indicator.value < 0.15 ? 'Low volatility' :
+                             indicator.name === 'Sales Volume' && indicator.value > 0.1 ? 'Increasing activity' :
+                             indicator.name === 'Sales Volume' && indicator.value < -0.1 ? 'Decreasing activity' :
+                             indicator.name === 'Market Efficiency' && indicator.value > 0.7 ? 'Good price discovery' :
+                             indicator.name === 'Market Efficiency' && indicator.value < 0.5 ? 'Poor price discovery' :
+                             'Moderate activity'}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className={`text-sm font-semibold ${getTextColor()}`}>{indicator.signal}</div>
+                        <div className="text-xs text-gray-500">Weight: {Math.round(indicator.weight * 100)}%</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Market Timing Recommendations */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Market Timing Recommendations</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Recommendation */}
+                <div className={`p-6 rounded-lg border ${
+                  marketTrendsData?.timing?.recommendation === 'Buy' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
+                  marketTrendsData?.timing?.recommendation === 'Sell' ? 'bg-gradient-to-r from-red-50 to-rose-50 border-red-200' :
+                  marketTrendsData?.timing?.recommendation === 'Hold' ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' :
+                  'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200'
+                }`}>
+                  <h4 className="font-medium text-gray-700 mb-3">Current Recommendation</h4>
+                  <div className="text-center">
+                    <div className={`text-4xl font-bold mb-2 ${
+                      marketTrendsData?.timing?.recommendation === 'Buy' ? 'text-green-600' :
+                      marketTrendsData?.timing?.recommendation === 'Sell' ? 'text-red-600' :
+                      marketTrendsData?.timing?.recommendation === 'Hold' ? 'text-blue-600' :
+                      'text-yellow-600'
+                    }`}>
+                      {marketTrendsData?.timing?.recommendation?.toUpperCase() || 'UNKNOWN'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {marketTrendsData?.timing?.recommendation === 'Buy' ? 'Market conditions favor buying' :
+                       marketTrendsData?.timing?.recommendation === 'Sell' ? 'Market conditions suggest selling' :
+                       marketTrendsData?.timing?.recommendation === 'Hold' ? 'Market is stable, maintain positions' :
+                       'Market uncertainty suggests waiting'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Confidence: {marketTrendsData?.timing?.confidence || 0}%
+                    </div>
+                  </div>
+                </div>
+
+                {/* Risk Assessment */}
+                <div className={`p-6 rounded-lg border ${
+                  marketTrendsData?.timing?.riskLevel === 'Low' ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
+                  marketTrendsData?.timing?.riskLevel === 'Medium' ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
+                  'bg-gradient-to-r from-red-50 to-rose-50 border-red-200'
+                }`}>
+                  <h4 className="font-medium text-gray-700 mb-3">Risk Assessment</h4>
+                  <div className="text-center">
+                    <div className={`text-4xl font-bold mb-2 ${
+                      marketTrendsData?.timing?.riskLevel === 'Low' ? 'text-green-600' :
+                      marketTrendsData?.timing?.riskLevel === 'Medium' ? 'text-yellow-600' :
+                      'text-red-600'
+                    }`}>
+                      {marketTrendsData?.timing?.riskLevel?.toUpperCase() || 'UNKNOWN'}
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {marketTrendsData?.timing?.riskLevel === 'Low' ? 'Low market risk' :
+                       marketTrendsData?.timing?.riskLevel === 'Medium' ? 'Moderate market risk' :
+                       'High market risk'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      Time horizon: {marketTrendsData?.timing?.timeHorizon || 'Unknown'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Reasoning */}
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-700 mb-3">Recommendation Reasoning</h4>
+                <div className="space-y-2">
+                  {marketTrendsData?.timing?.reasoning?.map((reason, index) => (
+                    <div key={index} className="flex items-start gap-2">
+                      <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <span className="text-sm text-gray-700">{reason}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

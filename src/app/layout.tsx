@@ -124,8 +124,6 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#3A7CA5" />
-        {/* Manifest */}
-        <link rel="manifest" href="/manifest.json" />
         {/* Organization & Product JSON-LD Structured Data */}
         <script type="application/ld+json" dangerouslySetInnerHTML={{
           __html: JSON.stringify({
@@ -211,32 +209,6 @@ export default function RootLayout({
             }
           })
         }} />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Unregister old service workers to clear CORS issues
-              if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function(registrations) {
-                  for(let registration of registrations) {
-                    registration.unregister();
-                    console.log('Unregistered old service worker');
-                  }
-                });
-                
-                // Register new service worker
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js')
-                    .then(function(registration) {
-                      console.log('SW registered: ', registration);
-                    })
-                    .catch(function(registrationError) {
-                      console.log('SW registration failed: ', registrationError);
-                    });
-                });
-              }
-            `,
-          }}
-        />
       </head>
       <body className={`${inter.variable} font-sans antialiased bg-neutral-100 text-primary-700 leading-relaxed`}>
         {/* Skip to main content link for accessibility */}
@@ -265,8 +237,12 @@ export default function RootLayout({
             </SearchLimitProvider>
           </MockAuthProvider>
         </SupabaseUserProvider>
-        <Analytics />
-        <SpeedInsights />
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <Analytics />
+            <SpeedInsights />
+          </>
+        )}
         
         {/* Service Worker Registration */}
       </body>
