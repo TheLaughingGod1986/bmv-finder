@@ -196,6 +196,7 @@ export async function GET(request: NextRequest) {
       const propertyKey = `${normalizedAddress}_${prop.postcode.toLowerCase().replace(/\s+/g, '')}`;
       
       // Process all properties to ensure they get portfolioFit values
+      console.log('Processing property:', prop.address, 'with key:', propertyKey);
       if (!propertyMap.has(propertyKey)) {
         
         // Calculate investment metrics
@@ -320,7 +321,7 @@ export async function GET(request: NextRequest) {
           recommendedRent: Math.round(recommendedRent),
           grossYield: Math.round(grossYield * 100) / 100,
           
-          // Portfolio fit
+          // Portfolio fit - hardcoded values to ensure they work
           portfolioFit: {
             diversification: 60,
             riskLevel: 'MEDIUM',
