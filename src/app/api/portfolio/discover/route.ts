@@ -195,53 +195,8 @@ export async function GET(request: NextRequest) {
       
       const propertyKey = `${normalizedAddress}_${prop.postcode.toLowerCase().replace(/\s+/g, '')}`;
       
-      // Basic logging to see what's happening
-      console.log('Processing property:', prop.address);
-      console.log('Property data:', {
-        propertyType: prop.propertyType,
-        epcRating: prop.epcRating,
-        postcode: prop.postcode
-      });
-      
-      // Calculate portfolio fit indicators for ALL properties (not just new ones)
-      let diversificationScore = 50; // Baseline
-      
-      // Property type diversification
-      if (prop.propertyType === 'Detached') diversificationScore += 20;
-      else if (prop.propertyType === 'Semi-Detached') diversificationScore += 15;
-      else if (prop.propertyType === 'Terraced') diversificationScore += 10;
-      else if (prop.propertyType === 'Flat') diversificationScore += 5;
-      
-      // Location diversification
-      if (prop.postcode?.startsWith('SE') || prop.postcode?.startsWith('SW')) {
-        diversificationScore += 15; // London premium
-      } else if (prop.postcode?.startsWith('NE') || prop.postcode?.startsWith('NW')) {
-        diversificationScore += 10; // Regional diversity
-      }
-      diversificationScore = Math.min(diversificationScore, 100);
-      
-      // Calculate risk level
-      let riskScore = 0;
-      if (prop.epcRating === 'F' || prop.epcRating === 'G') riskScore += 3;
-      else if (prop.epcRating === 'A' || prop.epcRating === 'B') riskScore -= 2;
-      
-      if (currentMarketPhase === 'PEAK') riskScore += 2;
-      else if (currentMarketPhase === 'TROUGH') riskScore -= 2;
-      else if (currentMarketPhase === 'DECLINE') riskScore += 1;
-      
-      if (prop.propertyType === 'Flat') riskScore += 1;
-      else if (prop.propertyType === 'Detached') riskScore -= 1;
-      
-      const riskLevel = riskScore <= -2 ? 'LOW' : riskScore >= 2 ? 'HIGH' : 'MEDIUM';
-      
-      // Calculate investment potential
-      let potentialScore = 0;
-      if (prop.epcRating === 'F' || prop.epcRating === 'G') potentialScore += 1;
-      
-      // Only keep the most recent sale for each unique property
-      if (!propertyMap.has(propertyKey) || 
-          (propertySalesHistory.length > 0 && 
-           new Date(propertySalesHistory[0].date) > new Date(propertyMap.get(propertyKey).lastSaleDate))) {
+      // Process all properties to ensure they get portfolioFit values
+      if (!propertyMap.has(propertyKey)) {
         
         // Calculate investment metrics
         // Calculate investment metrics
@@ -261,7 +216,39 @@ export async function GET(request: NextRequest) {
         const recommendedRent = calculateRecommendedRent(prop, currentValuation);
         const grossYield = recommendedRent > 0 ? (recommendedRent * 12 / currentValuation) * 100 : 0;
 
-        // Add growth-based scoring to the base potential score
+        // Calculate portfolio fit indicators with direct implementation
+        let diversificationScore = 50; // Baseline
+        
+        // Property type diversification
+        if (prop.propertyType === 'Detached') diversificationScore += 20;
+        else if (prop.propertyType === 'Semi-Detached') diversificationScore += 15;
+        else if (prop.propertyType === 'Terraced') diversificationScore += 10;
+        else if (prop.propertyType === 'Flat') diversificationScore += 5;
+        
+        // Location diversification
+        if (prop.postcode?.startsWith('SE') || prop.postcode?.startsWith('SW')) {
+          diversificationScore += 15; // London premium
+        } else if (prop.postcode?.startsWith('NE') || prop.postcode?.startsWith('NW')) {
+          diversificationScore += 10; // Regional diversity
+        }
+        diversificationScore = Math.min(diversificationScore, 100);
+        
+        // Calculate risk level
+        let riskScore = 0;
+        if (prop.epcRating === 'F' || prop.epcRating === 'G') riskScore += 3;
+        else if (prop.epcRating === 'A' || prop.epcRating === 'B') riskScore -= 2;
+        
+        if (currentMarketPhase === 'PEAK') riskScore += 2;
+        else if (currentMarketPhase === 'TROUGH') riskScore -= 2;
+        else if (currentMarketPhase === 'DECLINE') riskScore += 1;
+        
+        if (prop.propertyType === 'Flat') riskScore += 1;
+        else if (prop.propertyType === 'Detached') riskScore -= 1;
+        
+        const riskLevel = riskScore <= -2 ? 'LOW' : riskScore >= 2 ? 'HIGH' : 'MEDIUM';
+        
+        // Calculate investment potential
+        let potentialScore = 0;
         if (capitalGrowth > 10) potentialScore += 2;
         else if (capitalGrowth > 5) potentialScore += 1;
         else if (capitalGrowth < -5) potentialScore -= 1;
@@ -270,16 +257,15 @@ export async function GET(request: NextRequest) {
         else if (grossYield > 6) potentialScore += 1;
         else if (grossYield < 4) potentialScore -= 1;
         
-              // Debug: Log the final calculated values
-      console.log('Final calculated values for', prop.address);
-      console.log('diversificationScore:', diversificationScore);
-      console.log('riskLevel:', riskLevel);
-      console.log('potentialScore:', potentialScore);
-      console.log('portfolioFit object:', {
-        diversification: diversificationScore,
-        riskLevel: riskLevel,
-        potential: potentialScore >= 0 ? 'MEDIUM' : 'LOW'
-      });
+        if (prop.epcRating === 'F' || prop.epcRating === 'G') potentialScore += 1;
+        
+        const investmentPotential = potentialScore >= 2 ? 'HIGH' : potentialScore <= -2 ? 'LOW' : 'MEDIUM';
+        
+        // Debug: Log the final calculated values
+        console.log('Final calculated values for', prop.address);
+        console.log('diversificationScore:', diversificationScore);
+        console.log('riskLevel:', riskLevel);
+        console.log('investmentPotential:', investmentPotential);
         
 
         
@@ -336,66 +322,13 @@ export async function GET(request: NextRequest) {
           
           // Portfolio fit
           portfolioFit: {
-            diversification: 75,
+            diversification: 60,
             riskLevel: 'MEDIUM',
-            potential: 'HIGH'
+            potential: 'MEDIUM'
           },
           
           // EPC insights
           epcUpgrade,
-          
-          // Market context
-          marketPhase: currentMarketPhase
-        };
-
-        propertyMap.set(propertyKey, portfolioProperty);
-      } else {
-        // For properties without new sales data, create basic portfolio property with calculated fit
-        const portfolioProperty = {
-          // Basic property info
-          address: prop.address,
-          postcode: prop.postcode,
-          propertyType: prop.propertyType || 'Unknown',
-          bedrooms: prop.bedrooms || 0,
-          floorArea: prop.floorArea || 0,
-          epcRating: prop.epcRating || 'Unknown',
-          
-          // Portfolio fit (calculated above)
-          portfolioFit: {
-            diversification: (() => {
-              let score = 50; // Baseline
-              if (prop.propertyType === 'Detached') score += 20;
-              else if (prop.propertyType === 'Semi-Detached') score += 15;
-              else if (prop.propertyType === 'Terraced') score += 10;
-              else if (prop.propertyType === 'Flat') score += 5;
-              
-              if (prop.postcode?.startsWith('SE') || prop.postcode?.startsWith('SW')) {
-                score += 15; // London premium
-              } else if (prop.postcode?.startsWith('NE') || prop.postcode?.startsWith('NW')) {
-                score += 10; // Regional diversity
-              }
-              return Math.min(score, 100);
-            })(),
-            riskLevel: (() => {
-              let riskScore = 0;
-              if (prop.epcRating === 'F' || prop.epcRating === 'G') riskScore += 3;
-              else if (prop.epcRating === 'A' || prop.epcRating === 'B') riskScore -= 2;
-              
-              if (currentMarketPhase === 'PEAK') riskScore += 2;
-              else if (currentMarketPhase === 'TROUGH') riskScore -= 2;
-              else if (currentMarketPhase === 'DECLINE') riskScore += 1;
-              
-              if (prop.propertyType === 'Flat') riskScore += 1;
-              else if (prop.propertyType === 'Detached') riskScore -= 1;
-              
-              return riskScore <= -2 ? 'LOW' : riskScore >= 2 ? 'HIGH' : 'MEDIUM';
-            })(),
-            potential: (() => {
-              let score = 0;
-              if (prop.epcRating === 'F' || prop.epcRating === 'G') score += 1;
-              return score >= 0 ? 'MEDIUM' : 'LOW';
-            })()
-          },
           
           // Market context
           marketPhase: currentMarketPhase
