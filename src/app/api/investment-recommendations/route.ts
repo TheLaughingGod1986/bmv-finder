@@ -14,11 +14,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get the base URL for server-side fetch calls
+    const protocol = request.headers.get('x-forwarded-proto') || 'http';
+    const host = request.headers.get('host') || 'localhost:3001';
+    const baseUrl = `${protocol}://${host}`;
+
     // Fetch required data for investment analysis
     const [marketTrendsResponse, propertyResponse, valuationResponse] = await Promise.all([
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/market-trends?postcode=${encodeURIComponent(postcode)}`),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`),
-      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`)
+      fetch(`${baseUrl}/api/market-trends?postcode=${encodeURIComponent(postcode)}`),
+      fetch(`${baseUrl}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`),
+      fetch(`${baseUrl}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`)
     ]);
 
     if (!marketTrendsResponse.ok || !propertyResponse.ok || !valuationResponse.ok) {
@@ -56,16 +61,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Add postcode to property data for the engine
+    targetProperty.postcode = postcode;
+
     // Create investment recommendation engine
+    console.log('Creating InvestmentRecommendationEngine with:', {
+      marketTrends: !!marketTrends.data,
+      targetProperty: !!targetProperty,
+      valuationData: !!valuationData
+    });
+    
     const engine = new InvestmentRecommendationEngine(
       marketTrends.data,
       targetProperty,
       valuationData
     );
 
+    console.log('Engine created successfully, generating recommendation...');
+
     // Generate recommendations
     const recommendation = engine.generateRecommendation();
+    console.log('Recommendation generated:', recommendation);
+    
     const strategies = engine.generateInvestmentStrategies();
+    console.log('Strategies generated:', strategies.length);
 
     return NextResponse.json({
       success: true,

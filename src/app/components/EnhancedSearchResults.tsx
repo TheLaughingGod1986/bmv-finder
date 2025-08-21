@@ -9,6 +9,7 @@ import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp, TrendingDown, Home, Ma
 interface EnhancedSearchResultsProps {
   postcode: string;
   houseNumber: string;
+  propertyDiscoveryData?: any;
   onAnalysisComplete?: () => void;
 }
 
@@ -185,7 +186,7 @@ interface InvestmentRecommendationData {
   };
 }
 
-export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysisComplete }: EnhancedSearchResultsProps) {
+export default function EnhancedSearchResults({ postcode, houseNumber, propertyDiscoveryData, onAnalysisComplete }: EnhancedSearchResultsProps) {
   const [propertyData, setPropertyData] = useState<PropertyData | null>(null);
   const [valuationData, setValuationData] = useState<ValuationData | null>(null);
   const [predictionData, setPredictionData] = useState<PredictionData | null>(null);
@@ -196,68 +197,112 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
   const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
+    const fetchData = async () => {
+      if (!postcode || !houseNumber) return;
+      
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // If we have Property Discovery data, use it for comparables
+        if (propertyDiscoveryData && propertyDiscoveryData.comparables) {
+          // Always fetch comprehensive valuation data to get market analysis
+          const valuationResponse = await fetch(`/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
+          
+          if (valuationResponse.ok) {
+            const valuationResult = await valuationResponse.json();
+            
+            // Check if the API response has a nested structure
+            const apiMarketAnalysis = valuationResult.marketAnalysis || valuationResult.data?.marketAnalysis;
+            const apiComparables = valuationResult.comparables || valuationResult.data?.comparables;
+            
+            // Ensure we have valid market analysis data before proceeding
+            if (!apiMarketAnalysis || !apiMarketAnalysis.averagePrice) {
+              setError('Failed to get valid market analysis data from API');
+              return;
+            }
+            
+            // Property Discovery data should NEVER overwrite API market analysis
+            // Only use Property Discovery data for comparables, ALWAYS use API for market analysis
+            if (propertyDiscoveryData && propertyDiscoveryData.comparables) {
+              // Ensure we ALWAYS use the comprehensive valuation API data for market analysis
+              const mergedValuationData = {
+                comparables: propertyDiscoveryData.comparables,
+                marketAnalysis: apiMarketAnalysis // ALWAYS use API data, never fallback
+              };
+              
+              setValuationData(mergedValuationData);
+            } else {
+              // No Property Discovery data, use full API response
+              setValuationData(valuationResult);
+            }
+
+          } else {
+            setError('Failed to fetch valuation data');
+          }
+        }
+
+        // Fetch property data
+        const propertyResponse = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true&limit=100`);
+        if (propertyResponse.ok) {
+          const propertyResult = await propertyResponse.json();
+          if (propertyResult.success && propertyResult.data?.properties) {
+            const targetProperty = propertyResult.data.properties.find((p: any) => 
+              p.address.toLowerCase().includes(houseNumber.toLowerCase()) ||
+              p.address.split(',')[0].toLowerCase() === houseNumber.toLowerCase()
+            );
+            if (targetProperty) {
+              setPropertyData(targetProperty);
+            }
+          }
+        }
+
+        // Only fetch valuation data if we don't have Property Discovery data
+        if (!propertyDiscoveryData || !propertyDiscoveryData.comparables) {
+          const valuationResponse = await fetch(`/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
+          if (valuationResponse.ok) {
+            const valuationResult = await valuationResponse.json();
+            setValuationData(valuationResult);
+          }
+        }
+
+        // Fetch prediction data
+        const predictionResponse = await fetch(`/api/predictions?postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
+        if (predictionResponse.ok) {
+          const predictionResult = await predictionResponse.json();
+          setPredictionData(predictionResult);
+        }
+
+        // Fetch market trends data
+        const trendsResponse = await fetch(`/api/market-trends?postcode=${encodeURIComponent(postcode)}`);
+        if (trendsResponse.ok) {
+          const trendsResult = await trendsResponse.json();
+          setMarketTrendsData(trendsResult.data);
+        }
+
+        // Fetch investment recommendations
+        const recommendationsResponse = await fetch(`/api/investment-recommendations?postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
+        if (recommendationsResponse.ok) {
+          const recommendationsResult = await recommendationsResponse.json();
+          setInvestmentRecommendationData(recommendationsResult.data);
+        }
+
+        setLoading(false);
+        onAnalysisComplete?.();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch data');
+        setLoading(false);
+      }
+    };
+
     fetchData();
-  }, [postcode, houseNumber]);
+  }, [postcode, houseNumber, propertyDiscoveryData, onAnalysisComplete]);
 
   useEffect(() => {
     // Property data is ready for use
   }, [propertyData]);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch property data
-      const propertyResponse = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true`);
-      if (propertyResponse.ok) {
-        const propertyResult = await propertyResponse.json();
-        if (propertyResult.data?.properties?.length > 0) {
-          const targetProperty = propertyResult.data.properties.find((prop: any) => 
-            prop.address.includes(houseNumber) || 
-            prop.address.startsWith(houseNumber + ',') ||
-            prop.address.startsWith(houseNumber + ' ')
-          );
-          if (targetProperty) {
-            setPropertyData(targetProperty);
-          }
-        }
-      }
 
-      // Fetch valuation data
-      const valuationResponse = await fetch(`/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
-      if (valuationResponse.ok) {
-        const valuationResult = await valuationResponse.json();
-        setValuationData(valuationResult);
-      }
-
-      // Fetch prediction data
-      const predictionResponse = await fetch(`/api/predictions?postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
-      if (predictionResponse.ok) {
-        const predictionResult = await predictionResponse.json();
-        setPredictionData(predictionResult);
-      }
-
-      // Fetch market trends data
-      const trendsResponse = await fetch(`/api/market-trends?postcode=${encodeURIComponent(postcode)}`);
-      if (trendsResponse.ok) {
-        const trendsResult = await trendsResponse.json();
-        setMarketTrendsData(trendsResult.data);
-      }
-
-      // Fetch investment recommendations
-      const recommendationsResponse = await fetch(`/api/investment-recommendations?postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(houseNumber)}`);
-      if (recommendationsResponse.ok) {
-        const recommendationsResult = await recommendationsResponse.json();
-        setInvestmentRecommendationData(recommendationsResult.data);
-      }
-
-      setLoading(false);
-      onAnalysisComplete?.();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch data');
-      setLoading(false);
-    }
-  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-GB', {
@@ -337,7 +382,7 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
 
   // Derived metrics for Investment Performance
   // Early return if no data
-  if (!propertyData || !predictionData || !valuationData) {
+  if (!propertyData || !predictionData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -987,174 +1032,238 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
             )}
 
             {/* Investment Performance */}
-            <Card className="bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-emerald-800">
-                  <TrendingUpIcon className="h-5 w-5" />
+            {valuationData && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-5 w-5 text-green-600" />
                   Investment Performance
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Equity Now */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 bg-white rounded-lg border border-emerald-100">
-                    <div className="text-lg font-bold text-emerald-700">{formatCurrency(equityNow || 0)}</div>
-                    <div className="text-xs text-emerald-600">Equity Growth (£)</div>
-                  </div>
-                  <div className="text-center p-3 bg-white rounded-lg border border-emerald-100">
-                    <div className="text-lg font-bold text-emerald-700">{Math.round(equityGrowthPct || 0)}%</div>
-                    <div className="text-xs text-emerald-600">Equity Growth (%)</div>
-                  </div>
-                </div>
+                </h3>
+                
 
-                {/* Yield and Area Growth */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="text-center p-3 bg-white rounded-lg border border-emerald-100">
-                    <div className="text-lg font-bold text-emerald-700">{Math.round(grossYieldPct || 0)}%</div>
-                    <div className="text-xs text-emerald-600">Gross Yield</div>
-                  </div>
-                  <div className="text-center p-3 bg-white rounded-lg border border-emerald-100">
-                    <div className="text-lg font-bold text-emerald-700">{Math.round(areaYoyGrowth || 0)}%</div>
-                    <div className="text-xs text-emerald-600">Area YoY Growth</div>
-                  </div>
-                </div>
+                
+                {(() => {
+                  // Calculate investment metrics
+                  const currentValue = valuationData?.marketAnalysis?.averagePrice || 0;
+                  const lastSalePrice = valuationData?.comparables?.[0]?.price || 0;
+                  const equityGrowth = currentValue - lastSalePrice;
+                  const equityGrowthPercent = lastSalePrice > 0 ? (equityGrowth / lastSalePrice) * 100 : 0;
+                                  // Ensure we use the correct rental data and current value for yield calculation
+                // Use the same rental data source as the Rental Analysis section
+                const monthlyRent = propertyData?.rentalEstimate?.monthly || 0;
+                const annualRent = propertyData?.rentalEstimate?.yearly || (monthlyRent * 12);
+                const grossYield = monthlyRent > 0 && currentValue > 0 ? 
+                  (annualRent / currentValue) * 100 : 0;
+                
 
-                {/* Current vs Purchase */}
-                <div className="bg-white rounded-lg border border-emerald-100 p-3">
-                  <div className="grid grid-cols-2 gap-3 text-sm">
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Purchase (last)</span>
-                      <span className="font-semibold">{formatCurrency(lastSalePrice || 0)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Current Value</span>
-                      <span className="font-semibold">{formatCurrency(currentValue || 0)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Annual Rent</span>
-                      <span className="font-semibold">{formatCurrency(annualRent || 0)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-gray-600">Data Source</span>
-                      <span className="font-semibold">
-                        {(() => {
-                          if (valuationData?.comparables && valuationData.comparables.length > 0) {
-                            const propertySales = valuationData.comparables.filter((sale: any) => 
-                              sale.address === houseNumber || 
-                              sale.address.includes(houseNumber) ||
-                              sale.address.startsWith(houseNumber + ',') ||
-                              sale.address.startsWith(houseNumber + ' ')
-                            );
-                            if (propertySales.length > 0) {
-                              return 'Property Sales';
-                            }
-                          }
-                          
-                          // If using area average with property type adjustment
-                          if (propertyData?.propertyType && propertyData.propertyType !== 'House') {
-                            return `Area Average + ${propertyData.propertyType} Adjustment`;
-                          }
-                          
-                          return 'Area Average';
-                        })()}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Debug info for equity calculations */}
-                  <div className="mt-3 pt-3 border-t border-gray-100 text-xs text-gray-500">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>Equity: {formatCurrency(equityNow)}</div>
-                      <div>Growth: {Math.round(equityGrowthPct)}%</div>
-                      <div>Yield: {Math.round(grossYieldPct)}%</div>
-                      <div>Area Growth: {Math.round(areaYoyGrowth)}%</div>
-                    </div>
-                  </div>
-                  
-                  {/* Investment Performance Analysis Blurb */}
-                  <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg border border-emerald-200">
-                    <div className="text-sm text-emerald-800 leading-relaxed">
-                      <div className="font-semibold text-emerald-900 mb-2 flex items-center gap-2">
-                        <TrendingUpIcon className="h-4 w-4" />
-                        Performance Analysis
+                  const areaGrowth = valuationData?.marketAnalysis?.yoyGrowth || 0;
+
+                  return (
+                    <div className="space-y-6">
+                      {/* Key Metrics Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                          <div className="text-2xl font-bold text-green-600">£{equityGrowth.toLocaleString()}</div>
+                          <div className="text-sm text-green-700">Equity Growth (£)</div>
+                        </div>
+                        <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                          <div className="text-2xl font-bold text-green-600">{equityGrowthPercent.toFixed(1)}%</div>
+                          <div className="text-sm text-green-700">Equity Growth (%)</div>
+                        </div>
+                        <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="text-2xl font-bold text-blue-600">{grossYield.toFixed(1)}%</div>
+                          <div className="text-sm text-blue-700">Gross Yield</div>
+                        </div>
+                        <div className="text-center p-4 bg-purple-50 rounded-lg border border-purple-200">
+                          <div className="text-2xl font-bold text-purple-600">{areaGrowth.toFixed(1)}%</div>
+                          <div className="text-sm text-purple-700">Area YoY Growth</div>
+                        </div>
                       </div>
-                      {(() => {
-                        const equityGrowth = Math.round(equityGrowthPct || 0);
-                        const grossYield = Math.round(grossYieldPct || 0);
-                        const areaGrowth = Math.round(areaYoyGrowth || 0);
-                        
-                        // Determine overall performance rating
-                        let performanceRating = '';
-                        let performanceColor = '';
-                        let performanceDescription = '';
-                        
-                        if (equityGrowth >= 20 && grossYield >= 8) {
-                          performanceRating = 'Excellent';
-                          performanceColor = 'text-emerald-700';
-                          performanceDescription = 'This property demonstrates outstanding investment performance with strong capital appreciation and high rental yields.';
-                        } else if (equityGrowth >= 15 && grossYield >= 6) {
-                          performanceRating = 'Strong';
-                          performanceColor = 'text-green-700';
-                          performanceDescription = 'This property shows strong investment potential with good capital growth and solid rental returns.';
-                        } else if (equityGrowth >= 10 && grossYield >= 5) {
-                          performanceRating = 'Good';
-                          performanceColor = 'text-blue-700';
-                          performanceDescription = 'This property offers good investment value with steady growth and reasonable rental yields.';
-                        } else if (equityGrowth >= 5 && grossYield >= 4) {
-                          performanceRating = 'Average';
-                          performanceColor = 'text-yellow-700';
-                          performanceDescription = 'This property provides average investment returns with moderate growth and standard rental yields.';
-                        } else {
-                          performanceRating = 'Below Average';
-                          performanceColor = 'text-orange-700';
-                          performanceDescription = 'This property may need improvement to achieve better investment returns.';
-                        }
-                        
-                        return (
+
+                      {/* Financial Summary */}
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                           <div>
-                            <div className={`font-semibold ${performanceColor} mb-2`}>
-                              Investment Rating: {performanceRating}
+                            <span className="text-gray-600">Purchase (last):</span>
+                            <div className="font-semibold text-gray-800">£{lastSalePrice.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Current Value:</span>
+                            <div className="font-semibold text-gray-800">£{currentValue.toLocaleString()}</div>
+                          </div>
+                                                  <div>
+                          <span className="text-gray-600">Annual Rent:</span>
+                                          <div className="font-semibold text-gray-800">
+                  £{annualRent > 0 ? annualRent.toLocaleString() : 'N/A'}
+                </div>
+                        </div>
+                          <div>
+                            <span className="text-gray-600">Data Source:</span>
+                            <div className="font-semibold text-gray-800">Property Sales</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Performance Summary */}
+                      <div className="text-center p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                        <div className="text-lg font-semibold text-green-800 mb-2">Performance Summary</div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div>
+                            <div className="font-bold text-green-700">Equity: £{equityGrowth.toLocaleString()}</div>
+                          </div>
+                          <div>
+                            <div className="font-bold text-green-700">Growth: {equityGrowthPercent.toFixed(1)}%</div>
+                          </div>
+                          <div>
+                            <div className="font-bold text-green-700">Yield: {grossYield.toFixed(1)}%</div>
+                          </div>
+                          <div>
+                            <div className="font-bold text-green-700">Area Growth: {areaGrowth.toFixed(1)}%</div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Investment Rating */}
+                      <div className="bg-white p-4 rounded-lg border border-gray-200">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="text-lg font-semibold text-gray-800 mb-2">Investment Rating</div>
+                            <div className="text-sm text-gray-600">
+                              {equityGrowthPercent > 20 && grossYield > 8 ? 'Excellent' : 
+                               equityGrowthPercent > 15 && grossYield > 6 ? 'Good' : 
+                               equityGrowthPercent > 10 && grossYield > 4 ? 'Average' : 'Below Average'}
                             </div>
-                            <div className="text-emerald-700 mb-3">
-                              {performanceDescription}
+                            <div className="text-sm text-gray-500 mt-1">
+                              {equityGrowthPercent > 20 && grossYield > 8 ? 
+                                'This property demonstrates outstanding investment performance with strong capital appreciation and high rental yields.' :
+                               equityGrowthPercent > 15 && grossYield > 6 ? 
+                                'This property shows good investment potential with solid growth and reasonable yields.' :
+                               equityGrowthPercent > 10 && grossYield > 4 ? 
+                                'This property offers moderate investment potential with some growth and basic yields.' :
+                                'This property may require improvement to meet investment targets.'}
                             </div>
-                            <div className="grid grid-cols-1 gap-2 text-xs">
-                              <div className="flex justify-between">
-                                <span className="text-emerald-600">Capital Appreciation:</span>
-                                <span className="font-medium">{equityGrowth > 0 ? '+' : ''}{equityGrowth}% since purchase</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-emerald-600">Rental Income:</span>
-                                <span className="font-medium">{grossYield}% gross yield</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-emerald-600">Market Growth:</span>
-                                <span className="font-medium">{areaGrowth > 0 ? '+' : ''}{areaGrowth}% area YoY growth</span>
-                              </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="text-2xl font-bold text-green-600">
+                              {equityGrowthPercent > 20 && grossYield > 8 ? 'A' : 
+                               equityGrowthPercent > 15 && grossYield > 6 ? 'B' : 
+                               equityGrowthPercent > 10 && grossYield > 4 ? 'C' : 'D'}
                             </div>
-                            {equityGrowth > 15 && (
-                              <div className="mt-3 p-2 bg-emerald-100 rounded border border-emerald-200">
-                                <div className="text-xs text-emerald-800">
-                                  <strong>💡 Strong Performer:</strong> This property is outperforming the market average. 
-                                  Consider holding for continued growth or refinancing to release equity for further investments.
-                                </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Performance Breakdown */}
+                      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                        <div className="text-lg font-semibold text-blue-800 mb-3">Performance Breakdown</div>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-blue-700">Capital Appreciation:</span>
+                            <span className="font-semibold text-blue-800">+{equityGrowthPercent.toFixed(1)}% since purchase</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-blue-700">Rental Income:</span>
+                            <span className="font-semibold text-blue-800">{grossYield.toFixed(1)}% gross yield</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-blue-700">Market Growth:</span>
+                            <span className="font-semibold text-blue-800">+{areaGrowth.toFixed(1)}% area YoY growth</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Strong Performer Badge */}
+                      {equityGrowthPercent > 15 && grossYield > 6 && (
+                        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 p-4 rounded-lg border border-amber-200 text-center">
+                          <div className="flex items-center justify-center gap-2 mb-2">
+                            <Lightbulb className="h-5 w-5 text-amber-600" />
+                            <span className="font-semibold text-amber-800">Strong Performer</span>
+                          </div>
+                          <div className="text-sm text-amber-700">
+                            This property is outperforming the market average
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
+
+            {/* Prominent Sales History Section - Always Visible */}
+            {valuationData?.comparables && valuationData.comparables.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  📊 Complete Sales History
+                  <span className="text-sm font-normal text-gray-500">
+                    ({valuationData.comparables.length} sales)
+                  </span>
+                </h3>
+                
+                {/* Debug Info */}
+
+                
+                <div className="space-y-4">
+                  {valuationData.comparables.map((sale: any, index: number) => {
+                    const saleDate = new Date(sale.date);
+                    const isLatestSale = index === 0;
+                    
+                    return (
+                      <div key={index} className={`p-4 border rounded-lg transition-colors ${
+                        isLatestSale 
+                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' 
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }`}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className={`text-sm font-semibold ${
+                                isLatestSale ? 'text-blue-700' : 'text-gray-700'
+                              }`}>
+                                {saleDate.toLocaleDateString('en-GB', { 
+                                  day: 'numeric', 
+                                  month: 'long', 
+                                  year: 'numeric' 
+                                })}
                               </div>
-                            )}
-                            {grossYield > 8 && (
-                              <div className="mt-2 p-2 bg-blue-100 rounded border border-blue-200">
-                                <div className="text-xs text-blue-800">
-                                  <strong>💰 High Yield:</strong> Excellent rental income potential. 
-                                  This property could be ideal for buy-to-let investors seeking strong cash flow.
-                                </div>
+                              {isLatestSale && (
+                                <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                  Latest Sale
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 mb-2">
+                              Property {sale.address} • {sale.bedrooms || 'Unknown'} beds • {sale.propertyType || 'Unknown'}
+                            </div>
+                            {sale.adjustmentDetails && sale.adjustmentDetails !== 'none' && (
+                              <div className="text-xs text-gray-500 bg-white p-2 rounded border">
+                                <span className="font-medium">Adjustments:</span> {sale.adjustmentDetails}
                               </div>
                             )}
                           </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
+                          <div className="text-right ml-4">
+                            <div className="text-xs text-gray-500 line-through mb-1">
+                              £{(sale.price || 0).toLocaleString()}
+                            </div>
+                            <div className={`font-bold text-lg ${
+                              isLatestSale ? 'text-blue-700' : 'text-gray-800'
+                            }`}>
+                              £{(sale.adjustedPrice || sale.price || 0).toLocaleString()}
+                            </div>
+                            {sale.totalAdjustment && sale.totalAdjustment !== 0 && (
+                              <div className={`text-xs font-medium ${
+                                sale.totalAdjustment > 0 ? 'text-emerald-600' : 'text-rose-600'
+                              }`}>
+                                {sale.totalAdjustment > 0 ? '+' : ''}{sale.totalAdjustment}% adjustment
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            )}
           </div>
         )}
 
@@ -1290,13 +1399,32 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                   </p>
                 </CardHeader>
                 <CardContent>
-                  {/* Timeline Chart */}
+                  {/* Enhanced Timeline Chart */}
                   <div className="mb-6">
-                    <div className="relative h-72 bg-gradient-to-br from-white to-slate-50 rounded-xl border border-slate-200 p-8 shadow-xl">
+                    <div className="relative h-80 bg-white rounded-xl border border-slate-200 p-6 shadow-lg overflow-hidden">
+                      {/* Chart Legend */}
+                      <div className="absolute top-3 right-3 flex items-center gap-3 text-xs font-medium text-gray-600 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-md border border-slate-200 shadow-sm">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded bg-gradient-to-t from-emerald-400 to-emerald-600"></div>
+                          <span>Peak</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded bg-gradient-to-t from-red-400 to-red-600"></div>
+                          <span>Trough</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded bg-gradient-to-t from-blue-400 to-blue-600"></div>
+                          <span>Above Avg</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-3 h-3 rounded bg-gradient-to-t from-slate-400 to-slate-600"></div>
+                          <span>Below Avg</span>
+                        </div>
+                      </div>
                       {/* Chart Container */}
                       <div className="relative h-full">
                         {/* Y-axis labels */}
-                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-700 font-semibold">
+                        <div className="absolute left-0 top-0 h-full flex flex-col justify-between text-xs text-gray-600 font-medium">
                           {(() => {
                             const yearlyData = valuationData.marketAnalysis.yearlySales
                               .sort((a, b) => a.year - b.year)
@@ -1307,18 +1435,18 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                             const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
                             const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
                             
-                            // Add 15% padding to the price range for better visualization
-                            const padding = (maxPrice - minPrice) * 0.15;
+                            // Add 10% padding to the price range for cleaner visualization
+                            const padding = (maxPrice - minPrice) * 0.1;
                             const adjustedMax = maxPrice + padding;
                             const adjustedMin = Math.max(0, minPrice - padding);
                             const priceRange = adjustedMax - adjustedMin;
                             
-                            // Create 6 evenly spaced price points
+                            // Create 5 evenly spaced price points for cleaner look
                             const labels = [];
-                            for (let i = 5; i >= 0; i--) {
-                              const price = adjustedMin + (priceRange * i / 5);
+                            for (let i = 4; i >= 0; i--) {
+                              const price = adjustedMin + (priceRange * i / 4);
                               labels.push(
-                                <span key={i} className="text-right block w-16 pr-3 text-gray-700 font-medium text-sm">
+                                <span key={i} className="text-right block w-14 pr-2 text-gray-600 font-medium text-xs">
                                   £{(price / 1000).toFixed(0)}k
                                 </span>
                               );
@@ -1329,39 +1457,38 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         </div>
                         
                         {/* Chart Area */}
-                        <div className="absolute left-4 right-4 top-3 bottom-10">
-                          {/* Professional grid lines */}
+                        <div className="absolute left-16 right-4 top-3 bottom-8">
+                          {/* Clean grid lines */}
                           <div className="h-full flex flex-col justify-between">
-                            {[0, 1, 2, 3, 4, 5].map((i) => (
+                            {[0, 1, 2, 3, 4].map((i) => (
                               <div key={i} className="border-b" style={{ 
-                                opacity: i === 0 || i === 5 ? 0.2 : 0.06,
+                                opacity: i === 0 || i === 4 ? 0.15 : 0.05,
                                 borderStyle: 'solid',
                                 borderColor: '#e5e7eb',
-                                borderWidth: i === 0 || i === 5 ? '1px' : '0.5px'
+                                borderWidth: i === 0 || i === 4 ? '1px' : '0.5px'
                               }} />
                             ))}
                           </div>
                           
                           {/* Bar Chart */}
-                          <div className="flex items-end justify-between gap-3" style={{ height: '100%' }}>
+                          <div className="flex items-end justify-between gap-4 relative" style={{ height: '100%' }}>
                             {(() => {
                               // Debug: Log the raw data
-                              console.log('Raw marketAnalysis:', valuationData.marketAnalysis);
-                              console.log('Raw yearlySales:', valuationData.marketAnalysis?.yearlySales);
+                              
                               
                               const yearlyData = valuationData.marketAnalysis?.yearlySales
                                 ?.sort((a, b) => a.year - b.year)
                                 ?.filter(year => year.averagePrice > 0) || [];
                               
-                              console.log('Processed yearlyData:', yearlyData);
+              
                               
                               if (yearlyData.length === 0) {
-                                console.log('No yearly data available for chart');
+              
                                 return <div className="w-full text-center text-gray-500">No chart data available</div>;
                               }
                               
                               // Debug: Show raw data
-                              console.log('Raw yearlyData for chart:', yearlyData);
+              
                               
                               const maxPrice = Math.max(...yearlyData.map(y => y.averagePrice));
                               const minPrice = Math.min(...yearlyData.map(y => y.averagePrice));
@@ -1372,112 +1499,158 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               const adjustedMin = Math.max(0, minPrice - padding);
                               const priceRange = adjustedMax - adjustedMin;
                               
-                              console.log('Bar chart data:', { 
-                                yearlyData: yearlyData.map(y => ({ year: y.year, price: y.averagePrice })), 
-                                maxPrice, 
-                                minPrice, 
-                                adjustedMax, 
-                                adjustedMin, 
-                                priceRange 
-                              });
+
                               
                               // Debug: Log each year's price for comparison
-                              yearlyData.forEach(year => {
-                                console.log(`Year ${year.year}: £${year.averagePrice} - Peak: ${year.averagePrice === maxPrice}, Trough: ${year.averagePrice === minPrice}`);
-                              });
+
                               
-                              // Additional debugging for peak detection
-                              console.log('Peak detection debug:', {
-                                maxPrice,
-                                maxPriceType: typeof maxPrice,
-                                yearsWithMaxPrice: yearlyData.filter(y => y.averagePrice === maxPrice).map(y => y.year),
-                                allPrices: yearlyData.map(y => ({ year: y.year, price: y.averagePrice, type: typeof y.averagePrice })),
-                                '2007 data': yearlyData.find(y => y.year === 2007),
-                                '2007 price': yearlyData.find(y => y.year === 2007)?.averagePrice,
-                                '2007 === maxPrice': yearlyData.find(y => y.year === 2007)?.averagePrice === maxPrice
-                              });
+
                               
-                              return yearlyData.map((year, index) => {
+                              // Add trend line first (in the background)
+                              const trendLineElement = yearlyData.length >= 2 ? (
+                                <svg key="trend-line" className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
+                                  <defs>
+                                    <linearGradient id="trendGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                      <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.3" />
+                                      <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.1" />
+                                    </linearGradient>
+                                  </defs>
+                                  <path
+                                    d={(() => {
+                                      const sortedData = [...yearlyData].sort((a, b) => a.year - b.year);
+                                      const barWidth = 100 / sortedData.length;
+                                      
+                                      let path = `M ${barWidth / 2} ${100 - ((sortedData[0].averagePrice - adjustedMin) / priceRange) * 100}`;
+                                      
+                                      sortedData.forEach((year, index) => {
+                                        if (index === 0) return;
+                                        const x = (index * barWidth) + (barWidth / 2);
+                                        const y = 100 - ((year.averagePrice - adjustedMin) / priceRange) * 100;
+                                        path += ` L ${x} ${y}`;
+                                      });
+                                      
+                                      return path;
+                                    })()}
+                                    stroke="#3b82f6"
+                                    strokeWidth="1.5"
+                                    fill="none"
+                                    opacity="0.4"
+                                    strokeDasharray="3,3"
+                                  />
+                                </svg>
+                              ) : null;
+                              
+                              const barElements = yearlyData.map((year, index) => {
                                 // Calculate bar height as percentage of the price range (0-100)
                                 const height = Math.max(0, Math.min(100, ((year.averagePrice - adjustedMin) / priceRange) * 100));
+                                
                                 // Use tolerance for floating point comparison to avoid precision issues
                                 const tolerance = 0.01;
                                 const isPeak = Math.abs(year.averagePrice - maxPrice) < tolerance;
                                 const isTrough = Math.abs(year.averagePrice - minPrice) < tolerance;
                                 
-                                console.log(`Bar ${year.year}:`, { 
-                                  price: year.averagePrice, 
-                                  height, 
-                                  isPeak, 
-                                  isTrough, 
-                                  maxPrice, 
-                                  minPrice,
-                                  comparison: `${year.averagePrice} === ${maxPrice}`
-                                });
-                                
-                                // Use simple pixel-based heights for guaranteed visibility
-                                const baseHeight = 200; // Base height in pixels
-                                const barHeight = Math.max(height * 3, 40); // Scale height by 3x for better visibility
-                                
-                                // Debug height calculation
-                                console.log(`Height calculation for ${year.year}:`, {
-                                  height,
-                                  baseHeight,
-                                  calculatedHeight: height * 3,
-                                  finalHeight: barHeight,
-                                  price: year.averagePrice,
-                                  adjustedMin,
-                                  priceRange
-                                });
-                                
-                                // Ensure minimum height for visibility
+                                // Clean height calculation
+                                const barHeight = Math.max(height * 2.2, 40); // Reduced scaling for cleaner look
                                 const finalHeight = Math.max(barHeight, 40);
                                 
-                                // Determine bar color with fallback
-                                let barColor = 'bg-blue-500'; // Default
-                                let forceColor = null; // For inline style override
+                                // Enhanced color scheme with gradients
+                                let barGradient = '';
+                                let barColor = '';
+                                let forceColor = '';
+                                let marketPhase = '';
                                 
                                 if (isPeak) {
-                                  barColor = 'bg-green-500';
-                                  forceColor = '#10b981'; // Force green
-                                  console.log(`Setting ${year.year} to GREEN (peak) - price: ${year.averagePrice}, maxPrice: ${maxPrice}`);
+                                  barGradient = 'from-emerald-400 to-emerald-600';
+                                  barColor = 'bg-gradient-to-t';
+                                  forceColor = 'linear-gradient(to top, #34d399, #059669)';
+                                  marketPhase = 'PEAK';
                                 } else if (isTrough) {
-                                  barColor = 'bg-red-500';
-                                  forceColor = '#ef4444'; // Force red
-                                  console.log(`Setting ${year.year} to RED (trough) - price: ${year.averagePrice}, minPrice: ${minPrice}`);
+                                  barGradient = 'from-red-400 to-red-600';
+                                  barColor = 'bg-gradient-to-t';
+                                  forceColor = 'linear-gradient(to top, #f87171, #dc2626)';
+                                  marketPhase = 'TROUGH';
                                 } else {
-                                  forceColor = '#3b82f6'; // Force blue
-                                  console.log(`Setting ${year.year} to BLUE (normal) - price: ${year.averagePrice}`);
+                                  // Determine if it's above or below average for better color coding
+                                  const averagePrice = yearlyData.reduce((sum, y) => sum + y.averagePrice, 0) / yearlyData.length;
+                                  if (year.averagePrice > averagePrice) {
+                                    barGradient = 'from-blue-400 to-blue-600';
+                                    barColor = 'bg-gradient-to-t';
+                                    forceColor = 'linear-gradient(to top, #60a5fa, #2563eb)';
+                                    marketPhase = 'ABOVE AVERAGE';
+                                  } else {
+                                    barGradient = 'from-slate-400 to-slate-600';
+                                    barColor = 'bg-gradient-to-t';
+                                    forceColor = 'linear-gradient(to top, #94a3b8, #475569)';
+                                    marketPhase = 'BELOW AVERAGE';
+                                  }
                                 }
                                 
+                                // Calculate growth from previous year
+                                const prevYear = yearlyData[index + 1];
+                                const growthFromPrev = prevYear ? ((year.averagePrice - prevYear.averagePrice) / prevYear.averagePrice) * 100 : 0;
+                                
                                 return (
-                                  <div key={year.year} className="flex flex-col items-center" style={{ flex: '1 1 0' }}>
-                                    {/* Bar */}
+                                  <div key={year.year} className="flex flex-col items-center group" style={{ flex: '1 1 0' }}>
+                                    {/* Enhanced Bar with Hover Effects */}
                                     <div 
-                                      className={`w-full rounded-t transition-all duration-300 hover:opacity-80 cursor-pointer ${barColor}`}
+                                      className={`w-full rounded-t-lg transition-all duration-500 ease-out hover:scale-105 hover:shadow-xl cursor-pointer relative overflow-hidden ${barColor} ${barGradient}`}
                                       style={{ 
                                         height: `${finalHeight}px`,
                                         minHeight: '40px',
-                                        maxHeight: '200px',
+                                        maxHeight: '180px',
                                         position: 'relative',
                                         zIndex: 10,
-                                        // Force the color with inline styles to override any CSS conflicts
-                                        backgroundColor: forceColor,
-                                        // Professional styling
+                                        background: forceColor,
                                         border: '1px solid rgba(255, 255, 255, 0.3)',
-                                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                                        borderRadius: '4px 4px 0 0'
+                                        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+                                        borderRadius: '6px 6px 0 0'
                                       }}
                                       title={`${year.year}: £${year.averagePrice.toLocaleString()}`}
-                                    />
+                                    >
+                                      {/* Animated overlay on hover */}
+                                      <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-20 transition-opacity duration-300" />
+                                      
+                                      {/* Market phase indicator */}
+                                      {(isPeak || isTrough) && (
+                                        <div className="absolute -top-1 left-1/2 transform -translate-x-1/2">
+                                          <div className={`px-1.5 py-0.5 rounded-full text-xs font-semibold text-white shadow-sm ${
+                                            isPeak ? 'bg-emerald-500' : 'bg-red-500'
+                                          }`}>
+                                            {marketPhase}
+                                          </div>
+                                        </div>
+                                      )}
+                                      
+                                      {/* Price label on hover */}
+                                      <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-all duration-300 bg-gray-800 text-white px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap shadow-md">
+                                        £{year.averagePrice.toLocaleString()}
+                                        {growthFromPrev !== 0 && (
+                                          <span className={`ml-1.5 text-xs ${growthFromPrev > 0 ? 'text-green-300' : 'text-red-300'}`}>
+                                            {growthFromPrev > 0 ? '+' : ''}{growthFromPrev.toFixed(1)}%
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
                                     
-                                    {/* Year label */}
-                                    <div className="text-xs text-gray-700 mt-2 font-semibold">
+                                    {/* Clean Year Label */}
+                                    <div className="text-xs text-gray-600 mt-2 font-medium group-hover:text-gray-800 transition-colors duration-300">
                                       {year.year}
                                     </div>
+                                    
+                                    {/* Growth indicator below year */}
+                                    {growthFromPrev !== 0 && (
+                                      <div className={`text-xs mt-0.5 font-medium ${
+                                        growthFromPrev > 0 ? 'text-green-600' : 'text-red-600'
+                                      }`}>
+                                        {growthFromPrev > 0 ? '↗' : '↘'} {Math.abs(growthFromPrev).toFixed(1)}%
+                                      </div>
+                                    )}
                                   </div>
                                 );
                               });
+                              
+                              // Return both trend line and bars
+                              return [trendLineElement, ...barElements].filter(Boolean);
                             })()}
                           </div>
                           
@@ -1492,10 +1665,15 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                     </div>
                   </div>
 
-                  {/* Key Insights */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-                      <div className="text-sm font-semibold text-slate-800 mb-2">Market Cycles</div>
+                  {/* Clean Key Insights */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div className="p-4 bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg border border-emerald-200 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">📈</span>
+                        </div>
+                        <div className="text-base font-semibold text-emerald-800">Market Peak</div>
+                      </div>
                       {(() => {
                         const yearlyData = valuationData.marketAnalysis.yearlySales
                           .sort((a, b) => a.year - b.year)
@@ -1551,8 +1729,13 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                       })()}
                     </div>
                     
-                    <div className="p-4 bg-white rounded-lg border border-slate-200 shadow-sm">
-                      <div className="text-sm font-semibold text-slate-800 mb-2">Price Evolution</div>
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg border border-blue-200 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs font-bold">💰</span>
+                        </div>
+                        <div className="text-base font-semibold text-blue-800">Price Evolution</div>
+                      </div>
                       {(() => {
                         const yearlyData = valuationData.marketAnalysis.yearlySales
                           .sort((a, b) => a.year - b.year)
@@ -1588,6 +1771,62 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               <div className="text-xs text-slate-800">
                                 <strong>Market Performance:</strong> {totalGrowth >= 0 ? 'Positive' : 'Negative'} long-term growth
                                 {totalGrowth >= 0 ? ` with ${annualGrowth.toFixed(1)}% annual average` : ''}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                    
+                    <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg border border-purple-200 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="text-base font-semibold text-purple-800">Market Trends</div>
+                      </div>
+                      {(() => {
+                        const yearlyData = valuationData.marketAnalysis.yearlySales
+                          .sort((a, b) => a.year - b.year)
+                          .filter(year => year.averagePrice > 0);
+                        
+                        if (yearlyData.length < 3) return <div className="text-xs text-gray-500">Insufficient data for trend analysis</div>;
+                        
+                        // Calculate trend indicators
+                        const recentYears = yearlyData.slice(-3);
+                        const olderYears = yearlyData.slice(0, 3);
+                        
+                        const recentAvg = recentYears.reduce((sum, y) => sum + y.averagePrice, 0) / recentYears.length;
+                        const olderAvg = olderYears.reduce((sum, y) => sum + y.averagePrice, 0) / olderYears.length;
+                        
+                        const trendDirection = recentAvg > olderAvg ? '↗️ Rising' : '↘️ Declining';
+                        const trendStrength = Math.abs((recentAvg - olderAvg) / olderAvg * 100);
+                        
+                        // Market volatility
+                        const prices = yearlyData.map(y => y.averagePrice);
+                        const volatility = Math.sqrt(prices.reduce((sum, price) => {
+                          const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+                          return sum + Math.pow(price - mean, 2);
+                        }, 0) / prices.length);
+                        
+                        const volatilityPercent = (volatility / (prices.reduce((a, b) => a + b, 0) / prices.length)) * 100;
+                        
+                        return (
+                          <div className="space-y-2 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Trend:</span>
+                              <span className={`font-medium ${recentAvg > olderAvg ? 'text-green-600' : 'text-red-600'}`}>
+                                {trendDirection}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Strength:</span>
+                              <span className="font-medium">{trendStrength.toFixed(1)}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Volatility:</span>
+                              <span className="font-medium">{volatilityPercent.toFixed(1)}%</span>
+                            </div>
+                            <div className="mt-2 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                              <div className="text-xs text-purple-800">
+                                <strong>Market Stability:</strong> {volatilityPercent < 15 ? 'Low' : volatilityPercent < 25 ? 'Medium' : 'High'} volatility market
                               </div>
                             </div>
                           </div>
@@ -2337,8 +2576,12 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                               </div>
                             </div>
                             <div className="text-right ml-4">
-                              <div className="text-xs text-gray-500 line-through">{formatCurrency(sale.price)}</div>
-                              <div className="font-bold text-green-700 text-sm">{formatCurrency(sale.adjustedPrice)}</div>
+                              <div className="text-xs text-gray-500 line-through">
+                                £{(sale.price || 0).toLocaleString()}
+                              </div>
+                              <div className="font-bold text-blue-700 text-sm">
+                                £{(sale.adjustedPrice || sale.price || 0).toLocaleString()}
+                              </div>
                             </div>
                           </div>
                           {sale.adjustmentDetails && sale.adjustmentDetails !== 'none' && (
@@ -2685,8 +2928,12 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                             </div>
                           </div>
                           <div className="text-right ml-4">
-                            <div className="text-xs text-gray-500 line-through">{formatCurrency(sale.price)}</div>
-                            <div className="font-bold text-blue-700 text-sm">{formatCurrency(enrichedSale.adjustedPrice)}</div>
+                            <div className="text-xs text-gray-500 line-through">
+                              £{(sale.price || 0).toLocaleString()}
+                            </div>
+                            <div className="font-bold text-blue-700 text-sm">
+                              £{(sale.adjustedPrice || sale.price || 0).toLocaleString()}
+                            </div>
                           </div>
                         </div>
                         {sale.adjustmentDetails && sale.adjustmentDetails !== 'none' && (
@@ -2871,8 +3118,12 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                         <div className="text-sm text-gray-600">{formatDate(sale.date)}</div>
                       </div>
                       <div className="text-right">
-                        <div className="text-xs text-gray-500 line-through">£{sale.price.toLocaleString()}</div>
-                        <div className="font-bold text-blue-700">£{sale.adjustedPrice.toLocaleString()}</div>
+                        <div className="text-xs text-gray-500 line-through">
+                          £{(sale.price || 0).toLocaleString()}
+                        </div>
+                        <div className="font-bold text-blue-700">
+                          £{(sale.adjustedPrice || sale.price || 0).toLocaleString()}
+                        </div>
                       </div>
                     </div>
                     
@@ -2987,6 +3238,79 @@ export default function EnhancedSearchResults({ postcode, houseNumber, onAnalysi
                 );
               })()}
             </div>
+
+            {/* Prominent Sales History Section */}
+            {valuationData?.comparables && valuationData.comparables.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  📊 Complete Sales History
+                  <span className="text-sm font-normal text-gray-500">
+                    ({valuationData.comparables.length} sales)
+                  </span>
+                </h3>
+                
+                <div className="space-y-4">
+                  {valuationData.comparables.map((sale: any, index: number) => {
+                    const saleDate = new Date(sale.date);
+                    const isLatestSale = index === 0;
+                    
+                    return (
+                      <div key={index} className={`p-4 border rounded-lg transition-colors ${
+                        isLatestSale 
+                          ? 'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200' 
+                          : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                      }`}>
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className={`text-sm font-semibold ${
+                                isLatestSale ? 'text-blue-700' : 'text-gray-700'
+                              }`}>
+                                {saleDate.toLocaleDateString('en-GB', { 
+                                  day: 'numeric', 
+                                  month: 'long', 
+                                  year: 'numeric' 
+                                })}
+                              </div>
+                              {isLatestSale && (
+                                <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                                  Latest Sale
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-600 mb-2">
+                              Property {sale.address} • {sale.bedrooms || 'Unknown'} beds • {sale.propertyType || 'Unknown'}
+                            </div>
+                            {sale.adjustmentDetails && sale.adjustmentDetails !== 'none' && (
+                              <div className="text-xs text-gray-500 bg-white p-2 rounded border">
+                                <span className="font-medium">Adjustments:</span> {sale.adjustmentDetails}
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right ml-4">
+                            <div className="text-xs text-gray-500 line-through mb-1">
+                              £{(sale.price || 0).toLocaleString()}
+                            </div>
+                            <div className={`font-bold text-lg ${
+                              isLatestSale ? 'text-blue-700' : 'text-gray-800'
+                            }`}>
+                              £{(sale.adjustedPrice || sale.price || 0).toLocaleString()}
+                            </div>
+                            {sale.totalAdjustment && sale.totalAdjustment !== 0 && (
+                              <div className={`text-xs font-medium ${
+                                sale.totalAdjustment > 0 ? 'text-emerald-600' : 'text-rose-600'
+                              }`}>
+                                {sale.totalAdjustment > 0 ? '+' : ''}{sale.totalAdjustment}% adjustment
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

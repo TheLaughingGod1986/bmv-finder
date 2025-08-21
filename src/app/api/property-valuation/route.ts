@@ -134,7 +134,7 @@ export async function GET(request: NextRequest) {
       success: true,
       analysisType,
       postcode: postcode.toUpperCase(),
-      ...results
+      data: results
     });
 
     return applyRateLimitHeaders(response, rateLimitResult.headers);
@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
       success: true,
       analysisType,
       postcode: postcode.toUpperCase(),
-      ...results
+      data: results
     });
 
     return applyRateLimitHeaders(response, rateLimitResult.headers);

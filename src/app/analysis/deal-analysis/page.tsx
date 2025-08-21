@@ -6,18 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../components/Simpl
 import EnhancedSearchResults from '../../components/EnhancedSearchResults';
 import PropertyInputSelector from '../../components/PropertyInputSelector';
 import { motion } from 'framer-motion';
-import { Home, TrendingUp, BarChart3, Target, PoundSterling, Calculator, MapPin, Eye } from 'lucide-react';
+import { Home, TrendingUp, BarChart3, Target, PoundSterling, Calculator, MapPin, Eye, Zap, Sparkles } from 'lucide-react';
 
 interface Property {
-  id: string;
   address: string;
   postcode: string;
   propertyType?: string;
   bedrooms?: number;
   floorArea?: number;
-  lastSoldPrice?: number;
-  lastSoldDate?: string;
   epcRating?: string;
+  salesHistory?: any[];
+  totalSales?: number;
+  priceRange?: { min: number; max: number };
+  currentValuation?: number; // Added for current market value
 }
 
 export default function AdvancedDealAnalysisPage() {
@@ -25,11 +26,36 @@ export default function AdvancedDealAnalysisPage() {
   const [inputProperty, setInputProperty] = useState<Property | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
   const [dealAnalysis, setDealAnalysis] = useState<any>(null);
+  const [propertyDiscoveryData, setPropertyDiscoveryData] = useState<any>(null);
 
   const handlePropertySelect = (property: Property) => {
+    
     setSelectedProperty(property);
     setHasSearched(true);
     setDealAnalysis({ success: true });
+    
+    // Store the Property Discovery data for use in analysis
+    if (property.salesHistory && property.salesHistory.length > 0) {
+      const discoveryData = {
+        comparables: property.salesHistory.map((sale: any) => ({
+          address: property.address.split(',')[0] || property.address.split(' ')[0],
+          price: sale.price,
+          date: sale.date,
+          propertyType: property.propertyType || 'Unknown',
+          bedrooms: property.bedrooms || 0,
+          floorArea: property.floorArea || 0,
+          epcRating: property.epcRating || 'Unknown'
+        })),
+        totalSales: property.totalSales || 0,
+        priceRange: property.priceRange || { min: 0, max: 0 },
+        // Don't set marketAnalysis here - let the comprehensive valuation API provide it
+        // This ensures we get the correct current value and calculations
+      };
+      
+      setPropertyDiscoveryData(discoveryData);
+    } else {
+      
+    }
     
     // Smooth scroll to content section
     setTimeout(() => {
@@ -218,8 +244,9 @@ export default function AdvancedDealAnalysisPage() {
               <EnhancedSearchResults
                 postcode={(selectedProperty || inputProperty)?.postcode || ''}
                 houseNumber={getHouseNumber((selectedProperty || inputProperty)?.address || '')}
+                propertyDiscoveryData={propertyDiscoveryData}
                 onAnalysisComplete={() => {
-                  console.log('Analysis complete');
+              
                 }}
               />
             )}
@@ -248,10 +275,10 @@ export default function AdvancedDealAnalysisPage() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="text-center"
           >
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
               <BarChart3 className="h-12 w-12 text-blue-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Market Analysis</h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-sm flex-grow">
                 Comprehensive market trends, growth rates, and sales performance data
               </p>
             </div>
@@ -263,10 +290,10 @@ export default function AdvancedDealAnalysisPage() {
             transition={{ duration: 0.6, delay: 0.6 }}
             className="text-center"
           >
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
               <Target className="h-12 w-12 text-green-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">BMV Scoring</h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-sm flex-grow">
                 Advanced Below Market Value analysis with enhanced scoring algorithms
               </p>
             </div>
@@ -278,11 +305,11 @@ export default function AdvancedDealAnalysisPage() {
             transition={{ duration: 0.6, delay: 0.7 }}
             className="text-center"
           >
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
               <Zap className="h-12 w-12 text-purple-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">EPC Analysis</h3>
-              <p className="text-gray-600 text-sm">
-                Energy performance insights and efficiency ratings for the area
+              <p className="text-gray-600 text-sm flex-grow">
+                Energy performance insights, efficiency ratings, and upgrade recommendations for the area
               </p>
             </div>
           </motion.div>
@@ -293,10 +320,10 @@ export default function AdvancedDealAnalysisPage() {
             transition={{ duration: 0.6, delay: 0.8 }}
             className="text-center"
           >
-            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-              <CrystalBall className="h-12 w-12 text-orange-600 mx-auto mb-4" />
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-200 h-full flex flex-col">
+              <Sparkles className="h-12 w-12 text-orange-600 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">AI Predictions</h3>
-              <p className="text-gray-600 text-sm">
+              <p className="text-gray-600 text-sm flex-grow">
                 Machine learning powered property value predictions and market insights
               </p>
             </div>
@@ -307,19 +334,4 @@ export default function AdvancedDealAnalysisPage() {
   );
 }
 
-// Placeholder icon component
-function Zap({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
-  );
-}
-
-function CrystalBall({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-    </svg>
-  );
-} 
+ 

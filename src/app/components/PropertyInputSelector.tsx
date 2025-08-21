@@ -1,23 +1,36 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Plus, FolderOpen, Eye, MapPin, Building2, Calendar, Target, Zap } from 'lucide-react';
+import { Search, Plus, FolderOpen, Eye, MapPin, Building2, Calendar, Target, Zap, Loader2 } from 'lucide-react';
 import Button from './Button';
-import { Card, CardContent, CardHeader, CardTitle } from './SimpleCard';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './SimpleCard';
 import { Badge } from './SimpleCard';
 import { useToast } from './ToastProvider';
 
 
 interface Property {
-  id: string;
   address: string;
   postcode: string;
   propertyType?: string;
   bedrooms?: number;
   floorArea?: number;
-  lastSoldPrice?: number;
-  lastSoldDate?: string;
   epcRating?: string;
+  lastSaleDate?: string;
+  growthPeriod?: string;
+  longTermGrowth?: number;
+  longTermPeriod?: string;
+  grossYield?: number;
+  portfolioFit?: {
+    diversification: number;
+    riskLevel: string;
+    potential: string;
+  };
+  capitalGrowth?: number;
+  lastSalePrice?: number;
+  currentValuation?: number; // Added for current market value
+  salesHistory?: any[];
+  totalSales?: number;
+  priceRange?: { min: number; max: number };
 }
 
 interface PropertyInputSelectorProps {
@@ -43,10 +56,11 @@ export default function PropertyInputSelector({
   showWatchlist = true,
   showPostcodeSearch = true
 }: PropertyInputSelectorProps) {
-  const [activeTab, setActiveTab] = useState<'search' | 'manual' | 'portfolio' | 'watchlist'>('search');
+  const [activeTab, setActiveTab] = useState<'discovery' | 'manual' | 'portfolio' | 'watchlist'>('discovery');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Property[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [discoveryLimit, setDiscoveryLimit] = useState(100);
   const [portfolioProperties, setPortfolioProperties] = useState<Property[]>([]);
   const [watchlistProperties, setWatchlistProperties] = useState<Property[]>([]);
   const [manualProperty, setManualProperty] = useState<Partial<Property>>({
@@ -97,7 +111,19 @@ export default function PropertyInputSelector({
             floorArea: prop.floor_area_m2 || prop.floorArea,
             lastSoldPrice: prop.purchase_price || prop.lastSoldPrice,
             lastSoldDate: prop.purchase_date || prop.lastSoldDate,
-            epcRating: prop.epc_rating || prop.epcRating
+            epcRating: prop.epc_rating || prop.epcRating,
+            salesHistory: prop.sales_history || [],
+            totalSales: prop.total_sales || 0,
+            priceRange: prop.price_range || { min: 0, max: 0 },
+            lastSaleDate: prop.last_sale_date || prop.lastSoldDate,
+            growthPeriod: prop.growth_period || 'N/A',
+            longTermGrowth: prop.long_term_growth,
+            longTermPeriod: prop.long_term_period,
+            grossYield: prop.gross_yield,
+            portfolioFit: prop.portfolio_fit,
+            capitalGrowth: prop.capital_growth,
+            lastSalePrice: prop.last_sale_price,
+            currentValuation: prop.current_valuation || 0
           })));
         }
       }
@@ -121,7 +147,19 @@ export default function PropertyInputSelector({
             floorArea: prop.floor_area_m2 || prop.floorArea,
             lastSoldPrice: prop.last_sold_price || prop.lastSoldPrice,
             lastSoldDate: prop.last_sold_date || prop.lastSoldDate,
-            epcRating: prop.epc_rating || prop.epcRating
+            epcRating: prop.epc_rating || prop.epcRating,
+            salesHistory: prop.sales_history || [],
+            totalSales: prop.total_sales || 0,
+            priceRange: prop.price_range || { min: 0, max: 0 },
+            lastSaleDate: prop.last_sale_date || prop.lastSoldDate,
+            growthPeriod: prop.growth_period || 'N/A',
+            longTermGrowth: prop.long_term_growth,
+            longTermPeriod: prop.long_term_period,
+            grossYield: prop.gross_yield,
+            portfolioFit: prop.portfolio_fit,
+            capitalGrowth: prop.capital_growth,
+            lastSalePrice: prop.last_sale_price,
+            currentValuation: prop.current_valuation || 0
           })));
         }
       }
@@ -130,40 +168,49 @@ export default function PropertyInputSelector({
     }
   };
 
-  const handlePostcodeSearch = async () => {
-          if (!searchQuery.trim()) {
-        showToast({
-          type: 'error',
-          title: 'Missing Information',
-          message: 'Please enter a postcode'
-        });
-        return;
-      }
+  const handlePropertyDiscovery = async () => {
+    if (!searchQuery.trim()) {
+      showToast({
+        type: 'error',
+        title: 'Missing Information',
+        message: 'Please enter a postcode'
+      });
+      return;
+    }
 
     setIsSearching(true);
     try {
       const formattedPostcode = formatPostcode(searchQuery.trim());
-      const response = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(formattedPostcode)}&includeRental=true&includeHPI=true`);
+      const response = await fetch(`/api/portfolio/discover?postcode=${encodeURIComponent(formattedPostcode)}&limit=${discoveryLimit}`);
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data?.properties && data.data.properties.length > 0) {
-          setSearchResults(data.data.properties.map((prop: any) => ({
-            id: prop.id || `search-${prop.postcode}-${prop.address}`,
-            address: prop.address || 'Unknown Address',
-            postcode: formatPostcode(prop.postcode),
-            propertyType: prop.propertyType || 'semi-detached',
-            bedrooms: prop.habitableRooms || 3,
-            floorArea: prop.totalFloorArea || 0,
-            lastSoldPrice: 0, // Not available in EPC data
-            lastSoldDate: prop.inspectionDate || '',
-            epcRating: prop.currentEnergyRating || 'C',
-            // Enhanced data
-            energyEfficiency: prop.currentEnergyEfficiency,
-            constructionAge: prop.constructionAge,
-            tenure: prop.tenure,
-            rental: prop.rental,
-            marketTrends: prop.marketTrends
-          })));
+  
+          const mappedProperties = data.data.properties.map((prop: any) => {
+            const mappedProperty: Property = {
+              address: prop.address,
+              postcode: prop.postcode,
+              propertyType: prop.propertyType || 'Unknown',
+              bedrooms: prop.bedrooms || 0,
+              floorArea: prop.floorArea || 0,
+              epcRating: prop.epcRating || 'Unknown',
+              lastSaleDate: prop.lastSaleDate || 'N/A',
+              growthPeriod: prop.growthPeriod || 'N/A',
+              longTermGrowth: prop.longTermGrowth || 0,
+              longTermPeriod: prop.longTermPeriod || 'N/A',
+              grossYield: prop.grossYield || 0,
+              portfolioFit: prop.portfolioFit,
+              capitalGrowth: prop.capitalGrowth || 0,
+              lastSalePrice: prop.lastSalePrice || 0,
+              currentValuation: prop.currentValuation || 0, // Use camelCase from API
+              salesHistory: prop.salesHistory || [],
+              totalSales: prop.totalSales || 0,
+              priceRange: prop.priceRange || { min: 0, max: 0 }
+            };
+            return mappedProperty;
+          });
+  
+          setSearchResults(mappedProperties);
         } else {
           setSearchResults([]);
           showToast({
@@ -175,16 +222,16 @@ export default function PropertyInputSelector({
       } else {
         showToast({
           type: 'error',
-          title: 'Search Failed',
-          message: 'Search failed. Please try again.'
+          title: 'Discovery Failed',
+          message: 'Discovery failed. Please try again.'
         });
       }
     } catch (error) {
-      console.error('Search error:', error);
+      console.error('Discovery error:', error);
       showToast({
         type: 'error',
-        title: 'Search Failed',
-        message: 'Search failed. Please try again.'
+        title: 'Discovery Failed',
+        message: 'Discovery failed. Please try again.'
       });
     } finally {
       setIsSearching(false);
@@ -210,7 +257,19 @@ export default function PropertyInputSelector({
       floorArea: manualProperty.floorArea || 0,
       lastSoldPrice: manualProperty.lastSoldPrice || 0,
       lastSoldDate: manualProperty.lastSoldDate || '',
-      epcRating: manualProperty.epcRating || 'C'
+      epcRating: manualProperty.epcRating || 'C',
+      salesHistory: [], // No sales history for manual input
+      totalSales: 0,
+      priceRange: { min: 0, max: 0 },
+      lastSaleDate: '',
+      growthPeriod: 'N/A',
+      longTermGrowth: 0,
+      longTermPeriod: 'N/A',
+      grossYield: 0,
+      portfolioFit: { diversification: 0, riskLevel: 'N/A', potential: 'N/A' },
+      capitalGrowth: 0,
+      lastSalePrice: 0,
+      currentValuation: 0
     };
 
     onPropertyInput(property);
@@ -230,8 +289,72 @@ export default function PropertyInputSelector({
     });
   };
 
+  const handleAddToPortfolio = async (property: Property) => {
+    try {
+      const response = await fetch('/api/portfolio', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          address: property.address,
+          postcode: property.postcode,
+          propertyType: property.propertyType,
+          bedrooms: property.bedrooms,
+          floorArea: property.floorArea,
+          lastSoldPrice: property.lastSoldPrice,
+          lastSoldDate: property.lastSoldDate,
+          epcRating: property.epcRating,
+          salesHistory: property.salesHistory,
+          totalSales: property.totalSales,
+          priceRange: property.priceRange,
+          lastSaleDate: property.lastSaleDate,
+          growthPeriod: property.growthPeriod,
+          longTermGrowth: property.longTermGrowth,
+          longTermPeriod: property.longTermPeriod,
+          grossYield: property.grossYield,
+          portfolioFit: property.portfolioFit,
+          capitalGrowth: property.capitalGrowth,
+          lastSalePrice: property.lastSalePrice,
+          currentValuation: property.currentValuation
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          showToast({
+            type: 'success',
+            title: 'Added to Portfolio',
+            message: `${property.address} added to your portfolio!`
+          });
+          fetchPortfolioProperties(); // Refresh portfolio list
+        } else {
+          showToast({
+            type: 'error',
+            title: 'Add to Portfolio Failed',
+            message: data.message || 'Failed to add property to portfolio.'
+          });
+        }
+      } else {
+        showToast({
+          type: 'error',
+          title: 'Add to Portfolio Failed',
+          message: 'Failed to add property to portfolio. Please try again.'
+        });
+      }
+    } catch (error) {
+      console.error('Error adding to portfolio:', error);
+      showToast({
+        type: 'error',
+        title: 'Add to Portfolio Failed',
+        message: 'Failed to add property to portfolio. Please try again.'
+      });
+    }
+  };
+
   const tabs = [
-    { id: 'search', label: 'Postcode Search', icon: Search, show: showPostcodeSearch },
+    { id: 'discovery', label: 'Property Search', icon: Target, show: showPostcodeSearch },
     { id: 'manual', label: 'Manual Input', icon: Plus, show: showManualInput },
     { id: 'portfolio', label: 'Portfolio', icon: FolderOpen, show: showPortfolio },
     { id: 'watchlist', label: 'Watchlist', icon: Eye, show: showWatchlist }
@@ -266,113 +389,269 @@ export default function PropertyInputSelector({
 
       {/* Tab Content */}
       <div className="space-y-6">
-        {/* Postcode Search Tab */}
-        {activeTab === 'search' && showPostcodeSearch && (
+        {/* Property Discovery Tab */}
+        {activeTab === 'discovery' && showPostcodeSearch && (
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Search className="h-5 w-5" />
-                Search by Postcode
+              <CardTitle className="flex items-center gap-3 text-xl">
+                <Target className="h-6 w-6 text-blue-600" />
+                Property Search & Discovery
               </CardTitle>
+              <CardDescription className="text-base text-gray-600 leading-relaxed">
+                Search and discover properties with comprehensive investment analysis, EPC insights, and market trends
+              </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex gap-2">
+            <CardContent className="space-y-6">
+              {/* Search Input Row */}
+              <div className="flex items-end gap-4">
+                <div className="flex-1">
+                  <label htmlFor="discovery-postcode" className="block text-sm font-semibold text-gray-700 mb-2">
+                    Enter Postcode
+                  </label>
                   <input
+                    id="discovery-postcode"
                     type="text"
+                    placeholder="e.g., NE5 4PR"
                     value={searchQuery}
                     onChange={(e) => {
                       const rawValue = e.target.value;
                       const formatted = formatPostcode(rawValue);
                       setSearchQuery(formatted);
                     }}
-                    placeholder="Enter postcode (e.g., NE5 2PR)"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    onKeyPress={(e) => e.key === 'Enter' && handlePostcodeSearch()}
+                    onKeyPress={(e) => e.key === 'Enter' && handlePropertyDiscovery()}
+                    className="w-full px-4 py-3 text-lg border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 shadow-sm hover:shadow-md"
                   />
-                  <Button
-                    onClick={handlePostcodeSearch}
-                    disabled={isSearching}
-                    className="px-6"
+                </div>
+                
+                <div className="flex items-end gap-3">
+                  <div>
+                    <label htmlFor="discovery-limit" className="block text-sm font-semibold text-gray-700 mb-2">
+                      Max Results
+                    </label>
+                    <input
+                      id="discovery-limit"
+                      type="number"
+                      value={discoveryLimit}
+                      onChange={(e) => setDiscoveryLimit(parseInt(e.target.value) || 100)}
+                      min="1"
+                      max="500"
+                      className="w-24 px-3 py-3 text-center border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                    />
+                  </div>
+                  
+                  <Button 
+                    onClick={handlePropertyDiscovery}
+                    disabled={isSearching || !searchQuery.trim()}
+                    className="h-12 px-8 text-base font-semibold bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 border-0 shadow-lg hover:shadow-xl transition-all duration-200 rounded-xl"
                   >
-                    {isSearching ? 'Searching...' : 'Search'}
+                    {isSearching ? (
+                      <>
+                        <Loader2 className="h-5 w-5 mr-3 animate-spin" />
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="h-5 w-5 mr-3" />
+                        Discover
+                      </>
+                    )}
                   </Button>
                 </div>
-                <p className="text-xs text-gray-500">Postcodes are automatically formatted (e.g., NE54PR → NE5 4PR)</p>
               </div>
-
+              
+              {/* Results Info */}
               {searchResults.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="font-medium text-gray-900">Search Results</h4>
-                  {searchResults.map((property) => (
-                    <div
-                      key={property.id}
-                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => handlePropertySelect(property)}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium text-gray-900">{property.address}</p>
+                <div className="text-base text-gray-600 bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 rounded-xl border border-blue-100">
+                  Found <span className="font-bold text-blue-700">{searchResults.length}</span> properties
+                  {searchResults.length === discoveryLimit && (
+                    <span className="text-gray-500 ml-3">
+                      (showing max results - increase limit to see more)
+                    </span>
+                  )}
+                </div>
+              )}
+              
+              {/* Property Results */}
+              <div className="space-y-4">
+                {searchResults.map((property, index) => (
+                  <div key={property.id || index} className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 cursor-pointer transition-all duration-200 overflow-hidden">
+                    
+                    {/* Header Section - Address & Sales Badge */}
+                    <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-lg font-bold text-gray-900 truncate">{property.address}</h3>
                           <p className="text-sm text-gray-600">{property.postcode}</p>
-                          <div className="flex items-center gap-4 mt-1">
-                            {property.propertyType && (
-                              <Badge variant="secondary" className="text-xs">
-                                {property.propertyType}
-                              </Badge>
-                            )}
-                            {property.bedrooms && (
-                              <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Building2 className="h-3 w-3" />
-                                {property.bedrooms} beds
-                              </span>
-                            )}
-                            {property.floorArea && (
-                              <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Target className="h-3 w-3" />
-                                {property.floorArea}m²
-                              </span>
-                            )}
-                            {property.epcRating && (
-                              <span className="text-xs text-gray-500 flex items-center gap-1">
-                                <Zap className="h-3 w-3" />
-                                EPC {property.epcRating}
-                              </span>
-                            )}
+                        </div>
+                        <div className="ml-3 flex-shrink-0">
+                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 border border-blue-200">
+                            {property.totalSales || 0} sale{(property.totalSales || 0) !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Property Details Row - Compact */}
+                    <div className="px-4 py-3 border-b border-gray-100">
+                      <div className="flex items-center gap-4 text-sm">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="h-4 w-4 text-gray-500" />
+                          <span className="text-gray-700">{property.propertyType || 'Unknown'}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                          <span className="text-gray-700">{property.bedrooms || 0} beds</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                          <span className="text-gray-700">£{(property.lastSalePrice || 0).toLocaleString()}</span>
+                        </div>
+                        {property.epcRating && (
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 bg-gray-300 rounded-full"></div>
+                            <Zap className="h-4 w-4 text-gray-500" />
+                            <span className="text-gray-700">EPC {property.epcRating}</span>
                           </div>
-                          {/* Enhanced Data Display */}
-                          {(property.rental || property.marketTrends) && (
-                            <div className="mt-2 pt-2 border-t border-gray-100">
-                              {property.rental && (
-                                <div className="text-xs text-gray-600">
-                                  <span className="font-medium">Rent:</span> £{property.rental.estimatedMonthlyRent}/month
-                                  {property.rental.grossYield > 0 && (
-                                    <span className="ml-2 text-green-600">
-                                      Yield: {property.rental.grossYield}%
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                              {property.marketTrends && (
-                                <div className="text-xs text-gray-600 mt-1">
-                                  <span className="font-medium">Market:</span> {property.marketTrends.region}
-                                  {property.marketTrends.monthlyChange !== 0 && (
-                                    <span className={`ml-2 ${property.marketTrends.monthlyChange > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                      {property.marketTrends.monthlyChange > 0 ? '+' : ''}{property.marketTrends.monthlyChange}% this month
-                                    </span>
-                                  )}
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Investment Metrics - Compact Grid */}
+                    <div className="px-4 py-3 bg-gray-50">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Growth</span>
+                            <span className={`text-sm font-bold ${
+                              (property.capitalGrowth || 0) >= 0 ? 'text-emerald-600' : 'text-rose-600'
+                            }`}>
+                              {(property.capitalGrowth || 0) >= 0 ? '+' : ''}{(property.capitalGrowth || 0).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Risk</span>
+                            <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                              (property.portfolioFit?.riskLevel || 'N/A') === 'LOW' ? 'bg-emerald-100 text-emerald-700' :
+                              (property.portfolioFit?.riskLevel || 'N/A') === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
+                              'bg-rose-100 text-rose-700'
+                            }`}>
+                              {property.portfolioFit?.riskLevel || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Yield</span>
+                            <span className="text-sm font-bold text-blue-600">
+                              {(property.grossYield || 0).toFixed(1)}%
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Potential</span>
+                            <span className={`text-xs font-semibold px-2 py-1 rounded ${
+                              (property.portfolioFit?.potential || 'N/A') === 'HIGH' ? 'bg-emerald-100 text-emerald-700' :
+                              (property.portfolioFit?.potential || 'N/A') === 'MEDIUM' ? 'bg-amber-100 text-amber-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {property.portfolioFit?.potential || 'N/A'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sales History - Compact */}
+                    {(property.totalSales > 0 || (property.salesHistory && property.salesHistory.length > 0) || property.lastSaleDate) && (
+                      <div className="px-4 py-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-sm font-semibold text-gray-800">📊 Sales History</span>
+                          <span className="text-sm text-blue-700 font-bold bg-blue-100 px-2 py-1 rounded-full">
+                            {property.totalSales || property.salesHistory?.length || 0} total sale{(property.totalSales || property.salesHistory?.length || 0) !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {property.lastSaleDate && (
+                            <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
+                              <div className="font-semibold text-gray-800 mb-2 text-sm">Latest Sale</div>
+                              <div className="text-lg font-bold text-gray-900">{new Date(property.lastSaleDate).toLocaleDateString('en-GB', { 
+                                day: 'numeric', 
+                                month: 'long', 
+                                year: 'numeric' 
+                              })}</div>
+                              <div className="text-blue-600 font-semibold">£{(property.lastSalePrice || 0).toLocaleString()}</div>
+                            </div>
+                          )}
+                          
+                          {(property.totalSales > 1 || (property.salesHistory && property.salesHistory.length > 1)) && property.priceRange && (
+                            <div className="bg-white p-3 rounded-lg border border-blue-200 shadow-sm">
+                              <div className="font-semibold text-gray-800 mb-2 text-sm">Price Range</div>
+                              <div className="text-lg font-bold text-emerald-600">
+                                £{(property.priceRange.min || 0).toLocaleString()} - £{(property.priceRange.max || 0).toLocaleString()}
+                              </div>
+                              {property.growthPeriod && property.growthPeriod !== 'N/A' && (
+                                <div className="text-gray-600 text-sm mt-2 bg-gray-50 px-2 py-1 rounded">
+                                  Period: {property.growthPeriod}
                                 </div>
                               )}
                             </div>
                           )}
                         </div>
-                        <Button size="sm" variant="outline">
-                          Select
-                        </Button>
+                        
+                        {/* Additional Sales Info */}
+                        {property.salesHistory && property.salesHistory.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-blue-200">
+                            <div className="text-xs text-gray-600">
+                              <span className="font-medium">Sales Timeline:</span> 
+                              {property.salesHistory.map((sale: any, index: number) => (
+                                <span key={index} className="ml-2">
+                                  {new Date(sale.date).getFullYear()} (£{sale.price.toLocaleString()})
+                                  {index < property.salesHistory.length - 1 ? ', ' : ''}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Action Buttons - Compact */}
+                    <div className="px-4 py-3 bg-gray-25 border-t border-gray-100">
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handlePropertySelect(property)}
+                          className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 text-sm"
+                        >
+                          <Target className="h-4 w-4" />
+                          Analysis
+                        </button>
+                        <button
+                          onClick={() => handleAddToPortfolio(property)}
+                          className={`flex-1 font-medium py-2 px-3 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 text-sm ${
+                            portfolioProperties.some(p => p.address === property.address && p.postcode === property.postcode)
+                              ? 'bg-gray-400 text-gray-600 cursor-not-allowed'
+                              : 'bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-700 hover:to-emerald-800 text-white hover:shadow-md'
+                          }`}
+                          disabled={portfolioProperties.some(p => p.address === property.address && p.postcode === property.postcode)}
+                        >
+                          {portfolioProperties.some(p => p.address === property.address && p.postcode === property.postcode) ? (
+                            <>
+                              <Eye className="h-4 w-4" />
+                              Added
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4" />
+                              Add
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         )}

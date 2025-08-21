@@ -51,6 +51,21 @@ export const CardTitle: React.FC<CardTitleProps> = ({ children, className, ...pr
   );
 };
 
+interface CardDescriptionProps extends React.HTMLAttributes<HTMLParagraphElement> {
+  children: React.ReactNode;
+}
+
+export const CardDescription: React.FC<CardDescriptionProps> = ({ children, className, ...props }) => {
+  return (
+    <p
+      className={cn('text-sm text-gray-600', className)}
+      {...props}
+    >
+      {children}
+    </p>
+  );
+};
+
 interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
