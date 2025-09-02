@@ -1,91 +1,138 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { esClient, checkElasticsearchHealth } from '@/lib/esClient';
-import { supabase } from '@/lib/supabaseClient';
+import { 
+  getDatabaseManager, 
+  getDatabasePerformanceMonitor, 
+  getDatabaseHealthChecker 
+} from '@/lib/database/connectionPool';
+import { requireAuth } from '@/lib/auth/middleware';
 
+// GET /api/health/database - Get database health status
 export async function GET(request: NextRequest) {
   try {
-    const health = {
-      timestamp: new Date().toISOString(),
-      overall: 'unknown',
-      elasticsearch: null as any,
-      supabase: null as any,
-      recommendations: [] as string[]
-    };
-
-    // Test Elasticsearch
-    try {
-      health.elasticsearch = await checkElasticsearchHealth();
-      if (health.elasticsearch.status === 'healthy') {
-        console.log('✅ Elasticsearch health check passed');
-      } else {
-        console.warn('⚠️ Elasticsearch health check failed');
-        health.recommendations.push('Check Elasticsearch container status and connectivity');
-      }
-    } catch (error) {
-      health.elasticsearch = {
-        status: 'error',
-        error: error instanceof Error ? error.message : 'Unknown error'
-      };
-      health.recommendations.push('Elasticsearch connection failed - check Docker container');
+    // Check authentication (admin only for detailed health info)
+    const authResponse = await requireAuth(request);
+    if (authResponse) {
+      return authResponse;
     }
 
-    // Test Supabase
-    if (supabase) {
-      try {
-        const { data, error } = await supabase.from('_dummy_table_').select('*').limit(1);
-        if (error && error.code === '42P01') {
-          // Table doesn't exist, but connection works
-          health.supabase = {
-            status: 'connected',
-            message: 'Connection successful (table not found is expected)'
-          };
-        } else if (error) {
-          health.supabase = {
-            status: 'error',
-            error: error.message
-          };
-          health.recommendations.push('Supabase connection failed - check credentials');
-        } else {
-          health.supabase = {
-            status: 'connected',
-            message: 'Connection and query successful'
-          };
-        }
-      } catch (error) {
-        health.supabase = {
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        };
-        health.recommendations.push('Supabase connection failed - check network and credentials');
-      }
-    } else {
-      health.supabase = {
-        status: 'not_configured',
-        message: 'Supabase credentials not configured'
-      };
-      health.recommendations.push('Add SUPABASE_URL and SUPABASE_ANON_KEY to environment variables');
-    }
+    const dbManager = getDatabaseManager();
+    const performanceMonitor = getDatabasePerformanceMonitor();
+    const healthChecker = getDatabaseHealthChecker();
 
-    // Determine overall health
-    if (health.elasticsearch?.status === 'healthy' && health.supabase?.status === 'connected') {
-      health.overall = 'healthy';
-    } else if (health.elasticsearch?.status === 'healthy' || health.supabase?.status === 'connected') {
-      health.overall = 'degraded';
-    } else {
-      health.overall = 'critical';
-    }
+    // Perform comprehensive health check
+    const healthCheck = await healthChecker.performHealthCheck();
+    const performanceReport = performanceMonitor.getPerformanceReport();
+    const poolStats = dbManager.getPoolStats();
 
     return NextResponse.json({
       success: true,
-      data: health
+      health: {
+        status: healthCheck.status,
+        score: healthCheck.score,
+        timestamp: new Date().toISOString()
+      },
+      connectionPool: {
+        totalConnections: poolStats.totalCount,
+        idleConnections: poolStats.idleCount,
+        waitingConnections: poolStats.waitingCount,
+        isConnected: poolStats.isConnected
+      },
+      performance: {
+        queryCount: performanceReport.summary.queryCount,
+        averageQueryTime: performanceReport.summary.averageQueryTime,
+        slowQueries: performanceReport.summary.slowQueries,
+        errorCount: performanceReport.summary.errorCount,
+        healthScore: performanceReport.healthScore
+      },
+      checks: healthCheck.checks,
+      recommendations: healthCheck.recommendations,
+      slowQueries: performanceReport.slowQueries.map(q => ({
+        query: q.query.substring(0, 100) + '...',
+        duration: q.duration,
+        timestamp: q.timestamp,
+        error: q.error
+      }))
     });
-
   } catch (error) {
     console.error('Database health check failed:', error);
     return NextResponse.json({
       success: false,
-      error: 'Health check failed',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Database health check failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }, { status: 500 });
+  }
+}
+
+// POST /api/health/database - Perform detailed database analysis
+export async function POST(request: NextRequest) {
+  try {
+    // Check authentication (admin only)
+    const authResponse = await requireAuth(request);
+    if (authResponse) {
+      return authResponse;
+    }
+
+    const body = await request.json();
+    const { action } = body;
+
+    const performanceMonitor = getDatabasePerformanceMonitor();
+
+    switch (action) {
+      case 'performance-report':
+        const report = performanceMonitor.getPerformanceReport();
+        return NextResponse.json({
+          success: true,
+          report
+        });
+
+      case 'slow-queries':
+        const { limit = 10 } = body;
+        const slowQueries = performanceMonitor.getSlowQueries(limit);
+        return NextResponse.json({
+          success: true,
+          slowQueries: slowQueries.map(q => ({
+            query: q.query,
+            duration: q.duration,
+            timestamp: q.timestamp,
+            params: q.params,
+            error: q.error
+          }))
+        });
+
+      case 'query-stats':
+        const { pattern } = body;
+        const stats = performanceMonitor.getQueryStats(pattern);
+        return NextResponse.json({
+          success: true,
+          stats
+        });
+
+      case 'export-data':
+        const data = performanceMonitor.exportPerformanceData();
+        return NextResponse.json({
+          success: true,
+          data
+        });
+
+      case 'clear-history':
+        performanceMonitor.clearHistory();
+        return NextResponse.json({
+          success: true,
+          message: 'Performance history cleared'
+        });
+
+      default:
+        return NextResponse.json({
+          success: false,
+          error: 'Invalid action'
+        }, { status: 400 });
+    }
+  } catch (error) {
+    console.error('Database analysis failed:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Database analysis failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
 }
