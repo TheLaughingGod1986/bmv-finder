@@ -541,7 +541,7 @@ export default function Home() {
                 className="max-w-2xl mx-auto mb-8"
               >
                 {/* Desktop Search */}
-                <div className="hidden md:block">
+                <div className="hidden md:block" data-tour="search-form">
                   <AddressSearchInput
                     value={searchTerm}
                     onChange={setSearchTerm}
@@ -551,6 +551,7 @@ export default function Home() {
                     showHistory={false}
                     showSuggestions={false}
                     className="w-full"
+                    data-tour="search-input"
                   />
                 </div>
                 
@@ -1274,7 +1275,7 @@ export default function Home() {
 
         {/* Main Content Container (centered) - Only show after search */}
         {results !== null && (
-          <div className="relative max-w-screen-2xl w-[90vw] mx-auto">
+          <div className="relative max-w-screen-2xl w-[90vw] mx-auto" data-tour="search-results">
             
             {/* Search Counter is now handled by SearchLimitManager */}
             

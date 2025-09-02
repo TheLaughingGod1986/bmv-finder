@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Building2, TrendingUp, Search, BarChart3, Star, Menu, X, User, LogOut } from 'lucide-react';
+import { Home, Building2, TrendingUp, Search, BarChart3, Star, Menu, X, User, LogOut, BookOpen } from 'lucide-react';
 import AuthModal from './AuthModal';
 import EnhancedAuthModal from './EnhancedAuthModal';
 import { useMockAuth } from './MockAuthProvider';
@@ -22,12 +22,12 @@ export default function Navigation() {
   const isRealAuth = hybridAuth.isRealAuth;
 
   const navigation = [
-    { name: 'Home', href: '/', icon: Home },
-    { name: 'Property Discovery', href: '/portfolio/discover', icon: Search },
-    { name: 'Watchlist', href: '/watchlist', icon: Star },
-    { name: 'Portfolio', href: '/tools/portfolio', icon: Building2 },
-    { name: 'Deal Analysis', href: '/analysis/deal-analysis', icon: BarChart3 },
-    { name: 'Market Trends', href: '/analysis/market-trends', icon: TrendingUp },
+    { name: 'Home', href: '/', icon: Home, tourId: 'home-link' },
+    { name: 'Property Discovery', href: '/portfolio/discover', icon: Search, tourId: 'search-link' },
+    { name: 'Watchlist', href: '/watchlist', icon: Star, tourId: 'watchlist' },
+    { name: 'Portfolio', href: '/tools/portfolio', icon: Building2, tourId: 'portfolio-link' },
+    { name: 'Deal Analysis', href: '/analysis/deal-analysis', icon: BarChart3, tourId: 'deal-analysis' },
+    { name: 'Market Trends', href: '/analysis/market-trends', icon: TrendingUp, tourId: 'market-analysis' },
   ];
 
   return (
@@ -48,6 +48,7 @@ export default function Navigation() {
                     <Link
                       key={item.name}
                       href={item.href}
+                      data-tour={item.tourId}
                       className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                         isActive
                           ? 'border-blue-500 text-gray-900 dark:text-white'
@@ -65,6 +66,14 @@ export default function Navigation() {
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
+                  <Link
+                    href="/onboarding"
+                    className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                    data-tour="onboarding-link"
+                  >
+                    <BookOpen className="h-4 w-4 mr-1" />
+                    Learn
+                  </Link>
                   <ThemeToggle />
                   {currentUser ? (
                     <>
@@ -130,6 +139,7 @@ export default function Navigation() {
                   <Link
                     key={item.name}
                     href={item.href}
+                    data-tour={item.tourId}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
                       isActive

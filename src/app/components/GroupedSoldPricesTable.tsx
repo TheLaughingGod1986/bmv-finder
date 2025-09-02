@@ -313,7 +313,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     }
     
     return (
-      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${badgeColor}`}>
+      <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${badgeColor}`} data-tour="bmv-score">
         <span>{badgeIcon}</span>
         <span>{(bmvScore as number).toFixed(1)}</span>
       </div>
