@@ -1,69 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User } from '@/lib/auth/productionAuth';
-import { useMockAuth } from '../components/MockAuthProvider';
+import { useHybridAuth } from '@/lib/auth/hybridAuth';
 import WatchlistPage from '../components/watchlist/WatchlistPage';
 import ChromeExtensionIntegration from '../components/watchlist/ChromeExtensionIntegration';
 import PropertyComparison from '../components/watchlist/PropertyComparison';
 import WatchlistNotifications from '../components/watchlist/WatchlistNotifications';
 
 interface WatchlistMainPageProps {
-  user?: User;
+  user?: any;
 }
 
 export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
-  const [currentUser, setCurrentUser] = useState<User | null>(user || null);
   const [activeTab, setActiveTab] = useState<'properties' | 'extension' | 'notifications'>('properties');
   const [selectedProperties, setSelectedProperties] = useState<any[]>([]);
   const [showComparison, setShowComparison] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const mockAuth = useMockAuth();
+  const { user: currentUser, loading: isLoading, isSupabaseAvailable } = useHybridAuth();
 
   useEffect(() => {
-    // Check if user is authenticated
-    if (!currentUser) {
-      // First check mock auth
-      if (mockAuth.user) {
-        // Convert mock user to User type
-        const mockUser: User = {
-          id: mockAuth.user.id,
-          email: mockAuth.user.email,
-          name: mockAuth.user.name,
-          role: 'user',
-          subscription: 'free',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        };
-        setCurrentUser(mockUser);
-        setIsLoading(false);
-        return;
-      }
-      // If no mock user, check production auth
-      checkAuthentication();
-    } else {
-      setIsLoading(false);
-    }
-  }, [currentUser, mockAuth.user]);
-
-  const checkAuthentication = async () => {
-    try {
-      const response = await fetch('/api/auth/production?action=validate');
-      const data = await response.json();
-      
-      if (data.success && data.user) {
-        setCurrentUser(data.user);
-      } else {
-        // Redirect to login page
-        window.location.href = '/login';
-      }
-    } catch (error) {
-      console.error('Authentication check failed:', error);
+    // If no user is authenticated, redirect to login
+    if (!isLoading && !currentUser) {
       window.location.href = '/login';
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [currentUser, isLoading]);
 
   const handlePropertySelection = (properties: any[]) => {
     setSelectedProperties(properties);
@@ -88,8 +47,8 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="text-red-600 text-6xl mb-4">🔒</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
-          <p className="text-gray-600 mb-4">Please log in to access your watchlist.</p>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Authentication Required</h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">Please log in to access your watchlist.</p>
           <button
             onClick={() => window.location.href = '/login'}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -102,9 +61,9 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b">
+      <div className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
@@ -112,10 +71,17 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
                 {currentUser.name.charAt(0).toUpperCase()}
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                   Welcome back, {currentUser.name}!
                 </h1>
-                <p className="text-sm text-gray-600">Manage your property watchlist</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400">
+                  Manage your property watchlist
+                  {isSupabaseAvailable && (
+                    <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+                      Real Auth
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
             
@@ -133,7 +99,7 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white border-b">
+      <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="flex space-x-8">
             {[
@@ -146,14 +112,14 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
                 onClick={() => setActiveTab(tab.id as any)}
                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
                   activeTab === tab.id
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                    : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
                 <span className="mr-2">{tab.icon}</span>
                 {tab.label}
                 {tab.count !== null && (
-                  <span className="ml-2 px-2 py-1 bg-gray-100 text-gray-600 rounded-full text-xs">
+                  <span className="ml-2 px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-full text-xs">
                     {tab.count}
                   </span>
                 )}
