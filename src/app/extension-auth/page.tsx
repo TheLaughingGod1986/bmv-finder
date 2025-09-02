@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabaseClient';
 import AuthModal from '../components/AuthModal';
-import { useMockAuth } from '../components/MockAuthProvider';
+import { useHybridAuth } from '../../lib/auth/hybridAuth';
 
 function ExtensionAuthContent() {
   const searchParams = useSearchParams();
@@ -12,7 +12,7 @@ function ExtensionAuthContent() {
   const [message, setMessage] = useState('Authenticating...');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const mockAuth = useMockAuth();
+  const { user, loading, isSupabaseAvailable } = useHybridAuth();
 
   const handleAuth = async () => {
     try {
@@ -26,10 +26,9 @@ function ExtensionAuthContent() {
         return;
       }
 
-      // Check for mock authentication first
-      if (mockAuth.user) {
-        // User is authenticated via mock auth
-        const user = mockAuth.user;
+      // Check for hybrid authentication
+      if (user) {
+        // User is authenticated via hybrid auth
         
         // Create user data for extension
         const userData = {
@@ -44,7 +43,7 @@ function ExtensionAuthContent() {
         // If we have extension callback, redirect with mock data
         if (extensionCallback) {
           const encodedUserData = encodeURIComponent(JSON.stringify(userData));
-          const redirectUrl = `${extensionCallback}?userData=${encodedUserData}&mockAuth=true`;
+          const redirectUrl = `${extensionCallback}?userData=${encodedUserData}&mockAuth=${!isSupabaseAvailable}`;
           
           setStatus('success');
           setMessage('Authentication successful! Redirecting to extension...');
@@ -122,8 +121,10 @@ function ExtensionAuthContent() {
   };
 
   useEffect(() => {
-    handleAuth();
-  }, [searchParams]);
+    if (!loading) {
+      handleAuth();
+    }
+  }, [searchParams, user, loading]);
 
   const handleAuthSuccess = () => {
     setIsAuthModalOpen(false);
