@@ -35,7 +35,7 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
       if (data.success && data.user) {
         setCurrentUser(data.user);
       } else {
-        // Redirect to login or show login modal
+        // Redirect to login page
         window.location.href = '/login';
       }
     } catch (error) {
