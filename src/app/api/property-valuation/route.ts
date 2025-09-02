@@ -4,6 +4,15 @@ import { SoldPrice } from '../../../../types/sold-price';
 import { esClient } from '@/lib/esClient';
 import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import defaultMarketConfig, { getRegionCode } from '@/lib/marketConfig';
+import { 
+  RecentSaleDocument,
+  EPCDocument,
+  HPIDocument,
+  RentalPricesDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 console.log('Property valuation route loaded, defaultMarketConfig:', defaultMarketConfig);
 console.log('Fallback property value:', defaultMarketConfig.fallbacks.propertyValues.default);
@@ -34,7 +43,11 @@ export async function GET(request: NextRequest) {
     let propertyData = null;
     if (number) {
       try {
-        const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+        // Construct the full URL using the request headers to get the correct host and port
+        const protocol = request.headers.get('x-forwarded-proto') || 'http';
+        const host = request.headers.get('host') || 'localhost:3000';
+        const baseUrl = `${protocol}://${host}`;
+        const enhancedResponse = await fetch(`${baseUrl}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
         
         if (enhancedResponse.ok) {
           const enhancedData = await enhancedResponse.json();
@@ -91,12 +104,13 @@ export async function GET(request: NextRequest) {
               console.log('Found recent sale for property:', recentSale);
               
               // Infer property characteristics from the sales data
+              const saleSource = recentSale as RecentSaleDocument;
               propertyData = {
-                propertyType: recentSale.property_type || 'Unknown',
-                bedrooms: recentSale.epc_bedrooms || 3, // Default to 3 bedrooms for houses
-                floorArea: recentSale.epc_floor_area || 80, // Default to 80m² for houses
+                propertyType: saleSource.property_type || 'Unknown',
+                bedrooms: saleSource.epc_bedrooms || 3, // Default to 3 bedrooms for houses
+                floorArea: saleSource.epc_floor_area || saleSource.floor_area || 80, // Default to 80m² for houses
                 address: `${number} Fourstones, ${postcode.toUpperCase()}`, // Use postcode area name
-                epcRating: recentSale.epc_rating || 'Unknown'
+                epcRating: saleSource.epc_rating || 'Unknown'
               };
               
               console.log('Inferred property characteristics from sales data:', propertyData);
@@ -182,7 +196,7 @@ export async function POST(request: NextRequest) {
         results = await performBMVAnalysis(postcode, undefined, propertyData);
         break;
       case 'market-only':
-        results = await performMarketAnalysis(postcode, undefined, propertyData);
+        results = await performMarketAnalysis(postcode, propertyData);
         break;
       default:
         return NextResponse.json(
@@ -491,7 +505,7 @@ async function performComprehensiveAnalysis(postcode: string, number?: string, p
 
   } catch (error) {
     console.error('Comprehensive analysis error:', error);
-    console.error('Error stack:', error.stack);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return {
       marketAnalysis: null,
       bmvAnalysis: null,
@@ -517,6 +531,7 @@ async function performBMVAnalysis(postcode: string, number?: string, propertyDat
   }
 
   const allProperties: SoldPrice[] = salesData.map((prop: any) => ({
+    id: prop.id || `sale-${Date.now()}-${Math.random()}`,
     postcode: prop.postcode,
     dateOfTransfer: prop.date_of_transfer || new Date().toISOString().split('T')[0],
     price: prop.price || 250000,
@@ -524,31 +539,33 @@ async function performBMVAnalysis(postcode: string, number?: string, propertyDat
     duration: prop.tenure || 'F',
     old_new: 'N',
     paon: prop.paon || 'Sample Property',
+    saon: prop.saon || '',
     street: prop.street || 'Sample Street',
     locality: prop.locality || '',
-    town: prop.town || '',
+    town_city: prop.town || '',
     district: prop.district || '',
     county: prop.county || '',
-    category: 'A',
-    recordStatus: 'A'
+    ppd_category_type: 'A',
+    record_status: 'A'
   }));
 
   const sampleProperty: SoldPrice = {
-    ...propertyData,
+    id: `sample-${Date.now()}`,
     postcode: postcode.toUpperCase(),
-    dateOfTransfer: propertyData.dateOfTransfer || new Date().toISOString().split('T')[0],
-    price: propertyData.price || 250000,
-    propertyType: propertyData.propertyType || 'T',
-    duration: propertyData.duration || 'F',
-    old_new: propertyData.old_new || 'N',
-    paon: propertyData.paon || 'Sample Property',
-    street: propertyData.street || 'Sample Street',
-    locality: propertyData.locality || '',
-    town: propertyData.town || '',
-    district: propertyData.district || '',
-    county: propertyData.county || '',
-    category: propertyData.category || 'A',
-    recordStatus: propertyData.recordStatus || 'A'
+    dateOfTransfer: propertyData?.dateOfTransfer || new Date().toISOString().split('T')[0],
+    price: propertyData?.price || 250000,
+    propertyType: propertyData?.propertyType || 'T',
+    duration: propertyData?.duration || 'F',
+    old_new: propertyData?.old_new || 'N',
+    paon: propertyData?.paon || 'Sample Property',
+    saon: propertyData?.saon || '',
+    street: propertyData?.street || 'Sample Street',
+    locality: propertyData?.locality || '',
+    town_city: propertyData?.town || '',
+    // district: propertyData?.district || '', // Removed as not in SoldPrice interface
+    county: propertyData?.county || '',
+    ppd_category_type: propertyData?.category || 'A',
+    record_status: propertyData?.recordStatus || 'A'
   };
 
   const enhancedBMVData = await BMVScoreEngine.calculateBMVScore(sampleProperty, allProperties);
@@ -591,7 +608,7 @@ async function performBMVAnalysis(postcode: string, number?: string, propertyDat
 }
 
 // Market Analysis Only
-async function performMarketAnalysis(postcode: string, number?: string) {
+async function performMarketAnalysis(postcode: string, propertyData?: any) {
   const salesData = await getPropertySalesData(postcode);
   
   if (salesData.length === 0) {
@@ -605,7 +622,7 @@ async function performMarketAnalysis(postcode: string, number?: string) {
   const rentalData = await getRentalData(postcode);
 
   const marketAnalysis = calculateMarketAnalysis(salesData, hpiData, rentalData);
-  const comparables = findComparableProperties(salesData, number);
+  const comparables = findComparableProperties(salesData, propertyData?.address?.split(' ')[0]);
 
   // Calculate time-weighted average price (prioritizing recent sales)
   const calculateTimeWeightedAveragePrice = (salesData: any[]) => {
@@ -652,35 +669,35 @@ async function performMarketAnalysis(postcode: string, number?: string) {
       overallGrowth: marketAnalysis.overallGrowth,
       totalSales: salesData.length,
       averagePrice: calculateTimeWeightedAveragePrice(salesData),
-      medianPrice: calculateMedian(salesData.map(sale => sale.price || 0)),
+      medianPrice: calculateMedian(salesData.map((sale: any) => sale.price || 0)),
       priceRange: {
-        min: Math.min(...salesData.map(sale => sale.price || 0)),
-        max: Math.max(...salesData.map(sale => sale.price || 0))
+        min: Math.min(...salesData.map((sale: any) => sale.price || 0)),
+        max: Math.max(...salesData.map((sale: any) => sale.price || 0))
       }
     },
     epcAnalysis: {
       totalProperties: epcData.length,
       averageRating: calculateAverageEPCRating(epcData),
-      energyEfficientCount: epcData.filter(e => ['A', 'B', 'C'].includes(e.current_energy_rating)).length,
-      ratingDistribution: epcData.reduce((acc, e) => {
+      energyEfficientCount: epcData.filter((e: any) => ['A', 'B', 'C'].includes(e.current_energy_rating)).length,
+      ratingDistribution: epcData.reduce((acc: any, e: any) => {
         const rating = e.current_energy_rating || 'Unknown';
         acc[rating] = (acc[rating] || 0) + 1;
         return acc;
-      }, {} as any)
+              }, {} as Record<string, any>)
     },
     hpiAnalysis: {
-      currentIndex: hpiData[0]?.index_value || 100,
+      currentIndex: (hpiData[0] as HPIDocument)?.index_value || 100,
       yoyGrowth: calculateYearOverYearGrowth(hpiData),
       trend: hpiData.length > 1 ? 
-        (hpiData[0]?.index_value > hpiData[1]?.index_value ? 'rising' : 'falling') : 'stable',
-      lastUpdated: hpiData[0]?.date || new Date().toISOString()
+        ((hpiData[0] as HPIDocument)?.index_value > (hpiData[1] as HPIDocument)?.index_value ? 'rising' : 'falling') : 'stable',
+      lastUpdated: (hpiData[0] as HPIDocument)?.date || new Date().toISOString()
     },
     rentalAnalysis: {
       averageRental: rentalData.length > 0 ? 
-        Math.round(rentalData.reduce((sum, r) => sum + (r.rental_price || 0), 0) / rentalData.length) : 0,
+        Math.round(rentalData.reduce((sum: number, r: any) => sum + (r.rental_price || 0), 0) / rentalData.length) : 0,
       rentalYield: rentalData.length > 0 ? 
-        (rentalData.reduce((sum, r) => sum + (r.rental_price || 0), 0) / rentalData.length) / 
-        (salesData.reduce((sum, sale) => sum + (sale.price || 0), 0) / salesData.length) * 12 * 100 : 0
+        (rentalData.reduce((sum: number, r: any) => sum + (r.rental_price || 0), 0) / rentalData.length) / 
+        (salesData.reduce((sum: number, sale: any) => sum + (sale.price || 0), 0) / salesData.length) * 12 * 100 : 0
     },
     comparables: comparables
   };

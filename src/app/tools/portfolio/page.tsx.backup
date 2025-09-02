@@ -1,0 +1,426 @@
+'use client';
+
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { formatPrice, formatDate, formatPercentage } from '@/lib/formatters';
+import { Plus, Filter, BarChart3, Target, MapPin, Trash2, CheckCircle, Edit, DollarSign, Percent, Clock, RefreshCw, Eye, TrendingUp, Building2, Home } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { supabase } from '../../../lib/supabaseClient';
+import PropertyEditModal from '../../components/PropertyEditModal';
+import SimplePropertyCard from '../../components/SimplePropertyCard';
+import PropertyValuationCard from '../../components/PropertyValuationCard';
+import AuthModal from '../../components/AuthModal';
+
+interface PortfolioProperty {
+  id: string;
+  address: string;
+  postcode: string;
+  purchasePrice: number;
+  currentValue: number;
+  purchaseDate: string;
+  propertyType: string;
+  bmvScore: number | null;
+  notes?: string;
+  status: 'active' | 'sold' | 'watching' | 'watchlist';
+  
+  // Financial details
+  monthlyRent?: number;
+  mortgageBalance?: number;
+  monthlyMortgagePayment?: number;
+  depositAmount?: number;
+  monthlyExpenses?: number;
+  
+  // Calculated fields
+  yield?: number;
+  equity?: number;
+  equityPercentage?: number;
+  monthlyProfit?: number;
+  totalProfit?: number;
+}
+
+interface PortfolioSummary {
+  totalValue: number;
+  totalPurchasePrice: number;
+  totalCapitalGrowth: number;
+  totalRentalIncome: number;
+  totalMortgagePayments: number;
+  totalExpenses: number;
+  totalProfit: number;
+  averageYield: number;
+  totalEquity: number;
+  totalEquityPercentage: number;
+}
+
+// Demo data for unauthenticated users
+const demoPortfolioData: PortfolioProperty[] = [
+  {
+    id: '1',
+    address: '16 Lowbiggin',
+    postcode: 'NE5 4PR',
+    purchasePrice: 95000,
+    currentValue: 110000,
+    purchaseDate: '2023-01-15',
+    propertyType: 'House',
+    bmvScore: 75,
+    status: 'active',
+    monthlyRent: 800,
+    mortgageBalance: 76000,
+    monthlyMortgagePayment: 380,
+    depositAmount: 19000,
+    monthlyExpenses: 150,
+    yield: 8.4,
+    equity: 34000,
+    equityPercentage: 30.9,
+    monthlyProfit: 270,
+    totalProfit: 15000
+  },
+  {
+    id: '2',
+    address: '71 Belgrave Road',
+    postcode: 'SS9 5EL',
+    purchasePrice: 455000,
+    currentValue: 485000,
+    purchaseDate: '2022-06-11',
+    propertyType: 'House',
+    bmvScore: 82,
+    status: 'active',
+    monthlyRent: 2200,
+    mortgageBalance: 364000,
+    monthlyMortgagePayment: 1820,
+    depositAmount: 91000,
+    monthlyExpenses: 300,
+    yield: 5.8,
+    equity: 121000,
+    equityPercentage: 24.9,
+    monthlyProfit: 80,
+    totalProfit: 30000
+  }
+];
+
+export default function PortfolioTrackerPage() {
+  const [user, setUser] = useState<any>(null);
+  const [portfolioProperties, setPortfolioProperties] = useState<PortfolioProperty[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'sold' | 'watching' | 'watchlist'>('all');
+  const [editingProperty, setEditingProperty] = useState<PortfolioProperty | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSignInModalOpen, setIsSignInModalOpen] = useState(false);
+  const [selectedPropertyForValuation, setSelectedPropertyForValuation] = useState<PortfolioProperty | null>(null);
+  const [isValuationModalOpen, setIsValuationModalOpen] = useState(false);
+  const hasInitialized = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !supabase) {
+      setIsLoading(false);
+      return;
+    }
+    
+    hasInitialized.current = false;
+    
+    const initializeAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          setUser(data.session.user);
+        }
+      } catch (error) {
+        console.error('Auth error:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    const timeoutId = setTimeout(() => {
+      setIsLoading(false);
+    }, 5000);
+
+    initializeAuth();
+
+    return () => clearTimeout(timeoutId);
+  }, [supabase]);
+
+  const loadPortfolioData = useCallback(async () => {
+    if (!user) {
+      setPortfolioProperties(demoPortfolioData);
+      setIsLoading(false);
+      return;
+    }
+
+    // Load real user data here
+    setIsLoading(false);
+  }, [user]);
+
+  useEffect(() => {
+    if (!isLoading && !hasInitialized.current) {
+      loadPortfolioData();
+      hasInitialized.current = true;
+    }
+  }, [isLoading, loadPortfolioData]);
+
+  const filteredProperties = portfolioProperties.filter(property => 
+    filterStatus === 'all' || property.status === filterStatus
+  );
+
+  const portfolioSummary: PortfolioSummary = useMemo(() => {
+    const totalValue = filteredProperties.reduce((sum, p) => sum + p.currentValue, 0);
+    const totalPurchasePrice = filteredProperties.reduce((sum, p) => sum + p.purchasePrice, 0);
+    const totalCapitalGrowth = totalValue - totalPurchasePrice;
+    const totalRentalIncome = filteredProperties.reduce((sum, p) => sum + (p.monthlyRent || 0), 0) * 12;
+    const totalMortgagePayments = filteredProperties.reduce((sum, p) => sum + (p.monthlyMortgagePayment || 0), 0) * 12;
+    const totalExpenses = filteredProperties.reduce((sum, p) => sum + (p.monthlyExpenses || 0), 0) * 12;
+    const totalProfit = totalCapitalGrowth + totalRentalIncome - totalMortgagePayments - totalExpenses;
+    const averageYield = filteredProperties.length > 0 
+      ? filteredProperties.reduce((sum, p) => sum + (p.yield || 0), 0) / filteredProperties.length 
+      : 0;
+    const totalEquity = filteredProperties.reduce((sum, p) => sum + (p.equity || 0), 0);
+    const totalEquityPercentage = totalValue > 0 ? (totalEquity / totalValue) * 100 : 0;
+
+    return {
+      totalValue,
+      totalPurchasePrice,
+      totalCapitalGrowth,
+      totalRentalIncome,
+      totalMortgagePayments,
+      totalExpenses,
+      totalProfit,
+      averageYield,
+      totalEquity,
+      totalEquityPercentage
+    };
+  }, [filteredProperties]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your portfolio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white shadow-sm border-b border-gray-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                Investment Portfolio
+              </h1>
+              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Track your property investments, monitor performance, and analyze returns
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Portfolio Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Value</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatPrice(portfolioSummary.totalValue)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-green-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Capital Growth</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatPrice(portfolioSummary.totalCapitalGrowth)}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                  <Percent className="w-5 h-5 text-purple-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Average Yield</p>
+                  <p className="text-2xl font-bold text-gray-900">{portfolioSummary.averageYield.toFixed(1)}%</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center">
+                  <Target className="w-5 h-5 text-orange-600" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600">Total Equity</p>
+                  <p className="text-2xl font-bold text-gray-900">{formatPrice(portfolioSummary.totalEquity)}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Filters and Actions */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200 mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center space-x-4">
+                <h2 className="text-lg font-semibold text-gray-900">Properties</h2>
+                <div className="flex items-center space-x-2">
+                  <Filter className="w-4 h-4 text-gray-400" />
+                  <select
+                    value={filterStatus}
+                    onChange={(e) => setFilterStatus(e.target.value as any)}
+                    className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="all">All Properties</option>
+                    <option value="active">Active</option>
+                    <option value="sold">Sold</option>
+                    <option value="watching">Watching</option>
+                    <option value="watchlist">Watchlist</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                <button
+                  onClick={() => setIsSignInModalOpen(true)}
+                  className="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Property
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Properties List */}
+          <div className="space-y-6">
+            {filteredProperties.length === 0 ? (
+              <div className="text-center py-12">
+                <Building2 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No properties found</h3>
+                <p className="text-gray-600">Get started by adding your first investment property.</p>
+              </div>
+            ) : (
+              filteredProperties.map((property) => (
+                <div key={property.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    {/* Property Info */}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                            {property.address}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-2">{property.postcode}</p>
+                          <div className="flex items-center space-x-4 text-sm text-gray-500">
+                            <span className="flex items-center">
+                              <Home className="w-4 h-4 mr-1" />
+                              {property.propertyType}
+                            </span>
+                            <span className="flex items-center">
+                              <Clock className="w-4 h-4 mr-1" />
+                              Purchased {formatDate(property.purchaseDate)}
+                            </span>
+                            {property.bmvScore && (
+                              <span className="flex items-center">
+                                <Target className="w-4 h-4 mr-1" />
+                                BMV Score: {property.bmvScore}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          property.status === 'active' ? 'bg-green-100 text-green-800' :
+                          property.status === 'sold' ? 'bg-blue-100 text-blue-800' :
+                          property.status === 'watching' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {property.status.charAt(0).toUpperCase() + property.status.slice(1)}
+                        </span>
+                      </div>
+
+                      {/* Financial Summary */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600">Purchase Price</p>
+                          <p className="font-semibold text-gray-900">{formatPrice(property.purchasePrice)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Current Value</p>
+                          <p className="font-semibold text-gray-900">{formatPrice(property.currentValue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Monthly Rent</p>
+                          <p className="font-semibold text-gray-900">{property.monthlyRent ? formatPrice(property.monthlyRent) : 'N/A'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600">Yield</p>
+                          <p className="font-semibold text-gray-900">{property.yield ? `${property.yield.toFixed(1)}%` : 'N/A'}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setSelectedPropertyForValuation(property)}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+                        title="View Valuation"
+                      >
+                        <BarChart3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingProperty(property);
+                          setIsEditModalOpen(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+                        title="Edit Property"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modals */}
+      <PropertyEditModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        property={editingProperty}
+        onSave={(updatedProperty) => {
+          setPortfolioProperties(prev => 
+            prev.map(p => p.id === updatedProperty.id ? updatedProperty : p)
+          );
+          setIsEditModalOpen(false);
+        }}
+      />
+
+      <PropertyValuationCard
+        isOpen={isValuationModalOpen}
+        onClose={() => setIsValuationModalOpen(false)}
+        property={selectedPropertyForValuation}
+      />
+
+      <AuthModal
+        isOpen={isSignInModalOpen}
+        onClose={() => setIsSignInModalOpen(false)}
+        defaultMode="login"
+      />
+    </>
+  );
+} 

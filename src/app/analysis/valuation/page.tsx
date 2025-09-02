@@ -18,6 +18,15 @@ import PDFDownloadButton from '../../components/PDFDownloadButton';
 import { motion } from 'framer-motion';
 import PredictionExplanationCard from '../../components/PredictionExplanationCard';
 
+interface User {
+  id: string;
+  email?: string;
+}
+
+interface Session {
+  user?: User;
+}
+
 function WhatShouldIPayPageContent() {
   const [postcode, setPostcode] = useState('');
   const [propertyType, setPropertyType] = useState('');
@@ -27,8 +36,8 @@ function WhatShouldIPayPageContent() {
   const [searchHistory, setSearchHistory] = useState([]);
   
   // Mock user data for development
-  const user = { id: 'mock-user-id' };
-  const session = { user: user };
+  const user: User = { id: 'mock-user-id', email: 'mock@example.com' };
+  const session: Session = { user: user };
   const { tier, loading: tierLoading } = useUserTier(user?.id || session?.user?.id);
   const { history, saveToHistory } = usePostcodeHistory();
   const searchParams = useSearchParams();

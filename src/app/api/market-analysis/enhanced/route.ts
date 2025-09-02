@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '../../../../lib/esClient';
+import { 
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 interface MarketData {
   region: string;
@@ -19,6 +25,21 @@ interface MarketData {
     min: number;
     max: number;
     median: number;
+  };
+}
+
+interface HpiRegionAggregation {
+  key: string;
+  doc_count: number;
+  latest_data?: {
+    hits?: {
+      hits?: Array<{
+        _source?: {
+          hpiIndex?: number;
+          date?: string;
+        };
+      }>;
+    };
   };
 }
 
@@ -279,7 +300,7 @@ export async function GET(request: NextRequest) {
     });
 
     const hpiRegions = (hpiRegionsResponse.aggregations?.regions && 'buckets' in hpiRegionsResponse.aggregations.regions)
-      ? (hpiRegionsResponse.aggregations.regions.buckets as any[]).map((b: any) => b.key)
+              ? (hpiRegionsResponse.aggregations.regions.buckets as Array<{ key: string; doc_count: number }>).map((b) => b.key)
       : [];
 
     // Get enhanced property data for the region
@@ -347,12 +368,12 @@ export async function GET(request: NextRequest) {
 
     // Process HPI data - simplified approach
     const hpiRegionsData = (hpiResponse.aggregations?.regions && 'buckets' in hpiResponse.aggregations.regions)
-      ? (hpiResponse.aggregations.regions.buckets as any[])
+              ? (hpiResponse.aggregations.regions.buckets as Array<{ key: string; doc_count: number }>)
       : [];
     
     for (const hpiRegion of hpiRegionsData) {
       const regionName = hpiRegion.key;
-      const latestData = hpiRegion.latest_data?.hits?.hits?.[0]?._source;
+      const latestData = (hpiRegion as HpiRegionAggregation).latest_data?.hits?.hits?.[0]?._source;
 
       if (latestData) {
         // Get historical HPI data for growth calculation

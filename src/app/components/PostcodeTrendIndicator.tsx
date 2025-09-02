@@ -3,11 +3,22 @@
 import React, { useState } from 'react';
 import { TrendingUp, TrendingDown, Minus, Target, Calendar, PoundSterling, Info } from 'lucide-react';
 
+interface HpiDataPoint {
+  change: number;
+  [key: string]: unknown;
+}
+
+interface RecentSale {
+  price: number;
+  date: string;
+  [key: string]: unknown;
+}
+
 interface PostcodeTrendIndicatorProps {
   postcode: string;
   marketTrend: 'rising' | 'falling' | 'stable';
-  hpiData?: any[];
-  recentSales?: any[];
+  hpiData?: HpiDataPoint[];
+  recentSales?: RecentSale[];
   className?: string;
 }
 
@@ -102,7 +113,7 @@ const PostcodeTrendIndicator: React.FC<PostcodeTrendIndicatorProps> = ({
     // Sales velocity adjustment (less impact on longer time horizons)
     if (recentSales && recentSales.length >= 3) {
       const recentSalesCount = recentSales.filter(sale => {
-        const saleDate = new Date(sale.dateOfTransfer);
+        const saleDate = new Date(sale.dateOfTransfer as string);
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
         return saleDate >= sixMonthsAgo;

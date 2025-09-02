@@ -1,5 +1,13 @@
 import { Client } from '@elastic/elasticsearch';
 import { esClient } from './esClient';
+import { 
+  RecentSaleDocument,
+  EPCDocument,
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 interface DataQualityMetrics {
   freshness: {
@@ -54,9 +62,9 @@ class DataQualityMonitor {
         index: 'property_sales',
         size: 1,
         body: {
-          sort: [{ dateOfTransfer: { order: 'desc' } }]
+          sort: [{ date_of_transfer: { order: 'desc' } }]
         }
-      } as any);
+      } as Record<string, any>);
 
       if (result.hits.hits.length === 0) {
         return {
@@ -66,8 +74,8 @@ class DataQualityMonitor {
         };
       }
 
-      const lastRecord = result.hits.hits[0]._source as any;
-      const lastUpdate = lastRecord.dateOfTransfer || lastRecord.date;
+              const lastRecord = result.hits.hits[0]._source as RecentSaleDocument;
+              const lastUpdate = lastRecord.date_of_transfer || lastRecord.date;
       const ageInHours = (Date.now() - new Date(lastUpdate).getTime()) / (1000 * 60 * 60);
 
       return {
@@ -119,7 +127,7 @@ class DataQualityMonitor {
               }
             }
           }
-        } as any);
+        } as Record<string, any>);
         missingFields += typeof fieldResult.hits.total === 'object' ? fieldResult.hits.total.value : fieldResult.hits.total || 0;
       }
 
@@ -159,7 +167,7 @@ class DataQualityMonitor {
             }
           }
         }
-      } as any);
+              } as Record<string, any>);
 
       // Check for invalid dates
       const invalidDateResult = await this.client.search({
@@ -169,12 +177,12 @@ class DataQualityMonitor {
           query: {
             bool: {
               must: [
-                { range: { dateOfTransfer: { gte: '2025-01-01' } } }
+                { range: { date_of_transfer: { gte: '2025-01-01' } } }
               ]
             }
           }
         }
-      } as any);
+      } as Record<string, any>);
 
       const validationErrors = (typeof invalidPriceResult.hits.total === 'object' ? invalidPriceResult.hits.total.value : invalidPriceResult.hits.total || 0) + 
                                  (typeof invalidDateResult.hits.total === 'object' ? invalidDateResult.hits.total.value : invalidDateResult.hits.total || 0);
@@ -215,10 +223,10 @@ class DataQualityMonitor {
             }
           }
         }
-      } as any);
+              } as Record<string, any>);
 
-      const duplicateRecords = (duplicateResult.aggregations?.duplicates as any)?.buckets?.reduce(
-        (sum: number, bucket: any) => sum + bucket.doc_count, 0
+      const duplicateRecords = (duplicateResult.aggregations?.duplicates as { buckets: Array<{ doc_count: number }> })?.buckets?.reduce(
+        (sum: number, bucket) => sum + bucket.doc_count, 0
       ) || 0;
 
       const totalRecords = await this.getTotalRecords(index);
@@ -237,23 +245,47 @@ class DataQualityMonitor {
     }
   }
 
-  // Comprehensive data quality assessment
+  // Comprehensive data quality assessment with enhanced error handling
   async assessDataQuality(index: string): Promise<DataQualityMetrics> {
-    const requiredFields = ['postcode', 'dateOfTransfer', 'price', 'propertyType'];
+    const requiredFields = ['postcode', 'date_of_transfer', 'price', 'propertyType'];
 
-    const [freshness, completeness, accuracy, consistency] = await Promise.all([
-      this.checkDataFreshness(index),
-      this.checkDataCompleteness(index, requiredFields),
-      this.validateDataAccuracy(index),
-      this.checkDataConsistency(index)
-    ]);
+    try {
+      const [freshness, completeness, accuracy, consistency] = await Promise.allSettled([
+        this.checkDataFreshness(index),
+        this.checkDataCompleteness(index, requiredFields),
+        this.validateDataAccuracy(index),
+        this.checkDataConsistency(index)
+      ]);
 
-    return {
-      freshness,
-      completeness,
-      accuracy,
-      consistency
-    };
+      return {
+        freshness: freshness.status === 'fulfilled' ? freshness.value : {
+          lastUpdate: 'unknown',
+          ageInHours: 999,
+          isFresh: false
+        },
+        completeness: completeness.status === 'fulfilled' ? completeness.value : {
+          totalRecords: 0,
+          missingFields: 0,
+          completenessScore: 0
+        },
+        accuracy: accuracy.status === 'fulfilled' ? accuracy.value : {
+          validationErrors: 0,
+          accuracyScore: 0
+        },
+        consistency: consistency.status === 'fulfilled' ? consistency.value : {
+          duplicateRecords: 0,
+          consistencyScore: 0
+        }
+      };
+    } catch (error) {
+      console.error(`Data quality assessment failed for index ${index}:`, error);
+      return {
+        freshness: { lastUpdate: 'error', ageInHours: 999, isFresh: false },
+        completeness: { totalRecords: 0, missingFields: 0, completenessScore: 0 },
+        accuracy: { validationErrors: 0, accuracyScore: 0 },
+        consistency: { duplicateRecords: 0, consistencyScore: 0 }
+      };
+    }
   }
 
   // Monitor API calls and performance
@@ -369,5 +401,8 @@ class DataQualityMonitor {
     }, intervalMinutes * 60 * 1000);
   }
 }
+
+// Export singleton instance
+export const dataQualityMonitor = new DataQualityMonitor(esClient);
 
 export default DataQualityMonitor; 

@@ -321,11 +321,11 @@ export async function GET(request: NextRequest) {
           recommendedRent: Math.round(recommendedRent),
           grossYield: Math.round(grossYield * 100) / 100,
           
-          // Portfolio fit - hardcoded values to ensure they work
+          // Portfolio fit - use calculated values
           portfolioFit: {
-            diversification: 60,
-            riskLevel: 'MEDIUM',
-            potential: 'MEDIUM'
+            diversification: diversificationScore,
+            riskLevel: riskLevel,
+            potential: investmentPotential
           },
           
           // EPC insights

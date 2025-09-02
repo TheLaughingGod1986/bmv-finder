@@ -21,6 +21,26 @@ interface HpiRecord {
   yearOverYear?: number;
 }
 
+interface HpiApiResponse {
+  results: Array<{
+    hpiIndex?: number;
+    index?: number;
+    region: string;
+    date: string;
+    year: number;
+    month: number;
+    postcode: string;
+    regionType: string;
+    source: string;
+    lastUpdated: string;
+    monthOverMonth?: number;
+    yearOverYear?: number;
+  }>;
+  source?: string;
+  region?: string;
+  error?: string;
+}
+
 interface HpiPostcodeSearchProps {
   className?: string;
   onClose?: () => void;
@@ -94,18 +114,18 @@ const HpiPostcodeSearch: React.FC<HpiPostcodeSearchProps> = ({ className, onClos
 
     try {
       const response = await apiClient.getHpiData(trimmed);
-      if (!response.error && response.data && typeof response.data === 'object' && 'results' in response.data && Array.isArray((response.data as any).results) && (response.data as any).results.length > 0) {
-        setData((response.data as { results: unknown[] }).results.map((r: unknown) => ({
-          ...(r as Record<string, unknown>),
-          index: (r as any).hpiIndex !== undefined ? (r as any).hpiIndex : (r as any).index // Map hpiIndex to index for frontend compatibility
+      if (!response.error && response.data && typeof response.data === 'object' && 'results' in response.data && Array.isArray((response.data as HpiApiResponse).results) && (response.data as HpiApiResponse).results.length > 0) {
+        setData((response.data as HpiApiResponse).results.map((r) => ({
+          ...r,
+          index: r.hpiIndex !== undefined ? r.hpiIndex : r.index // Map hpiIndex to index for frontend compatibility
         })) as HpiRecord[]);
-        setSource((response.data as any).source);
-        if ((response.data as any).region) setRegion((response.data as any).region);
+        setSource((response.data as HpiApiResponse).source);
+        if ((response.data as HpiApiResponse).region) setRegion((response.data as HpiApiResponse).region);
       } else {
         setData([]);
-        setSource((response.data as any).source || null);
-        setRegion((response.data as any).region || null);
-        setError((response.data as any).error || 'No HPI data found for this postcode');
+        setSource((response.data as HpiApiResponse).source || null);
+        setRegion((response.data as HpiApiResponse).region || null);
+        setError((response.data as HpiApiResponse).error || 'No HPI data found for this postcode');
       }
     } catch (err) {
       setError('Failed to fetch HPI data. Please try again.');

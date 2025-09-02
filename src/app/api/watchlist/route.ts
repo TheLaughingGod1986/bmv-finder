@@ -1,13 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Client } from '@elastic/elasticsearch';
-
-// Elasticsearch client
-const esClient = new Client({
-  node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
-  requestTimeout: 60000,
-  maxRetries: 3,
-  retryOnTimeout: true
-});
+import { 
+  GenericPropertyDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
+import { esClient } from '@/lib/esClient';
 
 // GET - Fetch watchlist for a user
 export async function GET(request: NextRequest) {
@@ -31,14 +29,14 @@ export async function GET(request: NextRequest) {
     });
     
     const watchlist = response.hits.hits.map(hit => ({
-      ...hit._source,
+      ...(hit._source as GenericPropertyDocument),
       _id: hit._id
     }));
     
     return NextResponse.json({
       success: true,
       data: watchlist,
-      total: response.hits.total.value
+      total: typeof response.hits.total === 'number' ? response.hits.total : response.hits.total.value
     });
     
   } catch (error) {

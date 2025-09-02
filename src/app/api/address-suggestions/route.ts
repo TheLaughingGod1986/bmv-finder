@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { formatPostcode } from '@/utils/formatPostcode';
 import { esClient } from '@/lib/esClient';
+import { 
+  RecentSaleDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,8 +42,8 @@ export async function GET(request: NextRequest) {
       const addresses = new Set<string>();
       const processedAddresses: any[] = [];
       
-      response.hits.hits.forEach((hit: any) => {
-        const source = hit._source;
+      response.hits.hits.forEach((hit) => {
+        const source = hit._source as RecentSaleDocument;
         if (source.address && source.postcode) {
           const cleanAddress = source.address.replace(/^,\s*/, '').trim();
           if (cleanAddress && !addresses.has(cleanAddress)) {
@@ -101,7 +107,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      const postcodes = (response.aggregations?.postcodes as any)?.buckets?.map((bucket: any) => bucket.key) || [];
+              const postcodes = (response.aggregations?.postcodes as { buckets: Array<{ key: string; doc_count: number }> })?.buckets?.map((bucket) => bucket.key) || [];
 
       return NextResponse.json({
         suggestions: postcodes,

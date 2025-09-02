@@ -1,7 +1,63 @@
-interface ApiResponse<T = any> {
+interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   status: number;
+}
+
+interface SearchOptions {
+  limit?: number;
+  offset?: number;
+  page?: number;
+  pageSize?: number;
+  filters?: Record<string, unknown>;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+interface Property {
+  id: string;
+  address: string;
+  postcode: string;
+  propertyType: string;
+  bedrooms?: number;
+  floorArea?: number;
+  estimatedValue?: number;
+  lastSalePrice?: number;
+  lastSaleDate?: string;
+  [key: string]: unknown;
+}
+
+interface PropertyData {
+  postcode: string;
+  propertyType: string;
+  bedrooms?: number;
+  floorArea?: number;
+  estimatedValue?: number;
+  [key: string]: unknown;
+}
+
+interface HpiOptions {
+  region?: string;
+  dateRange?: { start: string; end: string };
+  propertyType?: string;
+}
+
+interface BmvScoreData {
+  postcode: string;
+  propertyData: PropertyData;
+  marketData?: Record<string, unknown>;
+}
+
+interface AnalyticsData {
+  event: string;
+  properties: Record<string, unknown>[];
+  metadata?: Record<string, unknown>;
+}
+
+interface StripeWebhookPayload {
+  type: string;
+  data: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 class ApiClient {
@@ -44,7 +100,7 @@ class ApiClient {
   }
 
   // Property Services
-  async searchProperties(searchTerm: string, options?: any) {
+  async searchProperties(searchTerm: string, options?: SearchOptions) {
     return this.request('/api/property-es', {
       method: 'POST',
       body: JSON.stringify({ searchTerm, ...options }),
@@ -66,7 +122,7 @@ class ApiClient {
     return this.request(`/api/property-history?propertyId=${propertyId}`);
   }
 
-  async enhanceProperties(properties: any[]) {
+  async enhanceProperties(properties: Property[]) {
     return this.request('/api/enhance-properties', {
       method: 'POST',
       body: JSON.stringify({ properties }),
@@ -103,7 +159,7 @@ class ApiClient {
   }
 
   // HPI Services
-  async getHpiData(postcode?: string, options?: any) {
+  async getHpiData(postcode?: string, options?: HpiOptions) {
     if (postcode) {
       return this.request(`/api/hpi/postcode?postcode=${encodeURIComponent(postcode)}`);
     }
@@ -119,7 +175,7 @@ class ApiClient {
   }
 
   // BMV Scoring Services
-  async getEnhancedBmvScore(postcode: string, propertyData: any) {
+  async getEnhancedBmvScore(postcode: string, propertyData: PropertyData) {
     return this.request('/api/enhanced-bmv-score', {
       method: 'POST',
       body: JSON.stringify({ postcode, propertyData }),
@@ -151,7 +207,7 @@ class ApiClient {
     });
   }
 
-  async createPDFReportSession(userId: string, email: string, propertyData: any) {
+  async createPDFReportSession(userId: string, email: string, propertyData: PropertyData) {
     return this.request('/api/create-pdf-report-session', {
       method: 'POST',
       body: JSON.stringify({ userId, email, propertyData }),
@@ -169,7 +225,7 @@ class ApiClient {
     return this.request('/api/summary');
   }
 
-  async trackAnalytics(data: any) {
+  async trackAnalytics(data: AnalyticsData) {
     return this.request('/api/analytics', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -185,7 +241,7 @@ class ApiClient {
   }
 
   // External Integrations
-  async handleStripeWebhook(payload: any, signature: string) {
+  async handleStripeWebhook(payload: StripeWebhookPayload, signature: string) {
     return this.request('/api/stripe-webhook', {
       method: 'POST',
       body: JSON.stringify(payload),
@@ -203,7 +259,7 @@ class ApiClient {
   }
 
   // Custom request method for flexibility
-  async customRequest<T>(url: string, method: string = 'GET', data?: any, query?: Record<string, string>): Promise<ApiResponse<T>> {
+  async customRequest<T>(url: string, method: string = 'GET', data?: unknown, query?: Record<string, string>): Promise<ApiResponse<T>> {
     let fullUrl = url;
     if (query && Object.keys(query).length > 0) {
       const params = new URLSearchParams(query);
@@ -227,7 +283,7 @@ export { ApiClient };
 
 // Type-safe API methods
 export interface PropertySearchResult {
-  properties: any[];
+  properties: Property[];
   totalCount: number;
   page: number;
   hasMore: boolean;
@@ -244,7 +300,7 @@ export interface HpiData {
 export interface BmvScore {
   score: number;
   category: string;
-  factors: any[];
+  factors: string[];
   recommendations: string[];
 }
 

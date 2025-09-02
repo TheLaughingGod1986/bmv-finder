@@ -34,7 +34,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
       try {
         await mockAuth.login(email, password);
         onClose();
-      } catch (error: any) {
+      } catch (error) {
         setError('Login failed. Please try again.');
       } finally {
         setIsLoading(false);
@@ -62,8 +62,8 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         if (error) throw error;
       }
       onClose();
-    } catch (error: any) {
-      setError(error.message);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +104,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
       try {
         await mockAuth.loginWithGoogle();
         onClose();
-      } catch (error: any) {
+      } catch (error) {
         setError('Google login failed. Please try again.');
       } finally {
         setIsLoading(false);
@@ -126,7 +126,7 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
         },
       });
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error) {
       setError('Google authentication is not configured. Please use email/password or contact support.');
     } finally {
       setIsLoading(false);

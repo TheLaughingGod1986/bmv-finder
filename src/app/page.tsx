@@ -25,8 +25,37 @@ import SearchLimitManager from './components/SearchLimitManager';
 import { useSearchLimit } from './components/SearchLimitContext';
 
 
+interface SearchResult {
+  id: string;
+  address: string;
+  postcode: string;
+  price: number;
+  date: string;
+  propertyType: string;
+  [key: string]: unknown;
+}
+
+interface HPIDataPoint {
+  date: string;
+  index: number;
+  change: number;
+  [key: string]: unknown;
+}
+
+interface LocalPriceData {
+  year: number;
+  avg: number;
+  [key: string]: unknown;
+}
+
+interface RecentSale {
+  price: number;
+  date: string;
+  [key: string]: unknown;
+}
+
 // Add fetch utility for enhanced property search with pagination
-async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
+async function fetchEnhancedProperties(query: string, page = 1, after?: string) {
   try {
     console.log('Searching for:', query);
     const res = await fetch('/api/search/enhanced', {
@@ -58,7 +87,7 @@ async function fetchEnhancedProperties(query: string, page = 1, after?: any) {
 export default function Home() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [results, setResults] = useState<any[] | null>(null);
+  const [results, setResults] = useState<SearchResult[] | null>(null);
   const [error, setError] = useState('');
   const [pagination, setPagination] = useState({ page: 1, size: 10, has_more: false, after_key: null });
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'ascending' | 'descending' }>({
@@ -93,8 +122,8 @@ export default function Home() {
     //   localStorage.setItem('anonymous_search_count', newCount.toString());
     // }
   });
-  const [hpiData, setHpiData] = useState<any[]>([]);
-  const [localPriceData, setLocalPriceData] = useState<any[]>([]);
+  const [hpiData, setHpiData] = useState<HPIDataPoint[]>([]);
+  const [localPriceData, setLocalPriceData] = useState<LocalPriceData[]>([]);
   const [hpiLoading, setHpiLoading] = useState(false);
   const [hpiError, setHpiError] = useState<string | null>(null);
   const [hpiTooltip, setHpiTooltip] = useState<{ x: number; y: number; value: number; date: string } | null>(null);
@@ -129,25 +158,25 @@ export default function Home() {
   };
 
   // Handle row click
-  const handleRowClick = (property: any) => {
-    setSelectedRowId(property.id || property.propertyNumber || null);
+  const handleRowClick = (property: SearchResult) => {
+    setSelectedRowId(property.id || null);
   };
 
   // Sort results based on sortConfig
   const sortedResults = results ? [...results].sort((a, b) => {
     const { key, direction } = sortConfig;
-    let aValue = a[key];
-    let bValue = b[key];
+    let aValue: unknown = a[key];
+    let bValue: unknown = b[key];
 
     // Handle date sorting
     if (key === 'date') {
-      aValue = new Date(aValue || 0).getTime();
-      bValue = new Date(bValue || 0).getTime();
+      aValue = new Date((aValue as string) || 0).getTime();
+      bValue = new Date((bValue as string) || 0).getTime();
     }
     // Handle price sorting
     else if (key === 'price') {
-      aValue = parseFloat(aValue) || 0;
-      bValue = parseFloat(bValue) || 0;
+      aValue = parseFloat((aValue as string) || '0') || 0;
+      bValue = parseFloat((bValue as string) || '0') || 0;
     }
     // Handle string sorting
     else {
@@ -255,15 +284,15 @@ export default function Home() {
       // Increment search count for non-logged-in users after successful search
       incrementSearchCount();
 
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch results.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch results.');
       setTotalProperties(null);
     } finally {
       setIsLoading(false);
     }
   }, [showToast, canSearch, incrementSearchCount, lastToastTime, isLoading]);
 
-  const handlePageChange = useCallback(async (page: number, after?: any) => {
+  const handlePageChange = useCallback(async (page: number, after?: string) => {
     if (!searchTerm.trim()) return;
     
     setIsLoading(true);
@@ -274,8 +303,8 @@ export default function Home() {
         setPagination(data.pagination || { page, size: 10, has_more: false, after_key: null });
         setTotalProperties(typeof data.total === 'number' ? data.total : null);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch results.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch results.');
       setTotalProperties(null);
     } finally {
       setIsLoading(false);
@@ -301,7 +330,7 @@ export default function Home() {
       .then(res => res.json())
       .then(data => {
         if (data.results && Array.isArray(data.results)) {
-          setHpiData(data.results.filter((d: any) => d.date && d.index));
+          setHpiData(data.results.filter((d: HPIDataPoint) => d.date && d.index));
         } else {
           setHpiData([]);
           setHpiError('No HPI data found');
@@ -324,7 +353,7 @@ export default function Home() {
   }, [results, localPriceData, hpiData, pagination.page]);
 
   // Helper: aggregate average sale price per year for the current postcode
-  function getAvgPricePerYear(soldPrices: any[]) {
+  function getAvgPricePerYear(soldPrices: SearchResult[]) {
     if (!soldPrices || soldPrices.length === 0) return [];
     const byYear: { [key: number]: number[] } = {};
     soldPrices.forEach((sp) => {
@@ -452,7 +481,7 @@ export default function Home() {
   let hpiStartYear: string | null = null;
   let hpiEndYear: string | null = null;
   if (hpiData.length > 1) {
-    const sortedData = hpiData.slice().sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sortedData = hpiData.slice().sort((a: HPIDataPoint, b: HPIDataPoint) => new Date(a.date).getTime() - new Date(b.date).getTime());
     const first = sortedData[0];
     const last = sortedData[sortedData.length - 1];
     hpiPct = ((last.index - first.index) / first.index) * 100;
@@ -986,7 +1015,7 @@ export default function Home() {
                       postcode={searchTerm}
                       marketTrend={marketState === 'buyer' ? 'falling' : marketState === 'seller' ? 'rising' : 'stable'}
                       hpiData={hpiData}
-                      recentSales={localPriceData}
+                      recentSales={localPriceData.map(d => ({ price: d.avg, date: d.year.toString() }))}
                     />
                   </div>
                   
@@ -1159,11 +1188,11 @@ export default function Home() {
                           <div className="w-full" style={{height: 220}}>
                             <LineChart
                               data={{
-                                labels: localPriceData.map((d: any) => d.year),
+                                labels: localPriceData.map((d: LocalPriceData) => d.year),
                                 datasets: [
                                   {
                                     label: 'Local Average Price (£)',
-                                    data: localPriceData.map((d: any) => d.avg),
+                                    data: localPriceData.map((d: LocalPriceData) => d.avg),
                                     borderColor: 'rgb(34, 197, 94)',
                                     backgroundColor: 'rgba(34, 197, 94, 0.1)',
                                     fill: true,
@@ -1204,11 +1233,11 @@ export default function Home() {
                           <div className="w-full" style={{height: 220}}>
                             <LineChart
                               data={{
-                                labels: hpiData.slice().reverse().map((d: any) => d.date),
+                                labels: hpiData.slice().reverse().map((d: HPIDataPoint) => d.date),
                                 datasets: [
                                   {
                                     label: 'HPI Index',
-                                    data: hpiData.slice().reverse().map((d: any) => d.index),
+                                    data: hpiData.slice().reverse().map((d: HPIDataPoint) => d.index),
                                     borderColor: 'rgb(59, 130, 246)',
                                     backgroundColor: 'rgba(59, 130, 246, 0.1)',
                                     fill: true,
@@ -1250,9 +1279,21 @@ export default function Home() {
             {/* Search Counter is now handled by SearchLimitManager */}
             
             <GroupedSoldPricesTable
-              soldPrices={sortedResults || []}
+              soldPrices={(sortedResults || []).map(result => ({
+                ...result,
+                date_of_transfer: result.date,
+                address: result.address || '',
+                postcode: result.postcode || '',
+                price: result.price || 0,
+                property_type: result.propertyType || 'Unknown'
+              }))}
               totalProperties={totalProperties}
-              onRowClick={handleRowClick}
+              onRowClick={(property) => handleRowClick({
+                ...property,
+                date: property.date_of_transfer,
+                propertyType: property.property_type || property.propertyType || 'Unknown',
+                address: property.address || property.fullAddress || property.street || 'Unknown Address'
+              })}
               sortConfig={sortConfig}
               onSort={handleSort}
               isLoading={false}

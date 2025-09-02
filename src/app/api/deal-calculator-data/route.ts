@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { 
+  RecentSaleDocument, 
+  PropertiesEnhancedDocument, 
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 // Helper functions for intelligent property data estimation
 function estimateBuildYearFromPostcode(postcode: string): number | null {
@@ -172,16 +180,19 @@ export async function GET(request: NextRequest) {
       });
 
       if (salesResponse.hits.hits.length > 0) {
-        soldProperties = salesResponse.hits.hits.map(hit => ({
-          id: hit._id,
-          address: hit._source.address || 'Unknown Address',
-          postcode: hit._source.postcode,
-          price: hit._source.price,
-          date: hit._source.date,
-          bedrooms: hit._source.bedrooms,
-          propertyType: hit._source.property_type || 'Unknown',
-          squareFootage: hit._source.square_footage || 0
-        }));
+        soldProperties = salesResponse.hits.hits.map(hit => {
+          const source = hit._source as RecentSaleDocument;
+          return {
+            id: hit._id,
+            address: source.address || 'Unknown Address',
+            postcode: source.postcode,
+            price: source.price,
+            date: source.date,
+            bedrooms: source.bedrooms,
+            propertyType: source.property_type || 'Unknown',
+            squareFootage: source.square_footage || 0
+          };
+        });
         
         // More sophisticated confidence calculation
         if (soldProperties.length >= 5) {
@@ -220,16 +231,19 @@ export async function GET(request: NextRequest) {
 
         if (fallbackResponse.hits.hits.length > 0) {
           // Create mock sold properties from enhanced data
-          soldProperties = fallbackResponse.hits.hits.slice(0, 5).map((hit, index) => ({
-            id: `fallback_${index}`,
-            address: `${hit._source.paon || ''} ${hit._source.street || ''}`.trim() || 'Unknown Address',
-            postcode: hit._source.postcode,
-            price: hit._source.price || 0,
-            date: hit._source.date,
-            bedrooms: hit._source.epc_bedrooms || bedrooms,
-            propertyType: hit._source.property_type_label || 'Unknown',
-            squareFootage: hit._source.epc_size || 0
-          }));
+          soldProperties = fallbackResponse.hits.hits.slice(0, 5).map((hit, index) => {
+            const source = hit._source as PropertiesEnhancedDocument;
+            return {
+              id: `fallback_${index}`,
+              address: `${source.paon || ''} ${source.street || ''}`.trim() || 'Unknown Address',
+              postcode: source.postcode,
+              price: source.price || 0,
+              date: source.date,
+              bedrooms: source.epc_bedrooms || bedrooms,
+              propertyType: source.property_type_label || 'Unknown',
+              squareFootage: source.epc_size || 0
+            };
+          });
           
           confidence = soldProperties.length >= 3 ? 'medium' : 'low';
           console.log('Created fallback sold properties from properties-enhanced:', soldProperties.length);
@@ -280,18 +294,19 @@ export async function GET(request: NextRequest) {
         console.log('Raw enhanced property data from ES:', hit);
         
         // Extract any available data, even if sparse
+        const source = hit as PropertiesEnhancedDocument;
         enhancedPropertyData = {
-          epcRating: hit.epc_rating || null,
-          epcScore: hit.epc_score || null,
-          epcSize: hit.epc_size || null, // in sqm
-          propertyType: hit.property_type_label || hit.property_type || hit.propertyType || null,
-          houseCondition: hit.condition || hit.house_condition || null,
-          squareFootage: hit.square_footage || hit.epc_size || null,
-          buildYear: hit.build_year || hit.year_built || null,
-          tenure: hit.estate_type_label || hit.tenure || null,
-          hasGarage: hit.has_garage || false,
-          hasGarden: hit.has_garden || false,
-          hasParking: hit.has_parking || false
+          epcRating: source.epc_rating || null,
+          epcScore: source.epc_score || null,
+          epcSize: source.epc_size || null, // in sqm
+          propertyType: source.property_type_label || source.property_type || null,
+          houseCondition: source.condition || source.house_condition || null,
+          squareFootage: source.square_footage || source.epc_size || null,
+          buildYear: source.build_year || source.year_built || null,
+          tenure: source.estate_type_label || source.tenure || null,
+          hasGarage: source.has_garage || false,
+          hasGarden: source.has_garden || false,
+          hasParking: source.has_parking || false
         };
         
         // Only include if we have at least some meaningful data
@@ -390,7 +405,7 @@ export async function GET(request: NextRequest) {
             console.log('3. Restart the application');
           }
         } catch (epcError) {
-          console.log('EPC API request failed:', epcError.message);
+          console.log('EPC API request failed:', epcError instanceof Error ? epcError.message : 'Unknown error');
         }
       }
       
@@ -446,8 +461,10 @@ export async function GET(request: NextRequest) {
           const latest = hpiResponse.hits.hits[0]._source;
           const previous = hpiResponse.hits.hits[1]._source;
           
-          if (latest.hpiIndex && previous.hpiIndex) {
-            const growth = ((latest.hpiIndex - previous.hpiIndex) / previous.hpiIndex) * 100;
+          const latestDoc = latest as HPIDocument;
+          const previousDoc = previous as HPIDocument;
+          if (latestDoc.hpi_index && previousDoc.hpi_index) {
+            const growth = ((latestDoc.hpi_index - previousDoc.hpi_index) / previousDoc.hpi_index) * 100;
             annualGrowth = Math.round(growth * 100) / 100; // Round to 2 decimal places
           }
         }

@@ -23,6 +23,15 @@ interface ComparedPostcodeData extends MarketData {
   postcode: string;
 }
 
+interface HpiDataItem {
+  date: string;
+  hpi_value?: number;
+  value?: number;
+  index?: number;
+  hpi?: number;
+  hpiIndex?: number;
+}
+
 interface RegionalTrendsChartProps {
   data: MarketData[];
   timeframe: '1y' | '2y' | '5y';
@@ -353,7 +362,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
         
         // If we have pre-fetched data, store it to avoid re-fetching
         if (preFetchedData) {
-          const data = preFetchedData as any;
+          const data = preFetchedData as ComparedPostcodeData;
           setComparedPostcodeData(prev => [...prev, {
             postcode: normalizedPc,
             region: data.region || 'Unknown Region',
@@ -537,7 +546,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                 
                 // Find historical data points
                 const oneYearAgo = hpiData.find((item: unknown) => {
-                  const itemDate = new Date((item as any).date);
+                  const itemDate = new Date((item as HpiDataItem).date);
                   const latestDate = new Date(latestData.date);
                   const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                      (latestDate.getMonth() - itemDate.getMonth());
@@ -545,7 +554,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                 });
                 
                 const oneMonthAgo = hpiData.find((item: unknown) => {
-                  const itemDate = new Date((item as any).date);
+                  const itemDate = new Date((item as HpiDataItem).date);
                   const latestDate = new Date(latestData.date);
                   const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                      (latestDate.getMonth() - itemDate.getMonth());
@@ -568,7 +577,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                   timeframeGrowth = yoyGrowth;
                 } else if (timeframe === '2y') {
                   const twoYearsAgo = hpiData.find((item: unknown) => {
-                    const itemDate = new Date((item as any).date);
+                    const itemDate = new Date((item as HpiDataItem).date);
                     const latestDate = new Date(latestData.date);
                     const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                        (latestDate.getMonth() - itemDate.getMonth());
@@ -578,7 +587,7 @@ export default function RegionalTrendsChart({ data, timeframe, autoSelectRegions
                   timeframeGrowth = twoYearsAgoValue ? ((hpiValue - twoYearsAgoValue) / twoYearsAgoValue) * 100 : 0;
                 } else if (timeframe === '5y') {
                   const fiveYearsAgo = hpiData.find((item: unknown) => {
-                    const itemDate = new Date((item as any).date);
+                    const itemDate = new Date((item as HpiDataItem).date);
                     const latestDate = new Date(latestData.date);
                     const diffInMonths = (latestDate.getFullYear() - itemDate.getFullYear()) * 12 + 
                                        (latestDate.getMonth() - itemDate.getMonth());

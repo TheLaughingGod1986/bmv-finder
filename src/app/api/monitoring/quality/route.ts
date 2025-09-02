@@ -3,6 +3,39 @@ import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import DataQualityMonitor from '@/lib/dataQualityMonitor';
 import { esClient } from '@/lib/esClient';
 
+interface QualityResponse {
+  timestamp: string;
+  index: string;
+  status: 'healthy' | 'issues_detected';
+  metrics: any;
+  alerts: string[];
+  severity: 'low' | 'medium' | 'high';
+  detailed?: {
+    freshness: {
+      lastUpdate: string;
+      ageInHours: number;
+      isFresh: boolean;
+      threshold: number;
+    };
+    completeness: {
+      totalRecords: number;
+      missingFields: number;
+      completenessScore: number;
+      threshold: number;
+    };
+    accuracy: {
+      validationErrors: number;
+      accuracyScore: number;
+      threshold: number;
+    };
+    consistency: {
+      duplicateRecords: number;
+      consistencyScore: number;
+      threshold: number;
+    };
+  };
+}
+
 const monitor = new DataQualityMonitor(esClient);
 
 // Get data quality metrics
@@ -23,14 +56,14 @@ export async function GET(req: NextRequest) {
     const metrics = await monitor.assessDataQuality(index);
     const alerts = await monitor.generateAlerts(metrics);
 
-    const response = {
+    const response: QualityResponse = {
       timestamp: new Date().toISOString(),
       index,
       status: alerts.alerts.length === 0 ? 'healthy' : 'issues_detected',
       metrics,
       alerts: alerts.alerts,
       severity: alerts.severity
-    } as any;
+    };
 
     // Add detailed breakdown if requested
     if (detailed) {

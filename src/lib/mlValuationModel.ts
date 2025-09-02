@@ -32,13 +32,27 @@ export interface MLValuationFeatures {
   // Market data
   lastSoldPrice: number;
   lastSoldDate: string;
-  hpiData: any[];
+  hpiData: Array<{
+    date: string;
+    index: number;
+    hpi_value: number;
+    region: string;
+    [key: string]: unknown;
+  }>;
   
   // External signals
   externalSignals: ExternalSignals;
   
   // Comparable sales
-  comparables: any[];
+  comparables: Array<{
+    price: number;
+    date: string;
+    propertyType: string;
+    bedrooms: number;
+    floorArea: number;
+    postcode: string;
+    [key: string]: unknown;
+  }>;
 }
 
 export interface MLValuationResult {
@@ -399,15 +413,15 @@ export class MLValuationModel {
     return Math.min(yearsSinceSale, 10); // Cap at 10 years
   }
 
-  private static getMarketTrend(hpiData: any[]): number {
+  private static getMarketTrend(hpiData: Array<{ date: string; index: number; region: string; [key: string]: unknown }>): number {
     if (hpiData.length < 6) return 0;
     const recent = hpiData.slice(0, 6);
     const older = hpiData.slice(6, 12);
     
     if (older.length === 0) return 0;
     
-    const recentAvg = recent.reduce((sum, hpi) => sum + hpi.hpi_value, 0) / recent.length;
-    const olderAvg = older.reduce((sum, hpi) => sum + hpi.hpi_value, 0) / older.length;
+    const recentAvg = recent.reduce((sum, hpi) => sum + (hpi.hpi_value as number), 0) / recent.length;
+    const olderAvg = older.reduce((sum, hpi) => sum + (hpi.hpi_value as number), 0) / older.length;
     
     return (recentAvg - olderAvg) / olderAvg;
   }

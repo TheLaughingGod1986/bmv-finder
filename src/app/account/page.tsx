@@ -183,7 +183,7 @@ export default function AccountPage() {
       }
     } catch (err: unknown) {
       console.error('Manage subscription error:', err);
-      toast.error((err as any).message || 'Failed to open Stripe Customer Portal');
+              toast.error(err instanceof Error ? err.message : 'Failed to open Stripe Customer Portal');
     } finally {
       setManagingSubscription(false);
     }

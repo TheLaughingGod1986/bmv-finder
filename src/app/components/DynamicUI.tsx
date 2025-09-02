@@ -32,7 +32,7 @@ const HpiDataCard = dynamic(() => import('./HpiDataCard'), {
 });
 
 // Export components with Suspense wrappers
-export function DynamicFullScreenChart(props: any) {
+export function DynamicFullScreenChart(props: { children: React.ReactNode; [key: string]: unknown }) {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-64 bg-gray-50 rounded-lg">
@@ -44,7 +44,25 @@ export function DynamicFullScreenChart(props: any) {
   );
 }
 
-export function DynamicGroupedSoldPricesTable(props: any) {
+export function DynamicGroupedSoldPricesTable(props: {
+  soldPrices: Array<{ 
+    id: string; 
+    postcode: string; 
+    price: number; 
+    date_of_transfer: string;
+    [key: string]: unknown 
+  }>;
+  onRowClick: (property: { id: string; [key: string]: unknown }) => void;
+  sortConfig: { key: string; direction: 'ascending' | 'descending' };
+  onSort: (key: string) => void;
+  isLoading: boolean;
+  selectedRowId: string | null;
+  className?: string;
+  postcode?: string;
+  pagination: { page: number; size: number; has_more: boolean; after_key?: string };
+  onPageChange: (page: number, after?: string) => void;
+  [key: string]: unknown;
+}) {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg">
@@ -56,7 +74,7 @@ export function DynamicGroupedSoldPricesTable(props: any) {
   );
 }
 
-export function DynamicHpiDataCard(props: any) {
+export function DynamicHpiDataCard(props: { postcode: string; [key: string]: unknown }) {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center h-32 bg-gray-50 rounded-lg">

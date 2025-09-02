@@ -5,12 +5,42 @@ import { Home, TrendingUp, PoundSterling, Calendar, Edit, CheckCircle, Trash2 } 
 import { useState, useEffect, useRef } from 'react';
 import { formatPrice } from '@/lib/formatters';
 
+interface Property {
+  id: string;
+  address: string;
+  postcode: string;
+  propertyType: string;
+  bedrooms?: number;
+  purchasePrice: number;
+  currentValue: number;
+  purchaseDate: string;
+  monthlyRent?: number;
+  monthlyMortgagePayment?: number;
+  monthlyExpenses?: number;
+  monthlyAgentFee?: number;
+  monthlyInsurance?: number;
+  mortgageBalance?: number;
+  depositAmount?: number;
+  rentStartDate?: string;
+  oneOffFees?: Fee[];
+  scheduledFees?: Fee[];
+  status?: string;
+  bmvScore?: number;
+  [key: string]: unknown;
+}
+
+interface Fee {
+  amount: number;
+  frequency: string;
+  [key: string]: unknown;
+}
+
 interface SimplePropertyCardProps {
-  property: any;
-  onEdit: (property: any) => void;
+  property: Property;
+  onEdit: (property: Property) => void;
   onSold: (id: string, address: string) => void;
   onRemove: (id: string, address: string) => void;
-  onValuation?: (property: any) => void;
+  onValuation?: (property: Property) => void;
 }
 
 export default function SimplePropertyCard({ property, onEdit, onSold, onRemove, onValuation }: SimplePropertyCardProps) {
@@ -132,7 +162,7 @@ export default function SimplePropertyCard({ property, onEdit, onSold, onRemove,
     return (totalGainsLosses / totalInvested) * 100;
   };
 
-  const calculateTotalInvested = (depositAmount: number, oneOffFees: any[], scheduledFees: any[]) => {
+  const calculateTotalInvested = (depositAmount: number, oneOffFees: Fee[], scheduledFees: Fee[]) => {
     let total = depositAmount || 0;
     
     // Add one-off fees

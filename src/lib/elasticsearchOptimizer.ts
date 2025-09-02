@@ -1,5 +1,13 @@
 import { Client } from '@elastic/elasticsearch';
 import { hpiCache, cacheKeys, CACHE_TTL } from './cache';
+import { 
+  RecentSaleDocument,
+  EPCDocument,
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 interface OptimizedQueryConfig {
   index: string;
@@ -12,7 +20,7 @@ interface OptimizedQueryConfig {
 class ElasticsearchOptimizer {
   private client: Client;
   private connectionPool: Map<string, Client> = new Map();
-  private queryCache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+  private queryCache = new Map<string, { data: unknown; timestamp: number; ttl: number }>();
 
   constructor(client: Client) {
     this.client = client;
@@ -44,9 +52,9 @@ class ElasticsearchOptimizer {
         body: query,
         requestTimeout: 30000,
         maxRetries: 3,
-      } as any);
+      } as Record<string, any>);
 
-      const data = result.hits.hits.map((hit: any) => hit._source);
+      const data = result.hits.hits.map((hit) => hit._source as HPIDocument);
       
       // Cache the result
       hpiCache.set(cacheKey, data, CACHE_TTL.HPI_DATA);
@@ -61,7 +69,7 @@ class ElasticsearchOptimizer {
   // Optimized property search with aggregation caching
   async searchPropertiesOptimized(params: {
     query: string;
-    filters?: any;
+    filters?: Record<string, unknown>;
     page?: number;
     pageSize?: number;
     sortBy?: string;
@@ -89,10 +97,10 @@ class ElasticsearchOptimizer {
         body: query,
         requestTimeout: 30000,
         maxRetries: 3,
-      } as any);
+      } as Record<string, any>);
 
       const data = {
-        hits: result.hits.hits.map((hit: any) => hit._source),
+        hits: result.hits.hits.map((hit) => hit._source as RecentSaleDocument),
         total: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total || 0,
         aggregations: result.aggregations,
       };
@@ -179,9 +187,9 @@ class ElasticsearchOptimizer {
         body: query,
         timeout: '30s',
         requestTimeout: 30000,
-      } as any);
+      } as Record<string, any>);
 
-      const data = (result.aggregations as any)?.[params.field]?.buckets || [];
+      const data = (result.aggregations as Record<string, { buckets: Array<any> }>)?.[params.field]?.buckets || [];
       
       this.queryCache.set(cacheKey, {
         data,
@@ -207,7 +215,7 @@ class ElasticsearchOptimizer {
         requestTimeout: 30000,
         sniffOnStart: false,
         sniffInterval: false,
-      } as any);
+      } as Record<string, any>);
       
       this.connectionPool.set(index, client);
     }
@@ -328,9 +336,9 @@ class ElasticsearchOptimizer {
     }
 
     // Add date sorting as default
-    if (!params.sortBy || params.sortBy !== 'dateOfTransfer') {
+    if (!params.sortBy || params.sortBy !== 'date_of_transfer') {
       query.sort.push({
-        dateOfTransfer: { order: 'desc' }
+        date_of_transfer: { order: 'desc' }
       });
     }
 

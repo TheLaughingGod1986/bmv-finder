@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import "./globals.css";
+import "./mobile.css";
 import { ToastProvider } from './components/ToastProvider';
 import ClientNavigation from './components/ClientNavigation';
 import SupabaseUserProvider from './components/SupabaseUserProvider';
@@ -11,6 +12,8 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Footer from './components/Footer';
 import { SearchLimitProvider } from './components/SearchLimitContext';
 import { MockAuthProvider } from './components/MockAuthProvider';
+import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
+import MobilePerformanceMonitor from './components/MobilePerformanceMonitor';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,6 +39,26 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://bmvfinder.com'),
   alternates: {
     canonical: '/',
+  },
+  manifest: '/manifest.json',
+  themeColor: '#3A7CA5',
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'BMV Finder',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default',
+    'msapplication-TileColor': '#3A7CA5',
+    'msapplication-config': '/browserconfig.xml',
   },
   openGraph: {
     title: "Property Intelligence Platform | AI-Powered Investment Research",
@@ -234,6 +257,8 @@ export default function RootLayout({
               <Footer />
               <ScrollToTop />
               <PWAInstallPrompt />
+              <ServiceWorkerRegistration />
+              <MobilePerformanceMonitor />
             </SearchLimitProvider>
           </MockAuthProvider>
         </SupabaseUserProvider>

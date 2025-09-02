@@ -247,7 +247,7 @@ async function performComprehensiveValuation(propertyData: PropertyData) {
   const marketAnalysis = await getMarketAnalysis(propertyData.postcode);
   
   // Get comparables
-  const comparables = await getComparableSales(propertyData.postcode, propertyData.number);
+  const comparables = await getComparableSales(propertyData.postcode, propertyData.address?.split(' ')[0] || '');
 
   // Calculate final value using weighted average
   const methods = [
@@ -304,7 +304,7 @@ async function performComprehensiveValuation(propertyData: PropertyData) {
 
 // Sales Comparison Valuation
 async function performSalesComparisonValuation(propertyData: PropertyData) {
-  const comparables = await getComparableSales(propertyData.postcode, propertyData.number);
+  const comparables = await getComparableSales(propertyData.postcode, propertyData.address?.split(' ')[0] || '');
   
   if (comparables.length === 0) {
     return {
@@ -390,7 +390,7 @@ async function performIncomeApproachValuation(propertyData: PropertyData) {
   }
 
   // Calculate rental yield
-  const averageRental = rentalData.reduce((sum, r) => sum + (r.rental_price || 0), 0) / rentalData.length;
+      const averageRental = rentalData.length > 0 ? rentalData.reduce((sum: number, r) => sum + (Number((r as { rental_price?: number }).rental_price) || 0), 0) / rentalData.length : 0;
   const annualRental = averageRental * 12;
   
   // Use market cap rate
@@ -641,13 +641,13 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
     if (epcResponse.hits.hits.length > 0) {
       const epcData = epcResponse.hits.hits[0]._source;
       return {
-        address: epcData.full_address || `${number} ${epcData.street || ''}, ${postcode}`,
+        address: (epcData as { full_address?: string; street?: string }).full_address || `${number} ${(epcData as { street?: string }).street || ''}, ${postcode}`,
         postcode: postcode.toUpperCase(),
-        propertyType: epcData.property_type || 'T',
-        bedrooms: epcData.epc_bedrooms,
-        floorArea: epcData.total_floor_area,
-        epcRating: epcData.current_energy_rating,
-        constructionYear: epcData.construction_year,
+        propertyType: (epcData as { property_type?: string }).property_type || 'T',
+        bedrooms: (epcData as { epc_bedrooms?: number }).epc_bedrooms,
+        floorArea: (epcData as { total_floor_area?: number }).total_floor_area,
+        epcRating: (epcData as { current_energy_rating?: string }).current_energy_rating,
+        constructionYear: (epcData as { construction_year?: string }).construction_year,
         lastSoldPrice: undefined,
         lastSoldDate: undefined
       };
@@ -672,17 +672,17 @@ async function getPropertyData(postcode: string, number: string): Promise<Proper
     if (salesResponse.hits.hits.length > 0) {
       const salesData = salesResponse.hits.hits[0]._source;
       return {
-        address: salesData.full_address || `${number} ${salesData.street || ''}, ${postcode}`,
+        address: (salesData as { full_address?: string; street?: string }).full_address || `${number} ${(salesData as { street?: string }).street || ''}, ${postcode}`,
         postcode: postcode.toUpperCase(),
-        propertyType: salesData.property_type || 'T',
-        bedrooms: salesData.epc_bedrooms,
-        floorArea: salesData.total_floor_area,
-        epcRating: salesData.epc_rating,
-        constructionYear: salesData.construction_year,
-        lastSoldPrice: salesData.price,
-        lastSoldDate: salesData.date_of_transfer,
-        tenure: salesData.tenure,
-        newBuild: salesData.new_build === 'Y'
+        propertyType: (salesData as { property_type?: string }).property_type || 'T',
+        bedrooms: (salesData as { epc_bedrooms?: number }).epc_bedrooms,
+        floorArea: (salesData as { total_floor_area?: number }).total_floor_area,
+        epcRating: (salesData as { epc_rating?: string }).epc_rating,
+        constructionYear: (salesData as { construction_year?: string }).construction_year,
+        lastSoldPrice: (salesData as { price?: number }).price,
+        lastSoldDate: (salesData as { date_of_transfer?: string }).date_of_transfer,
+        tenure: (salesData as { tenure?: string }).tenure,
+        newBuild: (salesData as { new_build?: string }).new_build === 'Y'
       };
     }
 
@@ -716,14 +716,14 @@ async function getComparableSales(postcode: string, number?: string) {
     return response.hits.hits.map(hit => {
       const source = hit._source;
       return {
-        address: source.full_address || `${source.paon || ''} ${source.street || ''}, ${source.postcode}`.trim(),
-        postcode: source.postcode,
-        price: source.price,
-        date: source.date_of_transfer,
-        propertyType: source.property_type,
-        bedrooms: source.epc_bedrooms,
-        floorArea: source.total_floor_area,
-        epcRating: source.epc_rating
+        address: (source as { full_address?: string; paon?: string; street?: string; postcode?: string }).full_address || `${(source as { paon?: string }).paon || ''} ${(source as { street?: string }).street || ''}, ${(source as { postcode?: string }).postcode}`.trim(),
+        postcode: (source as { postcode?: string }).postcode,
+        price: (source as { price?: number }).price,
+        date: (source as { date_of_transfer?: string }).date_of_transfer,
+        propertyType: (source as { property_type?: string }).property_type,
+        bedrooms: (source as { epc_bedrooms?: number }).epc_bedrooms,
+        floorArea: (source as { total_floor_area?: number }).total_floor_area,
+        epcRating: (source as { epc_rating?: string }).epc_rating
       };
     });
   } catch (error) {
@@ -789,8 +789,8 @@ async function getMarketAnalysis(postcode: string) {
     let investmentPotential = 'moderate';
 
     if (hpiData.length >= 2) {
-      const current = hpiData[0]?.index_value || 100;
-      const previous = hpiData[1]?.index_value || 100;
+          const current = (hpiData[0] as { index_value?: number })?.index_value || 100;
+    const previous = (hpiData[1] as { index_value?: number })?.index_value || 100;
       yoyGrowth = ((current - previous) / previous) * 100;
       
       if (yoyGrowth > 5) hpiTrend = 'rising';

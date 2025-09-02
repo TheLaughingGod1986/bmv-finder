@@ -8,6 +8,13 @@ import { Badge } from './SimpleCard';
 import { useToast } from './ToastProvider';
 
 
+interface SalesHistoryItem {
+  date: string;
+  price: number;
+  type: string;
+  [key: string]: unknown;
+}
+
 interface Property {
   address: string;
   postcode: string;
@@ -28,7 +35,7 @@ interface Property {
   capitalGrowth?: number;
   lastSalePrice?: number;
   currentValuation?: number; // Added for current market value
-  salesHistory?: any[];
+  salesHistory?: SalesHistoryItem[];
   totalSales?: number;
   priceRange?: { min: number; max: number };
 }
@@ -43,6 +50,13 @@ interface PropertyInputSelectorProps {
   showPortfolio?: boolean;
   showWatchlist?: boolean;
   showPostcodeSearch?: boolean;
+}
+
+interface Tab {
+  id: 'discovery' | 'manual' | 'portfolio' | 'watchlist';
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  show: boolean;
 }
 
 export default function PropertyInputSelector({
@@ -69,8 +83,8 @@ export default function PropertyInputSelector({
     propertyType: 'semi-detached',
     bedrooms: 3,
     floorArea: 0,
-    lastSoldPrice: 0,
-    lastSoldDate: '',
+    lastSalePrice: 0,
+    lastSaleDate: '',
     epcRating: 'C'
   });
   
@@ -102,7 +116,7 @@ export default function PropertyInputSelector({
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data?.properties) {
-          setPortfolioProperties(data.data.properties.map((prop: any) => ({
+          setPortfolioProperties(data.data.properties.map((prop: Record<string, unknown>) => ({
             id: prop.id || `portfolio-${prop.postcode}-${prop.address}`,
             address: prop.address || prop.full_address || 'Unknown Address',
             postcode: prop.postcode,
@@ -138,7 +152,7 @@ export default function PropertyInputSelector({
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data?.properties) {
-          setWatchlistProperties(data.data.properties.map((prop: any) => ({
+          setWatchlistProperties(data.data.properties.map((prop: Record<string, unknown>) => ({
             id: prop.id || `watchlist-${prop.postcode}-${prop.address}`,
             address: prop.address || prop.full_address || 'Unknown Address',
             postcode: prop.postcode,
@@ -186,27 +200,27 @@ export default function PropertyInputSelector({
         const data = await response.json();
         if (data.success && data.data?.properties && data.data.properties.length > 0) {
   
-          const mappedProperties = data.data.properties.map((prop: any) => {
-            const mappedProperty: Property = {
-              address: prop.address,
-              postcode: prop.postcode,
-              propertyType: prop.propertyType || 'Unknown',
-              bedrooms: prop.bedrooms || 0,
-              floorArea: prop.floorArea || 0,
-              epcRating: prop.epcRating || 'Unknown',
-              lastSaleDate: prop.lastSaleDate || 'N/A',
-              growthPeriod: prop.growthPeriod || 'N/A',
-              longTermGrowth: prop.longTermGrowth || 0,
-              longTermPeriod: prop.longTermPeriod || 'N/A',
-              grossYield: prop.grossYield || 0,
-              portfolioFit: prop.portfolioFit,
-              capitalGrowth: prop.capitalGrowth || 0,
-              lastSalePrice: prop.lastSalePrice || 0,
-              currentValuation: prop.currentValuation || 0, // Use camelCase from API
-              salesHistory: prop.salesHistory || [],
-              totalSales: prop.totalSales || 0,
-              priceRange: prop.priceRange || { min: 0, max: 0 }
-            };
+                  const mappedProperties = data.data.properties.map((prop: Record<string, unknown>) => {
+          const mappedProperty: Property = {
+            address: (prop.address as string) || 'Unknown Address',
+            postcode: (prop.postcode as string) || 'Unknown Postcode',
+            propertyType: (prop.propertyType as string) || 'Unknown',
+            bedrooms: (prop.bedrooms as number) || 0,
+            floorArea: (prop.floorArea as number) || 0,
+            epcRating: (prop.epcRating as string) || 'Unknown',
+            lastSaleDate: (prop.lastSaleDate as string) || 'N/A',
+            growthPeriod: (prop.growthPeriod as string) || 'N/A',
+            longTermGrowth: (prop.longTermGrowth as number) || 0,
+            longTermPeriod: (prop.longTermPeriod as string) || 'N/A',
+            grossYield: (prop.grossYield as number) || 0,
+            portfolioFit: prop.portfolioFit as { diversification: number; riskLevel: string; potential: string } || { diversification: 0, riskLevel: 'Unknown', potential: 'Unknown' },
+            capitalGrowth: (prop.capitalGrowth as number) || 0,
+            lastSalePrice: (prop.lastSalePrice as number) || 0,
+            currentValuation: (prop.currentValuation as number) || 0, // Use camelCase from API
+            salesHistory: (prop.salesHistory as SalesHistoryItem[]) || [],
+            totalSales: (prop.totalSales as number) || 0,
+            priceRange: (prop.priceRange as { min: number; max: number }) || { min: 0, max: 0 }
+          };
             return mappedProperty;
           });
   
@@ -249,26 +263,24 @@ export default function PropertyInputSelector({
     }
 
     const property: Property = {
-      id: `manual-${Date.now()}`,
+      // id: `manual-${Date.now()}`,
       address: manualProperty.address,
       postcode: formatPostcode(manualProperty.postcode),
       propertyType: manualProperty.propertyType || 'semi-detached',
       bedrooms: manualProperty.bedrooms || 3,
       floorArea: manualProperty.floorArea || 0,
-      lastSoldPrice: manualProperty.lastSoldPrice || 0,
-      lastSoldDate: manualProperty.lastSoldDate || '',
+      lastSalePrice: manualProperty.lastSalePrice || 0,
+      lastSaleDate: manualProperty.lastSaleDate || '',
       epcRating: manualProperty.epcRating || 'C',
       salesHistory: [], // No sales history for manual input
       totalSales: 0,
       priceRange: { min: 0, max: 0 },
-      lastSaleDate: '',
       growthPeriod: 'N/A',
       longTermGrowth: 0,
       longTermPeriod: 'N/A',
       grossYield: 0,
       portfolioFit: { diversification: 0, riskLevel: 'N/A', potential: 'N/A' },
       capitalGrowth: 0,
-      lastSalePrice: 0,
       currentValuation: 0
     };
 
@@ -302,20 +314,18 @@ export default function PropertyInputSelector({
           propertyType: property.propertyType,
           bedrooms: property.bedrooms,
           floorArea: property.floorArea,
-          lastSoldPrice: property.lastSoldPrice,
-          lastSoldDate: property.lastSoldDate,
+          lastSalePrice: property.lastSalePrice,
+          lastSaleDate: property.lastSaleDate,
           epcRating: property.epcRating,
           salesHistory: property.salesHistory,
           totalSales: property.totalSales,
           priceRange: property.priceRange,
-          lastSaleDate: property.lastSaleDate,
           growthPeriod: property.growthPeriod,
           longTermGrowth: property.longTermGrowth,
           longTermPeriod: property.longTermPeriod,
           grossYield: property.grossYield,
           portfolioFit: property.portfolioFit,
           capitalGrowth: property.capitalGrowth,
-          lastSalePrice: property.lastSalePrice,
           currentValuation: property.currentValuation
         }),
       });
@@ -353,11 +363,11 @@ export default function PropertyInputSelector({
     }
   };
 
-  const tabs = [
-    { id: 'discovery', label: 'Property Search', icon: Target, show: showPostcodeSearch },
-    { id: 'manual', label: 'Manual Input', icon: Plus, show: showManualInput },
-    { id: 'portfolio', label: 'Portfolio', icon: FolderOpen, show: showPortfolio },
-    { id: 'watchlist', label: 'Watchlist', icon: Eye, show: showWatchlist }
+  const tabs: Tab[] = [
+    { id: 'discovery' as const, label: 'Property Search', icon: Target, show: showPostcodeSearch },
+    { id: 'manual' as const, label: 'Manual Input', icon: Plus, show: showManualInput },
+    { id: 'portfolio' as const, label: 'Portfolio', icon: FolderOpen, show: showPortfolio },
+    { id: 'watchlist' as const, label: 'Watchlist', icon: Eye, show: showWatchlist }
   ].filter(tab => tab.show);
 
   return (
@@ -373,7 +383,7 @@ export default function PropertyInputSelector({
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'bg-white text-blue-600 shadow-sm'
@@ -474,7 +484,7 @@ export default function PropertyInputSelector({
               {/* Property Results */}
               <div className="space-y-4">
                 {searchResults.map((property, index) => (
-                  <div key={property.id || index} className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 cursor-pointer transition-all duration-200 overflow-hidden">
+                  <div key={index} className="group bg-white rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 cursor-pointer transition-all duration-200 overflow-hidden">
                     
                     {/* Header Section - Address & Sales Badge */}
                     <div className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
@@ -604,7 +614,7 @@ export default function PropertyInputSelector({
                           <div className="mt-3 pt-3 border-t border-blue-200">
                             <div className="text-xs text-gray-600">
                               <span className="font-medium">Sales Timeline:</span> 
-                              {property.salesHistory.map((sale: any, index: number) => (
+                              {property.salesHistory.map((sale: SalesHistoryItem, index: number) => (
                                 <span key={index} className="ml-2">
                                   {new Date(sale.date).getFullYear()} (£{sale.price.toLocaleString()})
                                   {index < property.salesHistory.length - 1 ? ', ' : ''}
@@ -750,8 +760,8 @@ export default function PropertyInputSelector({
                   <input
                     type="number"
                     min="0"
-                    value={manualProperty.lastSoldPrice}
-                    onChange={(e) => setManualProperty(prev => ({ ...prev, lastSoldPrice: parseInt(e.target.value) || 0 }))}
+                    value={manualProperty.lastSalePrice}
+                                          onChange={(e) => setManualProperty(prev => ({ ...prev, lastSalePrice: parseInt(e.target.value) || 0 }))}
                     placeholder="250000"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
@@ -763,8 +773,8 @@ export default function PropertyInputSelector({
                   </label>
                   <input
                     type="date"
-                    value={manualProperty.lastSoldDate}
-                    onChange={(e) => setManualProperty(prev => ({ ...prev, lastSoldDate: e.target.value }))}
+                    value={manualProperty.lastSaleDate}
+                                          onChange={(e) => setManualProperty(prev => ({ ...prev, lastSaleDate: e.target.value }))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
@@ -812,7 +822,7 @@ export default function PropertyInputSelector({
                 <div className="space-y-3">
                   {portfolioProperties.map((property) => (
                     <div
-                      key={property.id}
+                      key={property.address || `property-${Math.random()}`}
                       className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => handlePropertySelect(property)}
                     >
@@ -832,10 +842,10 @@ export default function PropertyInputSelector({
                                 {property.bedrooms} beds
                               </span>
                             )}
-                            {property.lastSoldPrice && (
+                            {property.lastSalePrice && (
                               <span className="text-xs text-gray-500 flex items-center gap-1">
                                 <Target className="h-3 w-3" />
-                                £{property.lastSoldPrice.toLocaleString()}
+                                £{property.lastSalePrice.toLocaleString()}
                               </span>
                             )}
                           </div>
@@ -870,9 +880,9 @@ export default function PropertyInputSelector({
             <CardContent>
               {watchlistProperties.length > 0 ? (
                 <div className="space-y-3">
-                  {watchlistProperties.map((property) => (
+                  {watchlistProperties.map((property, index) => (
                     <div
-                      key={property.id}
+                      key={index}
                       className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                       onClick={() => handlePropertySelect(property)}
                     >
@@ -892,10 +902,10 @@ export default function PropertyInputSelector({
                                 {property.bedrooms} beds
                               </span>
                             )}
-                            {property.lastSoldPrice && (
+                            {property.lastSalePrice && (
                               <span className="text-xs text-gray-500 flex items-center gap-1">
                                 <Target className="h-3 w-3" />
-                                £{property.lastSoldPrice.toLocaleString()}
+                                £{property.lastSalePrice.toLocaleString()}
                               </span>
                             )}
                           </div>

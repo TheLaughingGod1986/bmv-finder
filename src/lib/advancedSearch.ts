@@ -1,5 +1,13 @@
 import { Client } from '@elastic/elasticsearch';
 import { esClient } from './esClient';
+import { 
+  RecentSaleDocument,
+  EPCDocument,
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 interface SearchFilters {
   priceRange?: { min: number; max: number };
@@ -21,10 +29,30 @@ interface SavedSearch {
   resultCount?: number;
 }
 
+interface Property {
+  id: string;
+  address: string;
+  postcode: string;
+  propertyType: string;
+  price: number;
+  dateOfTransfer: string;
+  bedrooms?: number;
+  floorArea?: number;
+  [key: string]: unknown;
+}
+
+interface ElasticsearchQuery {
+  bool: {
+    must: unknown[];
+    should?: unknown[];
+    filter: unknown[];
+  };
+}
+
 interface SearchResult {
-  properties: any[];
+  properties: Property[];
   total: number;
-  aggregations: any;
+  aggregations: Record<string, unknown>;
   searchId: string;
   savedSearchId?: string;
 }
@@ -49,7 +77,7 @@ class AdvancedSearch {
       throw new Error(`Could not find coordinates for postcode: ${centerPostcode}`);
     }
 
-    const query: any = {
+    const query: ElasticsearchQuery = {
       bool: {
         must: [
           {
@@ -94,7 +122,7 @@ class AdvancedSearch {
           }
         }
       }
-    } as any);
+    } as Record<string, any>);
 
     return {
       properties: result.hits.hits.map((hit: any) => hit._source),
@@ -113,20 +141,21 @@ class AdvancedSearch {
 
     for (const area of areas) {
       try {
-        const query: any = {
+        const query: ElasticsearchQuery = {
           bool: {
             must: [
               {
                 term: { region: area }
               }
-            ]
+            ],
+            filter: []
           }
         };
 
         if (dateRange) {
           query.bool.must.push({
             range: {
-              dateOfTransfer: {
+              date_of_transfer: {
                 gte: dateRange.start,
                 lte: dateRange.end
               }
@@ -145,7 +174,7 @@ class AdvancedSearch {
               },
               price_trend: {
                 date_histogram: {
-                  field: 'dateOfTransfer',
+                  field: 'date_of_transfer',
                   calendar_interval: 'month',
                   aggs: {
                     avg_price: {
@@ -156,12 +185,12 @@ class AdvancedSearch {
               }
             }
           }
-        } as any);
+        } as Record<string, any>);
 
         comparisonData.push({
           area,
-          averagePrice: (result.aggregations?.avg_price as any)?.value || 0,
-          priceTrend: (result.aggregations?.price_trend as any)?.buckets || [],
+          averagePrice: (result.aggregations?.avg_price as { value: number })?.value || 0,
+          priceTrend: (result.aggregations?.price_trend as { buckets: Array<any> })?.buckets || [],
           dataPoints: typeof result.hits.total === 'object' ? result.hits.total.value : result.hits.total || 0
         });
       } catch (error) {
@@ -186,12 +215,12 @@ class AdvancedSearch {
     dateRange: { start: string; end: string },
     filters: SearchFilters = {}
   ): Promise<SearchResult> {
-    const searchQuery: any = {
+    const searchQuery: ElasticsearchQuery = {
       bool: {
         must: [
           {
             range: {
-              dateOfTransfer: {
+              date_of_transfer: {
                 gte: dateRange.start,
                 lte: dateRange.end
               }
@@ -229,12 +258,12 @@ class AdvancedSearch {
       body: {
         query: searchQuery,
         sort: [
-          { dateOfTransfer: { order: 'desc' } }
+          { date_of_transfer: { order: 'desc' } }
         ],
         aggs: {
           monthly_trend: {
             date_histogram: {
-              field: 'dateOfTransfer',
+              field: 'date_of_transfer',
               calendar_interval: 'month',
               aggs: {
                 avg_price: {
@@ -248,7 +277,7 @@ class AdvancedSearch {
           }
         }
       }
-    } as any);
+    } as Record<string, any>);
 
     return {
       properties: result.hits.hits.map((hit: any) => hit._source),
@@ -357,7 +386,7 @@ class AdvancedSearch {
   }
 
   // Add filters to query
-  private addFiltersToQuery(filterArray: any[], filters: SearchFilters): void {
+  private addFiltersToQuery(filterArray: unknown[], filters: SearchFilters): void {
     if (filters.priceRange) {
       filterArray.push({
         range: {

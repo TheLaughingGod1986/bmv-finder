@@ -11,6 +11,47 @@ import { mlPredictionEngine } from '../../../lib/mlPredictionEngine';
 import { getOptimizedPriceIndicator, HpiData } from '@/utils/enhancedPriceIndicator';
 import { esClient } from '@/lib/esClient';
 
+interface Prediction {
+  predictedValue: number;
+  confidence: number;
+  valueRange?: {
+    min: number;
+    max: number;
+  };
+  method: string;
+}
+
+interface EnhancedPredictionResult {
+  prediction: {
+    predictedValue: number;
+    confidence: number;
+    method: string;
+  };
+  features: any;
+  inflationMetrics: any;
+}
+
+interface MLFeatures {
+  postcode: string;
+  propertyType: string;
+  bedrooms: number;
+  floorArea: number;
+  currentValue: number;
+  lastSoldPrice: number;
+  lastSoldDate: string | null;
+  hpiGrowth: number;
+  rentalEstimate: number;
+  salesVolume: number;
+  averagePrice: number;
+  inflationRate: number;
+  projectedInflation: number;
+  projectedInterestRate: number;
+  inflationImpact?: {
+    yearsSinceSale: number;
+    cumulative: number;
+  };
+}
+
 const predictiveModel = new PredictiveModel();
 
 export async function GET(request: NextRequest) {
@@ -81,7 +122,7 @@ export async function GET(request: NextRequest) {
     let adjustmentNote = '';
     
     try {
-      const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+      const enhancedResponse = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
       
       if (enhancedResponse.ok) {
         const enhancedData = await enhancedResponse.json();
@@ -302,7 +343,7 @@ export async function PUT(request: NextRequest) {
               }
               break;
             default:
-              results = await performBasicPrediction(postcode, propertyType, currentValue, false);
+              results = await performBasicPrediction(postcode, propertyType);
           }
 
           return {
@@ -348,7 +389,7 @@ export async function PUT(request: NextRequest) {
 async function performComprehensivePrediction(postcode: string, number?: string): Promise<any> {
   try {
     // Fetch enhanced property data
-    const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+    const enhancedResponse = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
     
     if (!enhancedResponse.ok) {
       return {
@@ -402,7 +443,7 @@ async function performComprehensivePrediction(postcode: string, number?: string)
     });
     
     // Get property valuation with property characteristics for accurate analysis
-    const propertyValuationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`, {
+    const propertyValuationResponse = await fetch(`/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -550,7 +591,7 @@ async function performComprehensivePrediction(postcode: string, number?: string)
 async function performBasicPrediction(postcode: string, number?: string): Promise<any> {
   try {
     // Fetch recent sales data to establish baseline
-    const salesResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
+    const salesResponse = await fetch(`/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
     
     if (!salesResponse.ok) {
       return {
@@ -594,7 +635,7 @@ async function performBasicPrediction(postcode: string, number?: string): Promis
     }
 
     // Get property characteristics for adjustment
-    const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+    const enhancedResponse = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
     let propertyTypeAdjustment = 1.0;
     
     if (enhancedResponse.ok) {
@@ -704,7 +745,7 @@ async function performEnhancedPrediction(postcode: string, number: string) {
       prediction: {
         predictedValue: prediction.predictedValue,
         confidence: prediction.confidence,
-        valueRange: prediction.valueRange,
+        valueRange: undefined, // Enhanced prediction doesn't provide value range
         method: 'Enhanced Prediction Model'
       },
       features: {
@@ -729,7 +770,7 @@ async function performEnhancedPrediction(postcode: string, number: string) {
 async function performMLPrediction(postcode: string, propertyType?: string, bedrooms?: string, price?: string): Promise<any> {
   try {
     // Fetch enhanced property data for ML features
-    const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+    const enhancedResponse = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
     
     if (!enhancedResponse.ok) {
       return {
@@ -792,7 +833,7 @@ async function performMLPrediction(postcode: string, propertyType?: string, bedr
           cumulative *= (1 + rate / 100);
         });
         
-        features.inflationImpact = {
+        (features as MLFeatures).inflationImpact = {
           yearsSinceSale: Math.round(yearsSinceSale * 100) / 100,
           cumulative: (cumulative - 1) * 100
         };
@@ -801,11 +842,19 @@ async function performMLPrediction(postcode: string, propertyType?: string, bedr
 
     // Use ML model for prediction
     const mlModel = new PredictiveModel();
-    const mlPrediction = await mlModel.predict(features);
+            // Convert MLFeatures to PropertyFeatures format
+        const propertyFeatures = {
+          postcode: features.postcode,
+          propertyType: features.propertyType,
+          region: 'Unknown', // Default region
+          currentValue: features.currentValue,
+          historicalData: [] // Empty array as we don't have historical HPI data in this context
+        };
+        const mlPrediction = await mlModel.predictPropertyValue(propertyFeatures);
     
-    if (!mlPrediction || mlPrediction.error) {
+          if (!mlPrediction || mlPrediction.predictedValue === undefined) {
       // Fallback to enhanced prediction if ML fails
-      return await performEnhancedPrediction(postcode, number);
+      return await performEnhancedPrediction(postcode, '');
     }
 
     // Calculate confidence based on data quality
@@ -857,7 +906,7 @@ async function performPriceIndicatorPrediction(postcode: string, number?: string
     const priceNum = parseFloat(price) || getFallbackPropertyValue(postcode, 'Unknown');
     
     // Fetch market analysis for growth calculation
-    const marketResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
+    const marketResponse = await fetch(`/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
     
     let growthRate = defaultMarketConfig.predictions.growthMultipliers.moderate;
     let confidence = defaultMarketConfig.predictions.defaultConfidence;
@@ -907,7 +956,7 @@ async function getMarketAnalysis(postcode: string, number?: string) {
   try {
     // 1) Prefer the valuation API which returns full marketAnalysis (averagePrice, yearlySales, yoyGrowth, etc.)
     try {
-      const valuationResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
+      const valuationResponse = await fetch(`/api/property-valuation?type=comprehensive&postcode=${encodeURIComponent(postcode)}&number=${encodeURIComponent(number || '')}`);
       if (valuationResponse.ok) {
         const valuationResult = await valuationResponse.json();
         const market = valuationResult.marketAnalysis || valuationResult.data?.marketAnalysis;
@@ -930,7 +979,7 @@ async function getMarketAnalysis(postcode: string, number?: string) {
 
     // 2) Fallback to enhanced property search minimal insights
     try {
-      const enhancedResponse = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
+      const enhancedResponse = await fetch(`/api/enhanced-property-search?postcode=${encodeURIComponent(postcode)}&includeRental=true&includeHPI=true&includeSoldPrices=true`);
       if (enhancedResponse.ok) {
         const enhancedResult = await enhancedResponse.json();
         if (enhancedResult.data?.properties?.length > 0) {
@@ -948,7 +997,7 @@ async function getMarketAnalysis(postcode: string, number?: string) {
               yoyGrowth: Math.round(yoyGrowth * 100) / 100,
               region: targetProperty?.hpiData?.regionLabel || 'Unknown',
               recentSalesCount: targetProperty?.soldPriceData?.recentSales?.length || 0
-            } as any;
+            } as Record<string, any>;
           }
         }
       }

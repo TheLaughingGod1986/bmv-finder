@@ -15,7 +15,7 @@ interface Property {
   bedrooms?: number;
   floorArea?: number;
   epcRating?: string;
-  salesHistory?: any[];
+  salesHistory?: Array<{ price: number; date: string; [key: string]: unknown }>;
   totalSales?: number;
   priceRange?: { min: number; max: number };
   currentValuation?: number; // Added for current market value
@@ -25,8 +25,12 @@ export default function AdvancedDealAnalysisPage() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [inputProperty, setInputProperty] = useState<Property | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [dealAnalysis, setDealAnalysis] = useState<any>(null);
-  const [propertyDiscoveryData, setPropertyDiscoveryData] = useState<any>(null);
+  const [dealAnalysis, setDealAnalysis] = useState<{ success: boolean; [key: string]: unknown } | null>(null);
+  const [propertyDiscoveryData, setPropertyDiscoveryData] = useState<{
+    comparables: Array<{ address: string; price: number; date: string; propertyType: string; bedrooms: number; floorArea: number; epcRating: string }>;
+    totalSales: number;
+    priceRange: { min: number; max: number };
+  } | null>(null);
 
   const handlePropertySelect = (property: Property) => {
     
@@ -37,7 +41,7 @@ export default function AdvancedDealAnalysisPage() {
     // Store the Property Discovery data for use in analysis
     if (property.salesHistory && property.salesHistory.length > 0) {
       const discoveryData = {
-        comparables: property.salesHistory.map((sale: any) => ({
+        comparables: property.salesHistory.map((sale: { price: number; date: string; [key: string]: unknown }) => ({
           address: property.address.split(',')[0] || property.address.split(' ')[0],
           price: sale.price,
           date: sale.date,

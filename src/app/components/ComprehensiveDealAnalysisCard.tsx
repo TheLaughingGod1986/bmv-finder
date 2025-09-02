@@ -191,6 +191,12 @@ interface Props {
   onAnalysisComplete?: () => void;
 }
 
+interface Tab {
+  id: 'overview' | 'valuation' | 'rental' | 'location' | 'market' | 'improve';
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
 export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, loading = false, onAnalysisComplete }: Props) {
   const [valuationData, setValuationData] = useState<ComprehensiveValuationData | null>(null);
   const [planningData, setPlanningData] = useState<PlanningAuthorityData | null>(null);
@@ -460,19 +466,19 @@ export default function ComprehensiveDealAnalysisCard({ postcode, houseNumber, l
 
       {/* Navigation Tabs */}
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-        {[
-          { id: 'overview', label: 'Overview', icon: BarChart3 },
-          { id: 'valuation', label: 'Valuation', icon: Calculator },
-          { id: 'rental', label: 'Rental & Yield', icon: TrendingUp },
-          { id: 'location', label: 'Location', icon: MapPin },
-          { id: 'market', label: 'Market', icon: TrendingUp },
-          { id: 'improve', label: 'Improve', icon: Target }
-        ].map((tab) => {
+        {([
+          { id: 'overview' as const, label: 'Overview', icon: BarChart3 },
+          { id: 'valuation' as const, label: 'Valuation', icon: Calculator },
+          { id: 'rental' as const, label: 'Rental & Yield', icon: TrendingUp },
+          { id: 'location' as const, label: 'Location', icon: MapPin },
+          { id: 'market' as const, label: 'Market', icon: TrendingUp },
+          { id: 'improve' as const, label: 'Improve', icon: Target }
+        ] as Tab[]).map((tab) => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'bg-white text-primary-700 shadow-sm'

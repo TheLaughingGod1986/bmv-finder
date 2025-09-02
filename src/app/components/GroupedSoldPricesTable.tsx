@@ -25,10 +25,61 @@ import ValueIndicatorExplanation from './BMVExplanationAccordion';
 import FullScreenChart from './FullScreenChart';
 import AddToPortfolioButton from './AddToPortfolioButton';
 
+interface SoldPriceProperty {
+  id: string;
+  address?: string;
+  fullAddress?: string;
+  paon?: string;
+  street?: string;
+  locality?: string;
+  town_city?: string;
+  county?: string;
+  postcode: string;
+  price: number;
+  date_of_transfer: string;
+  property_type?: string;
+  propertyType?: string;
+  propertyTypeLabel?: string;
+  propertyNumber?: string;
+  new_build?: boolean;
+  estate_type?: string;
+  building_name?: string;
+  building_number?: string;
+  sub_building_name?: string;
+  street_name?: string;
+  locality_name?: string;
+  town_name?: string;
+  district?: string;
+  county_name?: string;
+  transaction_category?: string;
+  record_status?: string;
+  salesHistory?: SalesHistoryItem[];
+  salesCount?: number;
+  epc_bedrooms?: number;
+  bedrooms?: number;
+  pricePaid?: number;
+  date?: string;
+  duration?: string;
+  [key: string]: unknown;
+}
+
+interface SalesHistoryItem {
+  date: string;
+  price: number;
+  type: string;
+  [key: string]: unknown;
+}
+
+interface PriceIndicator {
+  value: number;
+  trend: 'up' | 'down' | 'stable';
+  [key: string]: unknown;
+}
+
 interface GroupedSoldPricesTableProps {
-  soldPrices: any[];
+  soldPrices: SoldPriceProperty[];
   totalProperties?: number | null;
-  onRowClick: (property: any) => void;
+  onRowClick: (property: SoldPriceProperty) => void;
   sortConfig: { key: string; direction: 'ascending' | 'descending' };
   onSort: (key: string) => void;
   isLoading: boolean;
@@ -39,9 +90,15 @@ interface GroupedSoldPricesTableProps {
     page: number;
     size: number;
     has_more: boolean;
-    after_key?: any;
+    after_key?: string;
   };
-  onPageChange: (page: number, after?: any) => void;
+  onPageChange: (page: number, after?: string) => void;
+}
+
+interface Tab {
+  id: 'info' | 'history' | 'growth' | 'map';
+  label: string;
+  icon: React.ReactNode;
 }
 
 const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
@@ -57,15 +114,15 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
   pagination,
   onPageChange
 }) => {
-  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean; property: any }>({
+  const [historyModal, setHistoryModal] = useState<{ isOpen: boolean; property: SoldPriceProperty | null }>({
     isOpen: false,
     property: null
   });
   const [activeTab, setActiveTab] = useState<'info' | 'history' | 'growth' | 'map'>('info');
-  const [priceIndicators, setPriceIndicators] = useState<{ [key: string]: any }>({});
+  const [priceIndicators, setPriceIndicators] = useState<{ [key: string]: PriceIndicator }>({});
   const [salesCounts, setSalesCounts] = useState<{ [key: string]: number }>({});
 
-  const formatAddress = (property: any) => {
+  const formatAddress = (property: SoldPriceProperty) => {
     if (!property) return '';
     
     // Debug logging removed for cleaner console
@@ -97,7 +154,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     return `${property.paon || ''} ${property.street || ''} ${property.postcode || ''}`.trim();
   };
 
-  const formatShortAddress = (property: any) => {
+  const formatShortAddress = (property: SoldPriceProperty) => {
     if (!property) return '';
     const parts = [property.paon, property.street].filter(Boolean);
     return parts.join(' ');
@@ -153,11 +210,11 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
   // Formatting functions now imported from centralized utilities
 
-  const getSalesCount = (property: any) => {
+  const getSalesCount = (property: SoldPriceProperty) => {
     if (!property) return null;
     
     const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
-    const count = salesCounts[propertyKey];
+    const count = salesCounts[propertyKey as string];
     
     if (count === undefined) {
       return (
@@ -174,11 +231,11 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     );
   };
 
-  const getMarketTrend = (property: any) => {
+  const getMarketTrend = (property: SoldPriceProperty) => {
     if (!property) return null;
     
     const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
-    const indicator = priceIndicators[propertyKey];
+    const indicator = priceIndicators[propertyKey as string];
     
     if (!indicator || !indicator.marketTrend) {
       return (
@@ -223,13 +280,13 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     );
   };
 
-  const getValueIndicator = (price: number | null, property: any) => {
+  const getValueIndicator = (price: number | null, property: SoldPriceProperty) => {
     if (!price || !property) return null;
     
     // Use guid, paon, or a combination as the key
     const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
     
-    const indicator = priceIndicators[propertyKey];
+    const indicator = priceIndicators[propertyKey as string];
     
     if (!indicator) return null;
 
@@ -258,13 +315,13 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     return (
       <div className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${badgeColor}`}>
         <span>{badgeIcon}</span>
-        <span>{bmvScore.toFixed(1)}</span>
+        <span>{(bmvScore as number).toFixed(1)}</span>
       </div>
     );
   };
 
   // Helper functions for deal scoring
-  const calculateDealScore = (property: any): number => {
+  const calculateDealScore = (property: SoldPriceProperty): number => {
     let score = 50; // Base score
     
     // Factor in property type (terraced/semi-detached typically better deals)
@@ -278,12 +335,12 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     
     // Factor in price (lower prices often better deals)
     const price = property.price || property.pricePaid || 0;
-    if (price < 100000) score += 15;
-    else if (price < 200000) score += 10;
-    else if (price < 300000) score += 5;
+    if ((price as number) < 100000) score += 15;
+    else if ((price as number) < 200000) score += 10;
+    else if ((price as number) < 300000) score += 5;
     
     // Factor in recent sales activity
-    if (property.salesCount && property.salesCount > 2) score += 10;
+    if (property.salesCount && (property.salesCount as number) > 2) score += 10;
     
     return Math.min(100, Math.max(0, score));
   };
@@ -297,16 +354,16 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     return 'Poor';
   };
 
-  const calculateBMVScore = (property: any): number => {
+  const calculateBMVScore = (property: SoldPriceProperty): number => {
     // BMV (Below Market Value) score based on recent sales vs current price
     const currentPrice = property.price || property.pricePaid || 0;
     const lastSalePrice = property.lastSalePrice || currentPrice;
     
-    if (currentPrice < lastSalePrice * 0.9) return 90; // 10% below last sale
-    if (currentPrice < lastSalePrice * 0.95) return 75; // 5% below last sale
-    if (currentPrice < lastSalePrice) return 60; // Below last sale
-    if (currentPrice < lastSalePrice * 1.05) return 40; // Up to 5% above
-    if (currentPrice < lastSalePrice * 1.1) return 20; // Up to 10% above
+    if ((currentPrice as number) < (lastSalePrice as number) * 0.9) return 90; // 10% below last sale
+    if ((currentPrice as number) < (lastSalePrice as number) * 0.95) return 75; // 5% below last sale
+    if ((currentPrice as number) < (lastSalePrice as number)) return 60; // Below last sale
+    if ((currentPrice as number) < (lastSalePrice as number) * 1.05) return 40; // Up to 5% above
+    if ((currentPrice as number) < (lastSalePrice as number) * 1.1) return 20; // Up to 10% above
     return 0; // More than 10% above
   };
 
@@ -315,7 +372,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
       try {
         // Prepare properties with correct field mapping
         const propertiesForApi = soldPrices.map(property => {
-          const bedrooms = (property.epc_bedrooms && property.epc_bedrooms > 0 ? Math.round(property.epc_bedrooms) : undefined) || (property.bedrooms && property.bedrooms > 0 ? Math.round(property.bedrooms) : undefined);
+          const bedrooms = (property.epc_bedrooms && (property.epc_bedrooms as number) > 0 ? Math.round(property.epc_bedrooms as number) : undefined) || (property.bedrooms && (property.bedrooms as number) > 0 ? Math.round(property.bedrooms as number) : undefined);
           return {
             id: property.guid || property.paon || `${property.paon}-${property.postcode}`,
             postcode: property.postcode,
@@ -333,14 +390,14 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
         
         if (response.ok) {
           const data = await response.json();
-          const indicatorsMap: { [key: string]: any } = {};
-          data.forEach((indicator: any) => {
+              const indicatorsMap: { [key: string]: PriceIndicator } = {};
+    data.forEach((indicator: PriceIndicator) => {
             // Map the indicator to the correct property key
             const propertyKey = indicator.propertyId;
             
             // Only add to map if it has valid data (not an error)
             if (indicator.percentage !== undefined && !indicator.error) {
-              indicatorsMap[propertyKey] = indicator;
+              indicatorsMap[propertyKey as string] = indicator;
             } else {
             }
           });
@@ -367,17 +424,17 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
         const propertyKey = property.guid || property.paon || `${property.paon}-${property.postcode}`;
         
         try {
-          const response = await fetch(`/api/property-sales-history?postcode=${encodeURIComponent(propertyPostcode)}&number=${encodeURIComponent(propertyNumber)}`);
+          const response = await fetch(`/api/property-sales-history?postcode=${encodeURIComponent(propertyPostcode)}&number=${encodeURIComponent(propertyNumber as string)}`);
           const data = await response.json();
           
           if (data.success && data.salesHistory) {
-            countsMap[propertyKey] = data.salesHistory.length;
+            countsMap[propertyKey as string] = data.salesHistory.length;
           } else {
-            countsMap[propertyKey] = 1; // At least the current sale
+            countsMap[propertyKey as string] = 1; // At least the current sale
           }
         } catch (error) {
           console.error('Error fetching sales count for property:', propertyKey, error);
-          countsMap[propertyKey] = 1; // Default to 1 if error
+          countsMap[propertyKey as string] = 1; // Default to 1 if error
         }
       }
       
@@ -416,24 +473,25 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
     </button>
   );
 
-  const openHistoryModal = async (property: any) => {
+  const openHistoryModal = async (property: SoldPriceProperty) => {
     // Find all sales for this property using property number and postcode
     const propertyNumber = property.paon || property.propertyNumber;
     const propertyPostcode = property.postcode;
     
     try {
       // Fetch complete sales history from API
-      const response = await fetch(`/api/property-sales-history?postcode=${encodeURIComponent(propertyPostcode)}&number=${encodeURIComponent(propertyNumber)}`);
+      const response = await fetch(`/api/property-sales-history?postcode=${encodeURIComponent(propertyPostcode)}&number=${encodeURIComponent(propertyNumber as string)}`);
       const data = await response.json();
       
       let salesHistory = [];
       
       if (data.success && data.salesHistory.length > 0) {
         // Use API data
-        salesHistory = data.salesHistory.map((sale: any) => ({
+        salesHistory = data.salesHistory.map((sale: SalesHistoryItem) => ({
           date: sale.date,
           price: sale.price,
-          description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
+          type: sale.type || 'sale',
+          description: `${formatPropertyType(sale.propertyType as string)} - ${sale.postcode}`
         }));
       } else {
         // Fallback to local data
@@ -444,7 +502,8 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
         }).map(sale => ({
           date: sale.date,
           price: sale.price,
-          description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
+          type: 'sale',
+          description: `${formatPropertyType(sale.propertyType as string)} - ${sale.postcode}`
         }));
       }
 
@@ -453,7 +512,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
         salesHistory.push({
           date: property.date,
           price: property.price,
-          description: `${formatPropertyType(property.propertyType)} - ${property.postcode}`
+          description: `${formatPropertyType(property.propertyType as string)} - ${property.postcode}`
         });
       }
 
@@ -489,24 +548,26 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
       }).map(sale => ({
         date: sale.date,
         price: sale.price,
-        description: `${formatPropertyType(sale.propertyType)} - ${sale.postcode}`
+        type: 'sale',
+        description: `${formatPropertyType(sale.propertyType as string)} - ${sale.postcode}`
       }));
 
       if (salesHistory.length === 0) {
         salesHistory.push({
           date: property.date,
           price: property.price,
-          description: `${formatPropertyType(property.propertyType)} - ${property.postcode}`
+          type: 'sale',
+          description: `${formatPropertyType(property.propertyType as string)} - ${property.postcode}`
         });
       }
 
-      salesHistory.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      salesHistory.sort((a, b) => new Date(b.date as string).getTime() - new Date(a.date as string).getTime());
 
       setHistoryModal({ 
         isOpen: true, 
         property: {
           ...property,
-          salesHistory: salesHistory
+          salesHistory: salesHistory as SalesHistoryItem[]
         }
       });
       setActiveTab('info');
@@ -795,15 +856,15 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
 
               {/* Tabs */}
               <div className="flex border-b border-[#E5E5E5] bg-gray-50">
-                {[
-                  { id: 'info', label: 'Info', icon: <Info className="w-4 h-4" /> },
-                  { id: 'history', label: 'History', icon: <BarChart3 className="w-4 h-4" /> },
-                  { id: 'growth', label: 'Growth', icon: <TrendingUp className="w-4 h-4" /> },
-                  { id: 'map', label: 'Map', icon: <Map className="w-4 h-4" /> }
-                ].map((tab) => (
+                {([
+                  { id: 'info' as const, label: 'Info', icon: <Info className="w-4 h-4" /> },
+                  { id: 'history' as const, label: 'History', icon: <BarChart3 className="w-4 h-4" /> },
+                  { id: 'growth' as const, label: 'Growth', icon: <TrendingUp className="w-4 h-4" /> },
+                  { id: 'map' as const, label: 'Map', icon: <Map className="w-4 h-4" /> }
+                ] as Tab[]).map((tab) => (
                   <button
                     key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
+                    onClick={() => setActiveTab(tab.id)}
                     className={`flex items-center gap-2 px-6 py-4 text-sm font-medium border-b-2 transition-all duration-200 ${
                       activeTab === tab.id
                         ? 'border-[#3A7CA5] text-[#3A7CA5] bg-white shadow-sm'
@@ -861,7 +922,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                         </div>
                       </div>
                     )}
-                    {historyModal.property?.salesHistory?.map((sale: any, index: number) => {
+                    {historyModal.property?.salesHistory?.map((sale: SalesHistoryItem, index: number) => {
                       // Calculate growth percentage compared to previous sale
                       let growthPercentage = null;
                       let growthAmount = null;
@@ -890,7 +951,7 @@ const GroupedSoldPricesTable: React.FC<GroupedSoldPricesTableProps> = ({
                                   {formatPrice(sale.price)}
                                 </div>
                                 <div className="text-sm text-[#3B755D] font-medium">
-                                  {sale.description || 'No additional details available'}
+                                  {(sale.description as string) || 'No additional details available'}
                                 </div>
                               </div>
                             </div>

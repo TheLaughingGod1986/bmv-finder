@@ -102,6 +102,12 @@ interface AdvancedDealAnalysisCardProps {
   loading?: boolean;
 }
 
+interface Tab {
+  id: 'overview' | 'comparables' | 'predictions' | 'market' | 'insights';
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
 export default function AdvancedDealAnalysisCard({ data, loading = false }: AdvancedDealAnalysisCardProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'comparables' | 'predictions' | 'market' | 'insights'>('overview');
   const [showDetailedComparables, setShowDetailedComparables] = useState(false);
@@ -286,18 +292,18 @@ export default function AdvancedDealAnalysisCard({ data, loading = false }: Adva
 
       {/* Tab Navigation */}
       <div className="flex space-x-1 mb-6">
-        {[
-          { id: 'overview', label: 'Overview', icon: Target },
-          { id: 'comparables', label: 'Comparables', icon: BarChart3 },
-          { id: 'predictions', label: 'Predictions', icon: TrendingUp },
-          { id: 'market', label: 'Market', icon: Building },
-          { id: 'insights', label: 'Insights', icon: Lightbulb }
-        ].map((tab) => {
+        {([
+          { id: 'overview' as const, label: 'Overview', icon: Target },
+          { id: 'comparables' as const, label: 'Comparables', icon: BarChart3 },
+          { id: 'predictions' as const, label: 'Predictions', icon: TrendingUp },
+          { id: 'market' as const, label: 'Market', icon: Building },
+          { id: 'insights' as const, label: 'Insights', icon: Lightbulb }
+        ] as Tab[]).map((tab) => {
           const Icon = tab.icon;
           return (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id)}
               className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === tab.id
                   ? 'bg-blue-500 text-white'

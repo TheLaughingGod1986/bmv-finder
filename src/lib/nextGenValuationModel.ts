@@ -1,4 +1,11 @@
 import { esClient } from './esClient';
+import { 
+  RecentSaleDocument, 
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 export interface NextGenValuationFeatures {
   postcode: string;
@@ -184,7 +191,7 @@ export class NextGenValuationModel {
             { term: { propertyType: features.propertyType } }
           ],
           filter: [
-            { range: { dateOfTransfer: { gte: 'now-5y' } } } // Last 5 years
+            { range: { date_of_transfer: { gte: 'now-5y' } } } // Last 5 years
           ],
           should: [
             // Prioritize same number of bedrooms
@@ -217,14 +224,14 @@ export class NextGenValuationModel {
           query,
           size: 20,
           sort: [
-            { dateOfTransfer: { order: 'desc' } },
+            { date_of_transfer: { order: 'desc' } },
             { _score: { order: 'desc' } }
           ]
         }
       });
 
       const sales = response.hits.hits.map(hit => {
-        const source = hit._source as any;
+        const source = hit._source as RecentSaleDocument;
         const score = hit._score || 0;
         
         // Calculate similarity score (0-100)
@@ -237,8 +244,9 @@ export class NextGenValuationModel {
         }
         
         // Adjust for floor area
-        if (features.floorArea && source.floor_area_m2) {
-          const areaDiff = Math.abs(features.floorArea - source.floor_area_m2) / features.floorArea;
+        if (features.floorArea && (source.floor_area_m2 || source.floor_area)) {
+          const sourceArea = source.floor_area_m2 || source.floor_area || 0;
+          const areaDiff = Math.abs(features.floorArea - sourceArea) / features.floorArea;
           similarity -= areaDiff * 20;
         }
         
@@ -260,15 +268,15 @@ export class NextGenValuationModel {
         
         return {
           price: source.price,
-          date: source.dateOfTransfer,
-          propertyType: source.propertyType,
+          date: source.date_of_transfer,
+          propertyType: source.property_type,
           bedrooms: source.bedrooms,
-          floorArea: source.floor_area_m2,
+          floorArea: source.floor_area_m2 || source.floor_area,
           epcRating: source.epc_rating,
           distance: 0, // Would calculate actual distance if we had coordinates
           similarity,
           hpiAdjustedPrice: source.price, // Will be calculated later
-          pricePerSqm: source.floor_area_m2 ? source.price / source.floor_area_m2 : undefined,
+          pricePerSqm: (source.floor_area_m2 || source.floor_area) ? source.price / (source.floor_area_m2 || source.floor_area || 1) : undefined,
           pricePerBedroom: source.bedrooms ? source.price / source.bedrooms : undefined
         };
       });
@@ -313,7 +321,7 @@ export class NextGenValuationModel {
         }
       });
 
-      const hpiData = hpiResponse.hits.hits.map(hit => hit._source as any);
+      const hpiData = hpiResponse.hits.hits.map(hit => hit._source as HPIDocument);
       
       if (hpiData.length === 0) {
         return features.lastSoldPrice;
@@ -325,7 +333,9 @@ export class NextGenValuationModel {
       const currentHPI = hpiData[0];
 
       if (soldHPI && currentHPI) {
-        const hpiMultiplier = currentHPI.hpi_value / soldHPI.hpi_value;
+        const currentValue = currentHPI.hpi_index || currentHPI.index_value || 100;
+        const soldValue = soldHPI.hpi_index || soldHPI.index_value || 100;
+        const hpiMultiplier = currentValue / soldValue;
         return features.lastSoldPrice * hpiMultiplier;
       }
 
@@ -396,16 +406,16 @@ export class NextGenValuationModel {
         }
       });
 
-      const hpiData = hpiResponse.hits.hits.map(hit => hit._source as any);
+      const hpiData = hpiResponse.hits.hits.map(hit => hit._source as HPIDocument);
       
       if (hpiData.length < 2) {
         return 0;
       }
 
       // Calculate 6-month and 12-month growth rates
-      const currentHPI = hpiData[0].hpi_value;
-      const sixMonthHPI = hpiData[5]?.hpi_value || currentHPI;
-      const twelveMonthHPI = hpiData[11]?.hpi_value || currentHPI;
+      const currentHPI = hpiData[0].hpi_index || hpiData[0].index_value || 100;
+      const sixMonthHPI = hpiData[5]?.hpi_index || hpiData[5]?.index_value || currentHPI;
+      const twelveMonthHPI = hpiData[11]?.hpi_index || hpiData[11]?.index_value || currentHPI;
 
       const sixMonthGrowth = (currentHPI - sixMonthHPI) / sixMonthHPI;
       const twelveMonthGrowth = (currentHPI - twelveMonthHPI) / twelveMonthHPI;

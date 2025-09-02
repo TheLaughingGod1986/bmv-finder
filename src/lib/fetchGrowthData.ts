@@ -9,7 +9,7 @@ export interface GrowthData {
 export async function fetchGrowthData(region: string): Promise<GrowthData> {
   try {
     const url = `/api/hpi?region=${encodeURIComponent(region)}`;
-    const res = await fetch(url, { next: { revalidate: 0 } as any });
+    const res = await fetch(url, { next: { revalidate: 0 } as Record<string, any> });
     if (res.ok) {
       // Expect payload to include an annualized figure; for now, fallback to mock
       const json = await res.json();

@@ -105,7 +105,15 @@ export default function MonthlyStatementsPage() {
     const startDate = new Date(selectedMonth + '-01');
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
 
-    const newStatements: any[] = [];
+    const newStatements: Array<{
+      user_id: string;
+      property_id: string;
+      statement_month: string;
+      rental_income: number;
+      mortgage_payment: number;
+      expenses: number;
+      net_profit: number;
+    }> = [];
 
     for (const property of properties) {
       const rentalIncome = property.monthlyRent || 0;

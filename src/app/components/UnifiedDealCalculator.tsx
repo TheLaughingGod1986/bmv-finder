@@ -874,7 +874,7 @@ export default function UnifiedDealCalculator() {
     const newCost = calculateRefurbCost(level, inputs.bedrooms, inputs.squareFootage, inputs.refurbContingencyPct);
     setInputs(prev => ({ 
       ...prev, 
-      refurbLevel: level as any,
+      refurbLevel: level as 'none' | 'cosmetic' | 'modernisation' | 'full_renovation',
       refurbCost: newCost
     }));
   };

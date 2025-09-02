@@ -365,8 +365,47 @@ export default function DealCalculator() {
 
 
 
+interface Property {
+  address: string;
+  postcode: string;
+  propertyType: string;
+  price?: number;
+  rental?: {
+    estimatedMonthlyRent: number;
+    [key: string]: unknown;
+  };
+  soldPriceData?: {
+    priceStats?: {
+      averagePrice: number;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+  marketTrends?: {
+    averagePrice: number;
+    [key: string]: unknown;
+  };
+  title?: string;
+  [key: string]: unknown;
+}
+
+interface PortfolioProperty {
+  id: string;
+  address: string;
+  postcode: string;
+  purchase_price: number;
+  monthly_rent?: number;
+  deal_score?: number;
+  yield?: number;
+  created_at: string;
+  property_type: string;
+  notes?: string;
+  status: string;
+  [key: string]: unknown;
+}
+
   // Select a property from search results
-  const selectProperty = (property: any) => {
+  const selectProperty = (property: Property) => {
     setPropertyName(property.address || '');
     setPostcode(property.postcode || '');
     setPropertyType(property.propertyType || 'House');
@@ -427,7 +466,7 @@ export default function DealCalculator() {
           const data = await response.json();
           if (data.success && data.portfolio) {
             // Convert portfolio properties to saved deals format
-            const deals = data.portfolio.map((property: any) => ({
+            const deals = data.portfolio.map((property: PortfolioProperty) => ({
               id: property.id,
               propertyName: property.address, // Changed from address to propertyName
               purchasePrice: property.purchase_price,
@@ -561,13 +600,13 @@ export default function DealCalculator() {
         if (dealsResponse.ok) {
           const data = await dealsResponse.json();
           if (data.success && data.portfolio) {
-            const deals = data.portfolio.map((property: any) => ({
+            const deals = data.portfolio.map((property: PortfolioProperty) => ({
               id: property.id,
               propertyName: property.address, // Changed from address to propertyName
               purchasePrice: property.purchase_price,
               refurbCost: property.other_fees || 0,
               monthlyRent: property.monthly_rent || 0,
-              interestRate: property.mortgage_rate ? property.mortgage_rate * 100 : 0,
+              interestRate: property.mortgage_rate ? (property.mortgage_rate as number) * 100 : 0,
               ltv: 0,
               deposit: property.deposit_amount || 0,
               otherExpenses: property.monthly_expenses || 0,

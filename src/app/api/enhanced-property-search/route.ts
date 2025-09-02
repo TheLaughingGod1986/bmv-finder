@@ -1,5 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { 
+  EPCDocument, 
+  RecentSaleDocument, 
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import { getRentalRate, getRegionCode, getHPIRegion } from '@/lib/marketConfig';
 
@@ -110,7 +118,7 @@ async function searchEPCData(postcode: string, limit: number) {
     });
 
     return response.hits.hits.map(hit => {
-      const source = hit._source as any;
+              const source = hit._source as EPCDocument;
       return {
         id: hit._id,
         address: source.full_address || source.address || 'Address not available',
@@ -243,16 +251,16 @@ async function enrichWithHPIData(properties: any[]) {
     });
 
     if (hpiResponse.hits.hits.length > 0) {
-      const hpiData = hpiResponse.hits.hits[0]._source;
+      const hpiData = hpiResponse.hits.hits[0]._source as HPIDocument;
       
       return properties.map(property => ({
         ...property,
         hpiData: {
-          currentIndex: hpiData.hpiIndex || hpiData.index_value || null,
-          yoyGrowth: hpiData.percentageChangeYearly || hpiData.yearly_change || null,
-          averagePrice: hpiData.averagePrice || hpiData.avg_price || null,
-          salesVolume: hpiData.salesVolume || hpiData.sales_volume || null,
-          regionLabel: hpiData.regionLabel || hpiData.region_label || null,
+          currentIndex: hpiData.hpi_index || hpiData.index_value || null,
+          yoyGrowth: hpiData.percentage_change_yearly || hpiData.yearly_change || null,
+          averagePrice: hpiData.average_price || hpiData.avg_price || null,
+          salesVolume: hpiData.sales_volume || null,
+          regionLabel: hpiData.region_label || null,
           lastUpdated: hpiData.date || hpiData.last_updated || new Date().toISOString()
         }
       }));
@@ -298,10 +306,10 @@ async function enrichWithSoldPriceData(properties: any[]) {
         });
 
         if (salesResponse.hits.hits.length > 0) {
-          const sales = salesResponse.hits.hits.map(hit => hit._source);
+          const sales = salesResponse.hits.hits.map(hit => hit._source as RecentSaleDocument);
           
           // Calculate price statistics
-          const prices = sales.map(sale => sale.price).filter(price => price > 0);
+          const prices = sales.map((sale: RecentSaleDocument) => sale.price).filter(price => price > 0);
           const recentPrices = prices.slice(0, 5); // Last 5 sales
           
           if (recentPrices.length > 0) {
@@ -318,8 +326,8 @@ async function enrichWithSoldPriceData(properties: any[]) {
             }
             
             property.soldPriceData = {
-              recentSales: sales.slice(0, 5).map(sale => ({
-                address: sale.primary_addressable_object_name || sale.address || 'Unknown',
+              recentSales: sales.slice(0, 5).map((sale: RecentSaleDocument) => ({
+                address: sale.paon || sale.address || 'Unknown',
                 price: sale.price,
                 date: sale.date_of_transfer,
                 propertyType: sale.property_type || sale.estate_type || 'Unknown',
@@ -409,7 +417,7 @@ async function getNearbyPostcodes(postcode: string): Promise<string[]> {
       }
     });
 
-    const buckets = (response.aggregations?.postcodes as any)?.buckets || [];
+            const buckets = (response.aggregations?.postcodes as { buckets: Array<{ key: string; doc_count: number }> })?.buckets || [];
     return buckets.map((bucket: any) => bucket.key).filter((p: string) => p !== postcode);
 
   } catch (error) {

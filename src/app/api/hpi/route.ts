@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { 
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 
 const HPI_INDEX = 'house_price_index';
 
@@ -71,7 +77,7 @@ export async function GET(request: NextRequest) {
         }
       });
 
-      const regions = (response.aggregations?.regions as any)?.buckets || [];
+              const regions = (response.aggregations?.regions as { buckets: Array<{ key: string; doc_count: number }> })?.buckets || [];
       // For each region, fetch the latest and previous year's index
       const data = await Promise.all(regions.map(async (bucket: any) => {
         const latest = bucket.latest_data.hits.hits[0]._source;
@@ -93,7 +99,7 @@ export async function GET(request: NextRequest) {
         });
         let yoyGrowth = null;
         if (prevYearRes.hits.hits.length > 0) {
-          const prevIndex = (prevYearRes.hits.hits[0]._source as any).hpiIndex;
+          const prevIndex = (prevYearRes.hits.hits[0]._source as HPIDocument).hpi_index || (prevYearRes.hits.hits[0]._source as HPIDocument).index_value || 100;
           yoyGrowth = prevIndex !== 0 ? ((latest.hpiIndex - prevIndex) / prevIndex) * 100 : null;
         }
         return {
@@ -126,7 +132,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       data,
-      total: (response.hits.total as any)?.value || response.hits.total || 0,
+              total: (response.hits.total as { value: number })?.value || response.hits.total || 0,
       source: 'filtered_search'
     });
 
@@ -194,7 +200,7 @@ export async function POST(request: NextRequest) {
       aggs
     });
 
-    const buckets = (response.aggregations?.time_series as any)?.buckets || [];
+            const buckets = (response.aggregations?.time_series as { buckets: Array<{ key: string; doc_count: number }> })?.buckets || [];
     const timeSeriesData = buckets.map((bucket: any) => ({
       date: bucket.key_as_string,
       timestamp: bucket.key,

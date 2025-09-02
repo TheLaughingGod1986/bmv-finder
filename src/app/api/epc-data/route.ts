@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
             }
           }
         } catch (indexError) {
-          console.log(`Index ${index} not accessible or doesn't exist:`, indexError.message);
+          console.log(`Index ${index} not accessible or doesn't exist:`, indexError instanceof Error ? indexError.message : 'Unknown error');
           continue;
         }
       }

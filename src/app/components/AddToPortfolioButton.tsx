@@ -5,6 +5,13 @@ import { Plus, Check, Loader2 } from 'lucide-react';
 import { useToast } from './ToastProvider';
 import { supabase } from '@/lib/supabaseClient';
 
+interface PortfolioProperty {
+  address: string;
+  postcode: string;
+  house_number?: string;
+  [key: string]: unknown;
+}
+
 interface AddToPortfolioButtonProps {
   propertyData: {
     address: string;
@@ -59,7 +66,7 @@ export default function AddToPortfolioButton({ propertyData, className = '' }: A
 
       if (response.ok) {
         const portfolio = await response.json();
-        const isAlreadyTracked = portfolio.some((property: any) => 
+        const isAlreadyTracked = portfolio.some((property: PortfolioProperty) => 
           property.address === propertyData.address &&
           property.postcode === propertyData.postcode &&
           property.house_number === propertyData.houseNumber

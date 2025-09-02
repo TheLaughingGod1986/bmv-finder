@@ -5,11 +5,71 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Save, Calculator, Home, PoundSterling, FileText, Percent, Calendar } from 'lucide-react';
 import { supabase } from '../../lib/supabaseClient';
 
+interface Property {
+  id: string;
+  address: string;
+  postcode: string;
+  purchasePrice: number;
+  currentValue?: number;
+  monthlyRent?: number;
+  rentStartDate?: string;
+  mortgageBalance?: number;
+  mortgageType?: 'repayment' | 'interest_only' | string;
+  mortgageRate?: number;
+  depositAmount?: number;
+  monthlyAgentFee?: number;
+  monthlyInsurance?: number;
+  annualInsurance?: number;
+  oneOffFees?: Fee[];
+  scheduledFees?: Fee[];
+  monthlyExpenses?: number;
+  propertyNotes?: string;
+  refurbishmentCosts?: { low: number; medium: number; high: number };
+  selectedRefurbishmentLevel?: string;
+  actualRefurbishmentCost?: number;
+  stampDuty?: number;
+  legalFees?: number;
+  surveyFees?: number;
+  mortgageFees?: number;
+  landRegistryFees?: number;
+  searchesFees?: number;
+  gasSafetyCertificate?: number;
+  electricalSafetyCertificate?: number;
+  energyPerformanceCertificate?: number;
+  fireSafetyAssessment?: number;
+  legionellaRiskAssessment?: number;
+  asbestosSurvey?: number;
+  landlordInsurance?: number;
+  furnitureAndAppliances?: number;
+  marketingAndLettingFees?: number;
+  contingencyFund?: number;
+  offerHistory?: Offer[];
+  [key: string]: unknown;
+}
+
+interface Fee {
+  description: string;
+  amount: number;
+  frequency?: string;
+  date?: string;
+  [key: string]: unknown;
+}
+
+interface Offer {
+  id: string;
+  status: 'offer_made' | 'offer_accepted' | 'offer_rejected' | 'offer_withdrawn';
+  amount: number;
+  date: string;
+  notes: string;
+  outcome?: string;
+  [key: string]: unknown;
+}
+
 interface PropertyEditModalProps {
-  property: any;
+  property: Property;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (updatedProperty: any) => Promise<void>;
+  onSave: (updatedProperty: Property) => Promise<void>;
 }
 
 export default function PropertyEditModal({ property, isOpen, onClose, onSave }: PropertyEditModalProps) {
@@ -203,7 +263,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
            });
   }, [formData, property?.currentValue, property?.purchasePrice]);
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
@@ -237,9 +297,9 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
 
   const handleAddOfferHistory = () => {
     if (offerHistoryInput.amount && offerHistoryInput.date) {
-      const newOffer = {
+      const newOffer: Offer = {
         id: Date.now().toString(),
-        status: offerHistoryInput.status,
+        status: offerHistoryInput.status as 'offer_made' | 'offer_accepted' | 'offer_rejected' | 'offer_withdrawn',
         amount: parseFloat(offerHistoryInput.amount),
         date: offerHistoryInput.date,
         notes: offerHistoryInput.notes,
@@ -269,14 +329,14 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
     
     // Add one-off fees (mirroring portfolio calculation)
     if (formData.oneOffFees && Array.isArray(formData.oneOffFees)) {
-      total += formData.oneOffFees.reduce((feeSum: number, fee: any) => feeSum + (fee.amount || 0), 0);
+      total += formData.oneOffFees.reduce((feeSum: number, fee: Fee) => feeSum + (fee.amount || 0), 0);
     }
     
     // Add scheduled fees (one-time only) - mirroring portfolio calculation
     if (formData.scheduledFees && Array.isArray(formData.scheduledFees)) {
       total += formData.scheduledFees
-        .filter((fee: any) => fee.frequency === 'one_time')
-        .reduce((feeSum: number, fee: any) => feeSum + (fee.amount || 0), 0);
+              .filter((fee: Fee) => fee.frequency === 'one_time')
+      .reduce((feeSum: number, fee: Fee) => feeSum + (fee.amount || 0), 0);
     }
     
     // Add renovation costs
@@ -941,7 +1001,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
                 <div className="bg-orange-50 p-3 rounded-lg">
                   <div className="text-sm font-medium text-gray-700 mb-1">Light Refurbishment</div>
                   <div className="text-lg font-semibold text-orange-600">
-                    £{formData.refurbishmentCosts?.light?.toLocaleString() || '0'}
+                    £{formData.refurbishmentCosts?.low?.toLocaleString() || '0'}
                   </div>
                 </div>
                 <div className="bg-orange-50 p-3 rounded-lg">
@@ -1280,7 +1340,7 @@ export default function PropertyEditModal({ property, isOpen, onClose, onSave }:
               {formData.offerHistory && formData.offerHistory.length > 0 && (
                 <div className="space-y-3">
                   <h5 className="text-md font-medium text-gray-900">Previous Offers</h5>
-                  {formData.offerHistory.map((offer: any, index: number) => (
+                  {formData.offerHistory.map((offer: Offer, index: number) => (
                     <div key={offer.id || index} className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="flex justify-between items-start">
                         <div className="flex-1">

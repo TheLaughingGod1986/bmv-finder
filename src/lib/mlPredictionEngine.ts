@@ -86,7 +86,7 @@ class MLPredictionEngine {
       const predictions = this.calculateWeightedPredictions(features, similarOutcomes);
       
       // Calculate confidence based on data availability
-      const confidence = this.calculateConfidence(features, similarOutcomes.length);
+      const confidence = MLPredictionEngine.calculateConfidence(features, similarOutcomes.length);
       
       // Identify key factors influencing the prediction
       const factors = this.identifyKeyFactors(features, similarOutcomes);

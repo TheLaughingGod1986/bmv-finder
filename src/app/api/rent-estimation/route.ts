@@ -1,5 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { 
+  RentalPricesDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 import { CONFIG } from '@/lib/config';
 
 // Regional market rates (per month for 2-bed property)
@@ -227,7 +233,7 @@ async function getElasticsearchRent(postcode: string, propertyType: string, bedr
 
     const totalHits = typeof response.hits.total === 'number' ? response.hits.total : response.hits.total.value;
     if (totalHits > 0) {
-      const rentalData = response.hits.hits[0]._source as any;
+              const rentalData = response.hits.hits[0]._source as RentalPricesDocument;
       
       console.log('Found Elasticsearch rental data:', {
         region: rentalData.region_name,

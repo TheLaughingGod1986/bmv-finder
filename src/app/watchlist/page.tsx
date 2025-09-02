@@ -142,7 +142,7 @@ export default function WatchlistPage() {
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
-      let aValue: any, bValue: any;
+      let aValue: number | Date, bValue: number | Date;
       
       switch (sortBy) {
         case 'price':
@@ -162,8 +162,8 @@ export default function WatchlistPage() {
           bValue = b.floor_area_m2 || b.total_floor_area || 0;
           break;
         default:
-          aValue = a.date_added;
-          bValue = b.date_added;
+          aValue = new Date(a.date_added);
+          bValue = new Date(b.date_added);
       }
       
       if (sortOrder === 'asc') {

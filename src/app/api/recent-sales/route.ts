@@ -1,20 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { 
+  RecentSaleDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
+import { withAPITracking } from '@/lib/apiPerformanceMonitor';
+import { validateRecentSales } from '@/lib/validationMiddleware';
 
-export async function GET(request: NextRequest) {
+async function handleRecentSales(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const postcode = searchParams.get('postcode');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const months = parseInt(searchParams.get('months') || '12');
-    const searchScope = searchParams.get('searchScope') || 'area';
-
-    if (!postcode) {
-      return NextResponse.json(
-        { error: 'Postcode parameter is required' },
-        { status: 400 }
-      );
+    // Validate input parameters
+    const validation = validateRecentSales(request);
+    if (!validation.success) {
+      return NextResponse.json({
+        success: false,
+        error: 'Validation failed',
+        details: validation.errors,
+        timestamp: new Date().toISOString()
+      }, { status: validation.statusCode });
     }
+
+    const { postcode, limit, months } = validation.data.query;
+    const searchScope = request.nextUrl.searchParams.get('searchScope') || 'area';
 
     // Calculate date range (e.g., last 12 months)
     const endDate = new Date();
@@ -37,14 +46,14 @@ export async function GET(request: NextRequest) {
           {
             prefix: { postcode: prefix }
           },
-          {
-            range: {
-              dateOfTransfer: {
-                gte: startDate.toISOString().split('T')[0],
-                lte: endDate.toISOString().split('T')[0]
-              }
+                  {
+          range: {
+            date_of_transfer: {
+              gte: startDate.toISOString().split('T')[0],
+              lte: endDate.toISOString().split('T')[0]
             }
           }
+        }
         ]
       }
     });
@@ -62,7 +71,7 @@ export async function GET(request: NextRequest) {
       size: limit,
       query,
       sort: [
-        { dateOfTransfer: { order: 'desc' } }
+        { date_of_transfer: { order: 'desc' } }
       ],
       _source: [
         'paon',
@@ -70,7 +79,7 @@ export async function GET(request: NextRequest) {
         'street',
         'postcode',
         'price',
-        'dateOfTransfer',
+        'date_of_transfer',
         'propertyType',
         'newBuild',
         'estateType'
@@ -86,7 +95,7 @@ export async function GET(request: NextRequest) {
         size: limit,
         query,
         sort: [
-          { dateOfTransfer: { order: 'desc' } }
+          { date_of_transfer: { order: 'desc' } }
         ],
         _source: [
           'paon',
@@ -94,7 +103,7 @@ export async function GET(request: NextRequest) {
           'street',
           'postcode',
           'price',
-          'dateOfTransfer',
+          'date_of_transfer',
           'propertyType',
           'newBuild',
           'estateType'
@@ -105,7 +114,7 @@ export async function GET(request: NextRequest) {
     }
 
     const recentSales = hits.map(hit => {
-      const source = hit._source as any;
+              const source = hit._source as RecentSaleDocument;
       const price = source.price;
       return {
         id: hit._id,
@@ -136,4 +145,7 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
+
+// Export with API tracking
+export const GET = withAPITracking(handleRecentSales); 

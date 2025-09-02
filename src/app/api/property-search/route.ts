@@ -1,11 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { esClient } from '@/lib/esClient';
+import { 
+  EPCDocument, 
+  RecentSaleDocument, 
+  HPIDocument,
+  ElasticsearchResponse,
+  extractSource,
+  mapElasticsearchHits
+} from '@/types/elasticsearch';
 import { checkRateLimit, applyRateLimitHeaders } from '@/lib/rateLimiter';
 import AdvancedSearch from '@/lib/advancedSearch';
+import { withAPITracking } from '@/lib/apiPerformanceMonitor';
 
 const advancedSearch = new AdvancedSearch(esClient);
 
-export async function GET(request: NextRequest) {
+async function handlePropertySearch(request: NextRequest) {
   const rateLimitResult = checkRateLimit(request);
   if (!rateLimitResult.allowed) {
     return applyRateLimitHeaders(
@@ -83,7 +92,9 @@ export async function GET(request: NextRequest) {
           );
         }
         results = await advancedSearch.radiusSearch(centerPostcode, radiusNum, {
-          propertyType, priceMin, priceMax, epcRating, bedrooms, hasEpc, energyEfficient
+          propertyType: propertyType ? [propertyType] : undefined,
+          priceRange: priceMin || priceMax ? { min: Number(priceMin) || 0, max: Number(priceMax) || 999999999 } : undefined,
+          bedrooms: bedrooms ? { min: parseInt(bedrooms), max: parseInt(bedrooms) } : undefined
         });
         break;
 
@@ -333,10 +344,10 @@ async function performAdvancedSearch(postcode: string, limit: number, filters: a
   });
 
   const results = response.hits.hits.map(hit => {
-    const source = hit._source as any;
+    const source = hit._source as RecentSaleDocument;
     return {
       id: hit._id,
-      address: source.full_address || `${source.paon} ${source.street}`,
+      address: source.full_address || `${source.paon || ''} ${source.street || ''}`,
       postcode: source.postcode,
       propertyType: source.property_type,
       price: source.price,
@@ -403,7 +414,7 @@ async function searchEPCData(postcode: string, limit: number, filters: any) {
     });
 
     return response.hits.hits.map(hit => {
-      const source = hit._source as any;
+      const source = hit._source as EPCDocument;
       
       // Debug: Log available fields for first result
       if (hit._id === response.hits.hits[0]._id) {
@@ -623,3 +634,6 @@ function estimateBedrooms(propertyType: string, floorArea: number): number {
     }
   }
 }
+
+// Export with API tracking
+export const GET = withAPITracking(handlePropertySearch);

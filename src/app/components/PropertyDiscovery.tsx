@@ -4,7 +4,15 @@ import { useState } from 'react';
 import { Search, Building2, TrendingUp, Target, Shield, Zap } from 'lucide-react';
 
 interface PropertyDiscoveryProps {
-  onPropertySelect?: (property: any) => void;
+  onPropertySelect?: (property: DiscoveredProperty | DiscoveredProperty[]) => void;
+}
+
+interface EPCUpgrade {
+  currentRating: string;
+  potentialRating: string;
+  estimatedCost: number;
+  annualSavings: number;
+  [key: string]: unknown;
 }
 
 interface DiscoveredProperty {
@@ -26,7 +34,7 @@ interface DiscoveredProperty {
     riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
     investmentPotential: 'LOW' | 'MEDIUM' | 'HIGH';
   };
-  epcUpgrade: any;
+  epcUpgrade: EPCUpgrade;
 }
 
 export default function PropertyDiscovery({ onPropertySelect }: PropertyDiscoveryProps) {

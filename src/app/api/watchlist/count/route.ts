@@ -6,7 +6,7 @@ const esClient = new Client({
   node: process.env.ELASTICSEARCH_URL || 'http://localhost:9201',
   requestTimeout: 60000,
   maxRetries: 3,
-  retryOnTimeout: true
+  // retryOnTimeout: true
 });
 
 export async function GET(request: NextRequest) {

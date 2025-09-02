@@ -29,6 +29,17 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+declare global {
+  interface WindowEventMap {
+    'beforeinstallprompt': BeforeInstallPromptEvent;
+  }
+}
+
 const features = [
   {
     icon: Search,
@@ -102,13 +113,13 @@ const mobileFeatures = [
 ];
 
 export default function MobileFeatures() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstallButton, setShowInstallButton] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
   useEffect(() => {
     // Listen for the beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: any) => {
+    const handleBeforeInstallPrompt = (e: BeforeInstallPromptEvent) => {
       e.preventDefault();
       setDeferredPrompt(e);
       setShowInstallButton(true);

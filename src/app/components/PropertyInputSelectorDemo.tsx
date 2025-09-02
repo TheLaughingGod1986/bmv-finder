@@ -4,14 +4,14 @@ import { useState } from 'react';
 import PropertyInputSelector from './PropertyInputSelector';
 
 interface Property {
-  id: string;
+  id?: string;
   address: string;
   postcode: string;
   propertyType?: string;
   bedrooms?: number;
   floorArea?: number;
-  lastSoldPrice?: number;
-  lastSoldDate?: string;
+  lastSalePrice?: number;
+  lastSaleDate?: string;
   epcRating?: string;
 }
 
@@ -121,8 +121,8 @@ export default function PropertyInputSelectorDemo() {
                 </div>
                 <div>
                   <p><strong>Floor Area:</strong> {selectedProperty.floorArea ? `${selectedProperty.floorArea}m²` : 'N/A'}</p>
-                  <p><strong>Last Sold Price:</strong> {selectedProperty.lastSoldPrice ? `£${selectedProperty.lastSoldPrice.toLocaleString()}` : 'N/A'}</p>
-                  <p><strong>Last Sold Date:</strong> {selectedProperty.lastSoldDate || 'N/A'}</p>
+                  <p><strong>Last Sold Price:</strong> {selectedProperty.lastSalePrice ? `£${selectedProperty.lastSalePrice.toLocaleString()}` : 'N/A'}</p>
+                  <p><strong>Last Sold Date:</strong> {selectedProperty.lastSaleDate || 'N/A'}</p>
                   <p><strong>EPC Rating:</strong> {selectedProperty.epcRating || 'N/A'}</p>
                 </div>
               </div>
@@ -141,8 +141,8 @@ export default function PropertyInputSelectorDemo() {
                 </div>
                 <div>
                   <p><strong>Floor Area:</strong> {inputProperty.floorArea ? `${inputProperty.floorArea}m²` : 'N/A'}</p>
-                  <p><strong>Last Sold Price:</strong> {inputProperty.lastSoldPrice ? `£${inputProperty.lastSoldPrice.toLocaleString()}` : 'N/A'}</p>
-                  <p><strong>Last Sold Date:</strong> {inputProperty.lastSoldDate || 'N/A'}</p>
+                  <p><strong>Last Sold Price:</strong> {inputProperty.lastSalePrice ? `£${inputProperty.lastSalePrice.toLocaleString()}` : 'N/A'}</p>
+                  <p><strong>Last Sold Date:</strong> {inputProperty.lastSaleDate || 'N/A'}</p>
                   <p><strong>EPC Rating:</strong> {inputProperty.epcRating || 'N/A'}</p>
                 </div>
               </div>

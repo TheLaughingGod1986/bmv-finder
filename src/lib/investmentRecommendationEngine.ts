@@ -33,12 +33,45 @@ export interface InvestmentStrategy {
   recommendations: string[];
 }
 
-export class InvestmentRecommendationEngine {
-  private marketTrends: any;
-  private propertyData: any;
-  private marketData: any;
+interface MarketTrends {
+  cycles?: Array<{
+    phase: string;
+    confidence: number;
+    [key: string]: unknown;
+  }>;
+  trends?: {
+    momentum: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
 
-  constructor(marketTrends: any, propertyData: any, marketData: any) {
+interface PropertyData {
+  postcode: string;
+  propertyType: string;
+  bedrooms: number;
+  floorArea: number;
+  estimatedValue: number;
+  [key: string]: unknown;
+}
+
+interface MarketData {
+  region: string;
+  hpiIndex: number;
+  yoyGrowth: number;
+  marketAnalysis?: {
+    totalSales: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
+export class InvestmentRecommendationEngine {
+  private marketTrends: MarketTrends;
+  private propertyData: PropertyData;
+  private marketData: MarketData;
+
+  constructor(marketTrends: MarketTrends, propertyData: PropertyData, marketData: MarketData) {
     this.marketTrends = marketTrends;
     this.propertyData = propertyData;
     this.marketData = marketData;
@@ -65,7 +98,7 @@ export class InvestmentRecommendationEngine {
     };
   }
 
-  private analyzeMarketPhase(): any {
+  private analyzeMarketPhase(): { phase: string; confidence: number; momentum: number } {
     if (!this.marketTrends?.cycles) {
       return { phase: 'UNKNOWN', confidence: 0, momentum: 0 };
     }
@@ -368,7 +401,13 @@ export class InvestmentRecommendationEngine {
     return false;
   }
 
-  private calculateRecommendation(marketPhase: any, riskAssessment: any): any {
+  private calculateRecommendation(marketPhase: { phase: string; confidence: number; momentum: number }, riskAssessment: { overallRisk: 'LOW' | 'MEDIUM' | 'HIGH'; factors: RiskFactor[] }): {
+    action: 'BUY' | 'HOLD' | 'SELL' | 'WAIT';
+    confidence: number;
+    reasoning: string[];
+    timeHorizon: 'SHORT_TERM' | 'MEDIUM_TERM' | 'LONG_TERM';
+    expectedReturn: number;
+  } {
     let action: 'BUY' | 'HOLD' | 'SELL' | 'WAIT';
     let confidence = 0;
     let reasoning: string[] = [];

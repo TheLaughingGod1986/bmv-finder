@@ -76,6 +76,11 @@ const SERVICES: GatewayConfig = {
     method: 'GET',
     headers: {}
   },
+  'comprehensive-valuation': {
+    url: CONFIG.API.BASE_URL + '/api/comprehensive-valuation',
+    method: 'GET',
+    headers: {}
+  },
   'enhanced-bmv-score': {
     url: CONFIG.API.BASE_URL + '/api/enhanced-bmv-score',
     method: 'POST',

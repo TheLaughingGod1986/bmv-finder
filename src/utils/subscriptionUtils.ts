@@ -1,5 +1,29 @@
 import { format } from 'date-fns';
 
+interface BillingMetadata {
+  items?: {
+    data?: Array<{
+      price?: {
+        id?: string;
+        unit_amount?: number;
+      };
+      plan?: {
+        interval?: string;
+      };
+    }>;
+  };
+  plan?: {
+    id?: string;
+    nickname?: string;
+    name?: string;
+    interval?: string;
+    amount?: number;
+  };
+  status?: string;
+  current_period_end?: number;
+  cancel_at_period_end?: boolean;
+}
+
 export interface SubscriptionInfo {
   tier: 'free' | 'pro' | 'elite';
   status: 'active' | 'canceled' | 'past_due' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
@@ -9,7 +33,7 @@ export interface SubscriptionInfo {
   price: string | null;
 }
 
-export function parseSubscriptionMetadata(billingMetadata: any): SubscriptionInfo {
+export function parseSubscriptionMetadata(billingMetadata: BillingMetadata): SubscriptionInfo {
   if (!billingMetadata) {
     return {
       tier: 'free',
@@ -60,7 +84,7 @@ export function parseSubscriptionMetadata(billingMetadata: any): SubscriptionInf
   }
 
   // Extract status
-  const status = meta.status || 'active';
+  const status = (meta.status || 'active') as 'active' | 'canceled' | 'past_due' | 'incomplete' | 'incomplete_expired' | 'trialing' | 'unpaid';
   
   // Extract renewal date
   let renewalDate: string | null = null;
@@ -69,7 +93,7 @@ export function parseSubscriptionMetadata(billingMetadata: any): SubscriptionInf
   }
   
   // Extract billing interval
-  const billingInterval = meta.plan?.interval || meta.items?.data?.[0]?.plan?.interval || null;
+  const billingInterval = (meta.plan?.interval || meta.items?.data?.[0]?.plan?.interval || null) as 'month' | 'year' | null;
   
   // Extract cancel at period end
   const cancelAtPeriodEnd = meta.cancel_at_period_end || false;

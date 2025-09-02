@@ -76,6 +76,12 @@ interface EnhancedPredictionProps {
   loading?: boolean;
 }
 
+interface Tab {
+  id: 'overview' | 'breakdown' | 'projections' | 'analysis';
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+}
+
 export default function EnhancedPredictionCard({ data, loading = false }: EnhancedPredictionProps) {
   const [activeTab, setActiveTab] = useState<'overview' | 'breakdown' | 'projections' | 'analysis'>('overview');
 
@@ -129,11 +135,11 @@ export default function EnhancedPredictionCard({ data, loading = false }: Enhanc
     return ((current - previous) / previous) * 100;
   };
 
-  const tabs = [
-    { id: 'overview', label: 'Overview', icon: BarChart3 },
-    { id: 'breakdown', label: 'Breakdown', icon: Target },
-    { id: 'projections', label: 'Projections', icon: TrendingUp },
-    { id: 'analysis', label: 'Analysis', icon: Info }
+  const tabs: Tab[] = [
+    { id: 'overview' as const, label: 'Overview', icon: BarChart3 },
+    { id: 'breakdown' as const, label: 'Breakdown', icon: Target },
+    { id: 'projections' as const, label: 'Projections', icon: TrendingUp },
+    { id: 'analysis' as const, label: 'Analysis', icon: Info }
   ];
 
   return (
@@ -151,7 +157,7 @@ export default function EnhancedPredictionCard({ data, loading = false }: Enhanc
                 key={tab.id}
                 variant={activeTab === tab.id ? 'primary' : 'outline'}
                 size="sm"
-                onClick={() => setActiveTab(tab.id as any)}
+                onClick={() => setActiveTab(tab.id)}
                 className="flex items-center gap-1"
               >
                 <Icon className="h-3 w-3" />

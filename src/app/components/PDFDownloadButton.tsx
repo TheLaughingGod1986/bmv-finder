@@ -9,9 +9,18 @@ import Button from './Button';
 interface PDFDownloadButtonProps {
   userId: string;
   email?: string;
-  propertyData: unknown;
+  propertyData: {
+    postcode: string;
+    propertyType: string;
+    [key: string]: unknown;
+  };
   className?: string;
   userTier?: string;
+}
+
+interface CheckoutResponse {
+  url: string;
+  error?: string;
 }
 
 export default function PDFDownloadButton({ 
@@ -88,7 +97,7 @@ export default function PDFDownloadButton({
       }
       
       if (response.data && typeof response.data === 'object' && 'url' in response.data) {
-        const url = (response.data as any).url;
+        const url = (response.data as CheckoutResponse).url;
         showToast({
           type: 'success',
           title: 'Redirecting to Checkout',
