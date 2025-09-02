@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { User } from '@/lib/auth/productionAuth';
+import { HybridUser } from '@/lib/auth/hybridAuth';
 
 interface WatchlistProperty {
   id: string;
@@ -49,7 +49,7 @@ interface WatchlistStats {
 }
 
 interface WatchlistProps {
-  user: User;
+  user: HybridUser;
 }
 
 export default function WatchlistPage({ user }: WatchlistProps) {
@@ -88,7 +88,29 @@ export default function WatchlistPage({ user }: WatchlistProps) {
         ...(search && { search })
       });
 
-      const response = await fetch(`/api/watchlist?${params}`);
+      // Get auth token for API calls
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Try to get Supabase session token
+      if (typeof window !== 'undefined') {
+        try {
+          const { supabase } = await import('@/lib/supabaseClient');
+          if (supabase) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+          }
+        } catch (e) {
+          // Supabase not available, continue without token
+        }
+      }
+
+      const response = await fetch(`/api/watchlist?${params}`, {
+        headers
+      });
       const data = await response.json();
 
       if (data.success) {
