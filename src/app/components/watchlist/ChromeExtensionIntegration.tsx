@@ -40,7 +40,29 @@ export default function ChromeExtensionIntegration({ user }: ChromeExtensionInte
     setError(null);
 
     try {
-      const response = await fetch('/api/watchlist/chrome-extension');
+      // Get auth token for API calls
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Try to get Supabase session token
+      if (typeof window !== 'undefined') {
+        try {
+          const { supabase } = await import('@/lib/supabaseClient');
+          if (supabase) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+          }
+        } catch (e) {
+          // Supabase not available, continue without token
+        }
+      }
+
+      const response = await fetch('/api/watchlist/chrome-extension', {
+        headers
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -110,9 +132,29 @@ export default function ChromeExtensionIntegration({ user }: ChromeExtensionInte
     };
 
     try {
+      // Get auth token for API calls
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+
+      // Try to get Supabase session token
+      if (typeof window !== 'undefined') {
+        try {
+          const { supabase } = await import('@/lib/supabaseClient');
+          if (supabase) {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              headers['Authorization'] = `Bearer ${session.access_token}`;
+            }
+          }
+        } catch (e) {
+          // Supabase not available, continue without token
+        }
+      }
+
       const response = await fetch('/api/watchlist/chrome-extension', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify(testProperty)
       });
 

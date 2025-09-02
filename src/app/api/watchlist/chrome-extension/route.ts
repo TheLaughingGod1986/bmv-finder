@@ -1,6 +1,61 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, getUserFromRequest } from '@/lib/auth/middleware';
 import { z } from 'zod';
+import { createClient } from '@supabase/supabase-js';
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder-key';
+
+const supabase = supabaseUrl !== 'https://placeholder.supabase.co' && supabaseKey !== 'placeholder-key'
+  ? createClient(supabaseUrl, supabaseKey)
+  : null;
+
+// Simple auth check for hybrid system
+async function getCurrentUser(request: NextRequest) {
+  try {
+    // Try to get user from Supabase session
+    if (supabase) {
+      const authHeader = request.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.substring(7);
+        const { data: { user }, error } = await supabase.auth.getUser(token);
+        if (user && !error) {
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+            role: 'user',
+            permissions: []
+          };
+        }
+      }
+    }
+
+    // Fallback: check for mock auth in cookies
+    const mockAuthCookie = request.cookies.get('mock-auth');
+    if (mockAuthCookie) {
+      try {
+        const mockUser = JSON.parse(mockAuthCookie.value);
+        if (mockUser && mockUser.id) {
+          return {
+            id: mockUser.id,
+            email: mockUser.email,
+            name: mockUser.name,
+            role: 'user',
+            permissions: []
+          };
+        }
+      } catch (e) {
+        // Invalid cookie
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Auth check error:', error);
+    return null;
+  }
+}
 
 // Chrome extension property data schema
 const ChromeExtensionPropertySchema = z.object({
@@ -34,17 +89,12 @@ const ChromeExtensionPropertySchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
-
-    const user = getUserFromRequest(request);
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({
         success: false,
-        error: 'User not found'
-      }, { status: 404 });
+        error: 'Authentication required'
+      }, { status: 401 });
     }
 
     const body = await request.json();
@@ -150,17 +200,12 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
-
-    const user = getUserFromRequest(request);
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({
         success: false,
-        error: 'User not found'
-      }, { status: 404 });
+        error: 'Authentication required'
+      }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
@@ -212,17 +257,12 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // Check authentication
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
-
-    const user = getUserFromRequest(request);
+    const user = await getCurrentUser(request);
     if (!user) {
       return NextResponse.json({
         success: false,
-        error: 'User not found'
-      }, { status: 404 });
+        error: 'Authentication required'
+      }, { status: 401 });
     }
 
     const body = await request.json();
