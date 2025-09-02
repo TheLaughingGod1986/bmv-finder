@@ -2,7 +2,7 @@ console.log('BMV Finder: Background script loaded');
 
 // API configuration - use production server
 // const API_BASE_URL = 'http://localhost:3000/api'; // Local development
-const API_BASE_URL = 'https://bmv-finder-9ifqav3fo-bens-projects-11c93b15.vercel.app/api'; // Production
+const API_BASE_URL = 'https://bmv-finder-8ha7yfxy3-bens-projects-11c93b15.vercel.app/api'; // Production
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
