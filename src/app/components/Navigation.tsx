@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Home, Building2, TrendingUp, Search, BarChart3, Star, Menu, X, User, LogOut } from 'lucide-react';
 import AuthModal from './AuthModal';
 import { useMockAuth } from './MockAuthProvider';
+import ThemeToggle from './ThemeToggle';
 
 export default function Navigation() {
   const pathname = usePathname();
@@ -24,12 +25,12 @@ export default function Navigation() {
 
   return (
     <>
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+      <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Link href="/" className="text-xl font-bold text-blue-600">
+                <Link href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
                   BMV Finder
                 </Link>
               </div>
@@ -42,8 +43,8 @@ export default function Navigation() {
                       href={item.href}
                       className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
                         isActive
-                          ? 'border-blue-500 text-gray-900'
-                          : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                          ? 'border-blue-500 text-gray-900 dark:text-white'
+                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300'
                       }`}
                     >
                       <item.icon className="h-4 w-4 mr-2" />
@@ -56,35 +57,38 @@ export default function Navigation() {
             
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
-                {user ? (
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-500">Welcome, {user.name}</span>
-                    <Link
-                      href="/account"
-                      className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                    >
-                      <User className="h-4 w-4 mr-1" />
-                      Account
-                    </Link>
-                    <button 
-                      onClick={logout}
-                      className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                    >
-                      <LogOut className="h-4 w-4 mr-1" />
-                      Sign Out
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center space-x-4">
-                    <span className="text-sm text-gray-500">Welcome, Guest</span>
-                    <button 
-                      onClick={() => setIsAuthModalOpen(true)}
-                      className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                    >
-                      Sign In
-                    </button>
-                  </div>
-                )}
+                <div className="flex items-center space-x-4">
+                  <ThemeToggle />
+                  {user ? (
+                    <>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Welcome, {user.name}</span>
+                      <Link
+                        href="/account"
+                        className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <User className="h-4 w-4 mr-1" />
+                        Account
+                      </Link>
+                      <button 
+                        onClick={logout}
+                        className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <LogOut className="h-4 w-4 mr-1" />
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Welcome, Guest</span>
+                      <button 
+                        onClick={() => setIsAuthModalOpen(true)}
+                        className="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      >
+                        Sign In
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -106,10 +110,10 @@ export default function Navigation() {
           </div>
         </div>
 
-        {/* Mobile menu */}
-        {isMobileMenuOpen && (
-          <div className="sm:hidden">
-            <div className="pt-2 pb-3 space-y-1">
+                    {/* Mobile menu */}
+            {isMobileMenuOpen && (
+              <div className="sm:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                <div className="pt-2 pb-3 space-y-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -119,8 +123,8 @@ export default function Navigation() {
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
                       isActive
-                        ? 'bg-blue-50 border-blue-500 text-blue-700'
-                        : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-400'
+                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300'
                     }`}
                   >
                     <div className="flex items-center">
@@ -131,25 +135,25 @@ export default function Navigation() {
                 );
               })}
             </div>
-                               <div className="pt-4 pb-3 border-t border-gray-200">
+                               <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
                      {user ? (
                        <>
                          <div className="flex items-center px-4">
                            <div className="flex-shrink-0">
-                             <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                               <span className="text-sm font-medium text-blue-700">{user.name.charAt(0).toUpperCase()}</span>
+                             <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{user.name.charAt(0).toUpperCase()}</span>
                              </div>
                            </div>
                            <div className="ml-3">
-                             <div className="text-base font-medium text-gray-800">Welcome, {user.name}</div>
-                             <div className="text-sm text-gray-500">{user.email}</div>
+                             <div className="text-base font-medium text-gray-800 dark:text-gray-200">Welcome, {user.name}</div>
+                             <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
                            </div>
                          </div>
                          <div className="mt-3 px-2 space-y-1">
                            <Link
                              href="/account"
                              onClick={() => setIsMobileMenuOpen(false)}
-                             className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                             className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                            >
                              <User className="h-4 w-4 mr-2" />
                              Account
@@ -159,7 +163,7 @@ export default function Navigation() {
                                setIsMobileMenuOpen(false);
                                logout();
                              }}
-                             className="flex items-center w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                             className="flex items-center w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                            >
                              <LogOut className="h-4 w-4 mr-2" />
                              Sign Out
@@ -170,12 +174,12 @@ export default function Navigation() {
                        <>
                          <div className="flex items-center px-4">
                            <div className="flex-shrink-0">
-                             <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
-                               <span className="text-sm font-medium text-gray-700">G</span>
+                             <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">G</span>
                              </div>
                            </div>
                            <div className="ml-3">
-                             <div className="text-base font-medium text-gray-800">Welcome, Guest</div>
+                             <div className="text-base font-medium text-gray-800 dark:text-gray-200">Welcome, Guest</div>
                            </div>
                          </div>
                          <div className="mt-3 px-2 space-y-1">
@@ -184,7 +188,7 @@ export default function Navigation() {
                                setIsMobileMenuOpen(false);
                                setIsAuthModalOpen(true);
                              }}
-                             className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100"
+                             className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                            >
                              Sign In
                            </button>
