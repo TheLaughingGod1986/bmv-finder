@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { User } from '@/lib/auth/productionAuth';
-import WatchlistPage from '@/components/watchlist/WatchlistPage';
-import ChromeExtensionIntegration from '@/components/watchlist/ChromeExtensionIntegration';
-import PropertyComparison from '@/components/watchlist/PropertyComparison';
-import WatchlistNotifications from '@/components/watchlist/WatchlistNotifications';
+import WatchlistPage from '../components/watchlist/WatchlistPage';
+import ChromeExtensionIntegration from '../components/watchlist/ChromeExtensionIntegration';
+import PropertyComparison from '../components/watchlist/PropertyComparison';
+import WatchlistNotifications from '../components/watchlist/WatchlistNotifications';
 
 interface WatchlistMainPageProps {
   user?: User;

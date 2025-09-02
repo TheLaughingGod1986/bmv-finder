@@ -443,3 +443,12 @@ export async function closeDatabase(): Promise<void> {
     dbManager = null;
   }
 }
+
+// Export convenience functions for health monitoring
+export function getDatabasePerformanceMonitor() {
+  return dbManager?.getPerformanceMonitor();
+}
+
+export function getDatabaseHealthChecker() {
+  return dbManager?.getHealthChecker();
+}

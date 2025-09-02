@@ -10,8 +10,10 @@ export default function OfflinePage() {
   useEffect(() => {
     const pwaManager = getPWAManager();
     
-    // Check initial online status
-    setIsOnline(navigator.onLine);
+    // Check initial online status (only on client side)
+    if (typeof window !== 'undefined') {
+      setIsOnline(navigator.onLine);
+    }
 
     // Listen for online/offline events
     const handleOnline = () => {
@@ -34,16 +36,22 @@ export default function OfflinePage() {
 
   const handleRetry = () => {
     setRetryCount(prev => prev + 1);
-    window.location.reload();
+    if (typeof window !== 'undefined') {
+      window.location.reload();
+    }
   };
 
   const handleGoHome = () => {
-    window.location.href = '/';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
   };
 
   if (isOnline) {
     // Redirect to home if online
-    window.location.href = '/';
+    if (typeof window !== 'undefined') {
+      window.location.href = '/';
+    }
     return null;
   }
 
