@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { User } from '@/lib/auth/productionAuth';
+import { useMockAuth } from '../components/MockAuthProvider';
 import WatchlistPage from '../components/watchlist/WatchlistPage';
 import ChromeExtensionIntegration from '../components/watchlist/ChromeExtensionIntegration';
 import PropertyComparison from '../components/watchlist/PropertyComparison';
@@ -17,15 +18,33 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
   const [selectedProperties, setSelectedProperties] = useState<any[]>([]);
   const [showComparison, setShowComparison] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const mockAuth = useMockAuth();
 
   useEffect(() => {
     // Check if user is authenticated
     if (!currentUser) {
+      // First check mock auth
+      if (mockAuth.user) {
+        // Convert mock user to User type
+        const mockUser: User = {
+          id: mockAuth.user.id,
+          email: mockAuth.user.email,
+          name: mockAuth.user.name,
+          role: 'user',
+          subscription: 'free',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        setCurrentUser(mockUser);
+        setIsLoading(false);
+        return;
+      }
+      // If no mock user, check production auth
       checkAuthentication();
     } else {
       setIsLoading(false);
     }
-  }, [currentUser]);
+  }, [currentUser, mockAuth.user]);
 
   const checkAuthentication = async () => {
     try {

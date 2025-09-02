@@ -1,10 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AuthModal from '../components/AuthModal';
+import { useMockAuth } from '../components/MockAuthProvider';
 
 export default function LoginPage() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(true);
+  const router = useRouter();
+  const { user, isLoading } = useMockAuth();
+
+  // Redirect to watchlist if user is already authenticated
+  useEffect(() => {
+    if (user && !isLoading) {
+      router.push('/watchlist');
+    }
+  }, [user, isLoading, router]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">

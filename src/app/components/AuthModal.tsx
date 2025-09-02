@@ -34,6 +34,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
       try {
         await mockAuth.login(email, password);
         onClose();
+        // Redirect to watchlist after successful login
+        if (typeof window !== 'undefined') {
+          window.location.href = '/watchlist';
+        }
       } catch (error) {
         setError('Login failed. Please try again.');
       } finally {
@@ -104,6 +108,10 @@ export default function AuthModal({ isOpen, onClose, defaultMode = 'login' }: Au
       try {
         await mockAuth.loginWithGoogle();
         onClose();
+        // Redirect to watchlist after successful login
+        if (typeof window !== 'undefined') {
+          window.location.href = '/watchlist';
+        }
       } catch (error) {
         setError('Google login failed. Please try again.');
       } finally {
