@@ -12,6 +12,8 @@ import PWAInstallPrompt from './components/PWAInstallPrompt';
 import Footer from './components/Footer';
 import { SearchLimitProvider } from './components/SearchLimitContext';
 import { MockAuthProvider } from './components/MockAuthProvider';
+import { RealAuthProvider } from '@/lib/auth/realAuth';
+import { HybridAuthProvider } from '@/lib/auth/hybridAuth';
 import { ThemeProvider } from '@/lib/theme';
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
 import MobilePerformanceMonitor from './components/MobilePerformanceMonitor';
@@ -244,25 +246,29 @@ export default function RootLayout({
         </a>
         <SupabaseUserProvider>
           <MockAuthProvider>
-            <ThemeProvider>
-              <SearchLimitProvider>
-                <ClientNavigation />
-                <main 
-                  id="main-content" 
-                  tabIndex={-1} 
-                  className="min-h-screen bg-neutral-light dark:bg-gray-900 relative"
-                >
-                  <ToastProvider>
-                    {children}
-                  </ToastProvider>
-                </main>
-                <Footer />
-                <ScrollToTop />
-                <PWAInstallPrompt />
-                <ServiceWorkerRegistration />
-                <MobilePerformanceMonitor />
-              </SearchLimitProvider>
-            </ThemeProvider>
+            <RealAuthProvider>
+              <HybridAuthProvider>
+                <ThemeProvider>
+                  <SearchLimitProvider>
+                    <ClientNavigation />
+                    <main 
+                      id="main-content" 
+                      tabIndex={-1} 
+                      className="min-h-screen bg-neutral-light dark:bg-gray-900 relative"
+                    >
+                      <ToastProvider>
+                        {children}
+                      </ToastProvider>
+                    </main>
+                    <Footer />
+                    <ScrollToTop />
+                    <PWAInstallPrompt />
+                    <ServiceWorkerRegistration />
+                    <MobilePerformanceMonitor />
+                  </SearchLimitProvider>
+                </ThemeProvider>
+              </HybridAuthProvider>
+            </RealAuthProvider>
           </MockAuthProvider>
         </SupabaseUserProvider>
         {process.env.NODE_ENV === 'production' && (

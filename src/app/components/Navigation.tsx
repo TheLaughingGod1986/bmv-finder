@@ -5,7 +5,9 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Building2, TrendingUp, Search, BarChart3, Star, Menu, X, User, LogOut } from 'lucide-react';
 import AuthModal from './AuthModal';
+import EnhancedAuthModal from './EnhancedAuthModal';
 import { useMockAuth } from './MockAuthProvider';
+import { useHybridAuth } from '@/lib/auth/hybridAuth';
 import ThemeToggle from './ThemeToggle';
 
 export default function Navigation() {
@@ -13,6 +15,11 @@ export default function Navigation() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useMockAuth();
+  const hybridAuth = useHybridAuth();
+  
+  // Use hybrid auth user if available, otherwise fall back to mock auth
+  const currentUser = hybridAuth.user || user;
+  const isRealAuth = hybridAuth.isRealAuth;
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home },
@@ -59,9 +66,12 @@ export default function Navigation() {
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
                   <ThemeToggle />
-                  {user ? (
+                  {currentUser ? (
                     <>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Welcome, {user.name}</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
+                        Welcome, {currentUser.name}
+                        {isRealAuth && <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>}
+                      </span>
                       <Link
                         href="/account"
                         className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -70,7 +80,7 @@ export default function Navigation() {
                         Account
                       </Link>
                       <button 
-                        onClick={logout}
+                        onClick={() => isRealAuth ? hybridAuth.signOut() : logout()}
                         className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
                       >
                         <LogOut className="h-4 w-4 mr-1" />
@@ -136,17 +146,20 @@ export default function Navigation() {
               })}
             </div>
                                <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
-                     {user ? (
+                     {currentUser ? (
                        <>
                          <div className="flex items-center px-4">
                            <div className="flex-shrink-0">
                              <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{user.name.charAt(0).toUpperCase()}</span>
+                               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{currentUser.name.charAt(0).toUpperCase()}</span>
                              </div>
                            </div>
                            <div className="ml-3">
-                             <div className="text-base font-medium text-gray-800 dark:text-gray-200">Welcome, {user.name}</div>
-                             <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+                             <div className="text-base font-medium text-gray-800 dark:text-gray-200">
+                               Welcome, {currentUser.name}
+                               {isRealAuth && <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>}
+                             </div>
+                             <div className="text-sm text-gray-500 dark:text-gray-400">{currentUser.email}</div>
                            </div>
                          </div>
                          <div className="mt-3 px-2 space-y-1">
@@ -161,7 +174,7 @@ export default function Navigation() {
                            <button
                              onClick={() => {
                                setIsMobileMenuOpen(false);
-                               logout();
+                               isRealAuth ? hybridAuth.signOut() : logout();
                              }}
                              className="flex items-center w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
                            >
@@ -201,7 +214,7 @@ export default function Navigation() {
       </nav>
       
       {/* Auth Modal */}
-      <AuthModal
+      <EnhancedAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         defaultMode="login"
