@@ -1360,11 +1360,20 @@ export default function PortfolioTrackerPage() {
 
           {/* Charts & Analytics Section */}
           <div className="mb-12">
-            <div className="flex items-center gap-3 mb-8">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <BarChart3 className="w-4 h-4 text-white" />
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <BarChart3 className="w-4 h-4 text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">Portfolio Analytics</h2>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">Portfolio Analytics</h2>
+              <button
+                onClick={() => router.push('/tools/portfolio/analytics')}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              >
+                <BarChart3 className="w-4 h-4" />
+                View Detailed Analytics
+              </button>
             </div>
             
             {/* Top Row - 50/50 Layout */}
