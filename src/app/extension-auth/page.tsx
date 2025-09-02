@@ -58,59 +58,40 @@ function ExtensionAuthContent() {
         return;
       }
       
-      // Check Supabase authentication
-      if (!supabase) {
-        setStatus('error');
-        setMessage('Please sign in using the demo authentication below.');
-        return;
-      }
-      
-      const { data: { session }, error } = await supabase.auth.getSession();
-      
-      if (error || !session) {
+      // If no user is authenticated via hybrid auth, show error
+      if (!user) {
         setStatus('error');
         setMessage('You need to sign in to your BMV Finder account first. Click "Sign In to BMV Finder" below to create an account or sign in.');
         return;
       }
 
-      // If we have a session and extension callback, redirect with token
+      // If we have extension callback, redirect with user data
       if (extensionCallback) {
-        const token = session.access_token;
-        const user = session.user;
-        
-        // Create a more complete user data object
+        // Create user data for extension
         const userData = {
           isAuthenticated: true,
-          name: user.user_metadata?.full_name || user.email || 'User',
+          name: user.name,
           email: user.email,
-          membership: 'Free Plan', // Will be updated by the extension
+          membership: 'Free Plan',
           captureLimit: 5,
           capturedCount: 0
         };
         
         // Encode the data for the extension
-        const encodedToken = encodeURIComponent(token);
         const encodedUserData = encodeURIComponent(JSON.stringify(userData));
-        
-        const redirectUrl = `${extensionCallback}?token=${encodedToken}&userData=${encodedUserData}`;
+        const redirectUrl = `${extensionCallback}?userData=${encodedUserData}&mockAuth=${!isSupabaseAvailable}`;
         
         setStatus('success');
         setMessage('Authentication successful! Redirecting to extension...');
         
-        // Redirect to extension with token and user data
+        // Redirect to extension with user data
         setTimeout(() => {
           window.location.href = redirectUrl;
         }, 1500);
       } else {
         // No extension callback - this is likely a direct visit
-        // Check if user is authenticated and show success
-        if (session) {
-          setStatus('success');
-          setMessage('You are signed in! Return to the extension to capture properties.');
-        } else {
-          setStatus('error');
-          setMessage('Please sign in to your BMV Finder account to use the extension.');
-        }
+        setStatus('success');
+        setMessage('You are signed in! Return to the extension to capture properties.');
       }
       
     } catch (error) {
@@ -191,34 +172,9 @@ function ExtensionAuthContent() {
               Create BMV Finder Account
             </button>
             <button
-              onClick={async () => {
-                // Quick demo login
-                try {
-                  await mockAuth.login('demo@example.com', 'demo123');
-                  setStatus('success');
-                  setMessage('Demo login successful! Redirecting to extension...');
-                  
-                  if (searchParams.get('extension_callback')) {
-                    const userData = {
-                      isAuthenticated: true,
-                      name: 'Demo User',
-                      email: 'demo@example.com',
-                      membership: 'Free Plan',
-                      captureLimit: 5,
-                      capturedCount: 0
-                    };
-                    
-                    const encodedUserData = encodeURIComponent(JSON.stringify(userData));
-                    const redirectUrl = `${searchParams.get('extension_callback')}?userData=${encodedUserData}&mockAuth=true`;
-                    
-                    setTimeout(() => {
-                      window.location.href = redirectUrl;
-                    }, 1500);
-                  }
-                } catch (error) {
-                  setStatus('error');
-                  setMessage('Demo login failed. Please try again.');
-                }
+              onClick={() => {
+                // Quick demo login - redirect to main app login
+                window.location.href = '/login?returnTo=' + encodeURIComponent(window.location.href);
               }}
               className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
             >

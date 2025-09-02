@@ -1,21 +1,28 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthModal from '../components/AuthModal';
-import { useMockAuth } from '../components/MockAuthProvider';
+import { useHybridAuth } from '../../lib/auth/hybridAuth';
+import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(true);
   const router = useRouter();
-  const { user, isLoading } = useMockAuth();
+  const { user, isLoading } = useHybridAuth();
+  const searchParams = useSearchParams();
 
-  // Redirect to watchlist if user is already authenticated
+  // Redirect to watchlist or returnTo URL if user is already authenticated
   useEffect(() => {
     if (user && !isLoading) {
-      router.push('/watchlist');
+      const returnTo = searchParams.get('returnTo');
+      if (returnTo) {
+        window.location.href = returnTo;
+      } else {
+        router.push('/watchlist');
+      }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, searchParams]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -49,5 +56,20 @@ export default function LoginPage() {
         defaultMode="login"
       />
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <LoginPageContent />
+    </Suspense>
   );
 }
