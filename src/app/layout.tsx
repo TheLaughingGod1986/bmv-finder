@@ -17,6 +17,7 @@ import { HybridAuthProvider } from '@/lib/auth/hybridAuth';
 import { ThemeProvider } from '@/lib/theme';
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
 import MobilePerformanceMonitor from './components/MobilePerformanceMonitor';
+import MobileLayout from './components/mobile/MobileLayout';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -251,20 +252,22 @@ export default function RootLayout({
                 <ThemeProvider>
                   <SearchLimitProvider>
                     <ClientNavigation />
-                    <main 
-                      id="main-content" 
-                      tabIndex={-1} 
-                      className="min-h-screen bg-neutral-light dark:bg-gray-900 relative"
-                    >
-                      <ToastProvider>
-                        {children}
-                      </ToastProvider>
-                    </main>
-                    <Footer />
-                    <ScrollToTop />
-                    <PWAInstallPrompt />
-                    <ServiceWorkerRegistration />
-                    <MobilePerformanceMonitor />
+                    <MobileLayout>
+                      <main 
+                        id="main-content" 
+                        tabIndex={-1} 
+                        className="min-h-screen bg-neutral-light dark:bg-gray-900 relative"
+                      >
+                        <ToastProvider>
+                          {children}
+                        </ToastProvider>
+                      </main>
+                      <Footer />
+                      <ScrollToTop />
+                      <PWAInstallPrompt />
+                      <ServiceWorkerRegistration />
+                      <MobilePerformanceMonitor />
+                    </MobileLayout>
                   </SearchLimitProvider>
                 </ThemeProvider>
               </HybridAuthProvider>

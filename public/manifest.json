@@ -1,7 +1,7 @@
 {
-  "name": "Property Intelligence Platform",
+  "name": "BMV Finder - Property Investment Platform",
   "short_name": "BMV Finder",
-  "description": "AI-Powered Property Investment Research Platform",
+  "description": "Professional property investment analysis and portfolio management platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
@@ -9,100 +9,199 @@
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en-GB",
+  "dir": "ltr",
   "categories": ["business", "finance", "productivity"],
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    }
-  ],
   "screenshots": [
     {
-      "src": "/screenshot-mobile-1.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Property Search Interface"
-    },
-    {
-      "src": "/screenshot-mobile-2.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "BMV Analysis Dashboard"
-    },
-    {
-      "src": "/screenshot-desktop-1.png",
+      "src": "/screenshots/desktop-home.png",
       "sizes": "1280x720",
       "type": "image/png",
       "form_factor": "wide",
-      "label": "Desktop Property Research Interface"
+      "label": "BMV Finder Desktop Homepage"
+    },
+    {
+      "src": "/screenshots/mobile-home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "BMV Finder Mobile Homepage"
+    },
+    {
+      "src": "/screenshots/desktop-portfolio.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Portfolio Management Dashboard"
+    },
+    {
+      "src": "/screenshots/mobile-portfolio.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Mobile Portfolio View"
+    }
+  ],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
     {
       "name": "Search Properties",
       "short_name": "Search",
-      "description": "Search for properties by postcode",
-      "url": "/search",
+      "description": "Search for properties and analyze investments",
+      "url": "/search/properties",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
+          "src": "/icons/shortcut-search.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
       "name": "Portfolio",
       "short_name": "Portfolio",
-      "description": "View your property portfolio",
+      "description": "View and manage your property portfolio",
       "url": "/tools/portfolio",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
+          "src": "/icons/shortcut-portfolio.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     },
     {
-      "name": "Market Trends",
-      "short_name": "Trends",
-      "description": "View market trends and HPI data",
-      "url": "/tools/market-trends",
+      "name": "Watchlist",
+      "short_name": "Watchlist",
+      "description": "Manage your property watchlist",
+      "url": "/watchlist",
       "icons": [
         {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
+          "src": "/icons/shortcut-watchlist.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
+      "name": "Market Analysis",
+      "short_name": "Market",
+      "description": "View market trends and analysis",
+      "url": "/market/analysis",
+      "icons": [
+        {
+          "src": "/icons/shortcut-market.png",
+          "sizes": "96x96",
+          "type": "image/png"
         }
       ]
     }
   ],
-  "related_applications": [],
+  "related_applications": [
+    {
+      "platform": "webapp",
+      "url": "https://bmvfinder.com/manifest.json"
+    }
+  ],
   "prefer_related_applications": false,
   "edge_side_panel": {
     "preferred_width": 400
   },
   "launch_handler": {
     "client_mode": "navigate-existing"
+  },
+  "handle_links": "preferred",
+  "capture_links": "existing-client-navigate",
+  "file_handlers": [
+    {
+      "action": "/tools/import",
+      "accept": {
+        "text/csv": [".csv"],
+        "application/vnd.ms-excel": [".xls"],
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+bmvfinder",
+      "url": "/property?id=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "property_image",
+          "accept": ["image/*"]
+        }
+      ]
+    }
   }
 }

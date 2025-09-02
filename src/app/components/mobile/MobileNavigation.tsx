@@ -2,263 +2,325 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import { 
+  Home, 
+  Building2, 
+  TrendingUp, 
+  Search, 
+  BarChart3, 
+  Star,
+  Menu,
+  X,
+  User,
+  LogOut,
+  Bell,
+  Settings,
+  ChevronDown,
+  ChevronUp
+} from 'lucide-react';
+import { useMockAuth } from '../MockAuthProvider';
+import { useHybridAuth } from '@/lib/auth/hybridAuth';
+import { useMobileOptimization } from '@/lib/pwa/mobileOptimizer';
+import ThemeToggle from '../ThemeToggle';
 
 interface MobileNavigationProps {
-  user?: {
-    name: string;
-    role: string;
-    profileImage?: string;
-  };
-  onLogin?: () => void;
-  onLogout?: () => void;
+  className?: string;
 }
 
-export default function MobileNavigation({ user, onLogin, onLogout }: MobileNavigationProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
+export default function MobileNavigation({ className = '' }: MobileNavigationProps) {
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { user, logout } = useMockAuth();
+  const hybridAuth = useHybridAuth();
+  const { isMobile, triggerHapticFeedback } = useMobileOptimization();
 
+  const currentUser = hybridAuth.user || user;
+  const isRealAuth = hybridAuth.isRealAuth;
+
+  // Navigation items
+  const navigation = [
+    { name: 'Home', href: '/', icon: Home },
+    { name: 'Search', href: '/search/properties', icon: Search },
+    { name: 'Portfolio', href: '/tools/portfolio', icon: Building2 },
+    { name: 'Analytics', href: '/tools/portfolio/analytics', icon: BarChart3 },
+    { name: 'Watchlist', href: '/watchlist', icon: Star },
+    { name: 'Market', href: '/market/analysis', icon: TrendingUp },
+  ];
+
+  // Handle scroll for sticky header
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navigationItems = [
-    { href: '/', label: 'Home', icon: '🏠' },
-    { href: '/search', label: 'Search', icon: '🔍' },
-    { href: '/portfolio', label: 'Portfolio', icon: '💼' },
-    { href: '/analytics', label: 'Analytics', icon: '📊' },
-    { href: '/watchlist', label: 'Watchlist', icon: '⭐' },
-    { href: '/alerts', label: 'Alerts', icon: '🔔' }
-  ];
-
-  const userMenuItems = [
-    { href: '/profile', label: 'Profile', icon: '👤' },
-    { href: '/settings', label: 'Settings', icon: '⚙️' },
-    { href: '/help', label: 'Help', icon: '❓' }
-  ];
-
+  // Handle menu toggle with haptic feedback
   const toggleMenu = () => {
-    setIsOpen(!isOpen);
+    triggerHapticFeedback('light');
+    setIsMenuOpen(!isMenuOpen);
   };
 
-  const closeMenu = () => {
-    setIsOpen(false);
+  const toggleUserMenu = () => {
+    triggerHapticFeedback('light');
+    setIsUserMenuOpen(!isUserMenuOpen);
   };
+
+  // Close menus when route changes
+  useEffect(() => {
+    setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+  }, [pathname]);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (!target.closest('.mobile-nav')) {
+        setIsMenuOpen(false);
+        setIsUserMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen || isUserMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMenuOpen, isUserMenuOpen]);
+
+  if (!isMobile) {
+    return null; // Only render on mobile devices
+  }
 
   return (
-    <>
-      {/* Mobile Header */}
-      <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-200 ${
-        isScrolled ? 'bg-white/95 backdrop-blur-sm shadow-sm' : 'bg-white'
+    <div className={`mobile-nav fixed top-0 left-0 right-0 z-50 ${className}`}>
+      {/* Main Navigation Bar */}
+      <div className={`bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 transition-all duration-200 ${
+        isScrolled ? 'shadow-lg' : 'shadow-sm'
       }`}>
-        <div className="flex items-center justify-between h-16 px-4">
-          {/* Logo */}
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">B</span>
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between">
+            {/* Logo/Brand */}
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-white" />
+              </div>
+              <span className="text-lg font-bold text-gray-900 dark:text-white">
+                BMV Finder
+              </span>
             </div>
-            <span className="text-lg font-bold text-gray-900">BMV Finder</span>
-          </div>
 
-          {/* Right side actions */}
-          <div className="flex items-center space-x-2">
-            {user ? (
-              <>
-                {/* User avatar */}
-                <button
-                  onClick={toggleMenu}
-                  className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                >
-                  {user.name.charAt(0).toUpperCase()}
-                </button>
-              </>
-            ) : (
+            {/* Right Side Actions */}
+            <div className="flex items-center space-x-2">
+              {/* Theme Toggle */}
+              <ThemeToggle />
+              
+              {/* Notifications */}
               <button
-                onClick={onLogin}
-                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors"
+                onClick={() => triggerHapticFeedback('light')}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
-                Login
+                <Bell className="w-5 h-5" />
               </button>
-            )}
 
-            {/* Menu toggle */}
-            <button
-              onClick={toggleMenu}
-              className="p-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <svg
-                className={`w-6 h-6 transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              {/* User Menu */}
+              {currentUser ? (
+                <div className="relative">
+                  <button
+                    onClick={toggleUserMenu}
+                    className="flex items-center space-x-2 p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  >
+                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
+                      <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                        {currentUser.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    {isUserMenuOpen ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+
+                  {/* User Dropdown */}
+                  {isUserMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
+                      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {currentUser.name}
+                          {isRealAuth && (
+                            <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {currentUser.email}
+                        </p>
+                      </div>
+                      <a
+                        href="/account"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <User className="w-4 h-4 mr-3" />
+                        Account
+                      </a>
+                      <a
+                        href="/settings"
+                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <Settings className="w-4 h-4 mr-3" />
+                        Settings
+                      </a>
+                      <button
+                        onClick={() => {
+                          triggerHapticFeedback('medium');
+                          isRealAuth ? hybridAuth.signOut() : logout();
+                        }}
+                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      >
+                        <LogOut className="w-4 h-4 mr-3" />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => triggerHapticFeedback('light')}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  Sign In
+                </button>
+              )}
+
+              {/* Menu Toggle */}
+              <button
+                onClick={toggleMenu}
+                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d={isOpen ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
-                />
-              </svg>
-            </button>
+                {isMenuOpen ? (
+                  <X className="w-5 h-5" />
+                ) : (
+                  <Menu className="w-5 h-5" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Mobile Menu Overlay */}
-      {isOpen && (
-        <div className="fixed inset-0 z-50">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={closeMenu}
-          />
-
-          {/* Menu Panel */}
-          <div className="absolute top-0 right-0 h-full w-80 max-w-[85vw] bg-white shadow-xl">
+      {isMenuOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsMenuOpen(false)}>
+          <div className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-900 shadow-xl transform transition-transform duration-300 ease-in-out">
             <div className="flex flex-col h-full">
               {/* Menu Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold">
-                    {user ? user.name.charAt(0).toUpperCase() : 'B'}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-gray-900">
-                      {user ? user.name : 'BMV Finder'}
-                    </div>
-                    {user && (
-                      <div className="text-sm text-gray-500 capitalize">
-                        {user.role} Account
-                      </div>
-                    )}
-                  </div>
-                </div>
+              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Menu
+                </h2>
                 <button
-                  onClick={closeMenu}
-                  className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Navigation Items */}
+              {/* Navigation Links */}
               <div className="flex-1 overflow-y-auto">
                 <nav className="p-4">
-                  <div className="space-y-1">
-                    {navigationItems.map((item) => (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        onClick={closeMenu}
-                        className={`flex items-center space-x-3 px-3 py-3 rounded-lg transition-colors ${
-                          pathname === item.href
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'text-gray-700 hover:bg-gray-50'
-                        }`}
-                      >
-                        <span className="text-xl">{item.icon}</span>
-                        <span className="font-medium">{item.label}</span>
-                      </a>
-                    ))}
+                  <div className="space-y-2">
+                    {navigation.map((item) => {
+                      const Icon = item.icon;
+                      const isActive = pathname === item.href;
+                      
+                      return (
+                        <a
+                          key={item.name}
+                          href={item.href}
+                          onClick={() => {
+                            triggerHapticFeedback('light');
+                            setIsMenuOpen(false);
+                          }}
+                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                            isActive
+                              ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
+                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <Icon className="w-5 h-5" />
+                          <span className="font-medium">{item.name}</span>
+                        </a>
+                      );
+                    })}
                   </div>
-
-                  {/* User Menu */}
-                  {user && (
-                    <>
-                      <div className="border-t border-gray-200 my-4" />
-                      <div className="space-y-1">
-                        {userMenuItems.map((item) => (
-                          <a
-                            key={item.href}
-                            href={item.href}
-                            onClick={closeMenu}
-                            className="flex items-center space-x-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-                          >
-                            <span className="text-xl">{item.icon}</span>
-                            <span className="font-medium">{item.label}</span>
-                          </a>
-                        ))}
-                      </div>
-                    </>
-                  )}
                 </nav>
+
+                {/* Additional Mobile Features */}
+                <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
+                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
+                    Quick Actions
+                  </h3>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        triggerHapticFeedback('light');
+                        // Add to home screen
+                        if ('serviceWorker' in navigator) {
+                          // Trigger PWA install prompt
+                          console.log('PWA install requested');
+                        }
+                      }}
+                      className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    >
+                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900/20 rounded flex items-center justify-center">
+                        <span className="text-green-600 dark:text-green-400 text-xs">📱</span>
+                      </div>
+                      <span className="font-medium">Add to Home Screen</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => {
+                        triggerHapticFeedback('light');
+                        // Share app
+                        if (navigator.share) {
+                          navigator.share({
+                            title: 'BMV Finder',
+                            text: 'Check out this property investment platform',
+                            url: window.location.origin,
+                          });
+                        }
+                      }}
+                      className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                    >
+                      <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/20 rounded flex items-center justify-center">
+                        <span className="text-blue-600 dark:text-blue-400 text-xs">📤</span>
+                      </div>
+                      <span className="font-medium">Share App</span>
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Menu Footer */}
-              <div className="border-t border-gray-200 p-4">
-                {user ? (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        onLogout?.();
-                        closeMenu();
-                      }}
-                      className="w-full flex items-center space-x-3 px-3 py-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      <span className="text-xl">🚪</span>
-                      <span className="font-medium">Logout</span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        onLogin?.();
-                        closeMenu();
-                      }}
-                      className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Sign In
-                    </button>
-                    <button
-                      onClick={() => {
-                        // Handle sign up
-                        closeMenu();
-                      }}
-                      className="w-full border border-gray-300 text-gray-700 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      Sign Up
-                    </button>
-                  </div>
-                )}
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    BMV Finder v1.0.0
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Professional Property Investment Platform
+                  </p>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
-
-      {/* Bottom Navigation (for mobile) */}
-      <nav className="fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-gray-200 md:hidden">
-        <div className="flex items-center justify-around h-16">
-          {navigationItems.slice(0, 5).map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className={`flex flex-col items-center justify-center space-y-1 px-2 py-1 transition-colors ${
-                pathname === item.href
-                  ? 'text-blue-600'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <span className="text-xl">{item.icon}</span>
-              <span className="text-xs font-medium">{item.label}</span>
-            </a>
-          ))}
-        </div>
-      </nav>
-
-      {/* Spacer for fixed header */}
-      <div className="h-16" />
-      
-      {/* Spacer for bottom navigation */}
-      <div className="h-16 md:hidden" />
-    </>
+    </div>
   );
 }
