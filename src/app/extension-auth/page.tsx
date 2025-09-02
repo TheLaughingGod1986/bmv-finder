@@ -9,7 +9,7 @@ import { useHybridAuth } from '../../lib/auth/hybridAuth';
 function ExtensionAuthContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const [message, setMessage] = useState('Authenticating...');
+  const [message, setMessage] = useState('Checking authentication...');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const { user, loading, isSupabaseAvailable } = useHybridAuth();
@@ -103,6 +103,12 @@ function ExtensionAuthContent() {
 
   useEffect(() => {
     if (!loading) {
+      // If no user is authenticated, immediately show error state
+      if (!user) {
+        setStatus('error');
+        setMessage('You need to sign in to your BMV Finder account first. Click "Sign In to BMV Finder" below to create an account or sign in.');
+        return;
+      }
       handleAuth();
     }
   }, [searchParams, user, loading]);
@@ -122,7 +128,7 @@ function ExtensionAuthContent() {
             BMV Finder Extension
           </h1>
           <p className="text-gray-600">
-            {status === 'loading' && 'Connecting to your account...'}
+            {status === 'loading' && 'Checking authentication...'}
             {status === 'success' && 'Successfully authenticated!'}
             {status === 'error' && 'Authentication failed'}
           </p>
