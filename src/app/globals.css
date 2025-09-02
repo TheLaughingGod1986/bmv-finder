@@ -2,6 +2,352 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Accessibility Styles */
+@layer base {
+  /* High Contrast Mode */
+  .high-contrast {
+    --tw-bg-opacity: 1;
+    --tw-text-opacity: 1;
+  }
+  
+  .high-contrast * {
+    background-color: white !important;
+    color: black !important;
+    border-color: black !important;
+  }
+  
+  .high-contrast .dark * {
+    background-color: black !important;
+    color: white !important;
+    border-color: white !important;
+  }
+
+  /* Reduced Motion */
+  .reduced-motion * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* Focus Styles */
+  *:focus {
+    outline: 2px solid #3A7CA5;
+    outline-offset: 2px;
+  }
+  
+  *:focus:not(:focus-visible) {
+    outline: none;
+  }
+  
+  *:focus-visible {
+    outline: 2px solid #3A7CA5;
+    outline-offset: 2px;
+  }
+
+  /* Screen Reader Only */
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  
+  .sr-only-focusable:focus {
+    position: static;
+    width: auto;
+    height: auto;
+    padding: inherit;
+    margin: inherit;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+  }
+
+  /* Skip Links */
+  .skip-link {
+    position: absolute;
+    top: -40px;
+    left: 6px;
+    background: #3A7CA5;
+    color: white;
+    padding: 8px;
+    text-decoration: none;
+    border-radius: 0 0 4px 4px;
+    z-index: 1000;
+  }
+  
+  .skip-link:focus {
+    top: 0;
+  }
+
+  /* Touch Target Sizes */
+  button, 
+  a, 
+  input, 
+  select, 
+  textarea,
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Color Contrast */
+  .text-contrast {
+    color: #000000;
+  }
+  
+  .dark .text-contrast {
+    color: #ffffff;
+  }
+
+  /* Accessible Form Styles */
+  .form-field {
+    position: relative;
+  }
+  
+  .form-field label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+  
+  .form-field input,
+  .form-field textarea,
+  .form-field select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid #d1d5db;
+    border-radius: 0.5rem;
+    transition: border-color 0.2s;
+  }
+  
+  .form-field input:focus,
+  .form-field textarea:focus,
+  .form-field select:focus {
+    border-color: #3A7CA5;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(58, 124, 165, 0.1);
+  }
+  
+  .form-field input[aria-invalid="true"],
+  .form-field textarea[aria-invalid="true"],
+  .form-field select[aria-invalid="true"] {
+    border-color: #ef4444;
+  }
+  
+  .form-field .error-message {
+    color: #ef4444;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+  
+  .form-field .description {
+    color: #6b7280;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
+
+  /* Accessible Button Styles */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s;
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .btn:focus {
+    outline: 2px solid #3A7CA5;
+    outline-offset: 2px;
+  }
+  
+  .btn-primary {
+    background-color: #3A7CA5;
+    color: white;
+  }
+  
+  .btn-primary:hover {
+    background-color: #2C6E91;
+  }
+  
+  .btn-secondary {
+    background-color: #6b7280;
+    color: white;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #4b5563;
+  }
+
+  /* Accessible Navigation */
+  .nav-item {
+    display: block;
+    padding: 0.75rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: background-color 0.2s;
+  }
+  
+  .nav-item:hover,
+  .nav-item:focus {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  
+  .nav-item[aria-current="page"] {
+    background-color: rgba(58, 124, 165, 0.1);
+    color: #3A7CA5;
+  }
+
+  /* Accessible Tables */
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.75rem;
+    text-align: left;
+    border-bottom: 1px solid #d1d5db;
+  }
+  
+  .table th {
+    background-color: #f9fafb;
+    font-weight: 600;
+  }
+  
+  .table tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  /* Accessible Modals */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  
+  .modal-content {
+    background: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: auto;
+  }
+  
+  .modal-content:focus {
+    outline: none;
+  }
+
+  /* Accessible Alerts */
+  .alert {
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .alert-error {
+    background-color: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+  }
+  
+  .alert-warning {
+    background-color: #fffbeb;
+    border: 1px solid #fed7aa;
+    color: #92400e;
+  }
+  
+  .alert-success {
+    background-color: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+  }
+  
+  .alert-info {
+    background-color: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+  }
+
+  /* Dark Mode Accessibility */
+  .dark .high-contrast * {
+    background-color: black !important;
+    color: white !important;
+    border-color: white !important;
+  }
+  
+  .dark .form-field input,
+  .dark .form-field textarea,
+  .dark .form-field select {
+    background-color: #374151;
+    border-color: #4b5563;
+    color: white;
+  }
+  
+  .dark .form-field input:focus,
+  .dark .form-field textarea:focus,
+  .dark .form-field select:focus {
+    border-color: #3A7CA5;
+  }
+  
+  .dark .table th {
+    background-color: #374151;
+  }
+  
+  .dark .table tbody tr:hover {
+    background-color: #374151;
+  }
+  
+  .dark .modal-content {
+    background: #1f2937;
+    color: white;
+  }
+  
+  .dark .alert-error {
+    background-color: #7f1d1d;
+    border-color: #991b1b;
+    color: #fecaca;
+  }
+  
+  .dark .alert-warning {
+    background-color: #78350f;
+    border-color: #92400e;
+    color: #fed7aa;
+  }
+  
+  .dark .alert-success {
+    background-color: #14532d;
+    border-color: #166534;
+    color: #bbf7d0;
+  }
+  
+  .dark .alert-info {
+    background-color: #1e3a8a;
+    border-color: #1e40af;
+    color: #bfdbfe;
+  }
+}
+
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Source+Sans+Pro:wght@300;400;600;700&display=swap');
 
 /* Custom CSS Variables - Enhanced Design System */

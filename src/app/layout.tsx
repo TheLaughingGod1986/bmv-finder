@@ -18,6 +18,7 @@ import { ThemeProvider } from '@/lib/theme';
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
 import MobilePerformanceMonitor from './components/MobilePerformanceMonitor';
 import MobileLayout from './components/mobile/MobileLayout';
+import AccessibilitySettings from './components/accessibility/AccessibilitySettings';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -263,11 +264,12 @@ export default function RootLayout({
                         </ToastProvider>
                       </main>
                       <Footer />
-                      <ScrollToTop />
-                      <PWAInstallPrompt />
-                      <ServiceWorkerRegistration />
-                      <MobilePerformanceMonitor />
-                    </MobileLayout>
+                                                   <ScrollToTop />
+                             <PWAInstallPrompt />
+                             <ServiceWorkerRegistration />
+                             <MobilePerformanceMonitor />
+                             <AccessibilitySettings />
+                           </MobileLayout>
                   </SearchLimitProvider>
                 </ThemeProvider>
               </HybridAuthProvider>
