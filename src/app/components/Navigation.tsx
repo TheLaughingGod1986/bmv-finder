@@ -23,11 +23,12 @@ export default function Navigation() {
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home, tourId: 'home-link' },
-    { name: 'Property Discovery', href: '/portfolio/discover', icon: Search, tourId: 'search-link' },
+    { name: 'Search', href: '/portfolio/discover', icon: Search, tourId: 'search-link' },
     { name: 'Watchlist', href: '/watchlist', icon: Star, tourId: 'watchlist' },
     { name: 'Portfolio', href: '/tools/portfolio', icon: Building2, tourId: 'portfolio-link' },
-    { name: 'Deal Analysis', href: '/analysis/deal-analysis', icon: BarChart3, tourId: 'deal-analysis' },
-    { name: 'Market Trends', href: '/analysis/market-trends', icon: TrendingUp, tourId: 'market-analysis' },
+    { name: 'Analysis', href: '/analysis/deal-analysis', icon: BarChart3, tourId: 'deal-analysis' },
+    { name: 'Trends', href: '/analysis/market-trends', icon: TrendingUp, tourId: 'market-analysis' },
+    { name: 'Learn', href: '/onboarding', icon: BookOpen, tourId: 'onboarding-link' },
   ];
 
   return (
@@ -41,7 +42,7 @@ export default function Navigation() {
                   BMV Finder
                 </Link>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <div className="hidden sm:ml-6 sm:flex sm:space-x-6">
                 {navigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
@@ -49,14 +50,14 @@ export default function Navigation() {
                       key={item.name}
                       href={item.href}
                       data-tour={item.tourId}
-                      className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                      className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-colors duration-200 ${
                         isActive
                           ? 'border-blue-500 text-gray-900 dark:text-white'
                           : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300'
                       }`}
                     >
-                      <item.icon className="h-4 w-4 mr-2" />
-                      {item.name}
+                      <item.icon className="h-4 w-4 mr-2 flex-shrink-0" />
+                      <span className="whitespace-nowrap">{item.name}</span>
                     </Link>
                   );
                 })}
@@ -66,19 +67,12 @@ export default function Navigation() {
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
                 <div className="flex items-center space-x-4">
-                  <Link
-                    href="/onboarding"
-                    className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
-                    data-tour="onboarding-link"
-                  >
-                    <BookOpen className="h-4 w-4 mr-1" />
-                    Learn
-                  </Link>
                   <ThemeToggle />
                   {currentUser ? (
                     <>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">
-                        Welcome, {currentUser.name}
+                      <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                        <User className="h-4 w-4 mr-1" />
+                        {currentUser.name}
                         {isRealAuth && <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>}
                       </span>
                       <Link
@@ -98,7 +92,10 @@ export default function Navigation() {
                     </>
                   ) : (
                     <>
-                      <span className="text-sm text-gray-500 dark:text-gray-400">Welcome, Guest</span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
+                        <User className="h-4 w-4 mr-1" />
+                        Guest
+                      </span>
                       <button 
                         onClick={() => setIsAuthModalOpen(true)}
                         className="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
