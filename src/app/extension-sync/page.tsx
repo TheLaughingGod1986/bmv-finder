@@ -10,12 +10,43 @@ function ExtensionSyncContent() {
   useEffect(() => {
     const syncWithExtension = async () => {
       try {
-        // Get the current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Check if we have OAuth tokens in the URL hash (from Google redirect)
+        const hash = window.location.hash;
+        const urlParams = new URLSearchParams(hash.substring(1));
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
         
-        if (sessionError || !session) {
-          console.error('No session found:', sessionError);
-          return;
+        let session = null;
+        
+        if (accessToken) {
+          console.log('OAuth tokens found in URL hash, processing...');
+          
+          // Set the session with the tokens from the URL
+          const { data: { session: newSession }, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+          
+          if (sessionError) {
+            console.error('Error setting session:', sessionError);
+            throw new Error('Failed to process authentication');
+          }
+          
+          session = newSession;
+        } else {
+          // Get the current session
+          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError || !currentSession) {
+            console.error('No session found:', sessionError);
+            throw new Error('No active session found');
+          }
+          
+          session = currentSession;
+        }
+
+        if (!session?.user) {
+          throw new Error('No user found in session');
         }
 
         console.log('Found session, syncing with extension...');
@@ -52,30 +83,44 @@ function ExtensionSyncContent() {
         const messageDiv = document.getElementById('message');
         if (messageDiv) {
           messageDiv.innerHTML = `
-            <div style="color: #27AE60; font-weight: bold;">
+            <div style="color: #10b981; font-weight: bold; font-size: 16px;">
               ✅ Authentication synced successfully!
             </div>
-            <div style="margin-top: 10px; color: #666;">
+            <div style="margin-top: 12px; color: #6b7280; font-size: 14px;">
+              Welcome back, ${userData.name}!<br>
               You can now close this tab and return to the Chrome extension.
             </div>
           `;
         }
 
-        // Auto-close after 3 seconds
+        // Auto-close after 4 seconds
         setTimeout(() => {
           window.close();
-        }, 3000);
+        }, 4000);
 
       } catch (error) {
         console.error('Sync error:', error);
         const messageDiv = document.getElementById('message');
         if (messageDiv) {
           messageDiv.innerHTML = `
-            <div style="color: #E74C3C; font-weight: bold;">
-              ❌ Sync failed
+            <div style="color: #ef4444; font-weight: bold; font-size: 16px;">
+              ❌ Authentication failed
             </div>
-            <div style="margin-top: 10px; color: #666;">
-              Please try again or sign in first.
+            <div style="margin-top: 12px; color: #6b7280; font-size: 14px;">
+              ${error.message || 'Please try signing in again.'}
+            </div>
+            <div style="margin-top: 16px;">
+              <button onclick="window.location.href='/login'" style="
+                background: #667eea; 
+                color: white; 
+                border: none; 
+                padding: 12px 24px; 
+                border-radius: 8px; 
+                font-weight: 600; 
+                cursor: pointer;
+              ">
+                Sign In
+              </button>
             </div>
           `;
         }
