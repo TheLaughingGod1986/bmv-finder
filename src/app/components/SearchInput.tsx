@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, Loader2 } from 'lucide-react';
+import { Search, Loader2, XCircle } from 'lucide-react';
 import Button from './Button';
 import { formatPostcode } from '../../utils/formatPostcode';
 
@@ -71,9 +71,9 @@ export default function SearchInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`flex flex-col sm:flex-row gap-3 ${className}`}>
+    <form onSubmit={handleSubmit} className={`flex flex-col sm:flex-row gap-4 ${className}`}>
       <div className="flex-1 relative">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-primary-green-dark w-5 h-5" />
+        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-blue-500 w-5 h-5" />
         <input 
           type="text" 
           id={id}
@@ -85,24 +85,20 @@ export default function SearchInput({
           aria-describedby={ariaDescribedby}
           aria-invalid={error ? 'true' : 'false'}
           aria-busy={loading}
-          className={`w-full pl-10 pr-4 py-3 rounded-lg border ${
-            error ? 'border-red-300 focus:border-red-500 focus:ring-red-500' : 'border-neutral-200 focus:border-primary-blue focus:ring-primary-blue'
-          } focus:ring-2 focus:ring-offset-0 outline-none transition-all duration-200 ease-in-out hover:border-primary-blue ${
-            disabled || loading ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'
+          className={`input-enhanced pl-12 pr-4 ${
+            error ? 'border-red-300 focus:border-red-500 focus:ring-red-100' : ''
+          } ${
+            disabled || loading ? 'bg-gray-100 cursor-not-allowed' : ''
           }`}
         />
         {loading && (
-          <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-primary-blue w-5 h-5 animate-spin" />
+          <Loader2 className="absolute right-4 top-1/2 transform -translate-y-1/2 text-blue-500 w-5 h-5 animate-spin" />
         )}
       </div>
       <Button 
         type="submit" 
         disabled={disabled || loading || !searchQuery.trim()}
-        className={`px-6 py-3 rounded-lg font-semibold shadow transition-all duration-200 ease-in-out hover:scale-105 active:scale-95 ${
-          disabled || loading || !searchQuery.trim()
-            ? 'bg-gray-400 text-white cursor-not-allowed'
-            : 'bg-primary-green text-white hover:bg-primary-green-dark hover:shadow-lg'
-        }`}
+        className="btn-primary"
       >
         {loading ? (
           <div className="flex items-center gap-2">
@@ -114,7 +110,8 @@ export default function SearchInput({
         )}
       </Button>
       {error && (
-        <div id={`${id}-error`} className="text-red-600 text-sm mt-1" role="alert" aria-live="polite">
+        <div id={`${id}-error`} className="fieldError" role="alert" aria-live="polite">
+          <XCircle className="w-4 h-4" />
           {error}
         </div>
       )}

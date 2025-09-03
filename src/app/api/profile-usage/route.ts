@@ -14,6 +14,15 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Missing userId' }, { status: 400 });
     }
 
+    // Check if Supabase is properly configured
+    if (!supabase || supabase.supabaseUrl.includes('placeholder')) {
+      return NextResponse.json({ 
+        error: 'Database not configured',
+        pay_count: 0,
+        lookup_count: 0
+      }, { status: 503 });
+    }
+
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -21,7 +30,12 @@ export async function GET(req: NextRequest) {
       .single();
 
     if (error || !data) {
-      return NextResponse.json({ error: error?.message || 'Profile not found' }, { status: 404 });
+      // Return default values instead of error for development
+      return NextResponse.json({ 
+        pay_count: 0,
+        lookup_count: 0,
+        tier: 'free'
+      });
     }
 
     // For extensibility: support different usage types

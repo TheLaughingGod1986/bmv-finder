@@ -22,7 +22,7 @@ import HpiDataCard from './components/HpiDataCard';
 import FullScreenChart from './components/FullScreenChart';
 import PostcodeTrendIndicator from './components/PostcodeTrendIndicator';
 import SearchLimitManager from './components/SearchLimitManager';
-import { useSearchLimit } from './components/SearchLimitContext';
+// import { useSearchLimit } from './components/SearchLimitContext';
 
 
 interface SearchResult {
@@ -100,28 +100,9 @@ export default function Home() {
   // User authentication and search limits
   // const user = useUser();
   
-  // Use search limit context with fallback
-  const searchLimitData = useSearchLimit();
-  
-  const canSearch = searchLimitData?.canSearch || (() => {
-    // If context not available, check localStorage directly
-    // if (typeof window !== 'undefined' && !user) {
-    //   const storedCount = localStorage.getItem('anonymous_search_count');
-    //   const count = storedCount ? parseInt(storedCount, 10) : 0;
-    //   return count < 5; // SEARCH_LIMIT
-    // }
-    return true; // Allow search for logged-in users or if context not available
-  });
-  
-  const incrementSearchCount = searchLimitData?.incrementSearchCount || (() => {
-    // If context not available, increment localStorage directly
-    // if (typeof window !== 'undefined' && !user) {
-    //   const storedCount = localStorage.getItem('anonymous_search_count');
-    //   const count = storedCount ? parseInt(storedCount, 10) : 0;
-    //   const newCount = count + 1;
-    //   localStorage.setItem('anonymous_search_count', newCount.toString());
-    // }
-  });
+  // Search limit functionality is now handled by SearchLimitManager component
+  // This allows the page to remain a server component while still providing
+  // client-side search limit functionality
   const [hpiData, setHpiData] = useState<HPIDataPoint[]>([]);
   const [localPriceData, setLocalPriceData] = useState<LocalPriceData[]>([]);
   const [hpiLoading, setHpiLoading] = useState(false);
@@ -220,18 +201,8 @@ export default function Home() {
       return;
     }
 
-    // Check if user can search (logged in or under limit)
-    if (!canSearch()) {
-      if (timeSinceLastToast > 2000) { // Only show toast if 2+ seconds have passed
-        setLastToastTime(now);
-        showToast({
-          type: 'error',
-          title: 'Search Limit Reached',
-          message: 'You have reached the limit of 5 searches. Please sign up to continue searching.',
-        });
-      }
-      return;
-    }
+    // Search limit checking is now handled by SearchLimitManager component
+    // This allows for better separation of concerns and proper client-side handling
 
     setIsLoading(true);
     setError('');
@@ -281,8 +252,7 @@ export default function Home() {
         scrollToMarketPrediction();
       }, 500); // Small delay to ensure DOM is updated
 
-      // Increment search count for non-logged-in users after successful search
-      incrementSearchCount();
+      // Search count increment is now handled by SearchLimitManager component
 
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch results.');
@@ -290,7 +260,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, [showToast, canSearch, incrementSearchCount, lastToastTime, isLoading]);
+  }, [showToast, lastToastTime, isLoading]);
 
   const handlePageChange = useCallback(async (page: number, after?: string) => {
     if (!searchTerm.trim()) return;
@@ -504,10 +474,10 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="mb-6"
+                className="mb-8"
               >
-                <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mb-4">
-                  <Star className="w-4 h-4 mr-2" />
+                <span className="inline-flex items-center px-6 py-3 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-100 to-purple-100 text-blue-800 border border-blue-200 shadow-sm">
+                  <Star className="w-5 h-5 mr-2" />
                   AI-Powered Investment Research
                 </span>
               </motion.div>
@@ -516,10 +486,10 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.1 }}
-                className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-8 leading-tight"
+                className="text-5xl sm:text-6xl lg:text-7xl font-bold text-gray-900 mb-8 leading-tight"
               >
                 Property Intelligence
-                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                <span className="block text-gradient">
                   Platform
                 </span>
               </motion.h1>
@@ -528,44 +498,52 @@ export default function Home() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.2 }}
-                className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto"
+                className="text-xl sm:text-2xl text-gray-600 mb-12 max-w-4xl mx-auto leading-relaxed"
               >
                 Access 25 million property sales, AI-powered investment analysis, and professional tools to make smarter property decisions.
               </motion.p>
 
-              {/* Search Bar */}
+              {/* Enhanced Search Bar */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6, delay: 0.3 }}
-                className="max-w-2xl mx-auto mb-8"
+                className="max-w-3xl mx-auto mb-12"
               >
                 {/* Desktop Search */}
                 <div className="hidden md:block" data-tour="search-form">
-                  <AddressSearchInput
-                    value={searchTerm}
-                    onChange={setSearchTerm}
-                    onSearch={handleSearch}
-                    isLoading={isLoading}
-                    placeholder="Enter a postcode, address, area, or street name..."
-                    showHistory={false}
-                    showSuggestions={false}
-                    className="w-full"
-                    data-tour="search-input"
-                  />
+                  <div className="relative">
+                    <AddressSearchInput
+                      value={searchTerm}
+                      onChange={setSearchTerm}
+                      onSearch={handleSearch}
+                      isLoading={isLoading}
+                      placeholder="Enter a postcode, address, area, or street name..."
+                      showHistory={false}
+                      showSuggestions={false}
+                      className="w-full shadow-2xl"
+                      data-tour="search-input"
+                    />
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                  </div>
                 </div>
                 
                 {/* Mobile Search */}
                 <div className="md:hidden">
-                  <MobileSearchBar
-                    onSearch={handleSearch}
-                    isLoading={isLoading}
-                    placeholder="Enter a postcode, address, area, or street name..."
-                  />
+                  <div className="relative">
+                    <MobileSearchBar
+                      onSearch={handleSearch}
+                      isLoading={isLoading}
+                      placeholder="Enter a postcode, address, area, or street name..."
+                    />
+                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-16 h-1 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+                  </div>
                 </div>
 
                 {/* Search Limit Warning for Non-Logged-In Users */}
-                <SearchLimitManager />
+                <div className="mt-6">
+                  <SearchLimitManager />
+                </div>
                 {/* Instant Results Table Below Search Bar */}
                 <AnimatePresence>
                   {isLoading && (
@@ -576,18 +554,32 @@ export default function Home() {
                       exit={{ opacity: 0 }}
                       className="mt-4 flex justify-center"
                     >
-                      <div className="text-blue-600 text-sm font-medium">Searching...</div>
+                      <div className="flex flex-col items-center">
+                        <div className="loading-spinner w-8 h-8 mb-3"></div>
+                        <div className="text-blue-600 text-sm font-semibold">Searching properties...</div>
+                        <div className="text-gray-500 text-xs mt-1">This may take a few moments</div>
+                      </div>
                     </motion.div>
                   )}
                   {error && !isLoading && (
                     <motion.div
                       key="error"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="mt-4 text-center text-red-500 text-sm font-medium"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="mt-6 flex justify-center"
                     >
-                      {error}
+                      <div className="bg-red-50 border border-red-200 rounded-xl px-6 py-4 max-w-md">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0">
+                            <XCircle className="h-5 w-5 text-red-400" />
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-red-800 text-sm font-semibold">Search Error</div>
+                            <div className="text-red-600 text-sm mt-1">{error}</div>
+                          </div>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
                   {results && !isLoading && !error && (

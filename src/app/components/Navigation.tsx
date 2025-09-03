@@ -23,26 +23,26 @@ export default function Navigation() {
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home, tourId: 'home-link' },
-    { name: 'Search', href: '/portfolio/discover', icon: Search, tourId: 'search-link' },
+    { name: 'Search', href: '/search/properties', icon: Search, tourId: 'search-link' },
     { name: 'Watchlist', href: '/watchlist', icon: Star, tourId: 'watchlist' },
     { name: 'Portfolio', href: '/tools/portfolio', icon: Building2, tourId: 'portfolio-link' },
     { name: 'Analysis', href: '/analysis/deal-analysis', icon: BarChart3, tourId: 'deal-analysis' },
-    { name: 'Trends', href: '/analysis/market-trends', icon: TrendingUp, tourId: 'market-analysis' },
+    { name: 'Trends', href: '/market/analysis', icon: TrendingUp, tourId: 'market-analysis' },
     { name: 'Learn', href: '/onboarding', icon: BookOpen, tourId: 'onboarding-link' },
   ];
 
   return (
     <>
-      <nav className="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
+      <nav className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-200/50 dark:border-gray-700/50 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
+          <div className="flex justify-between h-18">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Link href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                <Link href="/" className="text-2xl font-bold text-gradient hover:scale-105 transition-transform duration-200">
                   BMV Finder
                 </Link>
               </div>
-              <div className="hidden sm:ml-6 sm:flex sm:space-x-6">
+              <div className="hidden sm:ml-8 sm:flex sm:space-x-2">
                 {navigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
@@ -50,10 +50,10 @@ export default function Navigation() {
                       key={item.name}
                       href={item.href}
                       data-tour={item.tourId}
-                      className={`inline-flex items-center px-3 py-2 border-b-2 text-sm font-medium transition-colors duration-200 ${
+                      className={`inline-flex items-center px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 ${
                         isActive
-                          ? 'border-blue-500 text-gray-900 dark:text-white'
-                          : 'border-transparent text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300'
+                          ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                          : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                       }`}
                     >
                       <item.icon className="h-4 w-4 mr-2 flex-shrink-0" />
@@ -66,39 +66,45 @@ export default function Navigation() {
             
             <div className="hidden sm:ml-6 sm:flex sm:items-center">
               <div className="ml-3 relative">
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3">
                   <ThemeToggle />
                   {currentUser ? (
                     <>
-                      <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                        <User className="h-4 w-4 mr-1" />
-                        {currentUser.name}
-                        {isRealAuth && <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>}
-                      </span>
+                      <div className="flex items-center px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center mr-2">
+                          <User className="h-4 w-4 text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {currentUser.name}
+                          {isRealAuth && <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>}
+                        </span>
+                      </div>
                       <Link
                         href="/account"
-                        className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="flex items-center px-4 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
                       >
-                        <User className="h-4 w-4 mr-1" />
+                        <User className="h-4 w-4 mr-2" />
                         Account
                       </Link>
                       <button 
                         onClick={() => isRealAuth ? hybridAuth.signOut() : logout()}
-                        className="flex items-center px-3 py-2 rounded-md text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="flex items-center px-4 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
                       >
-                        <LogOut className="h-4 w-4 mr-1" />
+                        <LogOut className="h-4 w-4 mr-2" />
                         Sign Out
                       </button>
                     </>
                   ) : (
                     <>
-                      <span className="text-sm text-gray-500 dark:text-gray-400 flex items-center">
-                        <User className="h-4 w-4 mr-1" />
-                        Guest
-                      </span>
+                      <div className="flex items-center px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800">
+                        <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center mr-2">
+                          <User className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Guest</span>
+                      </div>
                       <button 
                         onClick={() => setIsAuthModalOpen(true)}
-                        className="bg-blue-600 dark:bg-blue-500 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 dark:hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        className="btn-primary"
                       >
                         Sign In
                       </button>
@@ -108,11 +114,11 @@ export default function Navigation() {
               </div>
             </div>
 
-            {/* Mobile menu button */}
+            {/* Enhanced Mobile menu button */}
             <div className="sm:hidden flex items-center">
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+                className="inline-flex items-center justify-center p-3 rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-300 transition-all duration-200 hover:scale-105"
                 aria-expanded="false"
               >
                 <span className="sr-only">Open main menu</span>
@@ -126,10 +132,10 @@ export default function Navigation() {
           </div>
         </div>
 
-                    {/* Mobile menu */}
+                    {/* Enhanced Mobile menu */}
             {isMobileMenuOpen && (
-              <div className="sm:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-                <div className="pt-2 pb-3 space-y-1">
+              <div className="sm:hidden bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200/50 dark:border-gray-700/50 shadow-lg">
+                <div className="pt-4 pb-6 space-y-2 px-4">
               {navigation.map((item) => {
                 const isActive = pathname === item.href;
                 return (
@@ -138,10 +144,10 @@ export default function Navigation() {
                     href={item.href}
                     data-tour={item.tourId}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className={`block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                    className={`block px-4 py-3 rounded-xl text-base font-semibold transition-all duration-200 ${
                       isActive
-                        ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-500 text-blue-700 dark:text-blue-400'
-                        : 'border-transparent text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:text-gray-700 dark:hover:text-gray-300'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg'
+                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
                     }`}
                   >
                     <div className="flex items-center">
@@ -152,30 +158,30 @@ export default function Navigation() {
                 );
               })}
             </div>
-                               <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
+                               <div className="pt-4 pb-6 border-t border-gray-200/50 dark:border-gray-700/50 px-4">
                      {currentUser ? (
                        <>
-                         <div className="flex items-center px-4">
+                         <div className="flex items-center px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 mb-4">
                            <div className="flex-shrink-0">
-                             <div className="h-10 w-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                               <span className="text-sm font-medium text-blue-700 dark:text-blue-300">{currentUser.name.charAt(0).toUpperCase()}</span>
+                             <div className="h-12 w-12 rounded-full bg-gradient-to-r from-blue-500 to-green-500 flex items-center justify-center">
+                               <span className="text-lg font-bold text-white">{currentUser.name.charAt(0).toUpperCase()}</span>
                              </div>
                            </div>
-                           <div className="ml-3">
-                             <div className="text-base font-medium text-gray-800 dark:text-gray-200">
-                               Welcome, {currentUser.name}
-                               {isRealAuth && <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>}
+                           <div className="ml-4">
+                             <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">
+                               {currentUser.name}
+                               {isRealAuth && <span className="ml-2 text-sm text-green-600 dark:text-green-400">●</span>}
                              </div>
                              <div className="text-sm text-gray-500 dark:text-gray-400">{currentUser.email}</div>
                            </div>
                          </div>
-                         <div className="mt-3 px-2 space-y-1">
+                         <div className="space-y-2">
                            <Link
                              href="/account"
                              onClick={() => setIsMobileMenuOpen(false)}
-                             className="flex items-center px-3 py-2 rounded-md text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                             className="flex items-center px-4 py-3 rounded-xl text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                            >
-                             <User className="h-4 w-4 mr-2" />
+                             <User className="h-5 w-5 mr-3" />
                              Account
                            </Link>
                            <button
@@ -183,36 +189,34 @@ export default function Navigation() {
                                setIsMobileMenuOpen(false);
                                isRealAuth ? hybridAuth.signOut() : logout();
                              }}
-                             className="flex items-center w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
+                             className="flex items-center w-full text-left px-4 py-3 rounded-xl text-base font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200"
                            >
-                             <LogOut className="h-4 w-4 mr-2" />
+                             <LogOut className="h-5 w-5 mr-3" />
                              Sign Out
                            </button>
                          </div>
                        </>
                      ) : (
                        <>
-                         <div className="flex items-center px-4">
+                         <div className="flex items-center px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 mb-4">
                            <div className="flex-shrink-0">
-                             <div className="h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
-                               <span className="text-sm font-medium text-gray-700 dark:text-gray-300">G</span>
+                             <div className="h-12 w-12 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center">
+                               <span className="text-lg font-bold text-gray-700 dark:text-gray-300">G</span>
                              </div>
                            </div>
-                           <div className="ml-3">
-                             <div className="text-base font-medium text-gray-800 dark:text-gray-200">Welcome, Guest</div>
+                           <div className="ml-4">
+                             <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">Welcome, Guest</div>
                            </div>
                          </div>
-                         <div className="mt-3 px-2 space-y-1">
-                           <button
-                             onClick={() => {
-                               setIsMobileMenuOpen(false);
-                               setIsAuthModalOpen(true);
-                             }}
-                             className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                           >
-                             Sign In
-                           </button>
-                         </div>
+                         <button
+                           onClick={() => {
+                             setIsMobileMenuOpen(false);
+                             setIsAuthModalOpen(true);
+                           }}
+                           className="w-full btn-primary"
+                         >
+                           Sign In
+                         </button>
                        </>
                      )}
                    </div>

@@ -22,16 +22,21 @@ export default function UserProfile() {
       const { data } = await supabase.auth.getUser();
       setUser(data.user);
 
-      // Fetch billing_metadata from profiles
-      if (data.user?.id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('billing_metadata')
-          .eq('id', data.user.id)
-          .single();
-        
-        if (profile?.billing_metadata) {
-          setBillingMetadata(profile.billing_metadata);
+      // Fetch billing_metadata from profiles (only if Supabase is properly configured)
+      if (data.user?.id && supabase && !supabase.supabaseUrl.includes('placeholder')) {
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('billing_metadata')
+            .eq('id', data.user.id)
+            .single();
+          
+          if (profile?.billing_metadata) {
+            setBillingMetadata(profile.billing_metadata);
+          }
+        } catch (error) {
+          // Silently handle profile fetch errors for development
+          console.debug('Profile fetch skipped (development mode)');
         }
       }
       setLoading(false);

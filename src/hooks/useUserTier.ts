@@ -22,8 +22,8 @@ export function useUserTier(userId: string | null | undefined) {
           .single();
         
         if (error) {
-          // Only log critical errors, not expected "no rows" errors
-          if (error.code !== 'PGRST116') {
+          // Only log critical errors, not expected "no rows" errors or connection issues
+          if (error.code !== 'PGRST116' && !error.message?.includes('placeholder')) {
             console.warn('Error fetching user tier:', error);
           }
           setTier('free');
@@ -31,7 +31,10 @@ export function useUserTier(userId: string | null | undefined) {
           setTier(data?.tier ?? 'free');
         }
       } catch (error) {
-        console.warn('Error fetching user tier:', error);
+        // Silently handle connection errors for placeholder Supabase
+        if (!(error as any)?.message?.includes('placeholder')) {
+          console.warn('Error fetching user tier:', error);
+        }
         setTier('free');
       } finally {
         setLoading(false);
