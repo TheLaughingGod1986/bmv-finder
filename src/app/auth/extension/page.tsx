@@ -20,41 +20,79 @@ function ExtensionAuthContent() {
 
         console.log('Processing extension auth token...');
 
-        // Set the session with the token from the extension
-        const { data: { session }, error: sessionError } = await supabase.auth.setSession({
-          access_token: authToken,
-          refresh_token: '' // We don't have refresh token from extension
+        // First, verify the token with our API
+        const response = await fetch('/api/auth/status', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
         });
+
+        if (!response.ok) {
+          throw new Error('Invalid authentication token');
+        }
+
+        const authData = await response.json();
         
-        if (sessionError) {
-          console.error('Error setting session:', sessionError);
-          throw new Error('Failed to authenticate with token');
+        if (!authData.isAuthenticated || !authData.user) {
+          throw new Error('Authentication failed');
         }
+
+        console.log('Token verified, user:', authData.user.email);
+
+        // Now try to get or create a proper Supabase session
+        // First check if user exists in Supabase
+        const { data: existingUser, error: userError } = await supabase.auth.getUser();
         
-        if (!session?.user) {
-          throw new Error('No user found in session');
+        if (userError || !existingUser.user) {
+          // User not signed in to Supabase, we need to sign them in
+          // For now, let's store the auth data in localStorage and redirect
+          localStorage.setItem('bmv-finder-auth', JSON.stringify({
+            user: authData.user,
+            token: authToken,
+            timestamp: Date.now()
+          }));
+
+          // Show success message
+          const messageDiv = document.getElementById('message');
+          if (messageDiv) {
+            messageDiv.innerHTML = `
+              <div style="color: #10b981; font-weight: bold; font-size: 16px;">
+                ✅ Successfully synced!
+              </div>
+              <div style="margin-top: 12px; color: #6b7280; font-size: 14px;">
+                Welcome back, ${authData.user.name}!<br>
+                Your authentication has been synced to the website.
+              </div>
+            `;
+          }
+
+          // Redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            window.location.href = '/watchlist';
+          }, 2000);
+        } else {
+          // User is already signed in to Supabase
+          console.log('User already signed in to Supabase');
+          
+          // Show success message
+          const messageDiv = document.getElementById('message');
+          if (messageDiv) {
+            messageDiv.innerHTML = `
+              <div style="color: #10b981; font-weight: bold; font-size: 16px;">
+                ✅ Already signed in!
+              </div>
+              <div style="margin-top: 12px; color: #6b7280; font-size: 14px;">
+                You are already signed in on the website.
+              </div>
+            `;
+          }
+
+          // Redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            window.location.href = '/watchlist';
+          }, 2000);
         }
-
-        console.log('Successfully authenticated user:', session.user.email);
-
-        // Show success message
-        const messageDiv = document.getElementById('message');
-        if (messageDiv) {
-          messageDiv.innerHTML = `
-            <div style="color: #10b981; font-weight: bold; font-size: 16px;">
-              ✅ Successfully signed in!
-            </div>
-            <div style="margin-top: 12px; color: #6b7280; font-size: 14px;">
-              Welcome back, ${session.user.user_metadata?.name || session.user.email}!<br>
-              You are now signed in on the website.
-            </div>
-          `;
-        }
-
-        // Redirect to dashboard after 2 seconds
-        setTimeout(() => {
-          window.location.href = '/watchlist';
-        }, 2000);
 
       } catch (error) {
         console.error('Extension auth error:', error);

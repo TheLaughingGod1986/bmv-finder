@@ -19,6 +19,7 @@ import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
 import MobilePerformanceMonitor from './components/MobilePerformanceMonitor';
 import MobileLayout from './components/mobile/MobileLayout';
 import AccessibilitySettings from './components/accessibility/AccessibilitySettings';
+import ExtensionAuthSync from './components/ExtensionAuthSync';
 
 const inter = Inter({
   subsets: ["latin"],
@@ -260,6 +261,7 @@ export default function RootLayout({
                         className="min-h-screen bg-neutral-light dark:bg-gray-900 relative"
                       >
                         <ToastProvider>
+                          <ExtensionAuthSync />
                           {children}
                         </ToastProvider>
                       </main>
