@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { watchlistDB, WatchlistProperty, getPropertiesByUserId, getPropertyById, saveProperty, deleteProperty } from '@/lib/database/watchlistDB';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -57,40 +58,7 @@ async function getCurrentUser(request: NextRequest) {
   }
 }
 
-// Watchlist property interface
-interface WatchlistProperty {
-  id: string;
-  userId: string;
-  propertyId: string;
-  title: string;
-  address: string;
-  postcode: string;
-  price: number;
-  priceFormatted: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  propertyType: string;
-  listingType: 'sale' | 'rent';
-  imageUrl?: string;
-  description?: string;
-  sourceUrl: string;
-  source: 'chrome-extension' | 'manual' | 'api';
-  bmvScore?: number;
-  marketValue?: number;
-  potentialProfit?: number;
-  addedAt: Date;
-  lastUpdated: Date;
-  notes?: string;
-  tags: string[];
-  isActive: boolean;
-  metadata?: {
-    originalPrice?: number;
-    priceHistory?: Array<{ price: number; date: Date; source: string }>;
-    viewCount?: number;
-    lastViewed?: Date;
-    alerts?: Array<{ type: string; value: number; triggered: boolean }>;
-  };
-}
+// Watchlist property interface is now imported from shared database module
 
 // Validation schemas
 const AddPropertySchema = z.object({
@@ -127,8 +95,7 @@ const UpdatePropertySchema = z.object({
   }).optional()
 });
 
-// Mock database (replace with real database)
-const watchlistDB = new Map<string, WatchlistProperty>();
+// Database is now imported from shared module
 
 // GET /api/watchlist - Get user's watchlist
 export async function GET(request: NextRequest) {
@@ -151,8 +118,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
 
     // Get user's watchlist properties
-    let properties = Array.from(watchlistDB.values())
-      .filter(prop => prop.userId === user.id);
+    let properties = getPropertiesByUserId(user.id);
 
     // Apply filters
     if (filter !== 'all') {
@@ -273,8 +239,8 @@ export async function POST(request: NextRequest) {
     const validatedData = AddPropertySchema.parse(body);
 
     // Check if property already exists for this user
-    const existingProperty = Array.from(watchlistDB.values())
-      .find(prop => prop.userId === user.id && prop.propertyId === validatedData.propertyId);
+    const existingProperty = getPropertiesByUserId(user.id)
+      .find(prop => prop.propertyId === validatedData.propertyId);
 
     if (existingProperty) {
       return NextResponse.json({
@@ -329,7 +295,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Save to database
-    watchlistDB.set(property.id, property);
+    saveProperty(property);
 
     return NextResponse.json({
       success: true,
@@ -379,7 +345,7 @@ export async function PUT(request: NextRequest) {
     const validatedUpdates = UpdatePropertySchema.parse(updates);
 
     // Find the property
-    const property = watchlistDB.get(id);
+    const property = getPropertyById(id);
     if (!property || property.userId !== user.id) {
       return NextResponse.json({
         success: false,
@@ -403,7 +369,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Save updated property
-    watchlistDB.set(id, updatedProperty);
+    saveProperty(updatedProperty);
 
     return NextResponse.json({
       success: true,
@@ -451,7 +417,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Find the property
-    const property = watchlistDB.get(id);
+    const property = getPropertyById(id);
     if (!property || property.userId !== user.id) {
       return NextResponse.json({
         success: false,
@@ -460,7 +426,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     // Remove from database
-    watchlistDB.delete(id);
+    deleteProperty(id);
 
     return NextResponse.json({
       success: true,

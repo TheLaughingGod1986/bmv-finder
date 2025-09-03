@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
+import { watchlistDB, WatchlistProperty, getPropertiesByUserId, getPropertyById, saveProperty, deleteProperty, getPropertiesBySource } from '@/lib/database/watchlistDB';
 
 // Initialize Supabase client
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
@@ -57,6 +58,8 @@ async function getCurrentUser(request: NextRequest) {
   }
 }
 
+// Database is now imported from shared module
+
 // Chrome extension property data schema
 const ChromeExtensionPropertySchema = z.object({
   propertyId: z.string().min(1),
@@ -101,14 +104,14 @@ export async function POST(request: NextRequest) {
     const validatedData = ChromeExtensionPropertySchema.parse(body);
 
     // Check if property already exists for this user
-    // Note: In production, this would use a real database
-    const existingProperties: any[] = [];
+    const existingProperty = getPropertiesByUserId(user.id)
+      .find(prop => prop.propertyId === validatedData.propertyId);
 
-    if (existingProperties.length > 0) {
+    if (existingProperty) {
       return NextResponse.json({
         success: false,
         error: 'Property already in watchlist',
-        property: existingProperties[0]
+        property: existingProperty
       }, { status: 409 });
     }
 
@@ -162,8 +165,8 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    // Save to database (using the same mock DB from the main route)
-    // Note: In production, this would use a real database
+    // Save to database (using the same shared DB from the main route)
+    saveProperty(property);
     console.log('Property saved to watchlist:', property.id);
 
     // Log the Chrome extension capture
@@ -212,8 +215,7 @@ export async function GET(request: NextRequest) {
     const website = searchParams.get('website');
 
     // Get Chrome extension properties for the user
-    // Note: In production, this would use a real database
-    let properties: any[] = [];
+    let properties = getPropertiesBySource(user.id, 'chrome-extension');
 
     // Filter by website if specified
     if (website) {
@@ -276,8 +278,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Find the property
-    // Note: In production, this would use a real database
-    const property = null; // Mock data
+    const property = getPropertyById(id);
     
     if (!property || property.userId !== user.id || property.source !== 'chrome-extension') {
       return NextResponse.json({
@@ -320,7 +321,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Save updated property
-    // Note: In production, this would use a real database
+    saveProperty(updatedProperty);
     console.log('Property updated:', id);
 
     return NextResponse.json({
