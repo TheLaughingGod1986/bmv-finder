@@ -1,6 +1,9 @@
 // Popup script for BMV Finder extension
 console.log('BMV Finder: Popup script loaded');
 
+// API base URL
+const API_BASE_URL = 'https://bmv-finder-a2lr4rpzs-bens-projects-11c93b15.vercel.app/api';
+
 // DOM elements
 const propertyCount = document.getElementById('property-count');
 const lastCapture = document.getElementById('last-capture');
@@ -37,363 +40,199 @@ let userData = {
   capturedCount: 0
 };
 
-// Handle authentication callback from extension-auth page
-function handleAuthCallback() {
-  console.log('BMV Finder: Checking for authentication callback...');
-  console.log('Current URL:', window.location.href);
-  
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = urlParams.get('token');
-  const userDataParam = urlParams.get('userData');
-  const mockAuth = urlParams.get('mockAuth');
-  
-  console.log('URL params:', { token: !!token, userDataParam: !!userDataParam, mockAuth });
-  
-  if (userDataParam) {
-    try {
-      // Parse the user data
-      const parsedUserData = JSON.parse(decodeURIComponent(userDataParam));
-      console.log('Parsed user data:', parsedUserData);
-      
-      // Store the authentication data
-      const authData = {
-        userData: parsedUserData,
-        isAuthenticated: true,
-        lastUpdated: Date.now()
-      };
-      
-      // Add token if available (for real auth)
-      if (token) {
-        authData.authToken = token;
+// Check authentication status
+async function checkAuthStatus() {
+  try {
+    // First, try to get sync data from the website
+    const syncData = await getSyncDataFromWebsite();
+    if (syncData) {
+      console.log('Found sync data from website:', syncData.user.name);
+      return await processSyncData(syncData);
+    }
+
+    // Fallback to stored token
+    const result = await chrome.storage.local.get(['authToken']);
+    
+    if (!result.authToken) {
+      console.log('No auth token found');
+      return false;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/auth/status`, {
+      headers: {
+        'Authorization': `Bearer ${result.authToken}`,
+        'Content-Type': 'application/json'
       }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
       
-      chrome.storage.local.set(authData, () => {
-        console.log('BMV Finder: Authentication data stored successfully');
-        
-        // Update the current user data
+      if (data.isAuthenticated && data.user) {
         userData = {
-          ...userData,
-          ...parsedUserData,
-          isAuthenticated: true
+          isAuthenticated: true,
+          name: data.user.name,
+          email: data.user.email,
+          membership: data.user.membership,
+          captureLimit: data.user.captureLimit,
+          capturedCount: data.user.capturedCount
         };
         
-        // Update the UI
-        updateUserInterface();
-        loadCapturedProperties();
+        // Save updated user data
+        await chrome.storage.local.set({
+          userData: userData,
+          isAuthenticated: true,
+          authToken: result.authToken
+        });
         
-        // Refresh membership data from API if we have a token and it's not mock auth
-        if (token && mockAuth !== 'true') {
-          refreshMembershipData(token);
-        }
-        
-        // Clear the URL parameters
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        
-        // Show success message
-        const authType = mockAuth ? 'demo' : 'real';
-        showMessage(`Successfully signed in with ${authType} authentication!`, true);
-      });
-      
-    } catch (error) {
-      console.error('BMV Finder: Error parsing user data:', error);
-      showError('Authentication failed. Please try again.');
-    }
-  } else if (token) {
-    // We have a token but no user data, try to fetch user data
-    console.log('BMV Finder: Token received, fetching user data');
-    fetchUserDataWithToken(token);
-  } else {
-    console.log('BMV Finder: No userData parameter found in URL');
-  }
-}
-
-// Fetch user data using a token
-async function fetchUserDataWithToken(token) {
-  try {
-    const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+        console.log('User authenticated:', userData.name);
+        return true;
       }
-    });
-    
-    if (response.ok) {
-      const membershipData = await response.json();
-      console.log('BMV Finder: Fetched membership data:', membershipData);
-      
-      // Create user data
-      const userData = {
-        isAuthenticated: true,
-        name: membershipData.name || 'User',
-        email: membershipData.email || '',
-        membership: membershipData.membership || 'Free Plan',
-        captureLimit: membershipData.captureLimit || 5,
-        capturedCount: membershipData.capturedCount || 0
-      };
-      
-      // Store authentication data
-      const authData = {
-        userData: userData,
-        isAuthenticated: true,
-        authToken: token,
-        lastUpdated: Date.now()
-      };
-      
-      await chrome.storage.local.set(authData);
-      
-      // Update current user data
-      userData = userData;
-      
-      // Update UI
-      updateUserInterface();
-      loadCapturedProperties();
-      hideLoginForm();
-      
-      // Clear URL parameters
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-      
-      showMessage('Successfully signed in!', true);
-    } else {
-      console.error('BMV Finder: Failed to fetch membership data:', response.status);
-      showError('Failed to fetch user data. Please try again.');
-    }
-  } catch (error) {
-    console.error('BMV Finder: Error fetching user data:', error);
-    showError('Network error. Please try again.');
-  }
-}
-
-// Save user data to storage
-async function saveUserData() {
-  try {
-    await chrome.storage.local.set({
-      userData: userData,
-      isAuthenticated: userData.isAuthenticated
-    });
-  } catch (error) {
-    console.error('Error saving user data:', error);
-  }
-}
-
-// Refresh membership data from API
-async function refreshMembershipData(authToken) {
-  try {
-    console.log('BMV Finder: Refreshing membership data from API');
-    
-    const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
-      headers: {
-        'Authorization': `Bearer ${authToken}`,
-        'Content-Type': 'application/json'
-      }
-    });
-    
-    if (response.ok) {
-      const membershipData = await response.json();
-      
-      // Update user data with fresh membership info
-      userData = {
-        ...userData,
-        membership: membershipData.membership || userData.membership,
-        captureLimit: membershipData.captureLimit || userData.captureLimit,
-        capturedCount: membershipData.capturedCount || userData.capturedCount
-      };
-      
-      // Save updated data to storage
-      await chrome.storage.local.set({
-        userData: userData,
-        isAuthenticated: true,
-        lastUpdated: Date.now()
-      });
-      
-      // Update UI with fresh data
-      updateUserInterface();
-      
-      console.log('BMV Finder: Membership data refreshed successfully');
-    } else {
-      console.warn('BMV Finder: Failed to refresh membership data, using cached data');
-    }
-  } catch (error) {
-    console.error('BMV Finder: Error refreshing membership data:', error);
-  }
-}
-
-// Clear all cached demo data
-async function clearCachedDemoData() {
-  try {
-    const result = await chrome.storage.local.get(['userData', 'isAuthenticated', 'authToken']);
-    
-    // Check for any demo data that needs to be cleared
-    const hasDemoData = result.userData && (
-      result.userData.name === 'John Doe' || 
-      result.userData.name === 'Demo User' ||
-      result.userData.name === 'Sarah Smith' ||
-      result.userData.name === 'Mike Johnson'
-    );
-    
-    if (hasDemoData) {
-      console.log('BMV Finder: Clearing all cached demo data');
-      await chrome.storage.local.remove(['userData', 'isAuthenticated', 'authToken']);
-      return true; // Indicates data was cleared
     }
     
-    return false; // No demo data found
+    // Token is invalid, clear it
+    await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+    console.log('Token invalid, cleared');
+    return false;
+    
   } catch (error) {
-    console.error('Error clearing demo data:', error);
+    console.error('Auth check error:', error);
     return false;
   }
 }
 
-// Load user data and capture limits
-async function loadUserData() {
+// Get sync data from the website
+async function getSyncDataFromWebsite() {
   try {
-    // First check local storage for cached auth data
-    const authResult = await chrome.storage.local.get(['userData', 'isAuthenticated', 'authToken']);
+    // Check if we're on the BMV Finder website
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
     
-    // Clear any cached demo data that might contain "John Doe"
-    if (authResult.userData && authResult.userData.name === 'John Doe') {
-      console.log('BMV Finder: Clearing cached demo data');
-      await chrome.storage.local.remove(['userData', 'isAuthenticated', 'authToken']);
-      // Reset to clean state
-      userData = {
-        isAuthenticated: false,
-        name: 'Not Signed In',
-        membership: 'Free Plan',
-        captureLimit: 5,
-        capturedCount: 0
-      };
-      updateUserInterface();
-      return;
-    }
-    
-    if (authResult.authToken) {
-      // For now, use cached user data if available, otherwise validate token
-      if (authResult.userData && authResult.userData.isAuthenticated) {
-        userData = {
-          ...userData,
-          ...authResult.userData,
-          isAuthenticated: true
-        };
-        
-        // Check if we should refresh membership data (every 5 minutes)
-        const lastUpdated = authResult.lastUpdated || 0;
-        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
-        
-        if (lastUpdated < fiveMinutesAgo) {
-          console.log('BMV Finder: Refreshing stale membership data');
-          refreshMembershipData(authResult.authToken);
-        }
-      } else {
-        // Try to validate the token with the main application
-        try {
-          const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
-            headers: {
-              'Authorization': `Bearer ${authResult.authToken}`,
-              'Content-Type': 'application/json'
+    if (currentTab && currentTab.url && currentTab.url.includes('bmv-finder')) {
+      // Try to get sync data from localStorage
+      const results = await chrome.scripting.executeScript({
+        target: { tabId: currentTab.id },
+        func: () => {
+          const syncData = localStorage.getItem('bmv-finder-sync');
+          if (syncData) {
+            try {
+              return JSON.parse(syncData);
+            } catch (e) {
+              return null;
             }
-          });
-          
-          if (response.ok) {
-            const membershipData = await response.json();
-            userData = {
-              ...userData,
-              ...membershipData,
-              isAuthenticated: true
-            };
-            await saveUserData();
-          } else {
-            // Token is invalid, clear it
-            await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-            userData = {
-              isAuthenticated: false,
-              name: 'Not Signed In',
-              membership: 'Free Plan',
-              captureLimit: 5,
-              capturedCount: 0
-            };
           }
-        } catch (error) {
-          console.error('Error validating token:', error);
-          // Clear invalid token
-          await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-          userData = {
-            isAuthenticated: false,
-            name: 'Not Signed In',
-            membership: 'Free Plan',
-            captureLimit: 5,
-            capturedCount: 0
-          };
+          return null;
         }
+      });
+      
+      if (results && results[0] && results[0].result) {
+        return results[0].result;
       }
-    } else {
-      // No token found, ensure we're in unauthenticated state
-      userData = {
-        isAuthenticated: false,
-        name: 'Not Signed In',
-        membership: 'Free Plan',
-        captureLimit: 5,
-        capturedCount: 0
-      };
     }
     
-    updateUserInterface();
+    return null;
   } catch (error) {
-    console.error('Error loading user data:', error);
-    userData = {
-      isAuthenticated: false,
-      name: 'Not Signed In',
-      membership: 'Free Plan',
-      captureLimit: 5,
-      capturedCount: 0
-    };
-    updateUserInterface();
+    console.log('Could not get sync data from website:', error);
+    return null;
   }
 }
 
-// Load and display captured properties
-async function loadCapturedProperties() {
+// Process sync data from website
+async function processSyncData(syncData) {
   try {
-    // If user is not authenticated, show no properties
-    if (!userData.isAuthenticated) {
-      propertyCount.textContent = '0';
-      lastCapture.textContent = 'Never';
-      propertiesList.innerHTML = '<div class="empty-state">Sign in to capture and view properties</div>';
-      return;
+    if (syncData.user && syncData.token) {
+      userData = {
+        isAuthenticated: true,
+        name: syncData.user.name,
+        email: syncData.user.email,
+        membership: syncData.user.membership,
+        captureLimit: syncData.user.captureLimit,
+        capturedCount: syncData.user.capturedCount
+      };
+      
+      // Save to storage
+      await chrome.storage.local.set({
+        userData: userData,
+        isAuthenticated: true,
+        authToken: syncData.token
+      });
+      
+      console.log('Processed sync data for:', userData.name);
+      return true;
     }
     
-    const result = await chrome.storage.local.get(['capturedProperties']);
-    const properties = result.capturedProperties || [];
-    
-    // Filter properties for the current user only
-    const userProperties = properties.filter(property => 
-      property.userId === userData.name || !property.userId // Include legacy properties without userId
-    );
-    
-    // Update stats
-    propertyCount.textContent = userProperties.length;
-    
-    if (userProperties.length > 0) {
-      const lastProperty = userProperties[userProperties.length - 1];
-      const lastCaptureDate = new Date(lastProperty.capturedAt);
-      lastCapture.textContent = lastCaptureDate.toLocaleDateString() + ' ' + lastCaptureDate.toLocaleTimeString();
-    } else {
-      lastCapture.textContent = 'Never';
-    }
-    
-    // Update user interface with new count
-    updateUserInterface();
-    
-    // Display properties
-    displayProperties(userProperties);
-    
+    return false;
   } catch (error) {
-    console.error('Error loading properties:', error);
-    showError('Failed to load properties');
+    console.error('Error processing sync data:', error);
+    return false;
   }
 }
 
-// Update user interface based on authentication status
+// Sign in with email and password
+async function signInWithEmail(email, password) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/auth/extension`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ email, password })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.user && data.token) {
+      // Store authentication data
+      await chrome.storage.local.set({
+        userData: data.user,
+        isAuthenticated: true,
+        authToken: data.token
+      });
+
+      // Update current user data
+      userData = {
+        isAuthenticated: true,
+        name: data.user.name,
+        email: data.user.email,
+        membership: data.user.membership,
+        captureLimit: data.user.captureLimit,
+        capturedCount: data.user.capturedCount
+      };
+
+      console.log('Successfully signed in:', userData.name);
+      return true;
+    } else {
+      throw new Error(data.error || 'Login failed');
+    }
+  } catch (error) {
+    console.error('Sign in error:', error);
+    throw error;
+  }
+}
+
+// Sign in with Google (opens website)
+function signInWithGoogle() {
+  const websiteUrl = 'https://bmv-finder-a2lr4rpzs-bens-projects-11c93b15.vercel.app';
+  chrome.tabs.create({ url: websiteUrl });
+  
+  // Show instructions
+  showLoginError('Please sign in on the website that just opened, then return to this extension and click "Check Authentication Status".');
+}
+
+// Sign out
+async function signOut() {
+  await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
+  userData = {
+    isAuthenticated: false,
+    name: 'Not Signed In',
+    membership: 'Free Plan',
+    captureLimit: 5,
+    capturedCount: 0
+  };
+  console.log('Signed out');
+}
+
+// Update user interface
 function updateUserInterface() {
   // Update user info
   userName.textContent = userData.name;
@@ -404,113 +243,83 @@ function updateUserInterface() {
     signInButton.textContent = 'Signed In';
     signInButton.style.background = 'linear-gradient(135deg, #27AE60 0%, #2ECC71 100%)';
     signInButton.disabled = true;
-    signOutButton.style.display = 'inline-block'; // Show sign out button
-    watchlistLink.style.display = 'inline-block'; // Show watchlist link
+    signOutButton.style.display = 'inline-block';
+    watchlistLink.style.display = 'inline-block';
+    loginForm.style.display = 'none';
   } else {
     signInButton.textContent = 'Sign In Required';
     signInButton.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
     signInButton.disabled = false;
-    signOutButton.style.display = 'none'; // Hide sign out button
-    watchlistLink.style.display = 'none'; // Hide watchlist link
-    
-    // Show authentication requirement message
-    showAuthenticationRequirement();
+    signOutButton.style.display = 'none';
+    watchlistLink.style.display = 'none';
   }
   
-  // Update capture limits - use the actual property count, not userData.capturedCount
+  // Update capture limits
   const currentCount = parseInt(propertyCount.textContent) || 0;
   
-  // For unauthenticated users, show 0 limit
   if (!userData.isAuthenticated) {
     captureLimit.textContent = '0 / 0';
     progressFill.style.width = '0%';
     progressFill.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
-    return;
-  }
-  
-  const limit = userData.captureLimit;
-  
-  // Handle unlimited case
-  if (limit === -1) {
-    captureLimit.textContent = `${currentCount} / Unlimited`;
-    progressFill.style.width = '0%';
   } else {
-    captureLimit.textContent = `${currentCount} / ${limit}`;
+    const limit = userData.captureLimit;
     
-    // Update progress bar
-    const progressPercentage = limit > 0 ? Math.min((currentCount / limit) * 100, 100) : 0;
-    progressFill.style.width = `${progressPercentage}%`;
-    
-    // Change progress bar color based on usage
-    if (progressPercentage >= 90) {
-      progressFill.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
-    } else if (progressPercentage >= 75) {
-      progressFill.style.background = 'linear-gradient(135deg, #F39C12 0%, #E67E22 100%)';
+    if (limit === -1) {
+      captureLimit.textContent = `${currentCount} / Unlimited`;
+      progressFill.style.width = '0%';
     } else {
-      progressFill.style.background = 'linear-gradient(135deg, #2980b9 0%, #3498db 100%)';
+      captureLimit.textContent = `${currentCount} / ${limit}`;
+      
+      const progressPercentage = limit > 0 ? Math.min((currentCount / limit) * 100, 100) : 0;
+      progressFill.style.width = `${progressPercentage}%`;
+      
+      if (progressPercentage >= 90) {
+        progressFill.style.background = 'linear-gradient(135deg, #E74C3C 0%, #C0392B 100%)';
+      } else if (progressPercentage >= 75) {
+        progressFill.style.background = 'linear-gradient(135deg, #F39C12 0%, #E67E22 100%)';
+      } else {
+        progressFill.style.background = 'linear-gradient(135deg, #2980b9 0%, #3498db 100%)';
+      }
+    }
+  }
+}
+
+// Load captured properties
+async function loadCapturedProperties() {
+  try {
+    if (!userData.isAuthenticated) {
+      propertyCount.textContent = '0';
+      lastCapture.textContent = 'Never';
+      propertiesList.innerHTML = '<div class="empty-state">Sign in to capture and view properties</div>';
+      return;
     }
     
-    // Show upgrade prompt if approaching limit
-    if (progressPercentage >= 80) {
-      showUpgradePrompt();
+    const result = await chrome.storage.local.get(['capturedProperties']);
+    const properties = result.capturedProperties || [];
+    
+    const userProperties = properties.filter(property => 
+      property.userId === userData.name || !property.userId
+    );
+    
+    propertyCount.textContent = userProperties.length;
+    
+    if (userProperties.length > 0) {
+      const lastProperty = userProperties[userProperties.length - 1];
+      const lastCaptureDate = new Date(lastProperty.capturedAt);
+      lastCapture.textContent = lastCaptureDate.toLocaleDateString() + ' ' + lastCaptureDate.toLocaleTimeString();
+    } else {
+      lastCapture.textContent = 'Never';
     }
+    
+    displayProperties(userProperties);
+    
+  } catch (error) {
+    console.error('Error loading properties:', error);
+    showError('Failed to load properties');
   }
 }
 
-// Show authentication requirement message
-function showAuthenticationRequirement() {
-  // Remove any existing requirement message
-  const existingMessage = document.querySelector('.auth-requirement');
-  if (existingMessage) {
-    existingMessage.remove();
-  }
-  
-  const requirementDiv = document.createElement('div');
-  requirementDiv.className = 'auth-requirement';
-  requirementDiv.innerHTML = `
-    <div style="background: linear-gradient(135deg, #FFF3CD 0%, #FFEAA7 100%); 
-                border: 1px solid #FFC107;
-                border-radius: 8px; 
-                padding: 12px; 
-                margin-bottom: 15px; 
-                text-align: center; 
-                color: #856404; 
-                font-size: 12px;">
-      <strong>🔒 Authentication Required</strong><br>
-      You must sign in to capture properties. Properties are only viewable in your account watchlist.
-    </div>
-  `;
-  
-  // Insert after the user status section
-  const userStatus = document.querySelector('.user-status');
-  userStatus.parentNode.insertBefore(requirementDiv, userStatus.nextSibling);
-}
-
-// Show upgrade prompt
-function showUpgradePrompt() {
-  const upgradeDiv = document.createElement('div');
-  upgradeDiv.className = 'upgrade-prompt';
-  upgradeDiv.innerHTML = `
-    <div style="background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); 
-                border-radius: 8px; 
-                padding: 10px; 
-                margin-bottom: 15px; 
-                text-align: center; 
-                color: #333; 
-                font-size: 12px;">
-      <strong>🚀 Upgrade to capture more properties!</strong><br>
-              <a href="https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
-         style="color: #3A7CA5; text-decoration: none; font-weight: bold;">
-        View Plans →
-      </a>
-    </div>
-  `;
-  
-  // Insert before the stats section
-  const statsSection = document.querySelector('.stats');
-  statsSection.parentNode.insertBefore(upgradeDiv, statsSection);
-}
-
+// Display properties
 function displayProperties(properties) {
   if (!userData.isAuthenticated) {
     propertiesList.innerHTML = '<div class="empty-state">Sign in to capture and view properties</div>';
@@ -522,10 +331,7 @@ function displayProperties(properties) {
     return;
   }
   
-  // Sort by capture date (newest first)
   const sortedProperties = properties.sort((a, b) => new Date(b.capturedAt) - new Date(a.capturedAt));
-  
-  // Display only the 5 most recent properties
   const recentProperties = sortedProperties.slice(0, 5);
   
   propertiesList.innerHTML = recentProperties.map(property => `
@@ -541,7 +347,6 @@ function displayProperties(properties) {
     </div>
   `).join('');
   
-  // Show "view more" if there are more properties
   if (properties.length > 5) {
     propertiesList.innerHTML += `
       <div class="property-item" style="text-align: center; color: #666; font-style: italic;">
@@ -551,33 +356,32 @@ function displayProperties(properties) {
   }
 }
 
-// Clear all properties
-clearAllButton.addEventListener('click', async () => {
-  if (!userData.isAuthenticated) {
-    showMessage('You must be signed in to manage properties', false);
-    return;
-  }
-  
-  if (confirm('Are you sure you want to clear all your captured properties? This action cannot be undone.')) {
-    try {
-      const result = await chrome.storage.local.get(['capturedProperties']);
-      const allProperties = result.capturedProperties || [];
-      
-      // Only clear properties for the current user
-      const otherUserProperties = allProperties.filter(property => 
-        property.userId !== userData.name && property.userId // Keep properties from other users
-      );
-      
-      await chrome.storage.local.set({ capturedProperties: otherUserProperties });
-      // Reload properties to update the display
-      await loadCapturedProperties();
-      console.log('User properties cleared');
-    } catch (error) {
-      console.error('Error clearing properties:', error);
-      showError('Failed to clear properties');
-    }
-  }
-});
+// Show/hide login form
+function showLoginForm() {
+  loginForm.style.display = 'block';
+  hideLoginError();
+}
+
+function hideLoginForm() {
+  loginForm.style.display = 'none';
+  clearLoginForm();
+}
+
+function clearLoginForm() {
+  emailInput.value = '';
+  passwordInput.value = '';
+  hideLoginError();
+}
+
+// Show/hide login error
+function showLoginError(message) {
+  loginError.textContent = message;
+  loginError.style.display = 'block';
+}
+
+function hideLoginError() {
+  loginError.style.display = 'none';
+}
 
 function showError(message) {
   propertiesList.innerHTML = `
@@ -596,48 +400,31 @@ function showMessage(message, isSuccess = false) {
   propertiesList.innerHTML = '';
   propertiesList.appendChild(messageDiv);
   
-  // Auto-remove success messages after 3 seconds
   if (isSuccess) {
     setTimeout(() => {
       if (messageDiv.parentNode) {
         messageDiv.remove();
-        loadCapturedProperties(); // Refresh the properties list
+        loadCapturedProperties();
       }
     }, 3000);
   }
 }
 
-// Show login form
-function showLoginForm() {
-  loginForm.style.display = 'block';
-  hideLoginError();
-}
+// Event listeners
+signInButton.addEventListener('click', () => {
+  if (!userData.isAuthenticated) {
+    showLoginForm();
+  }
+});
 
-// Hide login form
-function hideLoginForm() {
-  loginForm.style.display = 'none';
-  clearLoginForm();
-}
+signOutButton.addEventListener('click', async () => {
+  if (confirm('Are you sure you want to sign out?')) {
+    await signOut();
+    updateUserInterface();
+    loadCapturedProperties();
+  }
+});
 
-// Clear login form
-function clearLoginForm() {
-  emailInput.value = '';
-  passwordInput.value = '';
-  hideLoginError();
-}
-
-// Show login error
-function showLoginError(message) {
-  loginError.textContent = message;
-  loginError.style.display = 'block';
-}
-
-// Hide login error
-function hideLoginError() {
-  loginError.style.display = 'none';
-}
-
-// Handle tab switching
 emailTab.addEventListener('click', () => {
   emailTab.classList.add('active');
   googleTab.classList.remove('active');
@@ -654,7 +441,6 @@ googleTab.addEventListener('click', () => {
   hideLoginError();
 });
 
-// Handle email login
 emailLoginBtn.addEventListener('click', async () => {
   const email = emailInput.value.trim();
   const password = passwordInput.value.trim();
@@ -669,81 +455,83 @@ emailLoginBtn.addEventListener('click', async () => {
     emailLoginBtn.textContent = 'Signing In...';
     hideLoginError();
     
-    // Call the login API
-    const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ email, password })
-    });
+    await signInWithEmail(email, password);
     
-    const data = await response.json();
+    updateUserInterface();
+    loadCapturedProperties();
+    hideLoginForm();
     
-    if (response.ok && data.success) {
-      // Store authentication data
-      const authData = {
-        userData: {
-          isAuthenticated: true,
-          name: data.user.name || data.user.email,
-          email: data.user.email,
-          membership: data.user.subscription || 'Free Plan',
-          captureLimit: data.user.captureLimit || 5,
-          capturedCount: data.user.capturedCount || 0
-        },
-        authToken: data.token,
-        isAuthenticated: true,
-        lastUpdated: Date.now()
-      };
-      
-      await chrome.storage.local.set(authData);
-      
-      // Update UI
-      userData = authData.userData;
-      updateUserInterface();
-      hideLoginForm();
-      
-      // Refresh membership data
-      if (data.token) {
-        refreshMembershipData(data.token);
-      }
-      
-      showMessage('Successfully signed in!', true);
-    } else {
-      showLoginError(data.error || 'Login failed. Please try again.');
-    }
+    showMessage('Successfully signed in!', true);
+    
   } catch (error) {
-    console.error('Login error:', error);
-    showLoginError('Network error. Please check your connection and try again.');
+    showLoginError(error.message || 'Login failed. Please try again.');
   } finally {
     emailLoginBtn.disabled = false;
     emailLoginBtn.textContent = 'Sign In';
   }
 });
 
-// Handle Google login
-googleLoginBtn.addEventListener('click', async () => {
+googleLoginBtn.addEventListener('click', () => {
+  signInWithGoogle();
+});
+
+checkAuthBtn.addEventListener('click', async () => {
   try {
-    googleLoginBtn.disabled = true;
-    googleLoginBtn.innerHTML = '<div class="spinner"></div><span>Signing In...</span>';
+    checkAuthBtn.disabled = true;
+    checkAuthBtn.textContent = 'Checking...';
     hideLoginError();
     
-    // Open Google OAuth in a new tab with proper callback
-    const callbackUrl = chrome.runtime.getURL('popup.html');
-    const authUrl = `https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/auth/google?returnTo=${encodeURIComponent(callbackUrl)}`;
+    const isAuthenticated = await checkAuthStatus();
     
-    // Open auth in new tab
-    chrome.tabs.create({ url: authUrl });
-    
-    // Close the popup after opening auth
-    window.close();
-    
+    if (isAuthenticated) {
+      updateUserInterface();
+      loadCapturedProperties();
+      hideLoginForm();
+      showMessage('Authentication status updated!', true);
+    } else {
+      showLoginError('Not authenticated. Please sign in.');
+    }
   } catch (error) {
-    console.error('Google login error:', error);
-    showLoginError('Failed to open Google login. Please try again.');
-    googleLoginBtn.disabled = false;
-    googleLoginBtn.innerHTML = '<div class="google-icon">G</div><span>Sign in with Google</span>';
+    showLoginError('Failed to check authentication status.');
+  } finally {
+    checkAuthBtn.disabled = false;
+    checkAuthBtn.textContent = 'Check Authentication Status';
   }
+});
+
+syncWebsiteBtn.addEventListener('click', () => {
+  const syncUrl = 'https://bmv-finder-a2lr4rpzs-bens-projects-11c93b15.vercel.app/extension-sync';
+  chrome.tabs.create({ url: syncUrl });
+  showLoginError('Please sign in on the website that just opened, then return to this extension and click "Check Authentication Status".');
+});
+
+clearAllButton.addEventListener('click', async () => {
+  if (!userData.isAuthenticated) {
+    showMessage('You must be signed in to manage properties', false);
+    return;
+  }
+  
+  if (confirm('Are you sure you want to clear all your captured properties? This action cannot be undone.')) {
+    try {
+      const result = await chrome.storage.local.get(['capturedProperties']);
+      const allProperties = result.capturedProperties || [];
+      
+      const otherUserProperties = allProperties.filter(property => 
+        property.userId !== userData.name && property.userId
+      );
+      
+      await chrome.storage.local.set({ capturedProperties: otherUserProperties });
+      await loadCapturedProperties();
+      console.log('User properties cleared');
+    } catch (error) {
+      console.error('Error clearing properties:', error);
+      showError('Failed to clear properties');
+    }
+  }
+});
+
+watchlistLink.addEventListener('click', () => {
+  chrome.tabs.create({ url: 'https://bmv-finder-a2lr4rpzs-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 // Handle Enter key in login form
@@ -759,249 +547,28 @@ passwordInput.addEventListener('keypress', (e) => {
   }
 });
 
-// Handle manual authentication check
-checkAuthBtn.addEventListener('click', async () => {
-  try {
-    checkAuthBtn.disabled = true;
-    checkAuthBtn.textContent = 'Checking...';
-    
-    // Check if we have any stored auth data
-    const result = await chrome.storage.local.get(['userData', 'isAuthenticated', 'authToken']);
-    console.log('Stored auth data:', result);
-    
-    if (result.authToken) {
-      // Try to validate the token
-      const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
-        headers: {
-          'Authorization': `Bearer ${result.authToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const membershipData = await response.json();
-        console.log('Valid token, membership data:', membershipData);
-        
-        // Update user data
-        userData = {
-          isAuthenticated: true,
-          name: membershipData.name || 'User',
-          email: membershipData.email || '',
-          membership: membershipData.membership || 'Free Plan',
-          captureLimit: membershipData.captureLimit || 5,
-          capturedCount: membershipData.capturedCount || 0
-        };
-        
-        // Save to storage
-        await chrome.storage.local.set({
-          userData: userData,
-          isAuthenticated: true,
-          authToken: result.authToken,
-          lastUpdated: Date.now()
-        });
-        
-        // Update UI
-        updateUserInterface();
-        hideLoginForm();
-        
-        showMessage('Authentication status updated!', true);
-      } else {
-        console.log('Token validation failed:', response.status);
-        showLoginError('Authentication token is invalid. Please sign in again.');
-      }
-    } else {
-      console.log('No auth token found');
-      showLoginError('No authentication data found. Please sign in.');
-    }
-  } catch (error) {
-    console.error('Auth check error:', error);
-    showLoginError('Failed to check authentication status.');
-  } finally {
-    checkAuthBtn.disabled = false;
-    checkAuthBtn.textContent = 'Check Authentication Status';
-  }
-});
-
-// Handle sync with website button
-syncWebsiteBtn.addEventListener('click', async () => {
-  try {
-    syncWebsiteBtn.disabled = true;
-    syncWebsiteBtn.textContent = 'Syncing...';
-    hideLoginError();
-    
-    // Try to get authentication data from the main website
-    const websiteUrl = 'https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app';
-    
-    // First, try to get the current tab
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const currentTab = tabs[0];
-    
-    if (currentTab && currentTab.url && currentTab.url.includes('bmv-finder')) {
-      // If we're on the BMV Finder website, try to extract auth data
-      try {
-        const results = await chrome.scripting.executeScript({
-          target: { tabId: currentTab.id },
-          func: () => {
-            // Try to get auth data from localStorage or sessionStorage
-            const authData = localStorage.getItem('sb-qrxcfmpdfhvccxyuacsr-auth-token') || 
-                           sessionStorage.getItem('sb-qrxcfmpdfhvccxyuacsr-auth-token') ||
-                           localStorage.getItem('supabase.auth.token') ||
-                           sessionStorage.getItem('supabase.auth.token');
-            
-            if (authData) {
-              try {
-                const parsed = JSON.parse(authData);
-                return parsed;
-              } catch (e) {
-                return { access_token: authData };
-              }
-            }
-            
-            // Try to get from URL hash
-            const hash = window.location.hash;
-            const urlParams = new URLSearchParams(hash.substring(1));
-            const accessToken = urlParams.get('access_token');
-            
-            if (accessToken) {
-              return { access_token: accessToken };
-            }
-            
-            return null;
-          }
-        });
-        
-        if (results && results[0] && results[0].result) {
-          const authData = results[0].result;
-          console.log('Found auth data:', authData);
-          
-          if (authData.access_token) {
-            // Store the token and fetch user data
-            await chrome.storage.local.set({
-              authToken: authData.access_token,
-              isAuthenticated: true,
-              lastUpdated: Date.now()
-            });
-            
-            // Fetch user data
-            const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
-              headers: {
-                'Authorization': `Bearer ${authData.access_token}`,
-                'Content-Type': 'application/json'
-              }
-            });
-            
-            if (response.ok) {
-              const membershipData = await response.json();
-              console.log('Membership data:', membershipData);
-              
-              // Update user data
-              userData = {
-                isAuthenticated: true,
-                name: membershipData.name || 'User',
-                email: membershipData.email || '',
-                membership: membershipData.membership || 'Free Plan',
-                captureLimit: membershipData.captureLimit || 5,
-                capturedCount: membershipData.capturedCount || 0
-              };
-              
-              // Save to storage
-              await chrome.storage.local.set({
-                userData: userData,
-                isAuthenticated: true,
-                authToken: authData.access_token,
-                lastUpdated: Date.now()
-              });
-              
-              // Update UI
-              updateUserInterface();
-              hideLoginForm();
-              
-              showMessage('Successfully synced with website!', true);
-              return;
-            }
-          }
-        }
-      } catch (scriptError) {
-        console.log('Script execution failed:', scriptError);
-      }
-    }
-    
-    // If we couldn't extract auth data, open the website
-    chrome.tabs.create({ url: websiteUrl });
-    showLoginError('Please sign in on the website that just opened, then return to this extension and click "Check Authentication Status" again.');
-    
-  } catch (error) {
-    console.error('Sync website error:', error);
-    showLoginError('Failed to sync with website. Please try again.');
-  } finally {
-    syncWebsiteBtn.disabled = false;
-    syncWebsiteBtn.textContent = 'Sync with Website';
-  }
-});
-
-// Handle sign-in button click
-signInButton.addEventListener('click', async () => {
-  console.log('BMV Finder: Sign-in button clicked');
-  
-  if (!userData.isAuthenticated) {
-    // Show the login form instead of redirecting
-    showLoginForm();
-  } else {
-    // If already signed in, allow sign out
-    if (confirm('Do you want to sign out?')) {
-      chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-      loadUserData();
-    }
-  }
-});
-
-// Handle sign-out button click
-signOutButton.addEventListener('click', async () => {
-  if (confirm('Are you sure you want to sign out?')) {
-    await chrome.storage.local.remove(['authToken', 'userData', 'isAuthenticated']);
-    userData = {
-      isAuthenticated: false,
-      name: 'Not Signed In',
-      membership: 'Free Plan',
-      captureLimit: 5,
-      capturedCount: 0
-    };
-    updateUserInterface();
-  }
-});
-
-// Handle watchlist link click
-watchlistLink.addEventListener('click', () => {
-          chrome.tabs.create({ url: 'https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/watchlist' });
-});
-
 // Initialize the popup
 document.addEventListener('DOMContentLoaded', async () => {
   console.log('BMV Finder: Popup DOM loaded');
   
   try {
-    // Handle authentication callback first
-    handleAuthCallback();
+    // Check authentication status
+    await checkAuthStatus();
     
-    // Clear any cached demo data first
-    const clearedDemoData = await clearCachedDemoData();
-    if (clearedDemoData) {
-      console.log('BMV Finder: Demo data cleared, starting fresh');
-    }
-    
-    await loadUserData();
-    await loadCapturedProperties();
+    // Update UI
     updateUserInterface();
+    await loadCapturedProperties();
+    
   } catch (error) {
     console.error('Error initializing popup:', error);
     showError('Failed to load data');
   }
 });
 
-// Listen for storage changes to update the popup
+// Listen for storage changes
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local' && changes.capturedProperties) {
     console.log('BMV Finder: Properties updated, refreshing popup');
     loadCapturedProperties();
   }
-}); 
+});
