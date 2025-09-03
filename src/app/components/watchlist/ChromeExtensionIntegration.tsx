@@ -80,9 +80,9 @@ export default function ChromeExtensionIntegration({ user }: ChromeExtensionInte
   const checkExtensionInstallation = () => {
     // Check if Chrome extension is installed by looking for a specific message
     const checkExtension = () => {
-      if (typeof window !== 'undefined' && window.chrome && window.chrome.runtime) {
+      if (typeof window !== 'undefined' && (window as any).chrome && (window as any).chrome.runtime) {
         // Try to communicate with the extension
-        window.chrome.runtime.sendMessage(
+        (window as any).chrome.runtime.sendMessage(
           'bmv-finder-extension-id', // This would be the actual extension ID
           { action: 'ping' },
           (response) => {

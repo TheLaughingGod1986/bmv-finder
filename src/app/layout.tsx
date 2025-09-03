@@ -47,25 +47,12 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   manifest: '/manifest.json',
-  themeColor: '#3A7CA5',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-    userScalable: false,
-  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'BMV Finder',
   },
-  other: {
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'default',
-    'msapplication-TileColor': '#3A7CA5',
-    'msapplication-config': '/browserconfig.xml',
-  },
+
   openGraph: {
     title: "Property Intelligence Platform | AI-Powered Investment Research",
     description: "Discover below market value properties across the UK with our powerful property research platform. Access 25 million property sales, AI-powered BMV analysis, and professional tools to make smarter property investment decisions.",

@@ -94,12 +94,12 @@ class TestFramework {
   }
 
   // Skip test
-  it.skip(name: string, test: () => void | Promise<void>, testConfig: Partial<TestCase> = {}): void {
+  skip(name: string, test: () => void | Promise<void>, testConfig: Partial<TestCase> = {}): void {
     this.it(name, test, { ...testConfig, skip: true });
   }
 
   // Only run this test
-  it.only(name: string, test: () => void | Promise<void>, testConfig: Partial<TestCase> = {}): void {
+  only(name: string, test: () => void | Promise<void>, testConfig: Partial<TestCase> = {}): void {
     this.it(name, test, { ...testConfig, only: true });
   }
 

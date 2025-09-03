@@ -65,7 +65,13 @@ export default function PerformanceDashboard() {
     const apiStats = apiClient.getCacheStats();
     
     const newStats: PerformanceStats = {
-      webVitals: summary.webVitals,
+      webVitals: {
+        lcp: summary.webVitals.lcp || 0,
+        fid: summary.webVitals.fid || 0,
+        cls: summary.webVitals.cls || 0,
+        fcp: summary.webVitals.fcp || 0,
+        ttfb: summary.webVitals.ttfb || 0,
+      },
       apiStats: {
         totalRequests: summary.totalMetrics,
         cacheHitRate: calculateCacheHitRate(apiStats),

@@ -13,7 +13,7 @@ import {
   HeartIcon,
   ClockIcon,
   WifiIcon,
-  WifiSlashIcon
+  SignalSlashIcon
 } from '@heroicons/react/24/outline';
 
 interface MobileHomePageProps {

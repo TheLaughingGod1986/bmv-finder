@@ -36,7 +36,7 @@ export default function UserProfile({ user, onUpdate, onPasswordChange, onLogout
     },
     search: {
       defaultRadius: user.preferences?.search?.defaultRadius || 1,
-      savedSearches: user.preferences?.search?.savedSearches || true
+      savedSearches: (user.preferences?.search?.savedSearches ?? true) as true
     }
   });
 

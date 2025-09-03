@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MapPinIcon, HomeIcon, TrendingUpIcon, TrendingDownIcon } from '@heroicons/react/24/outline';
+import { MapPinIcon, HomeIcon, ArrowTrendingUpIcon, ArrowTrendingDownIcon } from '@heroicons/react/24/outline';
 
 interface PropertyMarker {
   id: string;

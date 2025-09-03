@@ -107,7 +107,7 @@ function ExtensionSyncContent() {
               ❌ Authentication failed
             </div>
             <div style="margin-top: 12px; color: #6b7280; font-size: 14px;">
-              ${error.message || 'Please try signing in again.'}
+              ${(error as Error).message || 'Please try signing in again.'}
             </div>
             <div style="margin-top: 16px;">
               <button onclick="window.location.href='/login'" style="

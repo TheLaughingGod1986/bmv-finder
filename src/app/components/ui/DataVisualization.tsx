@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   ChartBarIcon, 
   ChartPieIcon, 
-  ChartLineIcon,
+  ChartBarIcon,
   ArrowTrendingUpIcon,
   ArrowTrendingDownIcon,
   EyeIcon,

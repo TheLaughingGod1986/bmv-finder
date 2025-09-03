@@ -134,7 +134,6 @@ export default function WatchlistMainPage({ user }: WatchlistMainPageProps) {
         {activeTab === 'properties' && (
           <WatchlistPage 
             user={currentUser} 
-            onPropertySelection={handlePropertySelection}
           />
         )}
         

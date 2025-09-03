@@ -130,7 +130,7 @@ export default function ReportBuilder({ userId, className = "" }: ReportBuilderP
     setIsExporting(true);
     try {
       const exportData = {
-        type: 'custom',
+        type: 'custom' as const,
         data: [/* report data would go here */],
         metadata: {
           exportDate: new Date(),

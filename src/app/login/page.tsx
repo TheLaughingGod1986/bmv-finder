@@ -9,12 +9,12 @@ import { useSearchParams } from 'next/navigation';
 function LoginPageContent() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(true);
   const router = useRouter();
-  const { user, isLoading } = useHybridAuth();
+  const { user, loading } = useHybridAuth();
   const searchParams = useSearchParams();
 
   // Redirect to watchlist or returnTo URL if user is already authenticated
   useEffect(() => {
-    if (user && !isLoading) {
+    if (user && !loading) {
       const returnTo = searchParams.get('returnTo');
       if (returnTo) {
         window.location.href = returnTo;
@@ -22,7 +22,7 @@ function LoginPageContent() {
         router.push('/watchlist');
       }
     }
-  }, [user, isLoading, router, searchParams]);
+  }, [user, loading, router, searchParams]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
