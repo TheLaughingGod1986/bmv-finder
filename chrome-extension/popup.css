@@ -10,8 +10,8 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #333;
     line-height: 1.5;
-    width: 800px;
-    min-height: 700px;
+    width: 1000px;
+    min-height: 750px;
     overflow-x: hidden;
 }
 
@@ -418,13 +418,13 @@ body {
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 24px;
-    margin-bottom: 28px;
+    gap: 32px;
+    margin-bottom: 32px;
 }
 
 .stat-item {
     text-align: center;
-    padding: 18px 12px;
+    padding: 22px 16px;
     background: #f8f9fa;
     border-radius: 12px;
     min-width: 0;
@@ -433,10 +433,10 @@ body {
 }
 
 .stat-label {
-    font-size: 13px;
+    font-size: 14px;
     color: #6b7280;
     font-weight: 500;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     white-space: nowrap;
@@ -445,7 +445,7 @@ body {
 }
 
 .stat-value {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
     color: #1a1a1a;
     white-space: nowrap;
