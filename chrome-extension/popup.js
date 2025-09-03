@@ -26,6 +26,7 @@ const emailLoginBtn = document.getElementById('email-login-btn');
 const googleLoginBtn = document.getElementById('google-login-btn');
 const loginError = document.getElementById('login-error');
 const checkAuthBtn = document.getElementById('check-auth-btn');
+const syncWebsiteBtn = document.getElementById('sync-website-btn');
 
 // User authentication and membership data
 let userData = {
@@ -120,7 +121,7 @@ async function refreshMembershipData(authToken) {
   try {
     console.log('BMV Finder: Refreshing membership data from API');
     
-    const response = await fetch('https://bmv-finder-jjl77ey7w-bens-projects-11c93b15.vercel.app/api/user/membership', {
+    const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json'
@@ -225,7 +226,7 @@ async function loadUserData() {
       } else {
         // Try to validate the token with the main application
         try {
-          const response = await fetch('https://bmv-finder-jjl77ey7w-bens-projects-11c93b15.vercel.app/api/user/membership', {
+          const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
             headers: {
               'Authorization': `Bearer ${authResult.authToken}`,
               'Content-Type': 'application/json'
@@ -437,7 +438,7 @@ function showUpgradePrompt() {
                 color: #333; 
                 font-size: 12px;">
       <strong>🚀 Upgrade to capture more properties!</strong><br>
-              <a href="https://bmv-finder-jjl77ey7w-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
+              <a href="https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
          style="color: #3A7CA5; text-decoration: none; font-weight: bold;">
         View Plans →
       </a>
@@ -608,7 +609,7 @@ emailLoginBtn.addEventListener('click', async () => {
     hideLoginError();
     
     // Call the login API
-    const response = await fetch('https://bmv-finder-jjl77ey7w-bens-projects-11c93b15.vercel.app/api/auth/login', {
+    const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -668,7 +669,7 @@ googleLoginBtn.addEventListener('click', async () => {
     
     // Open Google OAuth in a new tab with proper callback
     const callbackUrl = chrome.runtime.getURL('popup.html');
-    const authUrl = `https://bmv-finder-jjl77ey7w-bens-projects-11c93b15.vercel.app/auth/google?returnTo=${encodeURIComponent(callbackUrl)}`;
+    const authUrl = `https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/auth/google?returnTo=${encodeURIComponent(callbackUrl)}`;
     
     // Open auth in new tab
     chrome.tabs.create({ url: authUrl });
@@ -709,7 +710,7 @@ checkAuthBtn.addEventListener('click', async () => {
     
     if (result.authToken) {
       // Try to validate the token
-      const response = await fetch('https://bmv-finder-jjl77ey7w-bens-projects-11c93b15.vercel.app/api/user/membership', {
+      const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
         headers: {
           'Authorization': `Bearer ${result.authToken}`,
           'Content-Type': 'application/json'
@@ -760,6 +761,123 @@ checkAuthBtn.addEventListener('click', async () => {
   }
 });
 
+// Handle sync with website button
+syncWebsiteBtn.addEventListener('click', async () => {
+  try {
+    syncWebsiteBtn.disabled = true;
+    syncWebsiteBtn.textContent = 'Syncing...';
+    hideLoginError();
+    
+    // Try to get authentication data from the main website
+    const websiteUrl = 'https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app';
+    
+    // First, try to get the current tab
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+    
+    if (currentTab && currentTab.url && currentTab.url.includes('bmv-finder')) {
+      // If we're on the BMV Finder website, try to extract auth data
+      try {
+        const results = await chrome.scripting.executeScript({
+          target: { tabId: currentTab.id },
+          func: () => {
+            // Try to get auth data from localStorage or sessionStorage
+            const authData = localStorage.getItem('sb-qrxcfmpdfhvccxyuacsr-auth-token') || 
+                           sessionStorage.getItem('sb-qrxcfmpdfhvccxyuacsr-auth-token') ||
+                           localStorage.getItem('supabase.auth.token') ||
+                           sessionStorage.getItem('supabase.auth.token');
+            
+            if (authData) {
+              try {
+                const parsed = JSON.parse(authData);
+                return parsed;
+              } catch (e) {
+                return { access_token: authData };
+              }
+            }
+            
+            // Try to get from URL hash
+            const hash = window.location.hash;
+            const urlParams = new URLSearchParams(hash.substring(1));
+            const accessToken = urlParams.get('access_token');
+            
+            if (accessToken) {
+              return { access_token: accessToken };
+            }
+            
+            return null;
+          }
+        });
+        
+        if (results && results[0] && results[0].result) {
+          const authData = results[0].result;
+          console.log('Found auth data:', authData);
+          
+          if (authData.access_token) {
+            // Store the token and fetch user data
+            await chrome.storage.local.set({
+              authToken: authData.access_token,
+              isAuthenticated: true,
+              lastUpdated: Date.now()
+            });
+            
+            // Fetch user data
+            const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
+              headers: {
+                'Authorization': `Bearer ${authData.access_token}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (response.ok) {
+              const membershipData = await response.json();
+              console.log('Membership data:', membershipData);
+              
+              // Update user data
+              userData = {
+                isAuthenticated: true,
+                name: membershipData.name || 'User',
+                email: membershipData.email || '',
+                membership: membershipData.membership || 'Free Plan',
+                captureLimit: membershipData.captureLimit || 5,
+                capturedCount: membershipData.capturedCount || 0
+              };
+              
+              // Save to storage
+              await chrome.storage.local.set({
+                userData: userData,
+                isAuthenticated: true,
+                authToken: authData.access_token,
+                lastUpdated: Date.now()
+              });
+              
+              // Update UI
+              updateUserInterface();
+              hideLoginForm();
+              
+              showMessage('Successfully synced with website!', true);
+              return;
+            }
+          }
+        }
+      } catch (scriptError) {
+        console.log('Script execution failed:', scriptError);
+      }
+    }
+    
+    // If we couldn't extract auth data, open the website
+    chrome.tabs.create({ url: websiteUrl });
+    showLoginError('Please sign in on the website that just opened, then return to this extension and click "Check Authentication Status" again.');
+    
+  } catch (error) {
+    console.error('Sync website error:', error);
+    showLoginError('Failed to sync with website. Please try again.');
+  } finally {
+    syncWebsiteBtn.disabled = false;
+    syncWebsiteBtn.textContent = 'Sync with Website';
+  }
+});
+
 // Handle sign-in button click
 signInButton.addEventListener('click', async () => {
   console.log('BMV Finder: Sign-in button clicked');
@@ -793,7 +911,7 @@ signOutButton.addEventListener('click', async () => {
 
 // Handle watchlist link click
 watchlistLink.addEventListener('click', () => {
-          chrome.tabs.create({ url: 'https://bmv-finder-jjl77ey7w-bens-projects-11c93b15.vercel.app/watchlist' });
+          chrome.tabs.create({ url: 'https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 // Initialize the popup
