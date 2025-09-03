@@ -10,7 +10,7 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: #333;
     line-height: 1.5;
-    width: 380px;
+    width: 450px;
     min-height: 600px;
     overflow-x: hidden;
 }
@@ -57,9 +57,9 @@ body {
 /* User Card */
 .user-card {
     background: white;
-    margin: 16px;
+    margin: 20px;
     border-radius: 16px;
-    padding: 20px;
+    padding: 24px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -111,21 +111,22 @@ body {
 
 .user-actions {
     display: flex;
-    gap: 8px;
+    gap: 12px;
+    justify-content: space-between;
 }
 
 .auth-button {
     border: none;
     border-radius: 12px;
-    padding: 10px 16px;
+    padding: 12px 20px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 6px;
-    min-width: 100px;
+    gap: 8px;
+    flex: 1;
     justify-content: center;
 }
 
@@ -159,9 +160,9 @@ body {
 /* Login Form */
 .login-form {
     background: white;
-    margin: 16px;
+    margin: 20px;
     border-radius: 16px;
-    padding: 24px;
+    padding: 28px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -359,9 +360,9 @@ body {
 /* Stats Section */
 .stats-section {
     background: white;
-    margin: 16px;
+    margin: 20px;
     border-radius: 16px;
-    padding: 20px;
+    padding: 24px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -386,7 +387,7 @@ body {
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 20px;
     margin-bottom: 20px;
 }
 
@@ -455,9 +456,9 @@ body {
 /* Properties Section */
 .properties-section {
     background: white;
-    margin: 16px;
+    margin: 20px;
     border-radius: 16px;
-    padding: 20px;
+    padding: 24px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -535,9 +536,9 @@ body {
 
 /* Actions */
 .actions-section {
-    padding: 16px;
+    padding: 20px;
     display: flex;
-    gap: 12px;
+    gap: 16px;
 }
 
 .action-button {
