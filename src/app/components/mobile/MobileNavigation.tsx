@@ -1,326 +1,508 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   Home, 
-  Building2, 
-  TrendingUp, 
   Search, 
+  Star, 
+  Building2, 
   BarChart3, 
-  Star,
-  Menu,
-  X,
-  User,
+  TrendingUp, 
+  Menu, 
+  X, 
+  User, 
   LogOut,
   Bell,
   Settings,
-  ChevronDown,
-  ChevronUp
+  ChevronDown
 } from 'lucide-react';
-import { useMockAuth } from '../MockAuthProvider';
-import { useHybridAuth } from '@/lib/auth/hybridAuth';
-import { useMobileOptimization } from '@/lib/pwa/mobileOptimizer';
-import ThemeToggle from '../ThemeToggle';
+import { mobileOptimizer } from '@/lib/mobile/mobileOptimizer';
+import TouchGestureHandler from './TouchGestureHandler';
 
 interface MobileNavigationProps {
-  className?: string;
+  user?: any;
+  onSignOut?: () => void;
 }
 
-export default function MobileNavigation({ className = '' }: MobileNavigationProps) {
+export default function MobileNavigation({ user, onSignOut }: MobileNavigationProps) {
+  const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const { user, logout } = useMockAuth();
-  const hybridAuth = useHybridAuth();
-  const { isMobile, triggerHapticFeedback } = useMobileOptimization();
+  const [deviceInfo, setDeviceInfo] = useState<any>(null);
 
-  const currentUser = hybridAuth.user || user;
-  const isRealAuth = hybridAuth.isRealAuth;
-
-  // Navigation items
-  const navigation = [
-    { name: 'Home', href: '/', icon: Home },
-    { name: 'Search', href: '/search/properties', icon: Search },
-    { name: 'Portfolio', href: '/tools/portfolio', icon: Building2 },
-    { name: 'Analytics', href: '/tools/portfolio/analytics', icon: BarChart3 },
-    { name: 'Watchlist', href: '/watchlist', icon: Star },
-    { name: 'Market', href: '/market/analysis', icon: TrendingUp },
-  ];
-
-  // Handle scroll for sticky header
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    setDeviceInfo(mobileOptimizer.getDeviceInfo());
   }, []);
 
-  // Handle menu toggle with haptic feedback
-  const toggleMenu = () => {
-    triggerHapticFeedback('light');
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const navigation = [
+    { name: 'Home', href: '/', icon: Home, tourId: 'home-link' },
+    { name: 'Search', href: '/search/properties', icon: Search, tourId: 'search-link' },
+    { name: 'Watchlist', href: '/watchlist', icon: Star, tourId: 'watchlist' },
+    { name: 'Portfolio', href: '/tools/portfolio', icon: Building2, tourId: 'portfolio-link' },
+    { name: 'Analysis', href: '/analysis/deal-analysis', icon: BarChart3, tourId: 'deal-analysis' },
+    { name: 'Trends', href: '/market/analysis', icon: TrendingUp, tourId: 'market-analysis' },
+  ];
 
-  const toggleUserMenu = () => {
-    triggerHapticFeedback('light');
-    setIsUserMenuOpen(!isUserMenuOpen);
-  };
-
-  // Close menus when route changes
-  useEffect(() => {
+  const handleNavigation = (href: string) => {
+    router.push(href);
     setIsMenuOpen(false);
     setIsUserMenuOpen(false);
-  }, [pathname]);
+    
+    // Trigger haptic feedback
+    mobileOptimizer.triggerHapticFeedback('light');
+  };
 
-  // Close menus when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as Element;
-      if (!target.closest('.mobile-nav')) {
-        setIsMenuOpen(false);
-        setIsUserMenuOpen(false);
-      }
-    };
+  const handleSignOut = () => {
+    onSignOut?.();
+    setIsMenuOpen(false);
+    setIsUserMenuOpen(false);
+    
+    // Trigger haptic feedback
+    mobileOptimizer.triggerHapticFeedback('medium');
+  };
 
-    if (isMenuOpen || isUserMenuOpen) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+  const handleSwipeLeft = () => {
+    if (isMenuOpen) {
+      setIsMenuOpen(false);
     }
-  }, [isMenuOpen, isUserMenuOpen]);
+  };
 
-  if (!isMobile) {
-    return null; // Only render on mobile devices
+  const handleSwipeRight = () => {
+    if (!isMenuOpen) {
+      setIsMenuOpen(true);
+    }
+  };
+
+  const isActive = (href: string) => {
+    if (href === '/') {
+      return pathname === '/';
+    }
+    return pathname.startsWith(href);
+  };
+
+  if (!deviceInfo?.isMobile && !deviceInfo?.isTablet) {
+    return null; // Don't render on desktop
   }
 
   return (
-    <div className={`mobile-nav fixed top-0 left-0 right-0 z-50 ${className}`}>
-      {/* Main Navigation Bar */}
-      <div className={`bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700 transition-all duration-200 ${
-        isScrolled ? 'shadow-lg' : 'shadow-sm'
-      }`}>
-        <div className="px-4 py-3">
-          <div className="flex items-center justify-between">
-            {/* Logo/Brand */}
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-lg font-bold text-gray-900 dark:text-white">
-                BMV Finder
-              </span>
-            </div>
+    <TouchGestureHandler
+      onSwipeLeft={handleSwipeLeft}
+      onSwipeRight={handleSwipeRight}
+      className="mobile-navigation-container"
+    >
+      {/* Mobile Header */}
+      <div className="mobile-header">
+        <div className="mobile-header-content">
+          <button
+            className="mobile-menu-button"
+            onClick={() => {
+              setIsMenuOpen(!isMenuOpen);
+              mobileOptimizer.triggerHapticFeedback('light');
+            }}
+            aria-label="Toggle menu"
+          >
+            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
 
-            {/* Right Side Actions */}
-            <div className="flex items-center space-x-2">
-              {/* Theme Toggle */}
-              <ThemeToggle />
-              
-              {/* Notifications */}
-              <button
-                onClick={() => triggerHapticFeedback('light')}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <Bell className="w-5 h-5" />
-              </button>
+          <div className="mobile-logo">
+            <h1 className="text-xl font-bold text-gray-900">BMV Finder</h1>
+          </div>
 
-              {/* User Menu */}
-              {currentUser ? (
-                <div className="relative">
-                  <button
-                    onClick={toggleUserMenu}
-                    className="flex items-center space-x-2 p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                  >
-                    <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center">
-                      <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
-                        {currentUser.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    {isUserMenuOpen ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                  </button>
+          <div className="mobile-header-actions">
+            {user ? (
+              <div className="relative">
+                <button
+                  className="mobile-user-button"
+                  onClick={() => {
+                    setIsUserMenuOpen(!isUserMenuOpen);
+                    mobileOptimizer.triggerHapticFeedback('light');
+                  }}
+                  aria-label="User menu"
+                >
+                  <User size={20} />
+                  <ChevronDown size={16} className={`transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
 
-                  {/* User Dropdown */}
-                  {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1">
-                      <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">
-                          {currentUser.name}
-                          {isRealAuth && (
-                            <span className="ml-1 text-xs text-green-600 dark:text-green-400">●</span>
-                          )}
-                        </p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {currentUser.email}
-                        </p>
+                {/* User Dropdown */}
+                {isUserMenuOpen && (
+                  <div className="mobile-user-dropdown">
+                    <div className="mobile-user-info">
+                      <div className="text-sm font-medium text-gray-900">
+                        {user.name || user.email}
                       </div>
-                      <a
-                        href="/account"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <User className="w-4 h-4 mr-3" />
-                        Account
-                      </a>
-                      <a
-                        href="/settings"
-                        className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        <Settings className="w-4 h-4 mr-3" />
-                        Settings
-                      </a>
+                      <div className="text-xs text-gray-500">
+                        {user.tier || 'Free'} Plan
+                      </div>
+                    </div>
+                    
+                    <div className="mobile-user-menu">
                       <button
-                        onClick={() => {
-                          triggerHapticFeedback('medium');
-                          isRealAuth ? hybridAuth.signOut() : logout();
-                        }}
-                        className="flex items-center w-full px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        className="mobile-user-menu-item"
+                        onClick={() => handleNavigation('/profile')}
                       >
-                        <LogOut className="w-4 h-4 mr-3" />
+                        <User size={16} />
+                        Profile
+                      </button>
+                      <button
+                        className="mobile-user-menu-item"
+                        onClick={() => handleNavigation('/account')}
+                      >
+                        <Settings size={16} />
+                        Account
+                      </button>
+                      <button
+                        className="mobile-user-menu-item"
+                        onClick={() => handleNavigation('/notifications')}
+                      >
+                        <Bell size={16} />
+                        Notifications
+                      </button>
+                      <hr className="mobile-user-menu-divider" />
+                      <button
+                        className="mobile-user-menu-item text-red-600"
+                        onClick={handleSignOut}
+                      >
+                        <LogOut size={16} />
                         Sign Out
                       </button>
                     </div>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => triggerHapticFeedback('light')}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  Sign In
-                </button>
-              )}
-
-              {/* Menu Toggle */}
-              <button
-                onClick={toggleMenu}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                {isMenuOpen ? (
-                  <X className="w-5 h-5" />
-                ) : (
-                  <Menu className="w-5 h-5" />
+                  </div>
                 )}
+              </div>
+            ) : (
+              <button
+                className="mobile-signin-button"
+                onClick={() => {
+                  handleNavigation('/login');
+                  mobileOptimizer.triggerHapticFeedback('light');
+                }}
+              >
+                Sign In
               </button>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Mobile Menu Overlay */}
       {isMenuOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40" onClick={() => setIsMenuOpen(false)}>
-          <div className="fixed top-0 right-0 h-full w-80 bg-white dark:bg-gray-900 shadow-xl transform transition-transform duration-300 ease-in-out">
-            <div className="flex flex-col h-full">
-              {/* Menu Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Menu
-                </h2>
+        <div className="mobile-menu-overlay">
+          <div className="mobile-menu-content">
+            <div className="mobile-menu-header">
+              <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
+              <button
+                className="mobile-menu-close"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  mobileOptimizer.triggerHapticFeedback('light');
+                }}
+                aria-label="Close menu"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <nav className="mobile-menu-nav">
+              {navigation.map((item) => (
                 <button
-                  onClick={() => setIsMenuOpen(false)}
-                  className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                  key={item.name}
+                  className={`mobile-menu-item ${isActive(item.href) ? 'active' : ''}`}
+                  onClick={() => handleNavigation(item.href)}
                 >
-                  <X className="w-5 h-5" />
+                  <item.icon size={20} />
+                  <span>{item.name}</span>
+                  {isActive(item.href) && (
+                    <div className="mobile-menu-item-indicator" />
+                  )}
                 </button>
-              </div>
+              ))}
+            </nav>
 
-              {/* Navigation Links */}
-              <div className="flex-1 overflow-y-auto">
-                <nav className="p-4">
-                  <div className="space-y-2">
-                    {navigation.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = pathname === item.href;
-                      
-                      return (
-                        <a
-                          key={item.name}
-                          href={item.href}
-                          onClick={() => {
-                            triggerHapticFeedback('light');
-                            setIsMenuOpen(false);
-                          }}
-                          className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                            isActive
-                              ? 'bg-blue-100 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400'
-                              : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                          }`}
-                        >
-                          <Icon className="w-5 h-5" />
-                          <span className="font-medium">{item.name}</span>
-                        </a>
-                      );
-                    })}
-                  </div>
-                </nav>
-
-                {/* Additional Mobile Features */}
-                <div className="px-4 py-4 border-t border-gray-200 dark:border-gray-700">
-                  <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">
-                    Quick Actions
-                  </h3>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => {
-                        triggerHapticFeedback('light');
-                        // Add to home screen
-                        if ('serviceWorker' in navigator) {
-                          // Trigger PWA install prompt
-                          console.log('PWA install requested');
-                        }
-                      }}
-                      className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    >
-                      <div className="w-5 h-5 bg-green-100 dark:bg-green-900/20 rounded flex items-center justify-center">
-                        <span className="text-green-600 dark:text-green-400 text-xs">📱</span>
-                      </div>
-                      <span className="font-medium">Add to Home Screen</span>
-                    </button>
-                    
-                    <button
-                      onClick={() => {
-                        triggerHapticFeedback('light');
-                        // Share app
-                        if (navigator.share) {
-                          navigator.share({
-                            title: 'BMV Finder',
-                            text: 'Check out this property investment platform',
-                            url: window.location.origin,
-                          });
-                        }
-                      }}
-                      className="flex items-center space-x-3 w-full px-4 py-3 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    >
-                      <div className="w-5 h-5 bg-blue-100 dark:bg-blue-900/20 rounded flex items-center justify-center">
-                        <span className="text-blue-600 dark:text-blue-400 text-xs">📤</span>
-                      </div>
-                      <span className="font-medium">Share App</span>
-                    </button>
-                  </div>
+            <div className="mobile-menu-footer">
+              <div className="mobile-menu-stats">
+                <div className="mobile-menu-stat">
+                  <span className="text-sm text-gray-500">Properties</span>
+                  <span className="text-lg font-semibold text-gray-900">1,234</span>
                 </div>
-              </div>
-
-              {/* Menu Footer */}
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-                <div className="text-center">
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    BMV Finder v1.0.0
-                  </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Professional Property Investment Platform
-                  </p>
+                <div className="mobile-menu-stat">
+                  <span className="text-sm text-gray-500">Saved</span>
+                  <span className="text-lg font-semibold text-gray-900">12</span>
                 </div>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Bottom Navigation (for mobile) */}
+      {deviceInfo?.isMobile && (
+        <div className="mobile-bottom-nav">
+          {navigation.slice(0, 5).map((item) => (
+            <button
+              key={item.name}
+              className={`mobile-bottom-nav-item ${isActive(item.href) ? 'active' : ''}`}
+              onClick={() => handleNavigation(item.href)}
+            >
+              <item.icon size={20} />
+              <span className="text-xs">{item.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <style jsx>{`
+        .mobile-navigation-container {
+          position: relative;
+          z-index: 50;
+        }
+
+        .mobile-header {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          background: white;
+          border-bottom: 1px solid #e5e7eb;
+          z-index: 40;
+          padding: 0 16px;
+          height: 60px;
+        }
+
+        .mobile-header-content {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          height: 100%;
+          max-width: 100%;
+        }
+
+        .mobile-menu-button,
+        .mobile-user-button,
+        .mobile-signin-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          border-radius: 8px;
+          background: transparent;
+          border: none;
+          color: #374151;
+          transition: all 0.2s ease;
+        }
+
+        .mobile-menu-button:hover,
+        .mobile-user-button:hover,
+        .mobile-signin-button:hover {
+          background: #f3f4f6;
+        }
+
+        .mobile-user-button {
+          gap: 4px;
+        }
+
+        .mobile-signin-button {
+          background: #3b82f6;
+          color: white;
+          padding: 8px 16px;
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .mobile-signin-button:hover {
+          background: #2563eb;
+        }
+
+        .mobile-logo h1 {
+          color: #1f2937;
+        }
+
+        .mobile-user-dropdown {
+          position: absolute;
+          top: 100%;
+          right: 0;
+          margin-top: 8px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 12px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+          min-width: 200px;
+          z-index: 50;
+        }
+
+        .mobile-user-info {
+          padding: 16px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .mobile-user-menu {
+          padding: 8px 0;
+        }
+
+        .mobile-user-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          width: 100%;
+          padding: 12px 16px;
+          background: transparent;
+          border: none;
+          text-align: left;
+          color: #374151;
+          font-size: 14px;
+          transition: background-color 0.2s ease;
+        }
+
+        .mobile-user-menu-item:hover {
+          background: #f3f4f6;
+        }
+
+        .mobile-user-menu-divider {
+          margin: 8px 0;
+          border: none;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .mobile-menu-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 45;
+          display: flex;
+          align-items: flex-start;
+          justify-content: flex-start;
+        }
+
+        .mobile-menu-content {
+          background: white;
+          width: 280px;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .mobile-menu-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 16px;
+          border-bottom: 1px solid #e5e7eb;
+        }
+
+        .mobile-menu-close {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px;
+          border-radius: 8px;
+          background: transparent;
+          border: none;
+          color: #374151;
+        }
+
+        .mobile-menu-nav {
+          flex: 1;
+          padding: 16px 0;
+        }
+
+        .mobile-menu-item {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          width: 100%;
+          padding: 16px 20px;
+          background: transparent;
+          border: none;
+          text-align: left;
+          color: #374151;
+          font-size: 16px;
+          font-weight: 500;
+          transition: all 0.2s ease;
+          position: relative;
+        }
+
+        .mobile-menu-item:hover {
+          background: #f3f4f6;
+        }
+
+        .mobile-menu-item.active {
+          color: #3b82f6;
+          background: #eff6ff;
+        }
+
+        .mobile-menu-item-indicator {
+          position: absolute;
+          left: 0;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 4px;
+          height: 24px;
+          background: #3b82f6;
+          border-radius: 0 2px 2px 0;
+        }
+
+        .mobile-menu-footer {
+          padding: 20px 16px;
+          border-top: 1px solid #e5e7eb;
+        }
+
+        .mobile-menu-stats {
+          display: flex;
+          gap: 24px;
+        }
+
+        .mobile-menu-stat {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+        }
+
+        .mobile-bottom-nav {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: white;
+          border-top: 1px solid #e5e7eb;
+          display: flex;
+          justify-content: space-around;
+          padding: 8px 0;
+          z-index: 40;
+        }
+
+        .mobile-bottom-nav-item {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          padding: 8px 12px;
+          background: transparent;
+          border: none;
+          color: #6b7280;
+          transition: color 0.2s ease;
+        }
+
+        .mobile-bottom-nav-item.active {
+          color: #3b82f6;
+        }
+
+        /* Add top padding to body when mobile header is present */
+        body {
+          padding-top: 60px;
+        }
+
+        /* Add bottom padding when bottom nav is present */
+        @media (max-width: 768px) {
+          body {
+            padding-bottom: 80px;
+          }
+        }
+      `}</style>
+    </TouchGestureHandler>
   );
 }
