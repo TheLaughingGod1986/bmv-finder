@@ -2,7 +2,7 @@
 console.log('BMV Finder: Popup script loaded');
 
 // API base URL
-const API_BASE_URL = 'https://bmv-finder-c8b2aqwqs-bens-projects-11c93b15.vercel.app/api';
+const API_BASE_URL = 'https://bmv-finder-4r3k59vos-bens-projects-11c93b15.vercel.app/api';
 
 // DOM elements
 const propertyCount = document.getElementById('property-count');
@@ -216,7 +216,7 @@ async function signInWithEmail(email, password) {
 
 // Sign in with Google (opens website)
 function signInWithGoogle() {
-  const syncUrl = 'https://bmv-finder-c8b2aqwqs-bens-projects-11c93b15.vercel.app/extension-sync';
+  const syncUrl = 'https://bmv-finder-4r3k59vos-bens-projects-11c93b15.vercel.app/extension-sync';
   chrome.tabs.create({ url: syncUrl });
   
   // Show instructions
@@ -526,7 +526,7 @@ checkAuthBtn.addEventListener('click', async () => {
 });
 
 syncWebsiteBtn.addEventListener('click', () => {
-  const syncUrl = 'https://bmv-finder-c8b2aqwqs-bens-projects-11c93b15.vercel.app/extension-sync';
+  const syncUrl = 'https://bmv-finder-4r3k59vos-bens-projects-11c93b15.vercel.app/extension-sync';
   chrome.tabs.create({ url: syncUrl });
   showLoginError('Please sign in on the website that just opened, then return to this extension and click "Check Authentication Status".');
 });
@@ -557,7 +557,7 @@ clearAllButton.addEventListener('click', async () => {
 });
 
 watchlistLink.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://bmv-finder-c8b2aqwqs-bens-projects-11c93b15.vercel.app/watchlist' });
+  chrome.tabs.create({ url: 'https://bmv-finder-4r3k59vos-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 syncToWebsiteBtn.addEventListener('click', async () => {
@@ -573,7 +573,7 @@ syncToWebsiteBtn.addEventListener('click', async () => {
     }
     
     // Open the website with the auth token
-    const websiteUrl = `https://bmv-finder-c8b2aqwqs-bens-projects-11c93b15.vercel.app/auth/extension?auth_token=${encodeURIComponent(result.authToken)}`;
+    const websiteUrl = `https://bmv-finder-4r3k59vos-bens-projects-11c93b15.vercel.app/auth/extension?auth_token=${encodeURIComponent(result.authToken)}`;
     chrome.tabs.create({ url: websiteUrl });
     
     // Show success message
