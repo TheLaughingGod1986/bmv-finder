@@ -1,104 +1,105 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { webhookManager } from '@/lib/webhookManager';
+import { requireAuth } from '@/middleware/auth';
+import { webhookManager } from '@/lib/integrations/webhookManager';
 
-export async function GET(request: NextRequest) {
+// GET /api/webhooks - Get webhook handlers and statistics
+export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
+    // Check if user has admin permissions
+    if (!user || user.role?.id !== 'admin') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const action = searchParams.get('action');
+    const type = searchParams.get('type');
 
-    switch (action) {
-      case 'status':
-        const status = webhookManager.getWebhookStatus();
-        return NextResponse.json({
-          success: true,
-          data: status,
-          timestamp: new Date().toISOString()
-        });
+    if (type === 'handlers') {
+      const handlers = webhookManager.getHandlerStats();
+      return NextResponse.json({
+        success: true,
+        handlers
+      });
+    } else if (type === 'requests') {
+      const limit = parseInt(searchParams.get('limit') || '100');
+      const requests = webhookManager.getWebhookRequests(limit);
+      return NextResponse.json({
+        success: true,
+        requests
+      });
+    } else if (type === 'metrics') {
+      const metrics = webhookManager.getWebhookMetrics();
+      return NextResponse.json({
+        success: true,
+        metrics
+      });
+    } else if (type === 'event-types') {
+      const eventTypes = webhookManager.getSupportedEventTypes();
+      return NextResponse.json({
+        success: true,
+        eventTypes
+      });
+    } else {
+      // Return all webhook data
+      const handlers = webhookManager.getHandlerStats();
+      const requests = webhookManager.getWebhookRequests(50);
+      const metrics = webhookManager.getWebhookMetrics();
+      const eventTypes = webhookManager.getSupportedEventTypes();
 
-      case 'stats':
-        const stats = webhookManager.getDeliveryStats();
-        return NextResponse.json({
-          success: true,
-          data: stats,
-          timestamp: new Date().toISOString()
-        });
-
-      default:
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid action. Supported actions: status, stats'
-        }, { status: 400 });
+      return NextResponse.json({
+        success: true,
+        handlers,
+        requests,
+        metrics,
+        eventTypes
+      });
     }
-
-  } catch (error: any) {
-    console.error('Webhook API error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Internal server error',
-      details: error.message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+  } catch (error) {
+    console.error('Error fetching webhook data:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+// POST /api/webhooks - Register new webhook handler
+export const POST = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    const body = await request.json();
-    const { action, webhookId, event } = body;
-
-    switch (action) {
-      case 'emit':
-        if (!event) {
-          return NextResponse.json({
-            success: false,
-            error: 'Event data is required'
-          }, { status: 400 });
-        }
-
-        await webhookManager.emitEvent(event);
-        return NextResponse.json({
-          success: true,
-          message: 'Event emitted successfully',
-          timestamp: new Date().toISOString()
-        });
-
-      case 'test':
-        if (!webhookId) {
-          return NextResponse.json({
-            success: false,
-            error: 'Webhook ID is required'
-          }, { status: 400 });
-        }
-
-        const testResult = await webhookManager.testWebhook(webhookId);
-        return NextResponse.json({
-          success: true,
-          data: testResult,
-          timestamp: new Date().toISOString()
-        });
-
-      case 'retry':
-        const retried = await webhookManager.retryFailedDeliveries();
-        return NextResponse.json({
-          success: true,
-          message: `Retried ${retried} failed deliveries`,
-          timestamp: new Date().toISOString()
-        });
-
-      default:
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid action. Supported actions: emit, test, retry'
-        }, { status: 400 });
+    // Check if user has admin permissions
+    if (!user || user.role?.id !== 'admin') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-  } catch (error: any) {
-    console.error('Webhook API error:', error);
+    const { name, eventTypes, handler } = await request.json();
+
+    if (!name || !eventTypes || !Array.isArray(eventTypes)) {
+      return NextResponse.json(
+        { error: 'Name and eventTypes are required' },
+        { status: 400 }
+      );
+    }
+
+    // Note: In a real implementation, you would need to handle the handler function
+    // This is a simplified version for demonstration
+    const handlerId = await webhookManager.registerHandler(
+      name,
+      eventTypes,
+      async (payload, headers) => {
+        // Default handler implementation
+        console.log('Processing webhook:', { name, eventTypes, payload, headers });
+        return { success: true, response: { message: 'Webhook processed' } };
+      }
+    );
+
     return NextResponse.json({
-      success: false,
-      error: 'Operation failed',
-      details: error.message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+      success: true,
+      handlerId
+    });
+  } catch (error) {
+    console.error('Error registering webhook handler:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-}
+});

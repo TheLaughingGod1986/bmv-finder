@@ -1,119 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { integrationManager } from '@/lib/integrationManager';
+import { requireAuth } from '@/middleware/auth';
+import { integrationManager } from '@/lib/integrations/integrationManager';
 
-export async function GET(request: NextRequest) {
+// GET /api/integrations - Get all integrations
+export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
+    // Check if user has admin permissions
+    if (!user || user.role?.id !== 'admin') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const action = searchParams.get('action');
-    const integration = searchParams.get('integration');
+    const type = searchParams.get('type') as any;
+    const activeOnly = searchParams.get('activeOnly') === 'true';
 
-    switch (action) {
-      case 'status':
-        const status = integrationManager.getIntegrationStatus();
-        return NextResponse.json({
-          success: true,
-          data: status,
-          timestamp: new Date().toISOString()
-        });
-
-      case 'metrics':
-        const metrics = integrationManager.getMetrics(integration || undefined);
-        return NextResponse.json({
-          success: true,
-          data: metrics,
-          timestamp: new Date().toISOString()
-        });
-
-      case 'test':
-        if (!integration) {
-          return NextResponse.json({
-            success: false,
-            error: 'Integration name required for test action'
-          }, { status: 400 });
-        }
-
-        const testResult = await integrationManager.testIntegration(integration);
-        return NextResponse.json({
-          success: true,
-          data: testResult,
-          timestamp: new Date().toISOString()
-        });
-
-      default:
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid action. Supported actions: status, metrics, test'
-        }, { status: 400 });
+    let integrations;
+    if (type) {
+      integrations = integrationManager.getIntegrationsByType(type);
+    } else if (activeOnly) {
+      integrations = integrationManager.getActiveIntegrations();
+    } else {
+      integrations = Array.from(integrationManager['integrations'].values());
     }
 
-  } catch (error: any) {
-    console.error('Integration API error:', error);
     return NextResponse.json({
-      success: false,
-      error: 'Internal server error',
-      details: error.message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { integration, endpoint, params, options } = body;
-
-    if (!integration || !endpoint) {
-      return NextResponse.json({
-        success: false,
-        error: 'Integration name and endpoint are required'
-      }, { status: 400 });
-    }
-
-    const result = await integrationManager.makeRequest(integration, endpoint, {
-      params,
-      ...options
+      success: true,
+      integrations
     });
-
-    return NextResponse.json(result);
-
-  } catch (error: any) {
-    console.error('Integration request error:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Request failed',
-      details: error.message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+  } catch (error) {
+    console.error('Error fetching integrations:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-}
+});
 
-export async function DELETE(request: NextRequest) {
+// POST /api/integrations - Create new integration
+export const POST = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    const { searchParams } = new URL(request.url);
-    const integration = searchParams.get('integration');
-    const action = searchParams.get('action');
-
-    if (action === 'cache' && integration) {
-      await integrationManager.clearCache(integration);
-      return NextResponse.json({
-        success: true,
-        message: `Cache cleared for ${integration}`,
-        timestamp: new Date().toISOString()
-      });
+    // Check if user has admin permissions
+    if (!user || user.role?.id !== 'admin') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    return NextResponse.json({
-      success: false,
-      error: 'Invalid action for DELETE request'
-    }, { status: 400 });
+    const integrationData = await request.json();
 
-  } catch (error: any) {
-    console.error('Integration delete error:', error);
+    if (!integrationData.name || !integrationData.type || !integrationData.provider) {
+      return NextResponse.json(
+        { error: 'Name, type, and provider are required' },
+        { status: 400 }
+      );
+    }
+
+    const integration = await integrationManager.createIntegration(integrationData);
+
     return NextResponse.json({
-      success: false,
-      error: 'Operation failed',
-      details: error.message,
-      timestamp: new Date().toISOString()
-    }, { status: 500 });
+      success: true,
+      integration
+    });
+  } catch (error) {
+    console.error('Error creating integration:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-}
+});
