@@ -30,32 +30,88 @@ function ExtensionAuthContent() {
       if (user) {
         // User is authenticated via hybrid auth
         
-        // Create user data for extension
-        const userData = {
-          isAuthenticated: true,
-          name: user.name,
-          email: user.email,
-          membership: 'Free Plan',
-          captureLimit: 5,
-          capturedCount: 0
-        };
+        // Get the current Supabase session for the token
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        // If we have extension callback, redirect with mock data
-        if (extensionCallback) {
-          const encodedUserData = encodeURIComponent(JSON.stringify(userData));
-          const redirectUrl = `${extensionCallback}?userData=${encodedUserData}&mockAuth=${!isSupabaseAvailable}`;
-          
-          setStatus('success');
-          setMessage('Authentication successful! Redirecting to extension...');
-          
-          setTimeout(() => {
-            window.location.href = redirectUrl;
-          }, 1500);
-        } else {
-          setStatus('success');
-          setMessage('You are signed in! Return to the extension to capture properties.');
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
         }
-        return;
+        
+        // Fetch real membership data from API
+        try {
+          const membershipResponse = await fetch('/api/user/membership', {
+            headers: {
+              'Authorization': `Bearer ${session?.access_token || ''}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          let membershipData = {
+            membership: 'Free Plan',
+            captureLimit: 5,
+            capturedCount: 0
+          };
+          
+          if (membershipResponse.ok) {
+            const apiData = await membershipResponse.json();
+            membershipData = {
+              membership: apiData.membership || 'Free Plan',
+              captureLimit: apiData.captureLimit || 5,
+              capturedCount: apiData.capturedCount || 0
+            };
+          }
+          
+          // Create user data for extension with real membership data
+          const userData = {
+            isAuthenticated: true,
+            name: user.name,
+            email: user.email,
+            ...membershipData
+          };
+          
+          // If we have extension callback, redirect with real data
+          if (extensionCallback) {
+            const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+            const tokenParam = session?.access_token ? `&token=${encodeURIComponent(session.access_token)}` : '';
+            const redirectUrl = `${extensionCallback}?userData=${encodedUserData}&mockAuth=${!isSupabaseAvailable}${tokenParam}`;
+            
+            setStatus('success');
+            setMessage('Authentication successful! Redirecting to extension...');
+            
+            setTimeout(() => {
+              window.location.href = redirectUrl;
+            }, 1500);
+          } else {
+            setStatus('success');
+            setMessage('You are signed in! Return to the extension to capture properties.');
+          }
+          return;
+        } catch (error) {
+          console.error('Error fetching membership data:', error);
+          // Fallback to basic user data
+          const userData = {
+            isAuthenticated: true,
+            name: user.name,
+            email: user.email,
+            membership: 'Free Plan',
+            captureLimit: 5,
+            capturedCount: 0
+          };
+          
+          if (extensionCallback) {
+            const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+            const tokenParam = session?.access_token ? `&token=${encodeURIComponent(session.access_token)}` : '';
+            const redirectUrl = `${extensionCallback}?userData=${encodedUserData}&mockAuth=${!isSupabaseAvailable}${tokenParam}`;
+            
+            setStatus('success');
+            setMessage('Authentication successful! Redirecting to extension...');
+            
+            setTimeout(() => {
+              window.location.href = redirectUrl;
+            }, 1500);
+          }
+          return;
+        }
       }
       
       // If no user is authenticated via hybrid auth, show error

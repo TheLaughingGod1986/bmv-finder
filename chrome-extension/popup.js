@@ -60,6 +60,11 @@ function handleAuthCallback() {
         updateUserInterface();
         loadCapturedProperties();
         
+        // Refresh membership data from API if we have a token and it's not mock auth
+        if (token && mockAuth !== 'true') {
+          refreshMembershipData(token);
+        }
+        
         // Clear the URL parameters
         const cleanUrl = window.location.pathname;
         window.history.replaceState({}, document.title, cleanUrl);
@@ -85,6 +90,48 @@ async function saveUserData() {
     });
   } catch (error) {
     console.error('Error saving user data:', error);
+  }
+}
+
+// Refresh membership data from API
+async function refreshMembershipData(authToken) {
+  try {
+    console.log('BMV Finder: Refreshing membership data from API');
+    
+    const response = await fetch('https://bmv-finder-bum0a81tk-bens-projects-11c93b15.vercel.app/api/user/membership', {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const membershipData = await response.json();
+      
+      // Update user data with fresh membership info
+      userData = {
+        ...userData,
+        membership: membershipData.membership || userData.membership,
+        captureLimit: membershipData.captureLimit || userData.captureLimit,
+        capturedCount: membershipData.capturedCount || userData.capturedCount
+      };
+      
+      // Save updated data to storage
+      await chrome.storage.local.set({
+        userData: userData,
+        isAuthenticated: true,
+        lastUpdated: Date.now()
+      });
+      
+      // Update UI with fresh data
+      updateUserInterface();
+      
+      console.log('BMV Finder: Membership data refreshed successfully');
+    } else {
+      console.warn('BMV Finder: Failed to refresh membership data, using cached data');
+    }
+  } catch (error) {
+    console.error('BMV Finder: Error refreshing membership data:', error);
   }
 }
 
@@ -144,10 +191,19 @@ async function loadUserData() {
           ...authResult.userData,
           isAuthenticated: true
         };
+        
+        // Check if we should refresh membership data (every 5 minutes)
+        const lastUpdated = authResult.lastUpdated || 0;
+        const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+        
+        if (lastUpdated < fiveMinutesAgo) {
+          console.log('BMV Finder: Refreshing stale membership data');
+          refreshMembershipData(authResult.authToken);
+        }
       } else {
         // Try to validate the token with the main application
         try {
-          const response = await fetch('https://bmv-finder-mhczb2p98-bens-projects-11c93b15.vercel.app/api/user/membership', {
+          const response = await fetch('https://bmv-finder-bum0a81tk-bens-projects-11c93b15.vercel.app/api/user/membership', {
             headers: {
               'Authorization': `Bearer ${authResult.authToken}`,
               'Content-Type': 'application/json'
@@ -359,7 +415,7 @@ function showUpgradePrompt() {
                 color: #333; 
                 font-size: 12px;">
       <strong>🚀 Upgrade to capture more properties!</strong><br>
-              <a href="https://bmv-finder-mhczb2p98-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
+              <a href="https://bmv-finder-bum0a81tk-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
          style="color: #3A7CA5; text-decoration: none; font-weight: bold;">
         View Plans →
       </a>
@@ -478,7 +534,7 @@ signInButton.addEventListener('click', async () => {
     // Open sign-in page in new tab with your live deployment URL
     // Include a callback parameter to return to the extension
     const callbackUrl = chrome.runtime.getURL('popup.html');
-            const authUrl = `https://bmv-finder-mhczb2p98-bens-projects-11c93b15.vercel.app/extension-auth?extension_callback=${encodeURIComponent(callbackUrl)}`;
+            const authUrl = `https://bmv-finder-bum0a81tk-bens-projects-11c93b15.vercel.app/extension-auth?extension_callback=${encodeURIComponent(callbackUrl)}`;
     
     console.log('BMV Finder: Opening auth URL:', authUrl);
     chrome.tabs.create({ url: authUrl });
@@ -508,7 +564,7 @@ signOutButton.addEventListener('click', async () => {
 
 // Handle watchlist link click
 watchlistLink.addEventListener('click', () => {
-          chrome.tabs.create({ url: 'https://bmv-finder-mhczb2p98-bens-projects-11c93b15.vercel.app/watchlist' });
+          chrome.tabs.create({ url: 'https://bmv-finder-bum0a81tk-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 // Initialize the popup
