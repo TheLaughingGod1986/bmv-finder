@@ -42,6 +42,7 @@ function GoogleAuthContent() {
             const encodedUserData = encodeURIComponent(JSON.stringify(userData));
             const redirectUrl = `${returnTo}?userData=${encodedUserData}&token=${encodeURIComponent(session.access_token)}`;
             
+            console.log('Redirecting to extension:', redirectUrl);
             window.location.href = redirectUrl;
           } else {
             // No return URL, redirect to main app
