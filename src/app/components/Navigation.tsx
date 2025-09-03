@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Building2, TrendingUp, Search, BarChart3, Star, Menu, X, User, LogOut, BookOpen } from 'lucide-react';
+import { Home, Building2, TrendingUp, Search, BarChart3, Star, Menu, X, User, LogOut, BookOpen, Settings } from 'lucide-react';
 import AuthModal from './AuthModal';
 import EnhancedAuthModal from './EnhancedAuthModal';
 import { useMockAuth } from './MockAuthProvider';
@@ -80,10 +80,17 @@ export default function Navigation() {
                         </span>
                       </div>
                       <Link
-                        href="/account"
+                        href="/profile"
                         className="flex items-center px-4 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
                       >
                         <User className="h-4 w-4 mr-2" />
+                        Profile
+                      </Link>
+                      <Link
+                        href="/account"
+                        className="flex items-center px-4 py-2 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-200 hover:scale-105"
+                      >
+                        <Settings className="h-4 w-4 mr-2" />
                         Account
                       </Link>
                       <button 
