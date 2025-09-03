@@ -111,23 +111,25 @@ body {
 
 .user-actions {
     display: flex;
-    gap: 12px;
+    gap: 8px;
     justify-content: space-between;
+    margin-bottom: 12px;
 }
 
 .auth-button {
     border: none;
-    border-radius: 12px;
-    padding: 12px 20px;
-    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 12px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex: 1;
     justify-content: center;
+    min-width: 0;
 }
 
 .auth-button.signed-in {
@@ -154,7 +156,8 @@ body {
 }
 
 .auth-icon {
-    font-size: 16px;
+    font-size: 14px;
+    flex-shrink: 0;
 }
 
 /* Sync to Website */
@@ -167,16 +170,16 @@ body {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
-    border-radius: 12px;
-    padding: 12px 16px;
-    font-size: 14px;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
@@ -415,55 +418,66 @@ body {
 .stats-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 16px;
     margin-bottom: 20px;
 }
 
 .stat-item {
     text-align: center;
-    padding: 16px;
+    padding: 14px 12px;
     background: #f8f9fa;
     border-radius: 12px;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .stat-label {
-    font-size: 12px;
+    font-size: 11px;
     color: #6b7280;
     font-weight: 500;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .stat-value {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: #1a1a1a;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .capture-limit {
     background: #f8f9fa;
     border-radius: 12px;
-    padding: 16px;
+    padding: 14px;
 }
 
 .limit-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    gap: 8px;
 }
 
 .limit-label {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #374151;
+    flex-shrink: 0;
 }
 
 .limit-value {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: #667eea;
+    flex-shrink: 0;
 }
 
 .progress-bar {
