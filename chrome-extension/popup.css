@@ -424,7 +424,7 @@ body {
 
 .stat-item {
     text-align: center;
-    padding: 20px 16px;
+    padding: 18px 12px;
     background: #f8f9fa;
     border-radius: 12px;
     min-width: 0;
@@ -445,12 +445,13 @@ body {
 }
 
 .stat-value {
-    font-size: 24px;
+    font-size: 20px;
     font-weight: 700;
     color: #1a1a1a;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    line-height: 1.2;
 }
 
 .capture-limit {
