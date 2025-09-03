@@ -2,7 +2,7 @@
 console.log('BMV Finder: Popup script loaded');
 
 // API base URL
-const API_BASE_URL = 'https://bmv-finder-529cto7j8-bens-projects-11c93b15.vercel.app/api';
+const API_BASE_URL = 'https://bmv-finder-fpnjdui7j-bens-projects-11c93b15.vercel.app/api';
 
 // DOM elements
 const propertyCount = document.getElementById('property-count');
@@ -18,6 +18,8 @@ const signInButtonAlt = document.getElementById('sign-in-button-alt');
 const signOutButton = document.getElementById('sign-out-button');
 const watchlistLink = document.getElementById('watchlist-link');
 const userAvatar = document.getElementById('user-avatar');
+const syncToWebsite = document.getElementById('sync-to-website');
+const syncToWebsiteBtn = document.getElementById('sync-to-website-btn');
 
 // Login form elements
 const loginForm = document.getElementById('login-form');
@@ -214,7 +216,7 @@ async function signInWithEmail(email, password) {
 
 // Sign in with Google (opens website)
 function signInWithGoogle() {
-  const syncUrl = 'https://bmv-finder-529cto7j8-bens-projects-11c93b15.vercel.app/extension-sync';
+  const syncUrl = 'https://bmv-finder-fpnjdui7j-bens-projects-11c93b15.vercel.app/extension-sync';
   chrome.tabs.create({ url: syncUrl });
   
   // Show instructions
@@ -253,12 +255,14 @@ function updateUserInterface() {
     signInButtonAlt.style.display = 'none';
     signOutButton.style.display = 'flex';
     watchlistLink.style.display = 'flex';
+    syncToWebsite.style.display = 'block';
     loginForm.style.display = 'none';
   } else {
     signInButton.style.display = 'none';
     signInButtonAlt.style.display = 'flex';
     signOutButton.style.display = 'none';
     watchlistLink.style.display = 'none';
+    syncToWebsite.style.display = 'none';
   }
   
   // Update capture limits
@@ -509,7 +513,7 @@ checkAuthBtn.addEventListener('click', async () => {
 });
 
 syncWebsiteBtn.addEventListener('click', () => {
-  const syncUrl = 'https://bmv-finder-529cto7j8-bens-projects-11c93b15.vercel.app/extension-sync';
+  const syncUrl = 'https://bmv-finder-fpnjdui7j-bens-projects-11c93b15.vercel.app/extension-sync';
   chrome.tabs.create({ url: syncUrl });
   showLoginError('Please sign in on the website that just opened, then return to this extension and click "Check Authentication Status".');
 });
@@ -540,7 +544,35 @@ clearAllButton.addEventListener('click', async () => {
 });
 
 watchlistLink.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://bmv-finder-529cto7j8-bens-projects-11c93b15.vercel.app/watchlist' });
+  chrome.tabs.create({ url: 'https://bmv-finder-fpnjdui7j-bens-projects-11c93b15.vercel.app/watchlist' });
+});
+
+syncToWebsiteBtn.addEventListener('click', async () => {
+  try {
+    syncToWebsiteBtn.disabled = true;
+    syncToWebsiteBtn.innerHTML = '<span class="btn-icon">⏳</span><span class="btn-text">Syncing...</span>';
+    
+    // Get the current auth token
+    const result = await chrome.storage.local.get(['authToken']);
+    
+    if (!result.authToken) {
+      throw new Error('No authentication token found');
+    }
+    
+    // Open the website with the auth token
+    const websiteUrl = `https://bmv-finder-fpnjdui7j-bens-projects-11c93b15.vercel.app/auth/extension?auth_token=${encodeURIComponent(result.authToken)}`;
+    chrome.tabs.create({ url: websiteUrl });
+    
+    // Show success message
+    showMessage('Opening website with your authentication...', true);
+    
+  } catch (error) {
+    console.error('Sync to website error:', error);
+    showLoginError('Failed to sync to website. Please try again.');
+  } finally {
+    syncToWebsiteBtn.disabled = false;
+    syncToWebsiteBtn.innerHTML = '<span class="btn-icon">🌐</span><span class="btn-text">Sync to Website</span>';
+  }
 });
 
 // Handle Enter key in login form
