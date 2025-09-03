@@ -48,8 +48,18 @@ function GoogleAuthContent() {
             window.location.href = '/watchlist';
           }
         } else {
-          // Not authenticated, redirect to main app login
-          window.location.href = '/login';
+          // Not authenticated, initiate Google OAuth
+          const { data, error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: returnTo ? `${window.location.origin}/auth/google?returnTo=${encodeURIComponent(returnTo)}` : `${window.location.origin}/watchlist`
+            }
+          });
+
+          if (error) {
+            console.error('Google OAuth error:', error);
+            window.location.href = '/login';
+          }
         }
       } catch (error) {
         console.error('Google auth error:', error);

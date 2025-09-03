@@ -14,16 +14,12 @@
     "storage",
     "identity"
   ],
-  "oauth2": {
-    "client_id": "70396685792-ha4elq6hgqn7ub4a76kepdo1u15b05b8.apps.googleusercontent.com",
-    "scopes": ["openid", "email", "profile"]
-  },
   "host_permissions": [
     "https://*.rightmove.co.uk/*",
     "https://*.zoopla.co.uk/*",
     "https://*.onthemarket.com/*",
     "https://*.primelocation.com/*",
-    "https://bmv-finder-be2tebi9b-bens-projects-11c93b15.vercel.app/*",
+    "https://bmv-finder-eg3hwpn3a-bens-projects-11c93b15.vercel.app/*",
     "http://localhost:3000/*",
     "https://*/*",
     "http://*/*"
