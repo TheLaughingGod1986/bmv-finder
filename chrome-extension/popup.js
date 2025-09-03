@@ -2,7 +2,7 @@
 console.log('BMV Finder: Popup script loaded');
 
 // API base URL
-const API_BASE_URL = 'https://bmv-finder-3jepeaphm-bens-projects-11c93b15.vercel.app/api';
+const API_BASE_URL = 'https://bmv-finder-j5x6cci85-bens-projects-11c93b15.vercel.app/api';
 
 // DOM elements
 const propertyCount = document.getElementById('property-count');
@@ -13,6 +13,7 @@ const userName = document.getElementById('user-name');
 const userMembership = document.getElementById('user-membership');
 const captureLimit = document.getElementById('capture-limit');
 const captureLimitDisplay = document.getElementById('capture-limit-display');
+const userPlanDisplay = document.getElementById('user-plan-display');
 const progressFill = document.getElementById('progress-fill');
 const signInButton = document.getElementById('sign-in-button');
 const signInButtonAlt = document.getElementById('sign-in-button-alt');
@@ -217,7 +218,7 @@ async function signInWithEmail(email, password) {
 
 // Sign in with Google (opens website)
 function signInWithGoogle() {
-  const syncUrl = 'https://bmv-finder-3jepeaphm-bens-projects-11c93b15.vercel.app/extension-sync';
+  const syncUrl = 'https://bmv-finder-j5x6cci85-bens-projects-11c93b15.vercel.app/extension-sync';
   chrome.tabs.create({ url: syncUrl });
   
   // Show instructions
@@ -274,10 +275,14 @@ function updateUserInterface() {
   if (!userData.isAuthenticated) {
     captureLimit.textContent = '0 / 0';
     captureLimitDisplay.textContent = '0/0';
+    userPlanDisplay.textContent = 'Free';
     progressFill.style.width = '0%';
     progressFill.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
   } else {
     const limit = userData.captureLimit;
+    
+    // Update plan display
+    userPlanDisplay.textContent = userData.membership || 'Free';
     
     if (limit === -1) {
       captureLimit.textContent = `${currentCount} / Unlimited`;
@@ -530,7 +535,7 @@ checkAuthBtn.addEventListener('click', async () => {
 });
 
 syncWebsiteBtn.addEventListener('click', () => {
-  const syncUrl = 'https://bmv-finder-3jepeaphm-bens-projects-11c93b15.vercel.app/extension-sync';
+  const syncUrl = 'https://bmv-finder-j5x6cci85-bens-projects-11c93b15.vercel.app/extension-sync';
   chrome.tabs.create({ url: syncUrl });
   showLoginError('Please sign in on the website that just opened, then return to this extension and click "Check Authentication Status".');
 });
@@ -561,7 +566,7 @@ clearAllButton.addEventListener('click', async () => {
 });
 
 watchlistLink.addEventListener('click', () => {
-  chrome.tabs.create({ url: 'https://bmv-finder-3jepeaphm-bens-projects-11c93b15.vercel.app/watchlist' });
+  chrome.tabs.create({ url: 'https://bmv-finder-j5x6cci85-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 syncToWebsiteBtn.addEventListener('click', async () => {
@@ -577,7 +582,7 @@ syncToWebsiteBtn.addEventListener('click', async () => {
     }
     
     // Open the website with the auth token
-    const websiteUrl = `https://bmv-finder-3jepeaphm-bens-projects-11c93b15.vercel.app/auth/extension?auth_token=${encodeURIComponent(result.authToken)}`;
+    const websiteUrl = `https://bmv-finder-j5x6cci85-bens-projects-11c93b15.vercel.app/auth/extension?auth_token=${encodeURIComponent(result.authToken)}`;
     chrome.tabs.create({ url: websiteUrl });
     
     // Show success message
