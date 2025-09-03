@@ -99,8 +99,69 @@ function handleAuthCallback() {
       console.error('BMV Finder: Error parsing user data:', error);
       showError('Authentication failed. Please try again.');
     }
+  } else if (token) {
+    // We have a token but no user data, try to fetch user data
+    console.log('BMV Finder: Token received, fetching user data');
+    fetchUserDataWithToken(token);
   } else {
     console.log('BMV Finder: No userData parameter found in URL');
+  }
+}
+
+// Fetch user data using a token
+async function fetchUserDataWithToken(token) {
+  try {
+    const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (response.ok) {
+      const membershipData = await response.json();
+      console.log('BMV Finder: Fetched membership data:', membershipData);
+      
+      // Create user data
+      const userData = {
+        isAuthenticated: true,
+        name: membershipData.name || 'User',
+        email: membershipData.email || '',
+        membership: membershipData.membership || 'Free Plan',
+        captureLimit: membershipData.captureLimit || 5,
+        capturedCount: membershipData.capturedCount || 0
+      };
+      
+      // Store authentication data
+      const authData = {
+        userData: userData,
+        isAuthenticated: true,
+        authToken: token,
+        lastUpdated: Date.now()
+      };
+      
+      await chrome.storage.local.set(authData);
+      
+      // Update current user data
+      userData = userData;
+      
+      // Update UI
+      updateUserInterface();
+      loadCapturedProperties();
+      hideLoginForm();
+      
+      // Clear URL parameters
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      
+      showMessage('Successfully signed in!', true);
+    } else {
+      console.error('BMV Finder: Failed to fetch membership data:', response.status);
+      showError('Failed to fetch user data. Please try again.');
+    }
+  } catch (error) {
+    console.error('BMV Finder: Error fetching user data:', error);
+    showError('Network error. Please try again.');
   }
 }
 
@@ -121,7 +182,7 @@ async function refreshMembershipData(authToken) {
   try {
     console.log('BMV Finder: Refreshing membership data from API');
     
-    const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
+    const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json'
@@ -226,7 +287,7 @@ async function loadUserData() {
       } else {
         // Try to validate the token with the main application
         try {
-          const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
+          const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
             headers: {
               'Authorization': `Bearer ${authResult.authToken}`,
               'Content-Type': 'application/json'
@@ -438,7 +499,7 @@ function showUpgradePrompt() {
                 color: #333; 
                 font-size: 12px;">
       <strong>🚀 Upgrade to capture more properties!</strong><br>
-              <a href="https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
+              <a href="https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/pricing" target="_blank" 
          style="color: #3A7CA5; text-decoration: none; font-weight: bold;">
         View Plans →
       </a>
@@ -609,7 +670,7 @@ emailLoginBtn.addEventListener('click', async () => {
     hideLoginError();
     
     // Call the login API
-    const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/auth/login', {
+    const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -669,7 +730,7 @@ googleLoginBtn.addEventListener('click', async () => {
     
     // Open Google OAuth in a new tab with proper callback
     const callbackUrl = chrome.runtime.getURL('popup.html');
-    const authUrl = `https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/auth/google?returnTo=${encodeURIComponent(callbackUrl)}`;
+    const authUrl = `https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/auth/google?returnTo=${encodeURIComponent(callbackUrl)}`;
     
     // Open auth in new tab
     chrome.tabs.create({ url: authUrl });
@@ -710,7 +771,7 @@ checkAuthBtn.addEventListener('click', async () => {
     
     if (result.authToken) {
       // Try to validate the token
-      const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
+      const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
         headers: {
           'Authorization': `Bearer ${result.authToken}`,
           'Content-Type': 'application/json'
@@ -769,7 +830,7 @@ syncWebsiteBtn.addEventListener('click', async () => {
     hideLoginError();
     
     // Try to get authentication data from the main website
-    const websiteUrl = 'https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app';
+    const websiteUrl = 'https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app';
     
     // First, try to get the current tab
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -822,7 +883,7 @@ syncWebsiteBtn.addEventListener('click', async () => {
             });
             
             // Fetch user data
-            const response = await fetch('https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/api/user/membership', {
+            const response = await fetch('https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/api/user/membership', {
               headers: {
                 'Authorization': `Bearer ${authData.access_token}`,
                 'Content-Type': 'application/json'
@@ -911,7 +972,7 @@ signOutButton.addEventListener('click', async () => {
 
 // Handle watchlist link click
 watchlistLink.addEventListener('click', () => {
-          chrome.tabs.create({ url: 'https://bmv-finder-k72r4f8jl-bens-projects-11c93b15.vercel.app/watchlist' });
+          chrome.tabs.create({ url: 'https://bmv-finder-e7ardai05-bens-projects-11c93b15.vercel.app/watchlist' });
 });
 
 // Initialize the popup

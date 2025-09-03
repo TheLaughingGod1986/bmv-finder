@@ -12,6 +12,62 @@ function GoogleAuthContent() {
       try {
         const returnTo = searchParams.get('returnTo');
         
+        // Check if we have OAuth tokens in the URL hash (from Google redirect)
+        const hash = window.location.hash;
+        const urlParams = new URLSearchParams(hash.substring(1));
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        
+        if (accessToken) {
+          console.log('OAuth tokens found in URL hash, processing...');
+          
+          // Set the session with the tokens from the URL
+          const { data: { session }, error: sessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+          
+          if (sessionError) {
+            console.error('Error setting session:', sessionError);
+            window.location.href = '/login';
+            return;
+          }
+          
+          if (session?.user) {
+            console.log('Session set successfully, user:', session.user.email);
+            
+            // Create user data for extension
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', session.user.id)
+              .single();
+
+            const userData = {
+              isAuthenticated: true,
+              name: profile?.name || session.user.user_metadata?.name || session.user.email,
+              email: session.user.email,
+              membership: profile?.subscription || 'Free Plan',
+              captureLimit: profile?.capture_limit || 5,
+              capturedCount: profile?.captured_count || 0
+            };
+
+            if (returnTo) {
+              // Redirect back to extension
+              const encodedUserData = encodeURIComponent(JSON.stringify(userData));
+              const redirectUrl = `${returnTo}?userData=${encodedUserData}&token=${encodeURIComponent(session.access_token)}`;
+              
+              console.log('Redirecting to extension:', redirectUrl);
+              window.location.href = redirectUrl;
+            } else {
+              // Redirect to main app
+              console.log('Redirecting to main app');
+              window.location.href = '/watchlist';
+            }
+            return;
+          }
+        }
+        
         // Check if user is already authenticated
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
