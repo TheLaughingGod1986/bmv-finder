@@ -1,16 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMetricsCollector } from '@/lib/monitoring/metricsCollector';
 import { getAlertManager } from '@/lib/monitoring/performanceAlerting';
-import { requireAuth } from '@/lib/auth/middleware';
+import { requireAuth } from '@/middleware/auth';
 
 // GET /api/monitoring/metrics - Get metrics
-export async function GET(request: NextRequest) {
+export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    // Check authentication (admin only)
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') as 'system' | 'cache' | 'api' | 'all';
@@ -60,16 +55,11 @@ export async function GET(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
+});
 
 // POST /api/monitoring/metrics - Manage metrics
-export async function POST(request: NextRequest) {
+export const POST = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    // Check authentication (admin only)
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
 
     const body = await request.json();
     const { action } = body;
@@ -120,4 +110,4 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
+});

@@ -2,16 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getHealthMonitor } from '@/lib/monitoring/productionHealth';
 import { getMetricsCollector } from '@/lib/monitoring/metricsCollector';
 import { getAlertManager } from '@/lib/monitoring/performanceAlerting';
-import { requireAuth } from '@/lib/auth/middleware';
+import { requireAuth } from '@/middleware/auth';
 
 // GET /api/health/production - Get comprehensive production health status
-export async function GET(request: NextRequest) {
+export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    // Check authentication (admin only for detailed health info)
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
 
     const { searchParams } = new URL(request.url);
     const detailed = searchParams.get('detailed') === 'true';
@@ -61,16 +56,11 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     }, { status: 500 });
   }
-}
+});
 
 // POST /api/health/production - Manage health monitoring
-export async function POST(request: NextRequest) {
+export const POST = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    // Check authentication (admin only)
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
 
     const body = await request.json();
     const { action } = body;
@@ -128,4 +118,4 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
+});

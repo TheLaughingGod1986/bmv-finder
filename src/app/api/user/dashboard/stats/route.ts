@@ -1,22 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth, getUserFromRequest } from '@/lib/auth/middleware';
+import { requireAuth } from '@/middleware/auth';
+import { getCurrentUser } from '@/lib/auth/getCurrentUser';
 
 // GET /api/user/dashboard/stats - Get user dashboard statistics
-export async function GET(request: NextRequest) {
+export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    // Check authentication
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
-
-    const user = getUserFromRequest(request);
-    if (!user) {
-      return NextResponse.json({
-        success: false,
-        error: 'User not found'
-      }, { status: 404 });
-    }
 
     // Mock dashboard stats - in production, these would come from the database
     const stats = {
@@ -42,4 +30,4 @@ export async function GET(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
-}
+});
