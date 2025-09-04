@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/middleware/auth';
-import { reportBuilder } from '@/lib/reporting/reportBuilder';
+import { advancedAnalyticsEngine } from '@/lib/analytics/advancedAnalytics';
 
-// POST /api/reports/generate - Generate report
+// POST /api/analytics/execute - Execute analytics query
 export const POST = requireAuth(async (request: NextRequest, user: any) => {
   try {
     // Check if user has admin permissions
@@ -10,28 +10,23 @@ export const POST = requireAuth(async (request: NextRequest, user: any) => {
       return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
-    const { templateId, filters, parameters } = await request.json();
+    const { queryId, parameters } = await request.json();
 
-    if (!templateId) {
+    if (!queryId) {
       return NextResponse.json(
-        { error: 'templateId is required' },
+        { error: 'queryId is required' },
         { status: 400 }
       );
     }
 
-    const report = await reportBuilder.generateReport(
-      templateId,
-      filters || [],
-      parameters || {},
-      user.id
-    );
+    const result = await advancedAnalyticsEngine.executeQuery(queryId, parameters);
 
     return NextResponse.json({
       success: true,
-      report
+      result
     });
   } catch (error) {
-    console.error('Error generating report:', error);
+    console.error('Error executing analytics query:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
