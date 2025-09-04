@@ -1,138 +1,97 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { 
-  getAlertManager, 
-  AlertType, 
-  AlertSeverity 
-} from '@/lib/monitoring/performanceAlerting';
-import { requireAuth } from '@/lib/auth/middleware';
+import { requireAuth } from '@/middleware/auth';
+import { monitoringManager } from '@/lib/monitoring/monitoringManager';
 
 // GET /api/monitoring/alerts - Get alerts
-export async function GET(request: NextRequest) {
+export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    // Check authentication (admin only)
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
+    // Check if user has admin permissions
+    if (!user || user.role?.id !== 'admin') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') as AlertType;
-    const severity = searchParams.get('severity') as AlertSeverity;
-    const limit = parseInt(searchParams.get('limit') || '50');
-    const active = searchParams.get('active') === 'true';
+    const status = searchParams.get('status');
+    const severity = searchParams.get('severity');
 
-    const alertManager = getAlertManager();
-    let alerts = alertManager.getAllAlerts(limit);
+    let alerts = monitoringManager.getAllAlerts();
 
-    // Filter by type
-    if (type) {
-      alerts = alerts.filter(alert => alert.type === type);
+    if (status) {
+      alerts = alerts.filter(alert => alert.status === status);
     }
 
-    // Filter by severity
     if (severity) {
       alerts = alerts.filter(alert => alert.severity === severity);
     }
 
-    // Filter by active status
-    if (active) {
-      alerts = alerts.filter(alert => !alert.resolved);
+    return NextResponse.json({
+      success: true,
+      alerts
+    });
+  } catch (error) {
+    console.error('Error fetching alerts:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+});
+
+// POST /api/monitoring/alerts - Acknowledge or resolve alert
+export const POST = requireAuth(async (request: NextRequest, user: any) => {
+  try {
+    // Check if user has admin permissions
+    if (!user || user.role?.id !== 'admin') {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    }
+
+    const { alertId, action, acknowledgedBy } = await request.json();
+
+    if (!alertId || !action) {
+      return NextResponse.json(
+        { error: 'alertId and action are required' },
+        { status: 400 }
+      );
+    }
+
+    let success = false;
+
+    switch (action) {
+      case 'acknowledge':
+        if (!acknowledgedBy) {
+          return NextResponse.json(
+            { error: 'acknowledgedBy is required for acknowledge action' },
+            { status: 400 }
+          );
+        }
+        success = await monitoringManager.acknowledgeAlert(alertId, acknowledgedBy);
+        break;
+      case 'resolve':
+        success = await monitoringManager.resolveAlert(alertId);
+        break;
+      default:
+        return NextResponse.json(
+          { error: 'Invalid action. Must be acknowledge or resolve' },
+          { status: 400 }
+        );
+    }
+
+    if (!success) {
+      return NextResponse.json(
+        { error: 'Alert not found' },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      alerts,
-      total: alerts.length
+      message: `Alert ${action}d successfully`
     });
   } catch (error) {
-    console.error('Failed to get alerts:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to get alerts',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
+    console.error('Error processing alert action:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-}
-
-// POST /api/monitoring/alerts - Manage alerts
-export async function POST(request: NextRequest) {
-  try {
-    // Check authentication (admin only)
-    const authResponse = await requireAuth(request);
-    if (authResponse) {
-      return authResponse;
-    }
-
-    const body = await request.json();
-    const { action, alertId, acknowledgedBy } = body;
-
-    const alertManager = getAlertManager();
-
-    switch (action) {
-      case 'acknowledge':
-        if (!alertId || !acknowledgedBy) {
-          return NextResponse.json({
-            success: false,
-            error: 'Alert ID and acknowledgedBy are required'
-          }, { status: 400 });
-        }
-
-        const acknowledged = alertManager.acknowledgeAlert(alertId, acknowledgedBy);
-        if (!acknowledged) {
-          return NextResponse.json({
-            success: false,
-            error: 'Alert not found'
-          }, { status: 404 });
-        }
-
-        return NextResponse.json({
-          success: true,
-          message: 'Alert acknowledged successfully'
-        });
-
-      case 'resolve':
-        if (!alertId) {
-          return NextResponse.json({
-            success: false,
-            error: 'Alert ID is required'
-          }, { status: 400 });
-        }
-
-        const resolved = alertManager.resolveAlert(alertId);
-        if (!resolved) {
-          return NextResponse.json({
-            success: false,
-            error: 'Alert not found'
-          }, { status: 404 });
-        }
-
-        return NextResponse.json({
-          success: true,
-          message: 'Alert resolved successfully'
-        });
-
-      case 'clear-old':
-        const { olderThanDays = 30 } = body;
-        const cleared = alertManager.clearOldAlerts(olderThanDays);
-        
-        return NextResponse.json({
-          success: true,
-          message: `${cleared} old alerts cleared`,
-          cleared
-        });
-
-      default:
-        return NextResponse.json({
-          success: false,
-          error: 'Invalid action'
-        }, { status: 400 });
-    }
-  } catch (error) {
-    console.error('Failed to manage alerts:', error);
-    return NextResponse.json({
-      success: false,
-      error: 'Failed to manage alerts',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }, { status: 500 });
-  }
-}
+});
