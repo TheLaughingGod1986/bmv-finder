@@ -1,16 +1,66 @@
 {
-  "name": "BMV Finder - Property Investment Platform",
+  "name": "BMV Finder - Property Intelligence Platform",
   "short_name": "BMV Finder",
-  "description": "Professional property investment analysis and portfolio management platform",
+  "description": "Find below market value properties with AI-powered insights and comprehensive market analysis",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
+  "background_color": "#F5F5DC",
   "theme_color": "#3A7CA5",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en-GB",
   "dir": "ltr",
-  "categories": ["business", "finance", "productivity"],
+  "categories": ["business", "finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
   "screenshots": [
     {
       "src": "/screenshots/desktop-home.png",
@@ -20,94 +70,25 @@
       "label": "BMV Finder Desktop Homepage"
     },
     {
-      "src": "/screenshots/mobile-home.png",
+      "src": "/screenshots/mobile-search.png",
       "sizes": "390x844",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "BMV Finder Mobile Homepage"
+      "label": "BMV Finder Mobile Search"
     },
     {
-      "src": "/screenshots/desktop-portfolio.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Portfolio Management Dashboard"
-    },
-    {
-      "src": "/screenshots/mobile-portfolio.png",
-      "sizes": "390x844",
+      "src": "/screenshots/tablet-dashboard.png",
+      "sizes": "768x1024",
       "type": "image/png",
       "form_factor": "narrow",
-      "label": "Mobile Portfolio View"
-    }
-  ],
-  "icons": [
-    {
-      "src": "/icons/icon-72x72.png",
-      "sizes": "72x72",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-96x96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-128x128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-144x144.png",
-      "sizes": "144x144",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-152x152.png",
-      "sizes": "152x152",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-384x384.png",
-      "sizes": "384x384",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-maskable-192x192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "maskable"
-    },
-    {
-      "src": "/icons/icon-maskable-512x512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
+      "label": "BMV Finder Tablet Dashboard"
     }
   ],
   "shortcuts": [
     {
       "name": "Search Properties",
       "short_name": "Search",
-      "description": "Search for properties and analyze investments",
+      "description": "Quick property search",
       "url": "/search/properties",
       "icons": [
         {
@@ -118,22 +99,9 @@
       ]
     },
     {
-      "name": "Portfolio",
-      "short_name": "Portfolio",
-      "description": "View and manage your property portfolio",
-      "url": "/tools/portfolio",
-      "icons": [
-        {
-          "src": "/icons/shortcut-portfolio.png",
-          "sizes": "96x96",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Watchlist",
+      "name": "My Watchlist",
       "short_name": "Watchlist",
-      "description": "Manage your property watchlist",
+      "description": "View saved properties",
       "url": "/watchlist",
       "icons": [
         {
@@ -144,23 +112,46 @@
       ]
     },
     {
+      "name": "Portfolio",
+      "short_name": "Portfolio",
+      "description": "View property portfolio",
+      "url": "/tools/portfolio",
+      "icons": [
+        {
+          "src": "/icons/shortcut-portfolio.png",
+          "sizes": "96x96",
+          "type": "image/png"
+        }
+      ]
+    },
+    {
       "name": "Market Analysis",
-      "short_name": "Market",
-      "description": "View market trends and analysis",
+      "short_name": "Analysis",
+      "description": "Market trends and analysis",
       "url": "/market/analysis",
       "icons": [
         {
-          "src": "/icons/shortcut-market.png",
+          "src": "/icons/shortcut-analysis.png",
           "sizes": "96x96",
           "type": "image/png"
         }
       ]
     }
   ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "related_applications": [
     {
       "platform": "webapp",
-      "url": "https://bmvfinder.com/manifest.json"
+      "url": "https://bmv-finder.vercel.app/manifest.json"
     }
   ],
   "prefer_related_applications": false,
@@ -171,37 +162,21 @@
     "client_mode": "navigate-existing"
   },
   "handle_links": "preferred",
-  "capture_links": "existing-client-navigate",
+  "capture_links": "new-client",
+  "protocol_handlers": [
+    {
+      "protocol": "web+bmv",
+      "url": "/property?id=%s"
+    }
+  ],
   "file_handlers": [
     {
-      "action": "/tools/import",
+      "action": "/import",
       "accept": {
         "text/csv": [".csv"],
         "application/vnd.ms-excel": [".xls"],
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"]
       }
     }
-  ],
-  "protocol_handlers": [
-    {
-      "protocol": "web+bmvfinder",
-      "url": "/property?id=%s"
-    }
-  ],
-  "share_target": {
-    "action": "/share",
-    "method": "POST",
-    "enctype": "multipart/form-data",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url",
-      "files": [
-        {
-          "name": "property_image",
-          "accept": ["image/*"]
-        }
-      ]
-    }
-  }
+  ]
 }

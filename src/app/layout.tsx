@@ -14,6 +14,7 @@ import { SearchLimitProvider } from './components/SearchLimitContext';
 import { MockAuthProvider } from './components/MockAuthProvider';
 import { RealAuthProvider } from '@/lib/auth/realAuth';
 import { HybridAuthProvider } from '@/lib/auth/hybridAuth';
+import { ProductionAuthProvider } from '@/lib/auth/productionAuthProvider';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/lib/theme';
 import ServiceWorkerRegistration from './components/ServiceWorkerRegistration';
@@ -239,9 +240,10 @@ export default function RootLayout({
           <MockAuthProvider>
             <RealAuthProvider>
               <HybridAuthProvider>
-                <AuthProvider>
-                  <ThemeProvider>
-                    <SearchLimitProvider>
+                <ProductionAuthProvider>
+                  <AuthProvider>
+                    <ThemeProvider>
+                      <SearchLimitProvider>
                     <ClientNavigation />
                     <MobileLayout>
                       <main 
@@ -261,9 +263,10 @@ export default function RootLayout({
                              <MobilePerformanceMonitor />
                              <AccessibilitySettings />
                            </MobileLayout>
-                    </SearchLimitProvider>
-                  </ThemeProvider>
-                </AuthProvider>
+                      </SearchLimitProvider>
+                    </ThemeProvider>
+                  </AuthProvider>
+                </ProductionAuthProvider>
               </HybridAuthProvider>
             </RealAuthProvider>
           </MockAuthProvider>

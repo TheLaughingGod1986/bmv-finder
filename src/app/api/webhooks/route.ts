@@ -1,105 +1,93 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/middleware/auth';
 import { webhookManager } from '@/lib/integrations/webhookManager';
+import { requireAuth } from '@/middleware/auth';
 
-// GET /api/webhooks - Get webhook handlers and statistics
 export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
-    // Check if user has admin permissions
-    if (!user || user.role?.id !== 'admin') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
-    }
-
+    // Get query parameters
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type');
+    const status = searchParams.get('status');
+    const event = searchParams.get('event');
 
-    if (type === 'handlers') {
-      const handlers = webhookManager.getHandlerStats();
-      return NextResponse.json({
-        success: true,
-        handlers
-      });
-    } else if (type === 'requests') {
-      const limit = parseInt(searchParams.get('limit') || '100');
-      const requests = webhookManager.getWebhookRequests(limit);
-      return NextResponse.json({
-        success: true,
-        requests
-      });
-    } else if (type === 'metrics') {
-      const metrics = webhookManager.getWebhookMetrics();
-      return NextResponse.json({
-        success: true,
-        metrics
-      });
-    } else if (type === 'event-types') {
-      const eventTypes = webhookManager.getSupportedEventTypes();
-      return NextResponse.json({
-        success: true,
-        eventTypes
-      });
-    } else {
-      // Return all webhook data
-      const handlers = webhookManager.getHandlerStats();
-      const requests = webhookManager.getWebhookRequests(50);
-      const metrics = webhookManager.getWebhookMetrics();
-      const eventTypes = webhookManager.getSupportedEventTypes();
+    let webhooks = webhookManager.getAllWebhooks();
 
-      return NextResponse.json({
-        success: true,
-        handlers,
-        requests,
-        metrics,
-        eventTypes
-      });
+    // Apply filters
+    if (status) {
+      webhooks = webhooks.filter(webhook => webhook.status === status);
     }
-  } catch (error) {
-    console.error('Error fetching webhook data:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-});
-
-// POST /api/webhooks - Register new webhook handler
-export const POST = requireAuth(async (request: NextRequest, user: any) => {
-  try {
-    // Check if user has admin permissions
-    if (!user || user.role?.id !== 'admin') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    if (event) {
+      webhooks = webhooks.filter(webhook => webhook.events.includes(event));
     }
-
-    const { name, eventTypes, handler } = await request.json();
-
-    if (!name || !eventTypes || !Array.isArray(eventTypes)) {
-      return NextResponse.json(
-        { error: 'Name and eventTypes are required' },
-        { status: 400 }
-      );
-    }
-
-    // Note: In a real implementation, you would need to handle the handler function
-    // This is a simplified version for demonstration
-    const handlerId = await webhookManager.registerHandler(
-      name,
-      eventTypes,
-      async (payload, headers) => {
-        // Default handler implementation
-        console.log('Processing webhook:', { name, eventTypes, payload, headers });
-        return { success: true, response: { message: 'Webhook processed' } };
-      }
-    );
 
     return NextResponse.json({
       success: true,
-      handlerId
+      data: webhooks,
+      count: webhooks.length
     });
+
   } catch (error) {
-    console.error('Error registering webhook handler:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Error fetching webhooks:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch webhooks'
+    }, { status: 500 });
   }
-});
+}, { requiredRole: 'user' });
+
+export const POST = requireAuth(async (request: NextRequest, user: any) => {
+  try {
+    const body = await request.json();
+    const { name, url, method, events, headers, authentication, retryPolicy, rateLimit } = body;
+
+    if (!name || !url || !method || !events) {
+      return NextResponse.json({
+        success: false,
+        error: 'Missing required fields: name, url, method, events'
+      }, { status: 400 });
+    }
+
+    const webhookConfig = {
+      id: `webhook-${Date.now()}`,
+      name,
+      url,
+      method,
+      events,
+      headers: headers || {},
+      authentication: authentication || { type: 'NONE', credentials: {} },
+      retryPolicy: retryPolicy || {
+        maxRetries: 3,
+        retryDelay: 1000,
+        backoffMultiplier: 2,
+      },
+      rateLimit: rateLimit || {
+        requests: 100,
+        period: 'MINUTE',
+      },
+      status: 'INACTIVE' as const,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const success = webhookManager.addWebhook(webhookConfig);
+
+    if (success) {
+      return NextResponse.json({
+        success: true,
+        data: webhookConfig,
+        message: 'Webhook created successfully'
+      });
+    } else {
+      return NextResponse.json({
+        success: false,
+        error: 'Failed to create webhook'
+      }, { status: 500 });
+    }
+
+  } catch (error) {
+    console.error('Error creating webhook:', error);
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to create webhook'
+    }, { status: 500 });
+  }
+}, { requiredRole: 'admin' });

@@ -1,136 +1,106 @@
 import { auditLogger } from '../audit/auditLogger';
-import crypto from 'crypto';
 
 export interface PropertyRecommendation {
   id: string;
   propertyId: string;
   userId: string;
-  recommendationType: 'INVESTMENT' | 'RENTAL' | 'FLIP' | 'HOLD' | 'SELL' | 'AVOID';
-  confidence: number; // 0-100
+  type: 'INVESTMENT' | 'RENTAL' | 'FLIP' | 'HOLD' | 'SELL' | 'AVOID';
   score: number; // 0-100
+  confidence: number; // 0-100
   reasoning: string[];
-  factors: RecommendationFactor[];
-  marketContext: MarketContext;
-  financialProjection: FinancialProjection;
-  riskAssessment: RiskAssessment;
-  createdAt: Date;
-  expiresAt: Date;
-  isActive: boolean;
-}
-
-export interface RecommendationFactor {
-  name: string;
-  weight: number; // 0-1
-  impact: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL';
-  value: number;
-  description: string;
-  source: string;
-}
-
-export interface MarketContext {
-  region: string;
-  marketTrend: 'BULLISH' | 'BEARISH' | 'STABLE';
-  averagePrice: number;
-  priceGrowth: number; // YoY percentage
-  rentalYield: number;
-  demandLevel: 'HIGH' | 'MEDIUM' | 'LOW';
-  supplyLevel: 'HIGH' | 'MEDIUM' | 'LOW';
-  marketVolatility: number; // 0-100
-  economicIndicators: EconomicIndicators;
-}
-
-export interface EconomicIndicators {
-  interestRate: number;
-  inflation: number;
-  unemployment: number;
-  gdpGrowth: number;
-  consumerConfidence: number;
-}
-
-export interface FinancialProjection {
-  currentValue: number;
-  projectedValue1Year: number;
-  projectedValue3Year: number;
-  projectedValue5Year: number;
-  rentalIncome: number;
-  totalReturn: number;
-  annualizedReturn: number;
-  cashFlow: number;
-  roi: number;
-  paybackPeriod: number; // in years
-}
-
-export interface RiskAssessment {
-  overallRisk: 'LOW' | 'MEDIUM' | 'HIGH';
-  riskScore: number; // 0-100
-  riskFactors: RiskFactor[];
-  mitigationStrategies: string[];
-  stressTestResults: StressTestResult[];
-}
-
-export interface RiskFactor {
-  name: string;
-  probability: number; // 0-1
-  impact: number; // 0-100
-  severity: 'LOW' | 'MEDIUM' | 'HIGH';
-  description: string;
-}
-
-export interface StressTestResult {
-  scenario: string;
-  probability: number;
-  impact: number;
-  recommendation: string;
+  riskLevel: 'LOW' | 'MEDIUM' | 'HIGH';
+  timeHorizon: 'SHORT' | 'MEDIUM' | 'LONG';
+  expectedReturn: {
+    percentage: number;
+    amount: number;
+    timeframe: string;
+  };
+  keyFactors: {
+    bmvScore: number;
+    marketTrend: number;
+    locationScore: number;
+    rentalYield: number;
+    growthPotential: number;
+  };
+  alternatives: string[];
+  createdAt: string;
+  expiresAt: string;
 }
 
 export interface UserProfile {
   id: string;
   investmentGoals: string[];
   riskTolerance: 'CONSERVATIVE' | 'MODERATE' | 'AGGRESSIVE';
-  investmentHorizon: 'SHORT' | 'MEDIUM' | 'LONG';
   budget: {
     min: number;
     max: number;
-    preferred: number;
   };
-  preferredRegions: string[];
+  preferredLocations: string[];
   propertyTypes: string[];
   investmentStrategy: 'BUY_AND_HOLD' | 'FLIP' | 'RENTAL' | 'MIXED';
-  experience: 'BEGINNER' | 'INTERMEDIATE' | 'ADVANCED';
+  experience: 'BEGINNER' | 'INTERMEDIATE' | 'EXPERT';
   portfolio: {
     totalValue: number;
+    properties: number;
     diversification: number;
-    currentAllocations: Record<string, number>;
   };
+}
+
+export interface MarketContext {
+  region: string;
+  marketTrend: 'BULL' | 'BEAR' | 'STABLE';
+  interestRates: number;
+  inflation: number;
+  unemployment: number;
+  gdpGrowth: number;
+  propertySupply: number;
+  propertyDemand: number;
+  averageDaysOnMarket: number;
+  priceGrowth: number;
 }
 
 export interface RecommendationRequest {
   userId: string;
-  propertyId?: string;
-  region?: string;
-  propertyType?: string;
-  budget?: {
-    min: number;
-    max: number;
+  userProfile: UserProfile;
+  marketContext: MarketContext;
+  propertyFilters?: {
+    postcodes?: string[];
+    propertyTypes?: string[];
+    priceRange?: { min: number; max: number };
+    bedrooms?: { min: number; max: number };
   };
-  investmentGoal?: string;
-  riskTolerance?: string;
-  timeframe?: string;
-  maxRecommendations?: number;
+  limit?: number;
 }
 
 export class AIRecommendationEngine {
   private static instance: AIRecommendationEngine;
-  private recommendations: Map<string, PropertyRecommendation> = new Map();
+  private recommendations: Map<string, PropertyRecommendation[]> = new Map();
   private userProfiles: Map<string, UserProfile> = new Map();
-  private marketData: Map<string, MarketContext> = new Map();
-  private mlModels: Map<string, any> = new Map();
+  private marketContexts: Map<string, MarketContext> = new Map();
 
-  private constructor() {
-    this.initializeMLModels();
-    this.startRecommendationProcessing();
-    this.startModelRetraining();
-  }
+  // AI Model weights and thresholds
+  private readonly MODEL_WEIGHTS = {
+    bmvScore: 0.25,
+    marketTrend: 0.20,
+    locationScore: 0.20,
+    rentalYield: 0.15,
+    growthPotential: 0.10,
+    riskFactors: 0.10,
+  };
+
+  private readonly CONFIDENCE_THRESHOLDS = {
+    HIGH: 80,
+    MEDIUM: 60,
+    LOW: 40,
+  };
+
+  private readonly RISK_FACTORS = {
+    marketVolatility: 0.3,
+    locationRisk: 0.25,
+    propertyCondition: 0.20,
+    financingRisk: 0.15,
+    regulatoryRisk: 0.10,
+  };
 
   public static getInstance(): AIRecommendationEngine {
     if (!AIRecommendationEngine.instance) {
@@ -139,19 +109,24 @@ export class AIRecommendationEngine {
     return AIRecommendationEngine.instance;
   }
 
-  // Generate AI-powered recommendations
-  async generateRecommendations(request: RecommendationRequest): Promise<PropertyRecommendation[]> {
+  // Generate property recommendations
+  public async generateRecommendations(request: RecommendationRequest): Promise<PropertyRecommendation[]> {
     try {
-      const userProfile = await this.getUserProfile(request.userId);
-      const marketContext = await this.getMarketContext(request.region || 'UK');
-      
-      // Use ML models to analyze properties and generate recommendations
-      const candidateProperties = await this.findCandidateProperties(request);
-      const recommendations: PropertyRecommendation[] = [];
+      const { userId, userProfile, marketContext, propertyFilters, limit = 10 } = request;
 
+      // Store user profile and market context
+      this.userProfiles.set(userId, userProfile);
+      this.marketContexts.set(userId, marketContext);
+
+      // Get candidate properties (in a real implementation, this would query the database)
+      const candidateProperties = await this.getCandidateProperties(propertyFilters);
+
+      // Generate recommendations for each property
+      const recommendations: PropertyRecommendation[] = [];
+      
       for (const property of candidateProperties) {
         const recommendation = await this.analyzeProperty(property, userProfile, marketContext);
-        if (recommendation && recommendation.confidence >= 60) {
+        if (recommendation && recommendation.confidence >= this.CONFIDENCE_THRESHOLDS.LOW) {
           recommendations.push(recommendation);
         }
       }
@@ -164,21 +139,23 @@ export class AIRecommendationEngine {
       });
 
       // Limit results
-      const maxResults = request.maxRecommendations || 10;
-      const finalRecommendations = recommendations.slice(0, maxResults);
+      const finalRecommendations = recommendations.slice(0, limit);
 
       // Store recommendations
-      for (const rec of finalRecommendations) {
-        this.recommendations.set(rec.id, rec);
-      }
+      this.recommendations.set(userId, finalRecommendations);
 
-      await this.logRecommendationGeneration(request.userId, finalRecommendations.length);
+      // Log recommendation generation
+      await auditLogger.logSystemEvent('ai_recommendations_generated', {
+        userId,
+        count: finalRecommendations.length,
+        averageScore: finalRecommendations.reduce((sum, r) => sum + r.score, 0) / finalRecommendations.length,
+        averageConfidence: finalRecommendations.reduce((sum, r) => sum + r.confidence, 0) / finalRecommendations.length,
+      });
 
       return finalRecommendations;
-
     } catch (error) {
       console.error('Error generating recommendations:', error);
-      return [];
+      throw error;
     }
   }
 
@@ -189,495 +166,420 @@ export class AIRecommendationEngine {
     marketContext: MarketContext
   ): Promise<PropertyRecommendation | null> {
     try {
-      // Use ML models to analyze the property
-      const analysis = await this.runMLAnalysis(property, userProfile, marketContext);
+      // Calculate key factors
+      const keyFactors = await this.calculateKeyFactors(property, marketContext);
       
-      if (!analysis) {
-        return null;
-      }
+      // Determine recommendation type
+      const recommendationType = this.determineRecommendationType(property, userProfile, keyFactors);
+      
+      // Calculate overall score
+      const score = this.calculateOverallScore(keyFactors, userProfile);
+      
+      // Calculate confidence
+      const confidence = this.calculateConfidence(property, keyFactors, marketContext);
+      
+      // Generate reasoning
+      const reasoning = this.generateReasoning(property, keyFactors, userProfile, marketContext);
+      
+      // Assess risk level
+      const riskLevel = this.assessRiskLevel(property, keyFactors, marketContext);
+      
+      // Determine time horizon
+      const timeHorizon = this.determineTimeHorizon(recommendationType, userProfile);
+      
+      // Calculate expected return
+      const expectedReturn = this.calculateExpectedReturn(property, keyFactors, timeHorizon);
+      
+      // Find alternatives
+      const alternatives = await this.findAlternatives(property, userProfile);
 
       const recommendation: PropertyRecommendation = {
-        id: crypto.randomUUID(),
+        id: this.generateId(),
         propertyId: property.id,
         userId: userProfile.id,
-        recommendationType: analysis.recommendationType,
-        confidence: analysis.confidence,
-        score: analysis.score,
-        reasoning: analysis.reasoning,
-        factors: analysis.factors,
-        marketContext,
-        financialProjection: analysis.financialProjection,
-        riskAssessment: analysis.riskAssessment,
-        createdAt: new Date(),
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        isActive: true
+        type: recommendationType,
+        score,
+        confidence,
+        reasoning,
+        riskLevel,
+        timeHorizon,
+        expectedReturn,
+        keyFactors,
+        alternatives,
+        createdAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days
       };
 
       return recommendation;
-
     } catch (error) {
       console.error('Error analyzing property:', error);
       return null;
     }
   }
 
-  // Run ML analysis on property
-  private async runMLAnalysis(
+  // Calculate key factors for property analysis
+  private async calculateKeyFactors(property: any, marketContext: MarketContext): Promise<PropertyRecommendation['keyFactors']> {
+    // BMV Score (0-100)
+    const bmvScore = this.calculateBMVScore(property);
+    
+    // Market Trend Score (0-100)
+    const marketTrend = this.calculateMarketTrendScore(marketContext);
+    
+    // Location Score (0-100)
+    const locationScore = this.calculateLocationScore(property);
+    
+    // Rental Yield (0-100)
+    const rentalYield = this.calculateRentalYieldScore(property);
+    
+    // Growth Potential (0-100)
+    const growthPotential = this.calculateGrowthPotential(property, marketContext);
+
+    return {
+      bmvScore,
+      marketTrend,
+      locationScore,
+      rentalYield,
+      growthPotential,
+    };
+  }
+
+  // Calculate BMV Score
+  private calculateBMVScore(property: any): number {
+    // In a real implementation, this would use the existing BMV scoring logic
+    const baseScore = property.bmvScore || 50;
+    const priceVsMarket = property.priceVsMarket || 1.0;
+    const conditionScore = property.conditionScore || 50;
+    
+    return Math.min(100, Math.max(0, (baseScore * 0.5) + ((1 - priceVsMarket) * 30) + (conditionScore * 0.2)));
+  }
+
+  // Calculate Market Trend Score
+  private calculateMarketTrendScore(marketContext: MarketContext): number {
+    const trendScore = marketContext.marketTrend === 'BULL' ? 80 : 
+                      marketContext.marketTrend === 'STABLE' ? 60 : 40;
+    
+    const growthBonus = Math.min(20, marketContext.priceGrowth * 2);
+    const demandBonus = Math.min(10, (marketContext.propertyDemand / marketContext.propertySupply) * 10);
+    
+    return Math.min(100, trendScore + growthBonus + demandBonus);
+  }
+
+  // Calculate Location Score
+  private calculateLocationScore(property: any): number {
+    const transportScore = property.transportScore || 50;
+    const schoolScore = property.schoolScore || 50;
+    const amenityScore = property.amenityScore || 50;
+    const crimeScore = property.crimeScore || 50;
+    
+    return (transportScore * 0.3) + (schoolScore * 0.25) + (amenityScore * 0.25) + (crimeScore * 0.2);
+  }
+
+  // Calculate Rental Yield Score
+  private calculateRentalYieldScore(property: any): number {
+    const rentalYield = property.rentalYield || 4.5;
+    const targetYield = 6.0; // Target yield for good investment
+    
+    if (rentalYield >= targetYield) return 100;
+    if (rentalYield >= targetYield * 0.8) return 80;
+    if (rentalYield >= targetYield * 0.6) return 60;
+    return 40;
+  }
+
+  // Calculate Growth Potential
+  private calculateGrowthPotential(property: any, marketContext: MarketContext): number {
+    const historicalGrowth = property.historicalGrowth || 2.5;
+    const marketGrowth = marketContext.priceGrowth;
+    const developmentPotential = property.developmentPotential || 0;
+    
+    const baseScore = Math.min(100, (historicalGrowth + marketGrowth) * 10);
+    const developmentBonus = Math.min(20, developmentPotential * 20);
+    
+    return Math.min(100, baseScore + developmentBonus);
+  }
+
+  // Determine recommendation type
+  private determineRecommendationType(
     property: any,
     userProfile: UserProfile,
-    marketContext: MarketContext
-  ): Promise<any> {
-    // Simulate ML model analysis
-    // In a real implementation, this would use actual ML models
+    keyFactors: PropertyRecommendation['keyFactors']
+  ): PropertyRecommendation['type'] {
+    const { bmvScore, rentalYield, growthPotential } = keyFactors;
+    const { investmentStrategy, riskTolerance } = userProfile;
+
+    // High BMV score suggests investment opportunity
+    if (bmvScore >= 80) {
+      if (rentalYield >= 70 && investmentStrategy === 'RENTAL') return 'RENTAL';
+      if (growthPotential >= 70 && investmentStrategy === 'BUY_AND_HOLD') return 'HOLD';
+      return 'INVESTMENT';
+    }
+
+    // Medium scores with specific strategies
+    if (bmvScore >= 60) {
+      if (investmentStrategy === 'FLIP' && growthPotential >= 60) return 'FLIP';
+      if (rentalYield >= 60) return 'RENTAL';
+      return 'HOLD';
+    }
+
+    // Low scores
+    if (bmvScore < 40) return 'AVOID';
     
-    const factors: RecommendationFactor[] = [];
+    return 'HOLD';
+  }
+
+  // Calculate overall score
+  private calculateOverallScore(
+    keyFactors: PropertyRecommendation['keyFactors'],
+    userProfile: UserProfile
+  ): number {
+    const { bmvScore, marketTrend, locationScore, rentalYield, growthPotential } = keyFactors;
+    
+    // Adjust weights based on user profile
+    let weights = { ...this.MODEL_WEIGHTS };
+    
+    if (userProfile.investmentStrategy === 'RENTAL') {
+      weights.rentalYield = 0.30;
+      weights.bmvScore = 0.20;
+    } else if (userProfile.investmentStrategy === 'FLIP') {
+      weights.growthPotential = 0.25;
+      weights.bmvScore = 0.30;
+    }
+
+    const score = 
+      (bmvScore * weights.bmvScore) +
+      (marketTrend * weights.marketTrend) +
+      (locationScore * weights.locationScore) +
+      (rentalYield * weights.rentalYield) +
+      (growthPotential * weights.growthPotential);
+
+    return Math.round(score);
+  }
+
+  // Calculate confidence level
+  private calculateConfidence(
+    property: any,
+    keyFactors: PropertyRecommendation['keyFactors'],
+    marketContext: MarketContext
+  ): number {
+    let confidence = 50; // Base confidence
+
+    // Data quality factors
+    if (property.dataCompleteness >= 0.8) confidence += 20;
+    if (property.recentSales >= 5) confidence += 15;
+    if (property.marketDataAge < 30) confidence += 10;
+
+    // Market stability
+    if (marketContext.marketTrend === 'STABLE') confidence += 10;
+    if (marketContext.priceGrowth > 0 && marketContext.priceGrowth < 10) confidence += 5;
+
+    // Factor consistency
+    const factorVariance = this.calculateFactorVariance(keyFactors);
+    if (factorVariance < 20) confidence += 10;
+
+    return Math.min(100, Math.max(0, confidence));
+  }
+
+  // Calculate factor variance
+  private calculateFactorVariance(keyFactors: PropertyRecommendation['keyFactors']): number {
+    const factors = Object.values(keyFactors);
+    const mean = factors.reduce((sum, val) => sum + val, 0) / factors.length;
+    const variance = factors.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / factors.length;
+    return Math.sqrt(variance);
+  }
+
+  // Generate reasoning
+  private generateReasoning(
+    property: any,
+    keyFactors: PropertyRecommendation['keyFactors'],
+    userProfile: UserProfile,
+    marketContext: MarketContext
+  ): string[] {
     const reasoning: string[] = [];
-    let score = 0;
-    let confidence = 0;
 
-    // Location analysis
-    const locationScore = this.analyzeLocation(property, marketContext);
-    factors.push({
-      name: 'Location Quality',
-      weight: 0.25,
-      impact: locationScore > 70 ? 'POSITIVE' : locationScore < 40 ? 'NEGATIVE' : 'NEUTRAL',
-      value: locationScore,
-      description: 'Analysis of location desirability and growth potential',
-      source: 'ML_Location_Model'
-    });
-    score += locationScore * 0.25;
+    // BMV reasoning
+    if (keyFactors.bmvScore >= 80) {
+      reasoning.push('Excellent below-market-value opportunity with significant potential savings');
+    } else if (keyFactors.bmvScore >= 60) {
+      reasoning.push('Good value proposition with reasonable below-market pricing');
+    } else if (keyFactors.bmvScore < 40) {
+      reasoning.push('Property appears overpriced relative to market value');
+    }
 
-    // Price analysis
-    const priceScore = this.analyzePrice(property, marketContext);
-    factors.push({
-      name: 'Price Value',
-      weight: 0.20,
-      impact: priceScore > 70 ? 'POSITIVE' : priceScore < 40 ? 'NEGATIVE' : 'NEUTRAL',
-      value: priceScore,
-      description: 'Analysis of price relative to market value and growth potential',
-      source: 'ML_Price_Model'
-    });
-    score += priceScore * 0.20;
+    // Market trend reasoning
+    if (keyFactors.marketTrend >= 80) {
+      reasoning.push('Strong market conditions favor property investment');
+    } else if (keyFactors.marketTrend < 40) {
+      reasoning.push('Market conditions are challenging, consider timing carefully');
+    }
 
-    // Rental potential
-    const rentalScore = this.analyzeRentalPotential(property, marketContext);
-    factors.push({
-      name: 'Rental Potential',
-      weight: 0.15,
-      impact: rentalScore > 70 ? 'POSITIVE' : rentalScore < 40 ? 'NEGATIVE' : 'NEUTRAL',
-      value: rentalScore,
-      description: 'Analysis of rental income potential and yield',
-      source: 'ML_Rental_Model'
-    });
-    score += rentalScore * 0.15;
+    // Location reasoning
+    if (keyFactors.locationScore >= 80) {
+      reasoning.push('Prime location with excellent amenities and transport links');
+    } else if (keyFactors.locationScore < 40) {
+      reasoning.push('Location may have limitations affecting long-term value');
+    }
 
-    // Market timing
-    const timingScore = this.analyzeMarketTiming(marketContext);
-    factors.push({
-      name: 'Market Timing',
-      weight: 0.15,
-      impact: timingScore > 70 ? 'POSITIVE' : timingScore < 40 ? 'NEGATIVE' : 'NEUTRAL',
-      value: timingScore,
-      description: 'Analysis of current market conditions and timing',
-      source: 'ML_Market_Model'
-    });
-    score += timingScore * 0.15;
+    // Rental yield reasoning
+    if (keyFactors.rentalYield >= 80) {
+      reasoning.push('Strong rental yield potential for income generation');
+    } else if (keyFactors.rentalYield < 40) {
+      reasoning.push('Rental yield may be below optimal for income-focused strategy');
+    }
 
-    // Risk assessment
-    const riskScore = this.analyzeRisk(property, marketContext);
-    factors.push({
-      name: 'Risk Level',
-      weight: 0.10,
-      impact: riskScore > 70 ? 'POSITIVE' : riskScore < 40 ? 'NEGATIVE' : 'NEUTRAL',
-      value: riskScore,
-      description: 'Analysis of investment risk factors',
-      source: 'ML_Risk_Model'
-    });
-    score += riskScore * 0.10;
+    // Growth potential reasoning
+    if (keyFactors.growthPotential >= 80) {
+      reasoning.push('High growth potential based on historical trends and market conditions');
+    }
 
     // User profile alignment
-    const alignmentScore = this.analyzeUserAlignment(property, userProfile);
-    factors.push({
-      name: 'Profile Alignment',
-      weight: 0.15,
-      impact: alignmentScore > 70 ? 'POSITIVE' : alignmentScore < 40 ? 'NEGATIVE' : 'NEUTRAL',
-      value: alignmentScore,
-      description: 'Analysis of alignment with user preferences and goals',
-      source: 'ML_Profile_Model'
-    });
-    score += alignmentScore * 0.15;
-
-    // Generate reasoning
-    this.generateReasoning(factors, reasoning);
-
-    // Determine recommendation type
-    const recommendationType = this.determineRecommendationType(score, factors, userProfile);
-
-    // Calculate confidence based on data quality and model certainty
-    confidence = this.calculateConfidence(factors, property, marketContext);
-
-    // Generate financial projection
-    const financialProjection = this.generateFinancialProjection(property, marketContext);
-
-    // Generate risk assessment
-    const riskAssessment = this.generateRiskAssessment(property, marketContext, factors);
-
-    return {
-      recommendationType,
-      confidence,
-      score: Math.round(score),
-      reasoning,
-      factors,
-      financialProjection,
-      riskAssessment
-    };
-
-  } catch (error) {
-    console.error('Error in ML analysis:', error);
-    return null;
-  }
-
-  // Analysis methods
-  private analyzeLocation(property: any, marketContext: MarketContext): number {
-    // Simulate location analysis
-    const baseScore = 50;
-    const regionBonus = marketContext.demandLevel === 'HIGH' ? 20 : marketContext.demandLevel === 'MEDIUM' ? 10 : -10;
-    const growthBonus = marketContext.priceGrowth > 5 ? 15 : marketContext.priceGrowth > 2 ? 5 : -5;
-    const volatilityPenalty = marketContext.marketVolatility > 70 ? -10 : 0;
-    
-    return Math.max(0, Math.min(100, baseScore + regionBonus + growthBonus + volatilityPenalty));
-  }
-
-  private analyzePrice(property: any, marketContext: MarketContext): number {
-    // Simulate price analysis
-    const baseScore = 50;
-    const priceRatio = property.price / marketContext.averagePrice;
-    const priceScore = priceRatio < 0.8 ? 20 : priceRatio < 1.2 ? 0 : -20;
-    
-    return Math.max(0, Math.min(100, baseScore + priceScore));
-  }
-
-  private analyzeRentalPotential(property: any, marketContext: MarketContext): number {
-    // Simulate rental analysis
-    const baseScore = 50;
-    const yieldScore = marketContext.rentalYield > 6 ? 20 : marketContext.rentalYield > 4 ? 10 : -10;
-    
-    return Math.max(0, Math.min(100, baseScore + yieldScore));
-  }
-
-  private analyzeMarketTiming(marketContext: MarketContext): number {
-    // Simulate market timing analysis
-    const baseScore = 50;
-    const trendScore = marketContext.marketTrend === 'BULLISH' ? 20 : marketContext.marketTrend === 'BEARISH' ? -20 : 0;
-    const supplyScore = marketContext.supplyLevel === 'LOW' ? 15 : marketContext.supplyLevel === 'HIGH' ? -15 : 0;
-    
-    return Math.max(0, Math.min(100, baseScore + trendScore + supplyScore));
-  }
-
-  private analyzeRisk(property: any, marketContext: MarketContext): number {
-    // Simulate risk analysis (higher score = lower risk)
-    const baseScore = 50;
-    const volatilityPenalty = marketContext.marketVolatility > 70 ? -20 : marketContext.marketVolatility > 40 ? -10 : 0;
-    const economicScore = marketContext.economicIndicators.gdpGrowth > 2 ? 10 : -10;
-    
-    return Math.max(0, Math.min(100, baseScore + volatilityPenalty + economicScore));
-  }
-
-  private analyzeUserAlignment(property: any, userProfile: UserProfile): number {
-    // Simulate user alignment analysis
-    const baseScore = 50;
-    const budgetScore = property.price >= userProfile.budget.min && property.price <= userProfile.budget.max ? 20 : -20;
-    const regionScore = userProfile.preferredRegions.includes(property.region) ? 15 : -15;
-    const typeScore = userProfile.propertyTypes.includes(property.type) ? 10 : -10;
-    
-    return Math.max(0, Math.min(100, baseScore + budgetScore + regionScore + typeScore));
-  }
-
-  private generateReasoning(factors: RecommendationFactor[], reasoning: string[]): void {
-    for (const factor of factors) {
-      if (factor.impact === 'POSITIVE' && factor.value > 70) {
-        reasoning.push(`Strong ${factor.name.toLowerCase()} with score of ${factor.value}`);
-      } else if (factor.impact === 'NEGATIVE' && factor.value < 40) {
-        reasoning.push(`Weak ${factor.name.toLowerCase()} with score of ${factor.value}`);
-      }
+    if (userProfile.investmentStrategy === 'RENTAL' && keyFactors.rentalYield >= 70) {
+      reasoning.push('Aligns well with your rental investment strategy');
     }
+
+    if (userProfile.riskTolerance === 'CONSERVATIVE' && keyFactors.bmvScore >= 70) {
+      reasoning.push('Conservative investment with good downside protection');
+    }
+
+    return reasoning;
   }
 
-  private determineRecommendationType(
-    score: number,
-    factors: RecommendationFactor[],
+  // Assess risk level
+  private assessRiskLevel(
+    property: any,
+    keyFactors: PropertyRecommendation['keyFactors'],
+    marketContext: MarketContext
+  ): PropertyRecommendation['riskLevel'] {
+    let riskScore = 50; // Base risk
+
+    // Market risk
+    if (marketContext.marketTrend === 'BEAR') riskScore += 30;
+    if (marketContext.priceGrowth < 0) riskScore += 20;
+
+    // Property risk
+    if (keyFactors.locationScore < 40) riskScore += 20;
+    if (property.conditionScore < 40) riskScore += 15;
+
+    // Data risk
+    if (property.dataCompleteness < 0.6) riskScore += 15;
+
+    if (riskScore >= 70) return 'HIGH';
+    if (riskScore >= 40) return 'MEDIUM';
+    return 'LOW';
+  }
+
+  // Determine time horizon
+  private determineTimeHorizon(
+    type: PropertyRecommendation['type'],
     userProfile: UserProfile
-  ): PropertyRecommendation['recommendationType'] {
-    if (score >= 80) {
-      return userProfile.investmentStrategy === 'RENTAL' ? 'RENTAL' : 'INVESTMENT';
-    } else if (score >= 60) {
-      return 'HOLD';
-    } else if (score >= 40) {
-      return 'AVOID';
-    } else {
-      return 'AVOID';
-    }
+  ): PropertyRecommendation['timeHorizon'] {
+    if (type === 'FLIP') return 'SHORT';
+    if (type === 'RENTAL' || type === 'HOLD') return 'LONG';
+    if (userProfile.experience === 'BEGINNER') return 'LONG';
+    return 'MEDIUM';
   }
 
-  private calculateConfidence(factors: RecommendationFactor[], property: any, marketContext: MarketContext): number {
-    // Calculate confidence based on data quality and model certainty
-    let confidence = 70; // Base confidence
-    
-    // Adjust based on data completeness
-    const dataCompleteness = this.calculateDataCompleteness(property);
-    confidence += (dataCompleteness - 50) * 0.3;
-    
-    // Adjust based on market data quality
-    const marketDataQuality = this.calculateMarketDataQuality(marketContext);
-    confidence += (marketDataQuality - 50) * 0.2;
-    
-    return Math.max(0, Math.min(100, Math.round(confidence)));
-  }
+  // Calculate expected return
+  private calculateExpectedReturn(
+    property: any,
+    keyFactors: PropertyRecommendation['keyFactors'],
+    timeHorizon: PropertyRecommendation['timeHorizon']
+  ): PropertyRecommendation['expectedReturn'] {
+    const basePrice = property.price || 250000;
+    const annualGrowth = (keyFactors.growthPotential / 100) * 0.05; // 5% base growth
+    const rentalYield = (keyFactors.rentalYield / 100) * 0.06; // 6% base yield
 
-  private calculateDataCompleteness(property: any): number {
-    // Simulate data completeness calculation
-    const requiredFields = ['price', 'location', 'type', 'size', 'bedrooms', 'bathrooms'];
-    const presentFields = requiredFields.filter(field => property[field] !== undefined && property[field] !== null);
-    return (presentFields.length / requiredFields.length) * 100;
-  }
+    let years = 1;
+    if (timeHorizon === 'MEDIUM') years = 3;
+    if (timeHorizon === 'LONG') years = 5;
 
-  private calculateMarketDataQuality(marketContext: MarketContext): number {
-    // Simulate market data quality calculation
-    return 85; // Assume good market data quality
-  }
+    const capitalGrowth = basePrice * Math.pow(1 + annualGrowth, years) - basePrice;
+    const rentalIncome = basePrice * rentalYield * years;
+    const totalReturn = capitalGrowth + rentalIncome;
+    const percentage = (totalReturn / basePrice) * 100;
 
-  private generateFinancialProjection(property: any, marketContext: MarketContext): FinancialProjection {
-    const currentValue = property.price;
-    const annualGrowth = marketContext.priceGrowth / 100;
-    const rentalYield = marketContext.rentalYield / 100;
-    
     return {
-      currentValue,
-      projectedValue1Year: currentValue * (1 + annualGrowth),
-      projectedValue3Year: currentValue * Math.pow(1 + annualGrowth, 3),
-      projectedValue5Year: currentValue * Math.pow(1 + annualGrowth, 5),
-      rentalIncome: currentValue * rentalYield,
-      totalReturn: (currentValue * Math.pow(1 + annualGrowth, 5)) - currentValue,
-      annualizedReturn: annualGrowth * 100,
-      cashFlow: (currentValue * rentalYield) - (currentValue * 0.02), // Assuming 2% maintenance
-      roi: ((currentValue * Math.pow(1 + annualGrowth, 5)) - currentValue) / currentValue * 100,
-      paybackPeriod: currentValue / (currentValue * rentalYield)
+      percentage: Math.round(percentage),
+      amount: Math.round(totalReturn),
+      timeframe: `${years} year${years > 1 ? 's' : ''}`,
     };
   }
 
-  private generateRiskAssessment(property: any, marketContext: MarketContext, factors: RecommendationFactor[]): RiskAssessment {
-    const riskFactors: RiskFactor[] = [
-      {
-        name: 'Market Volatility',
-        probability: marketContext.marketVolatility / 100,
-        impact: marketContext.marketVolatility,
-        severity: marketContext.marketVolatility > 70 ? 'HIGH' : marketContext.marketVolatility > 40 ? 'MEDIUM' : 'LOW',
-        description: 'Risk of market price fluctuations'
-      },
-      {
-        name: 'Economic Downturn',
-        probability: 0.2,
-        impact: 80,
-        severity: 'MEDIUM',
-        description: 'Risk of economic recession affecting property values'
-      },
-      {
-        name: 'Interest Rate Changes',
-        probability: 0.3,
-        impact: 60,
-        severity: 'MEDIUM',
-        description: 'Risk of rising interest rates affecting affordability'
-      }
+  // Find alternative properties
+  private async findAlternatives(property: any, userProfile: UserProfile): Promise<string[]> {
+    // In a real implementation, this would find similar properties
+    return [
+      `Similar ${property.propertyType} in ${property.postcode}`,
+      `Alternative investment in nearby area`,
+      `Higher yield option in same location`,
     ];
+  }
 
-    const overallRiskScore = riskFactors.reduce((sum, factor) => sum + (factor.probability * factor.impact), 0) / riskFactors.length;
-    const overallRisk = overallRiskScore > 70 ? 'HIGH' : overallRiskScore > 40 ? 'MEDIUM' : 'LOW';
+  // Get candidate properties
+  private async getCandidateProperties(filters?: any): Promise<any[]> {
+    // In a real implementation, this would query the database
+    // For now, return mock data
+    return [
+      {
+        id: 'prop-1',
+        price: 250000,
+        postcode: 'SW1A 1AA',
+        propertyType: 'Flat',
+        bedrooms: 2,
+        bmvScore: 85,
+        priceVsMarket: 0.85,
+        conditionScore: 75,
+        transportScore: 90,
+        schoolScore: 80,
+        amenityScore: 85,
+        crimeScore: 70,
+        rentalYield: 5.5,
+        historicalGrowth: 3.2,
+        developmentPotential: 0.3,
+        dataCompleteness: 0.9,
+        recentSales: 8,
+        marketDataAge: 15,
+      },
+      // Add more mock properties...
+    ];
+  }
 
-    return {
-      overallRisk,
-      riskScore: Math.round(overallRiskScore),
-      riskFactors,
-      mitigationStrategies: [
-        'Diversify portfolio across different regions',
-        'Maintain adequate cash reserves',
-        'Consider fixed-rate financing',
-        'Monitor market indicators regularly'
-      ],
-      stressTestResults: [
-        {
-          scenario: 'Economic Recession',
-          probability: 0.2,
-          impact: -20,
-          recommendation: 'Hold property and wait for market recovery'
-        },
-        {
-          scenario: 'Interest Rate Increase',
-          probability: 0.3,
-          impact: -10,
-          recommendation: 'Consider refinancing or selling if rates rise significantly'
-        }
-      ]
-    };
+  // Get user recommendations
+  public async getUserRecommendations(userId: string): Promise<PropertyRecommendation[]> {
+    return this.recommendations.get(userId) || [];
+  }
+
+  // Update recommendation feedback
+  public async updateRecommendationFeedback(
+    recommendationId: string,
+    userId: string,
+    feedback: 'POSITIVE' | 'NEGATIVE' | 'NEUTRAL'
+  ): Promise<boolean> {
+    try {
+      const recommendations = this.recommendations.get(userId);
+      if (!recommendations) return false;
+
+      const recommendation = recommendations.find(r => r.id === recommendationId);
+      if (!recommendation) return false;
+
+      // Log feedback
+      await auditLogger.logSystemEvent('recommendation_feedback', {
+        recommendationId,
+        userId,
+        feedback,
+        recommendationType: recommendation.type,
+        score: recommendation.score,
+        confidence: recommendation.confidence,
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Error updating recommendation feedback:', error);
+      return false;
+    }
   }
 
   // Utility methods
-  private async findCandidateProperties(request: RecommendationRequest): Promise<any[]> {
-    // Simulate finding candidate properties
-    // In a real implementation, this would query the property database
-    return [
-      {
-        id: 'prop1',
-        price: 250000,
-        location: 'London',
-        type: 'Flat',
-        size: 800,
-        bedrooms: 2,
-        bathrooms: 1,
-        region: 'London'
-      },
-      {
-        id: 'prop2',
-        price: 180000,
-        location: 'Manchester',
-        type: 'House',
-        size: 1200,
-        bedrooms: 3,
-        bathrooms: 2,
-        region: 'Manchester'
-      }
-    ];
-  }
-
-  private async getUserProfile(userId: string): Promise<UserProfile> {
-    let profile = this.userProfiles.get(userId);
-    if (!profile) {
-      // Create default profile
-      profile = {
-        id: userId,
-        investmentGoals: ['Capital Growth', 'Rental Income'],
-        riskTolerance: 'MODERATE',
-        investmentHorizon: 'LONG',
-        budget: { min: 100000, max: 500000, preferred: 300000 },
-        preferredRegions: ['London', 'Manchester', 'Birmingham'],
-        propertyTypes: ['House', 'Flat'],
-        investmentStrategy: 'BUY_AND_HOLD',
-        experience: 'INTERMEDIATE',
-        portfolio: {
-          totalValue: 0,
-          diversification: 0,
-          currentAllocations: {}
-        }
-      };
-      this.userProfiles.set(userId, profile);
-    }
-    return profile;
-  }
-
-  private async getMarketContext(region: string): Promise<MarketContext> {
-    let context = this.marketData.get(region);
-    if (!context) {
-      // Create default market context
-      context = {
-        region,
-        marketTrend: 'STABLE',
-        averagePrice: 250000,
-        priceGrowth: 3.5,
-        rentalYield: 4.5,
-        demandLevel: 'MEDIUM',
-        supplyLevel: 'MEDIUM',
-        marketVolatility: 30,
-        economicIndicators: {
-          interestRate: 5.25,
-          inflation: 3.2,
-          unemployment: 4.5,
-          gdpGrowth: 2.1,
-          consumerConfidence: 75
-        }
-      };
-      this.marketData.set(region, context);
-    }
-    return context;
-  }
-
-  private async logRecommendationGeneration(userId: string, count: number): Promise<void> {
-    try {
-      await auditLogger.logUserAction('ai_recommendations_generated', {
-        userId,
-        count,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      // Silently handle audit logging errors
-      console.debug('Audit logging skipped (development mode)');
-    }
-  }
-
-  // Background processing
-  private startRecommendationProcessing(): void {
-    // Process recommendations every hour
-    setInterval(() => {
-      this.processExpiredRecommendations();
-    }, 60 * 60 * 1000);
-  }
-
-  private startModelRetraining(): void {
-    // Retrain models daily
-    setInterval(() => {
-      this.retrainModels();
-    }, 24 * 60 * 60 * 1000);
-  }
-
-  private processExpiredRecommendations(): void {
-    const now = new Date();
-    for (const [id, recommendation] of this.recommendations) {
-      if (recommendation.expiresAt < now) {
-        recommendation.isActive = false;
-        this.recommendations.set(id, recommendation);
-      }
-    }
-  }
-
-  private async retrainModels(): Promise<void> {
-    // Simulate model retraining
-    console.log('Retraining ML models...');
-    // In a real implementation, this would retrain the actual ML models
-  }
-
-  private initializeMLModels(): void {
-    // Initialize ML models
-    this.mlModels.set('location_model', { version: '1.0', accuracy: 0.85 });
-    this.mlModels.set('price_model', { version: '1.0', accuracy: 0.82 });
-    this.mlModels.set('rental_model', { version: '1.0', accuracy: 0.78 });
-    this.mlModels.set('market_model', { version: '1.0', accuracy: 0.80 });
-    this.mlModels.set('risk_model', { version: '1.0', accuracy: 0.75 });
-    this.mlModels.set('profile_model', { version: '1.0', accuracy: 0.88 });
-  }
-
-  // Public methods for getting recommendations
-  getRecommendations(userId: string): PropertyRecommendation[] {
-    return Array.from(this.recommendations.values())
-      .filter(rec => rec.userId === userId && rec.isActive)
-      .sort((a, b) => b.score - a.score);
-  }
-
-  getRecommendation(id: string): PropertyRecommendation | null {
-    return this.recommendations.get(id) || null;
-  }
-
-  updateUserProfile(userId: string, updates: Partial<UserProfile>): void {
-    const profile = this.userProfiles.get(userId);
-    if (profile) {
-      const updatedProfile = { ...profile, ...updates };
-      this.userProfiles.set(userId, updatedProfile);
-    }
-  }
-
-  getMLModelStats(): Record<string, any> {
-    const stats: Record<string, any> = {};
-    for (const [name, model] of this.mlModels) {
-      stats[name] = model;
-    }
-    return stats;
+  private generateId(): string {
+    return Math.random().toString(36).substr(2, 9);
   }
 }
 

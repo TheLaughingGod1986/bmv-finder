@@ -1,6 +1,9 @@
 
 import BusinessIntelligenceDashboard from '../components/BusinessIntelligenceDashboard';
 import DataQualityDashboard from '../components/DataQualityDashboard';
+import UserManagementDashboard from '../components/admin/UserManagementDashboard';
+import SecurityDashboard from '../components/admin/SecurityDashboard';
+import PerformanceDashboard from '../components/admin/PerformanceDashboard';
 
 export default function AdminPage() {
   return (
@@ -30,6 +33,24 @@ export default function AdminPage() {
               Data Quality
             </a>
             <a
+              href="#user-management"
+              className="text-gray-500 hover:text-gray-700 py-2 px-1 text-sm font-medium"
+            >
+              User Management
+            </a>
+            <a
+              href="#security"
+              className="text-gray-500 hover:text-gray-700 py-2 px-1 text-sm font-medium"
+            >
+              Security
+            </a>
+            <a
+              href="#performance"
+              className="text-gray-500 hover:text-gray-700 py-2 px-1 text-sm font-medium"
+            >
+              Performance
+            </a>
+            <a
               href="#system-health"
               className="text-gray-500 hover:text-gray-700 py-2 px-1 text-sm font-medium"
             >
@@ -46,6 +67,21 @@ export default function AdminPage() {
         {/* Data Quality Section */}
         <section id="data-quality" className="mb-12">
           <DataQualityDashboard />
+        </section>
+
+        {/* User Management Section */}
+        <section id="user-management" className="mb-12">
+          <UserManagementDashboard />
+        </section>
+
+        {/* Security Section */}
+        <section id="security" className="mb-12">
+          <SecurityDashboard />
+        </section>
+
+        {/* Performance Section */}
+        <section id="performance" className="mb-12">
+          <PerformanceDashboard />
         </section>
 
         {/* System Health Section */}
@@ -175,4 +211,4 @@ export default function AdminPage() {
       </div>
     </div>
   );
-} 
+}

@@ -1,68 +1,83 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../lib/supabaseClient';
+import { productionAuth } from '@/lib/auth/productionAuth';
+import { auditLogger } from '@/lib/audit/auditLogger';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, password } = await request.json();
+    const body = await request.json();
+    const { email, password } = body;
 
+    // Validate required fields
     if (!email || !password) {
-      return NextResponse.json(
-        { success: false, error: 'Email and password are required' },
-        { status: 400 }
-      );
+      return NextResponse.json({
+        success: false,
+        error: 'Email and password are required'
+      }, { status: 400 });
     }
 
-    // Sign in with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return NextResponse.json({
+        success: false,
+        error: 'Invalid email format'
+      }, { status: 400 });
+    }
+
+    // Attempt login
+    const result = await productionAuth.loginUser(
+      email.toLowerCase().trim(),
+      password
+    );
+
+    if (!result.success) {
+      // Log failed login attempt
+      await auditLogger.logSecurityEvent('login_attempt_failed', {
+        email,
+        error: result.error,
+        timestamp: new Date().toISOString()
+      });
+
+      return NextResponse.json({
+        success: false,
+        error: result.error
+      }, { status: 401 });
+    }
+
+    // Log successful login
+    await auditLogger.logUserAction(result.user!.id, 'user_login_success', {
       email,
-      password,
+      timestamp: new Date().toISOString()
     });
 
-    if (error) {
-      console.error('Login error:', error);
-      return NextResponse.json(
-        { success: false, error: error.message },
-        { status: 401 }
-      );
-    }
-
-    if (!data.user || !data.session) {
-      return NextResponse.json(
-        { success: false, error: 'Authentication failed' },
-        { status: 401 }
-      );
-    }
-
-    // Get user profile data
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', data.user.id)
-      .single();
-
-    if (profileError) {
-      console.error('Profile fetch error:', profileError);
-    }
-
-    // Return user data and session token
+    // Return success response
     return NextResponse.json({
       success: true,
+      message: 'Login successful',
       user: {
-        id: data.user.id,
-        email: data.user.email,
-        name: profile?.name || data.user.user_metadata?.name || data.user.email,
-        subscription: profile?.subscription || 'free',
-        captureLimit: profile?.capture_limit || 5,
-        capturedCount: profile?.captured_count || 0,
+        id: result.user!.id,
+        email: result.user!.email,
+        name: result.user!.name,
+        tier: result.user!.tier,
+        role: result.user!.role,
+        preferences: result.user!.preferences,
+        lastLoginAt: result.user!.lastLoginAt
       },
-      token: data.session.access_token,
+      token: result.token
     });
 
   } catch (error) {
-    console.error('Login API error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error('Login error:', error);
+    
+    // Log error
+    await auditLogger.logSecurityEvent('login_error', {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+
+    return NextResponse.json({
+      success: false,
+      error: 'Login failed. Please try again.'
+    }, { status: 500 });
   }
 }

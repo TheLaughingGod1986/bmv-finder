@@ -6,8 +6,10 @@ import { usePathname } from 'next/navigation';
 import { Home, Building2, TrendingUp, Search, BarChart3, Star, Menu, X, User, LogOut, BookOpen, Settings } from 'lucide-react';
 import AuthModal from './AuthModal';
 import EnhancedAuthModal from './EnhancedAuthModal';
+import ProductionAuthModal from './ProductionAuthModal';
 import { useMockAuth } from './MockAuthProvider';
 import { useHybridAuth } from '@/lib/auth/hybridAuth';
+import { useProductionAuth } from '@/lib/auth/productionAuthProvider';
 import ThemeToggle from './ThemeToggle';
 
 export default function Navigation() {
@@ -16,10 +18,11 @@ export default function Navigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, logout } = useMockAuth();
   const hybridAuth = useHybridAuth();
+  const productionAuth = useProductionAuth();
   
-  // Use hybrid auth user if available, otherwise fall back to mock auth
-  const currentUser = hybridAuth.user || user;
-  const isRealAuth = hybridAuth.isRealAuth;
+  // Use production auth if available, otherwise fall back to hybrid/mock auth
+  const currentUser = productionAuth.user || hybridAuth.user || user;
+  const isRealAuth = productionAuth.isAuthenticated || hybridAuth.isRealAuth;
 
   const navigation = [
     { name: 'Home', href: '/', icon: Home, tourId: 'home-link' },
@@ -232,7 +235,7 @@ export default function Navigation() {
       </nav>
       
       {/* Auth Modal */}
-      <EnhancedAuthModal
+      <ProductionAuthModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         defaultMode="login"

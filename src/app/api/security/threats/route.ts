@@ -1,31 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/middleware/auth';
 import { securityManager } from '@/lib/security/securityManager';
+import { requireAuth } from '@/middleware/auth';
+import { userManagement } from '@/lib/auth/userManagement';
 
-// GET /api/security/threats - Get threat detections
 export const GET = requireAuth(async (request: NextRequest, user: any) => {
   try {
     // Check if user has admin permissions
-    if (!user || user.role?.id !== 'admin') {
-      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 });
+    const hasAdminPermission = await userManagement.userHasPermission(user.id, 'admin.system');
+    if (!hasAdminPermission) {
+      return NextResponse.json({
+        success: false,
+        error: 'Insufficient permissions'
+      }, { status: 403 });
     }
 
+    // Get query parameters
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '100');
-    const severity = searchParams.get('severity') as any;
+    const filters = {
+      type: searchParams.get('type') || undefined,
+      status: searchParams.get('status') || undefined,
+      limit: parseInt(searchParams.get('limit') || '50'),
+      offset: parseInt(searchParams.get('offset') || '0'),
+    };
 
-    const threats = securityManager.getThreatDetections(limit, severity);
+    // Get threat detections
+    const result = await securityManager.getThreatDetections(filters);
 
     return NextResponse.json({
       success: true,
-      threats,
-      total: threats.length
+      data: {
+        threats: result.threats,
+        total: result.total,
+        limit: filters.limit,
+        offset: filters.offset,
+        hasMore: filters.offset + filters.limit < result.total
+      }
     });
+
   } catch (error) {
     console.error('Error fetching threat detections:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      error: 'Failed to fetch threat detections'
+    }, { status: 500 });
   }
-});
+}, { requiredRole: 'admin' });

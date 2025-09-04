@@ -1,243 +1,191 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  HomeIcon, 
-  MagnifyingGlassIcon, 
-  ChartBarIcon, 
-  BuildingOfficeIcon,
-  UserIcon,
-  Bars3Icon,
-  XMarkIcon,
-  BellIcon,
-  Cog6ToothIcon
-} from '@heroicons/react/24/outline';
+  Menu, 
+  X, 
+  Home, 
+  Search, 
+  Heart, 
+  BarChart3, 
+  User, 
+  Settings,
+  Bell,
+  Plus,
+  TrendingUp,
+  Calculator,
+  FileText,
+  HelpCircle
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { mobileOptimizer } from '@/lib/mobile/mobileOptimizer';
 
 interface MobileNavigationProps {
-  user?: any;
-  onMenuToggle?: () => void;
+  className?: string;
 }
 
-export default function MobileNavigation({ user, onMenuToggle }: MobileNavigationProps) {
+export default function MobileNavigation({ className = '' }: MobileNavigationProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const pathname = usePathname();
+  const [isBottomNav, setIsBottomNav] = useState(false);
+  const [deviceInfo, setDeviceInfo] = useState<any>(null);
+  const router = useRouter();
 
-  // Handle scroll effect
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 10);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    // Get device information
+    const info = mobileOptimizer.getDeviceInfo();
+    setDeviceInfo(info);
+    
+    // Use bottom navigation for mobile devices
+    setIsBottomNav(info?.type === 'mobile');
   }, []);
 
-  // Close menu when route changes
-  useEffect(() => {
-    setIsOpen(false);
-  }, [pathname]);
-
-  const toggleMenu = () => {
-    setIsOpen(!isOpen);
-    onMenuToggle?.();
-  };
-
   const navigationItems = [
-    { name: 'Home', href: '/', icon: HomeIcon },
-    { name: 'Search', href: '/search', icon: MagnifyingGlassIcon },
-    { name: 'Portfolio', href: '/tools/portfolio', icon: BuildingOfficeIcon },
-    { name: 'Market Trends', href: '/tools/market-trends', icon: ChartBarIcon },
+    { id: 'home', label: 'Home', icon: Home, path: '/' },
+    { id: 'search', label: 'Search', icon: Search, path: '/search/properties' },
+    { id: 'watchlist', label: 'Watchlist', icon: Heart, path: '/watchlist' },
+    { id: 'portfolio', label: 'Portfolio', icon: BarChart3, path: '/tools/portfolio' },
+    { id: 'analysis', label: 'Analysis', icon: TrendingUp, path: '/market/analysis' },
+    { id: 'calculator', label: 'Calculator', icon: Calculator, path: '/tools/calculator' },
+    { id: 'profile', label: 'Profile', icon: User, path: '/profile' },
+    { id: 'help', label: 'Help', icon: HelpCircle, path: '/help' },
   ];
 
-  const isActive = (href: string) => {
-    if (href === '/') {
-      return pathname === '/';
-    }
-    return pathname.startsWith(href);
+  const handleNavigation = (path: string) => {
+    router.push(path);
+    setIsOpen(false);
   };
 
-  return (
-    <>
-      {/* Mobile Header */}
-      <div className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
-        isScrolled ? 'bg-white/95 backdrop-blur-md shadow-sm' : 'bg-transparent'
-      }`}>
-        <div className="flex items-center justify-between px-4 py-3">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">BMV</span>
-            </div>
-            <span className="font-semibold text-gray-900 hidden sm:block">
-              Property Intelligence
-            </span>
-          </Link>
+  const handleSwipe = (direction: 'left' | 'right') => {
+    if (direction === 'right' && !isOpen) {
+      setIsOpen(true);
+    } else if (direction === 'left' && isOpen) {
+      setIsOpen(false);
+    }
+  };
 
-          {/* Right side buttons */}
-          <div className="flex items-center space-x-2">
-            {/* Notifications */}
-            <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-              <BellIcon className="w-5 h-5 text-gray-600" />
-            </button>
-
-            {/* User menu */}
-            {user ? (
-              <Link href="/profile" className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-                <UserIcon className="w-5 h-5 text-gray-600" />
-              </Link>
-            ) : (
-              <Link href="/auth" className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                Sign In
-              </Link>
-            )}
-
-            {/* Menu toggle */}
-            <button
-              onClick={toggleMenu}
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors lg:hidden"
-            >
-              {isOpen ? (
-                <XMarkIcon className="w-5 h-5 text-gray-600" />
-              ) : (
-                <Bars3Icon className="w-5 h-5 text-gray-600" />
-              )}
-            </button>
-          </div>
-        </div>
+  // Bottom Navigation Component
+  const BottomNavigation = () => (
+    <motion.div
+      initial={{ y: 100, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50"
+    >
+      <div className="flex items-center justify-around py-2">
+        {navigationItems.slice(0, 5).map((item) => (
+          <button
+            key={item.id}
+            onClick={() => handleNavigation(item.path)}
+            className="flex flex-col items-center justify-center p-2 rounded-lg transition-colors hover:bg-gray-100 active:bg-gray-200"
+          >
+            <item.icon className="w-6 h-6 text-gray-600" />
+            <span className="text-xs text-gray-600 mt-1">{item.label}</span>
+          </button>
+        ))}
       </div>
+    </motion.div>
+  );
 
-      {/* Mobile Menu Overlay */}
+  // Side Navigation Component
+  const SideNavigation = () => (
+    <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-40 lg:hidden">
+        <>
           {/* Backdrop */}
-          <div 
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={toggleMenu}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 z-40"
+            onClick={() => setIsOpen(false)}
           />
           
-          {/* Menu Panel */}
-          <div className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
-            <div className="flex flex-col h-full">
-              {/* Menu Header */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
-                <button
-                  onClick={toggleMenu}
-                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-                >
-                  <XMarkIcon className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
-
-              {/* Navigation Items */}
-              <nav className="flex-1 px-4 py-6 space-y-2">
-                {navigationItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                        isActive(item.href)
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium">{item.name}</span>
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              {/* User Section */}
-              <div className="p-4 border-t border-gray-200">
-                {user ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-medium text-sm">
-                          {user.email?.charAt(0).toUpperCase() || 'U'}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {user.email}
-                        </p>
-                        <p className="text-xs text-gray-500">Premium User</p>
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Link
-                        href="/profile"
-                        className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                      >
-                        <UserIcon className="w-4 h-4" />
-                        <span className="text-sm">Profile</span>
-                      </Link>
-                      <Link
-                        href="/settings"
-                        className="flex items-center space-x-3 px-4 py-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                      >
-                        <Cog6ToothIcon className="w-4 h-4" />
-                        <span className="text-sm">Settings</span>
-                      </Link>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Link
-                      href="/auth"
-                      className="block w-full px-4 py-3 bg-blue-600 text-white text-center rounded-lg font-medium hover:bg-blue-700 transition-colors"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      href="/auth?mode=signup"
-                      className="block w-full px-4 py-3 border border-gray-300 text-gray-700 text-center rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                    >
-                      Sign Up
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Bottom Navigation (for mobile) */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 lg:hidden">
-        <div className="flex items-center justify-around py-2">
-          {navigationItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex flex-col items-center space-y-1 px-3 py-2 rounded-lg transition-colors ${
-                  isActive(item.href)
-                    ? 'text-blue-600'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
+          {/* Side Menu */}
+          <motion.div
+            initial={{ x: -300, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: -300, opacity: 0 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            className="fixed left-0 top-0 bottom-0 w-80 bg-white shadow-xl z-50 overflow-y-auto"
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">BMV Finder</h2>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
               >
-                <Icon className="w-5 h-5" />
-                <span className="text-xs font-medium">{item.name}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </div>
+                <X className="w-5 h-5 text-gray-600" />
+              </button>
+            </div>
 
-      {/* Spacer for fixed header */}
-      <div className="h-16 lg:hidden" />
+            {/* Navigation Items */}
+            <nav className="p-4 space-y-2">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleNavigation(item.path)}
+                  className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                >
+                  <item.icon className="w-5 h-5 text-gray-600" />
+                  <span className="text-gray-900">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+
+            {/* Device Info */}
+            {deviceInfo && (
+              <div className="p-4 border-t border-gray-200 mt-auto">
+                <div className="text-xs text-gray-500 space-y-1">
+                  <div>Device: {deviceInfo.type}</div>
+                  <div>OS: {deviceInfo.os}</div>
+                  <div>Browser: {deviceInfo.browser}</div>
+                  <div>Touch: {deviceInfo.capabilities.touch ? 'Yes' : 'No'}</div>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+
+  // Top Navigation Component
+  const TopNavigation = () => (
+    <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+      <button
+        onClick={() => setIsOpen(true)}
+        className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+      >
+        <Menu className="w-6 h-6 text-gray-600" />
+      </button>
       
-      {/* Spacer for bottom navigation */}
-      <div className="h-16 lg:hidden" />
-    </>
+      <h1 className="text-lg font-semibold text-gray-900">BMV Finder</h1>
+      
+      <div className="flex items-center space-x-2">
+        <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <Bell className="w-5 h-5 text-gray-600" />
+        </button>
+        <button className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
+          <Plus className="w-5 h-5 text-gray-600" />
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={className}>
+      {/* Top Navigation */}
+      <TopNavigation />
+      
+      {/* Side Navigation */}
+      <SideNavigation />
+      
+      {/* Bottom Navigation */}
+      {isBottomNav && <BottomNavigation />}
+      
+      {/* Add bottom padding for bottom navigation */}
+      {isBottomNav && <div className="h-20" />}
+    </div>
   );
 }

@@ -1,507 +1,499 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAuth, usePermissions } from '@/contexts/AuthContext';
-import { UserProfile, UserPreferences } from '@/lib/auth/userManager';
-import { auditLogger } from '@/lib/audit/auditLogger';
+import { motion } from 'framer-motion';
 import { 
   User, 
+  Mail, 
+  Calendar, 
+  Shield, 
   Settings, 
   Bell, 
-  Shield, 
   Eye, 
-  Download, 
-  Upload,
   Save,
-  Edit3,
+  Edit,
   X,
   Check,
   AlertCircle,
-  Info
+  Crown,
+  Star,
+  Users
 } from 'lucide-react';
+import { useProductionAuth } from '@/lib/auth/productionAuthProvider';
 
-interface UserProfileManagerProps {
-  className?: string;
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  role: {
+    id: string;
+    name: string;
+    tier: string;
+  };
+  tier: string;
+  preferences: {
+    theme: string;
+    notifications: {
+      email: boolean;
+      push: boolean;
+      sms: boolean;
+      marketing: boolean;
+    };
+    privacy: {
+      profileVisibility: string;
+      dataSharing: boolean;
+      analytics: boolean;
+    };
+    display: {
+      currency: string;
+      dateFormat: string;
+      timezone: string;
+    };
+  };
+  createdAt: string;
+  lastLoginAt?: string;
+  isActive: boolean;
 }
 
-export default function UserProfileManager({ className = '' }: UserProfileManagerProps) {
-  const { user, updateProfile, updatePreferences, error } = useAuth();
-  const { isAdmin, isElite, isMidTier, isFree } = usePermissions();
-  
-  const [isEditing, setIsEditing] = useState(false);
-  const [isEditingPreferences, setIsEditingPreferences] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [saveMessage, setSaveMessage] = useState<string | null>(null);
-  
-  // Form states
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    avatar: ''
-  });
-  
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    theme: 'system',
-    notifications: {
-      email: true,
-      push: true,
-      sms: false,
-      marketing: false
-    },
-    privacy: {
-      profileVisibility: 'private',
-      dataSharing: false,
-      analytics: true
-    },
-    display: {
-      currency: 'GBP',
-      dateFormat: 'DD/MM/YYYY',
-      timezone: 'Europe/London'
-    }
-  });
+interface UsageStats {
+  searchesUsed: number;
+  searchesLimit: number;
+  propertiesInWatchlist: number;
+  propertiesLimit: number;
+  lastSearchAt?: string;
+  lastLoginAt?: string;
+}
 
-  // Initialize form data when user changes
+export default function UserProfileManager() {
+  const { user: authUser } = useProductionAuth();
+  const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [usageStats, setUsageStats] = useState<UsageStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editData, setEditData] = useState<any>({});
+
   useEffect(() => {
-    if (user) {
-      setFormData({
-        name: user.name,
-        email: user.email,
-        avatar: user.avatar || ''
+    if (authUser) {
+      fetchProfile();
+    }
+  }, [authUser]);
+
+  const fetchProfile = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/user/profile', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
       });
-      setPreferences(user.preferences);
-    }
-  }, [user]);
 
-  const handleSaveProfile = async () => {
-    if (!user) return;
+      const result = await response.json();
 
-    setIsLoading(true);
-    setSaveMessage(null);
-
-    try {
-      await updateProfile(formData);
-      await auditLogger.logDataModification(
-        user.id,
-        'user_profile',
-        user.id,
-        'update',
-        formData,
-        { section: 'profile' }
-      );
-      
-      setSaveMessage('Profile updated successfully');
-      setIsEditing(false);
+      if (result.success) {
+        setProfile(result.data.user);
+        setUsageStats(result.data.usageStats);
+        setEditData(result.data.user);
+      } else {
+        setError(result.error);
+      }
     } catch (error) {
-      console.error('Error updating profile:', error);
-      setSaveMessage('Failed to update profile');
+      setError('Failed to fetch profile');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleSavePreferences = async () => {
-    if (!user) return;
-
-    setIsLoading(true);
-    setSaveMessage(null);
-
+  const handleSave = async () => {
     try {
-      await updatePreferences(preferences);
-      await auditLogger.logDataModification(
-        user.id,
-        'user_preferences',
-        user.id,
-        'update',
-        preferences,
-        { section: 'preferences' }
-      );
-      
-      setSaveMessage('Preferences updated successfully');
-      setIsEditingPreferences(false);
+      setSaving(true);
+      setError(null);
+
+      const response = await fetch('/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editData),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setProfile(result.data);
+        setEditing(false);
+        setSuccess('Profile updated successfully');
+        setTimeout(() => setSuccess(null), 3000);
+      } else {
+        setError(result.error);
+      }
     } catch (error) {
-      console.error('Error updating preferences:', error);
-      setSaveMessage('Failed to update preferences');
+      setError('Failed to update profile');
     } finally {
-      setIsLoading(false);
+      setSaving(false);
     }
   };
 
-  const handleExportData = async () => {
-    if (!user) return;
+  const handleCancel = () => {
+    setEditData(profile);
+    setEditing(false);
+    setError(null);
+  };
 
-    try {
-      // This would typically call an API endpoint to generate and download user data
-      await auditLogger.logDataExport(user.id, 'user_data', 1, { type: 'full_export' });
-      setSaveMessage('Data export initiated. You will receive an email when ready.');
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      setSaveMessage('Failed to initiate data export');
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'admin':
+        return <Shield className="w-5 h-5 text-red-500" />;
+      case 'elite':
+        return <Crown className="w-5 h-5 text-purple-500" />;
+      case 'premium':
+        return <Star className="w-5 h-5 text-yellow-500" />;
+      default:
+        return <Users className="w-5 h-5 text-gray-500" />;
     }
   };
 
-  if (!user) {
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'admin':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'elite':
+        return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'premium':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
         <div className="text-center">
-          <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-600">No user profile found</p>
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading profile...</p>
         </div>
       </div>
     );
   }
 
+  if (!profile) {
+    return (
+      <div className="text-center p-8">
+        <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <p className="text-gray-600">Failed to load profile</p>
+      </div>
+    );
+  }
+
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Profile Management</h2>
+          <h1 className="text-3xl font-bold text-gray-900">Profile Settings</h1>
           <p className="text-gray-600">Manage your account settings and preferences</p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-            user.tier === 'admin' ? 'bg-red-100 text-red-800' :
-            user.tier === 'elite' ? 'bg-purple-100 text-purple-800' :
-            user.tier === 'mid' ? 'bg-blue-100 text-blue-800' :
-            'bg-gray-100 text-gray-800'
-          }`}>
-            {user.tier.charAt(0).toUpperCase() + user.tier.slice(1)}
+        <div className="flex items-center space-x-2">
+          {getTierIcon(profile.tier)}
+          <span className={`px-3 py-1 text-sm font-semibold rounded-full border ${getTierColor(profile.tier)}`}>
+            {profile.role.name}
           </span>
         </div>
       </div>
 
-      {/* Error/Success Messages */}
+      {/* Success/Error Messages */}
+      {success && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-2"
+        >
+          <Check className="w-5 h-5 text-green-500" />
+          <span className="text-green-700">{success}</span>
+        </motion.div>
+      )}
+
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-600 mt-0.5" />
-          <div>
-            <h3 className="text-red-800 font-medium">Error</h3>
-            <p className="text-red-700">{error}</p>
-          </div>
-        </div>
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-center space-x-2"
+        >
+          <AlertCircle className="w-5 h-5 text-red-500" />
+          <span className="text-red-700">{error}</span>
+        </motion.div>
       )}
 
-      {saveMessage && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-start gap-3">
-          <Check className="w-5 h-5 text-green-600 mt-0.5" />
-          <div>
-            <h3 className="text-green-800 font-medium">Success</h3>
-            <p className="text-green-700">{saveMessage}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Profile Information */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <User className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Profile Information</h3>
-            </div>
-            {!isEditing && (
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                <Edit3 className="w-4 h-4" />
-                Edit
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="p-6">
-          {isEditing ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Avatar URL
-                </label>
-                <input
-                  type="url"
-                  value={formData.avatar}
-                  onChange={(e) => setFormData({ ...formData, avatar: e.target.value })}
-                  placeholder="https://example.com/avatar.jpg"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Profile Information */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Basic Information */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                <User className="w-5 h-5 mr-2" />
+                Basic Information
+              </h2>
+              {!editing && (
                 <button
-                  onClick={handleSaveProfile}
-                  disabled={isLoading}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                  onClick={() => setEditing(true)}
+                  className="flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
                 >
-                  <Save className="w-4 h-4" />
-                  {isLoading ? 'Saving...' : 'Save Changes'}
+                  <Edit className="w-4 h-4 mr-1" />
+                  Edit
                 </button>
-                <button
-                  onClick={() => {
-                    setIsEditing(false);
-                    setFormData({
-                      name: user.name,
-                      email: user.email,
-                      avatar: user.avatar || ''
-                    });
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-              </div>
+              )}
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Full Name</label>
-                <p className="text-gray-900">{user.name}</p>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Name</label>
+                {editing ? (
+                  <input
+                    type="text"
+                    value={editData.name || ''}
+                    onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                ) : (
+                  <p className="text-gray-900">{profile.name}</p>
+                )}
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Email Address</label>
-                <p className="text-gray-900">{user.email}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Member Since</label>
-                <p className="text-gray-900">{new Date(user.createdAt).toLocaleDateString()}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Last Login</label>
-                <p className="text-gray-900">
-                  {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
 
-      {/* Preferences */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Settings className="w-5 h-5 text-gray-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Preferences</h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                <div className="flex items-center">
+                  <Mail className="w-4 h-4 text-gray-400 mr-2" />
+                  <p className="text-gray-900">{profile.email}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Member Since</label>
+                <div className="flex items-center">
+                  <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+                  <p className="text-gray-900">{new Date(profile.createdAt).toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              {profile.lastLoginAt && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Login</label>
+                  <div className="flex items-center">
+                    <Calendar className="w-4 h-4 text-gray-400 mr-2" />
+                    <p className="text-gray-900">{new Date(profile.lastLoginAt).toLocaleDateString()}</p>
+                  </div>
+                </div>
+              )}
             </div>
-            {!isEditingPreferences && (
-              <button
-                onClick={() => setIsEditingPreferences(true)}
-                className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
-              >
-                <Edit3 className="w-4 h-4" />
-                Edit
-              </button>
-            )}
           </div>
-        </div>
 
-        <div className="p-6">
-          {isEditingPreferences ? (
-            <div className="space-y-6">
+          {/* Preferences */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-medium text-gray-900 flex items-center">
+                <Settings className="w-5 h-5 mr-2" />
+                Preferences
+              </h2>
+            </div>
+            <div className="p-6 space-y-6">
               {/* Theme */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Theme
-                </label>
-                <select
-                  value={preferences.theme}
-                  onChange={(e) => setPreferences({
-                    ...preferences,
-                    theme: e.target.value as 'light' | 'dark' | 'system'
-                  })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="system">System</option>
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-                </select>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
+                {editing ? (
+                  <select
+                    value={editData.preferences?.theme || 'system'}
+                    onChange={(e) => setEditData({
+                      ...editData,
+                      preferences: {
+                        ...editData.preferences,
+                        theme: e.target.value
+                      }
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="light">Light</option>
+                    <option value="dark">Dark</option>
+                    <option value="system">System</option>
+                  </select>
+                ) : (
+                  <p className="text-gray-900 capitalize">{profile.preferences.theme}</p>
+                )}
               </div>
 
               {/* Notifications */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Notifications
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Notifications</label>
                 <div className="space-y-3">
-                  {Object.entries(preferences.notifications).map(([key, value]) => (
-                    <label key={key} className="flex items-center gap-3">
-                      <input
-                        type="checkbox"
-                        checked={value}
-                        onChange={(e) => setPreferences({
-                          ...preferences,
-                          notifications: {
-                            ...preferences.notifications,
-                            [key]: e.target.checked
-                          }
-                        })}
-                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                      />
-                      <span className="text-sm text-gray-700 capitalize">{key}</span>
-                    </label>
+                  {Object.entries(profile.preferences.notifications).map(([key, value]) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700 capitalize">{key.replace(/([A-Z])/g, ' $1')}</span>
+                      {editing ? (
+                        <input
+                          type="checkbox"
+                          checked={editData.preferences?.notifications?.[key] || false}
+                          onChange={(e) => setEditData({
+                            ...editData,
+                            preferences: {
+                              ...editData.preferences,
+                              notifications: {
+                                ...editData.preferences?.notifications,
+                                [key]: e.target.checked
+                              }
+                            }
+                          })}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                      ) : (
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {value ? 'Enabled' : 'Disabled'}
+                        </span>
+                      )}
+                    </div>
                   ))}
                 </div>
               </div>
 
               {/* Privacy */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Privacy
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Privacy</label>
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">Profile Visibility</label>
-                    <select
-                      value={preferences.privacy.profileVisibility}
-                      onChange={(e) => setPreferences({
-                        ...preferences,
-                        privacy: {
-                          ...preferences.privacy,
-                          profileVisibility: e.target.value as 'public' | 'private' | 'friends'
-                        }
-                      })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="private">Private</option>
-                      <option value="friends">Friends Only</option>
-                      <option value="public">Public</option>
-                    </select>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Profile Visibility</span>
+                    {editing ? (
+                      <select
+                        value={editData.preferences?.privacy?.profileVisibility || 'private'}
+                        onChange={(e) => setEditData({
+                          ...editData,
+                          preferences: {
+                            ...editData.preferences,
+                            privacy: {
+                              ...editData.preferences?.privacy,
+                              profileVisibility: e.target.value
+                            }
+                          }
+                        })}
+                        className="px-3 py-1 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="private">Private</option>
+                        <option value="public">Public</option>
+                      </select>
+                    ) : (
+                      <span className="text-sm text-gray-900 capitalize">{profile.preferences.privacy.profileVisibility}</span>
+                    )}
                   </div>
-                  
-                  <label className="flex items-center gap-3">
-                    <input
-                      type="checkbox"
-                      checked={preferences.privacy.dataSharing}
-                      onChange={(e) => setPreferences({
-                        ...preferences,
-                        privacy: {
-                          ...preferences.privacy,
-                          dataSharing: e.target.checked
-                        }
-                      })}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">Allow data sharing for research</span>
-                  </label>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">Data Sharing</span>
+                    {editing ? (
+                      <input
+                        type="checkbox"
+                        checked={editData.preferences?.privacy?.dataSharing || false}
+                        onChange={(e) => setEditData({
+                          ...editData,
+                          preferences: {
+                            ...editData.preferences,
+                            privacy: {
+                              ...editData.preferences?.privacy,
+                              dataSharing: e.target.checked
+                            }
+                          }
+                        })}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                    ) : (
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        profile.preferences.privacy.dataSharing ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {profile.preferences.privacy.dataSharing ? 'Enabled' : 'Disabled'}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
-
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={handleSavePreferences}
-                  disabled={isLoading}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <Save className="w-4 h-4" />
-                  {isLoading ? 'Saving...' : 'Save Preferences'}
-                </button>
-                <button
-                  onClick={() => {
-                    setIsEditingPreferences(false);
-                    setPreferences(user.preferences);
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  <X className="w-4 h-4" />
-                  Cancel
-                </button>
-              </div>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Theme</label>
-                <p className="text-gray-900 capitalize">{preferences.theme}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Currency</label>
-                <p className="text-gray-900">{preferences.display.currency}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Profile Visibility</label>
-                <p className="text-gray-900 capitalize">{preferences.privacy.profileVisibility}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">Notifications</label>
-                <p className="text-gray-900">
-                  {Object.entries(preferences.notifications)
-                    .filter(([_, enabled]) => enabled)
-                    .map(([key, _]) => key)
-                    .join(', ') || 'None'}
-                </p>
+          </div>
+        </div>
+
+        {/* Usage Statistics */}
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-medium text-gray-900">Usage Statistics</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {usageStats && (
+                <>
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Searches</span>
+                      <span className="text-gray-900">
+                        {usageStats.searchesUsed} / {usageStats.searchesLimit === Infinity ? '∞' : usageStats.searchesLimit}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-600 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min((usageStats.searchesUsed / (usageStats.searchesLimit === Infinity ? 1 : usageStats.searchesLimit)) * 100, 100)}%`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Watchlist</span>
+                      <span className="text-gray-900">
+                        {usageStats.propertiesInWatchlist} / {usageStats.propertiesLimit === Infinity ? '∞' : usageStats.propertiesLimit}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-600 h-2 rounded-full"
+                        style={{
+                          width: `${Math.min((usageStats.propertiesInWatchlist / (usageStats.propertiesLimit === Infinity ? 1 : usageStats.propertiesLimit)) * 100, 100)}%`
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          {editing && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              <div className="p-6">
+                <div className="flex space-x-3">
+                  <button
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="flex-1 flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    {saving ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                    ) : (
+                      <Save className="w-4 h-4 mr-2" />
+                    )}
+                    {saving ? 'Saving...' : 'Save Changes'}
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="flex items-center justify-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </button>
+                </div>
               </div>
             </div>
           )}
-        </div>
-      </div>
-
-      {/* Data Management */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <Download className="w-5 h-5 text-gray-600" />
-            <h3 className="text-lg font-semibold text-gray-900">Data Management</h3>
-          </div>
-        </div>
-
-        <div className="p-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div>
-                <h4 className="font-medium text-gray-900">Export Your Data</h4>
-                <p className="text-sm text-gray-600">Download a copy of all your data</p>
-              </div>
-              <button
-                onClick={handleExportData}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                <Download className="w-4 h-4" />
-                Export
-              </button>
-            </div>
-
-            {isAdmin() && (
-              <div className="flex items-center justify-between p-4 bg-red-50 rounded-lg border border-red-200">
-                <div>
-                  <h4 className="font-medium text-red-900">Admin Actions</h4>
-                  <p className="text-sm text-red-700">Advanced administrative functions</p>
-                </div>
-                <button
-                  onClick={() => window.location.href = '/admin'}
-                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-                >
-                  <Shield className="w-4 h-4" />
-                  Admin Panel
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       </div>
     </div>
