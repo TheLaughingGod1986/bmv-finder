@@ -1,6 +1,3 @@
-'use client';
-
-import { motion } from 'framer-motion';
 import { 
   Shield, 
   Eye, 
@@ -14,6 +11,14 @@ import {
   MapPin
 } from 'lucide-react';
 import Link from 'next/link';
+import { 
+  MotionDiv, 
+  MotionSection, 
+  MotionH1, 
+  MotionH2, 
+  MotionH3, 
+  MotionP 
+} from '../components/MotionWrapper';
 
 export default function PrivacyPage() {
   const lastUpdated = 'January 15, 2025';
@@ -106,7 +111,7 @@ export default function PrivacyPage() {
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -125,14 +130,14 @@ export default function PrivacyPage() {
               <Calendar className="w-5 h-5" />
               <span>Last updated: {lastUpdated}</span>
             </div>
-          </motion.div>
+          </MotionDiv>
         </div>
       </section>
 
       {/* Overview Section */}
       <section className="py-20 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -146,9 +151,9 @@ export default function PrivacyPage() {
               At Property Intelligence Platform, we are committed to protecting your privacy and ensuring the security of your personal information. 
               This Privacy Policy explains how we collect, use, and safeguard your data when you use our platform.
             </p>
-          </motion.div>
+          </MotionDiv>
 
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -165,14 +170,14 @@ export default function PrivacyPage() {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </MotionDiv>
         </div>
       </section>
 
       {/* Data Collection Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -185,11 +190,11 @@ export default function PrivacyPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               We collect only the data necessary to provide you with our services and improve your experience
             </p>
-          </motion.div>
+          </MotionDiv>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {dataWeCollect.map((category, index) => (
-              <motion.div
+              <MotionDiv
                 key={category.category}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -206,7 +211,7 @@ export default function PrivacyPage() {
                     </li>
                   ))}
                 </ul>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -215,7 +220,7 @@ export default function PrivacyPage() {
       {/* How We Use Data Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -228,11 +233,11 @@ export default function PrivacyPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               We use your data responsibly and only for purposes that benefit your experience
             </p>
-          </motion.div>
+          </MotionDiv>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {howWeUseData.map((use, index) => (
-              <motion.div
+              <MotionDiv
                 key={use.purpose}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -242,7 +247,7 @@ export default function PrivacyPage() {
               >
                 <h3 className="text-lg font-bold text-gray-900 mb-3">{use.purpose}</h3>
                 <p className="text-gray-600">{use.description}</p>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -251,7 +256,7 @@ export default function PrivacyPage() {
       {/* Data Sharing Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -264,11 +269,11 @@ export default function PrivacyPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               We share data only with trusted partners and never sell your personal information
             </p>
-          </motion.div>
+          </MotionDiv>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {dataSharing.map((partner, index) => (
-              <motion.div
+              <MotionDiv
                 key={partner.partner}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -281,7 +286,7 @@ export default function PrivacyPage() {
                 <span className="inline-block bg-blue-100 text-blue-800 text-sm px-3 py-1 rounded-full">
                   {partner.type}
                 </span>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -290,7 +295,7 @@ export default function PrivacyPage() {
       {/* User Rights Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -303,11 +308,11 @@ export default function PrivacyPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Under GDPR and other privacy laws, you have several rights regarding your personal data
             </p>
-          </motion.div>
+          </MotionDiv>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {userRights.map((right, index) => (
-              <motion.div
+              <MotionDiv
                 key={right.right}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -317,7 +322,7 @@ export default function PrivacyPage() {
               >
                 <h3 className="text-lg font-bold text-gray-900 mb-3">{right.right}</h3>
                 <p className="text-gray-600">{right.description}</p>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -326,7 +331,7 @@ export default function PrivacyPage() {
       {/* Contact Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -372,7 +377,7 @@ export default function PrivacyPage() {
                 Cookie Policy
               </Link>
             </div>
-          </motion.div>
+          </MotionDiv>
         </div>
       </section>
     </div>

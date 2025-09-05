@@ -131,7 +131,7 @@
       "url": "/market/analysis",
       "icons": [
         {
-          "src": "/icons/shortcut-analysis.png",
+          "src": "/icons/shortcut-market.png",
           "sizes": "96x96",
           "type": "image/png"
         }

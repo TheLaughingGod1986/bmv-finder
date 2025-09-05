@@ -1,6 +1,3 @@
-'use client';
-
-import { motion } from 'framer-motion';
 import { 
   Building2, 
   Target, 
@@ -18,6 +15,14 @@ import {
   FileText
 } from 'lucide-react';
 import Link from 'next/link';
+import { 
+  MotionDiv, 
+  MotionSection, 
+  MotionH1, 
+  MotionH2, 
+  MotionH3, 
+  MotionP 
+} from '../components/MotionWrapper';
 
 export default function AboutPage() {
   const stats = [
@@ -85,7 +90,7 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="relative py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -100,7 +105,7 @@ export default function AboutPage() {
             <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto leading-relaxed">
               Revolutionizing property investment with AI-powered insights and comprehensive market data
             </p>
-          </motion.div>
+          </MotionDiv>
         </div>
       </section>
 
@@ -108,7 +113,7 @@ export default function AboutPage() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
@@ -139,9 +144,9 @@ export default function AboutPage() {
                   Our Roadmap
                 </Link>
               </div>
-            </motion.div>
+            </MotionDiv>
             
-            <motion.div
+            <MotionDiv
               initial={{ opacity: 0, x: 20 }}
               whileInView={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
@@ -174,7 +179,7 @@ export default function AboutPage() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </MotionDiv>
           </div>
         </div>
       </section>
@@ -182,7 +187,7 @@ export default function AboutPage() {
       {/* Stats Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -195,11 +200,11 @@ export default function AboutPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Our platform has become the go-to resource for serious property investors across the UK
             </p>
-          </motion.div>
+          </MotionDiv>
           
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, index) => (
-              <motion.div
+              <MotionDiv
                 key={stat.label}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -212,7 +217,7 @@ export default function AboutPage() {
                 </div>
                 <div className="text-3xl font-bold text-gray-900 mb-2">{stat.number}</div>
                 <div className="text-gray-600">{stat.label}</div>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -221,7 +226,7 @@ export default function AboutPage() {
       {/* Values Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -234,11 +239,11 @@ export default function AboutPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               The principles that guide everything we do
             </p>
-          </motion.div>
+          </MotionDiv>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {values.map((value, index) => (
-              <motion.div
+              <MotionDiv
                 key={value.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -251,7 +256,7 @@ export default function AboutPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4">{value.title}</h3>
                 <p className="text-gray-600 leading-relaxed">{value.description}</p>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -260,7 +265,7 @@ export default function AboutPage() {
       {/* Features Section */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -273,11 +278,11 @@ export default function AboutPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               Everything you need to succeed in property investment
             </p>
-          </motion.div>
+          </MotionDiv>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <motion.div
+              <MotionDiv
                 key={feature.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -290,7 +295,7 @@ export default function AboutPage() {
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2">{feature.name}</h3>
                 <p className="text-gray-600">{feature.description}</p>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -299,7 +304,7 @@ export default function AboutPage() {
       {/* Team Section */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -312,11 +317,11 @@ export default function AboutPage() {
             <p className="text-lg text-gray-600 max-w-2xl mx-auto">
               The passionate people behind Property Intelligence Platform
             </p>
-          </motion.div>
+          </MotionDiv>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {team.map((member, index) => (
-              <motion.div
+              <MotionDiv
                 key={member.name}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -330,7 +335,7 @@ export default function AboutPage() {
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{member.name}</h3>
                 <p className="text-blue-600 font-semibold mb-4">{member.role}</p>
                 <p className="text-gray-600 leading-relaxed">{member.bio}</p>
-              </motion.div>
+              </MotionDiv>
             ))}
           </div>
         </div>
@@ -339,7 +344,7 @@ export default function AboutPage() {
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <motion.div
+          <MotionDiv
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
@@ -367,7 +372,7 @@ export default function AboutPage() {
                 View Plans
               </Link>
             </div>
-          </motion.div>
+          </MotionDiv>
         </div>
       </section>
     </div>
