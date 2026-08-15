@@ -1,0 +1,1989 @@
+From 6db975a9b1dfc17166080888548bbc3286c8fb2c Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sat, 15 Aug 2026 08:55:56 +0000
+Subject: [PATCH] Fix social playback lag by shipping constant-frame-rate
+ libx264 masters
+
+Shorts were encoded with Apple VideoToolbox and no fps filter, which writes
+VFR timestamps. YouTube/TikTok/IG then stutter the picture while AAC audio
+plays cleanly. Delivery now uses libx264 CFR, existing masters can be
+remastered without changing audio, and Studio Replace updates the original
+video ids so view counts are not reset.
+---
+ .gitignore                                    |   3 +
+ .../TikTok/auto/onscreen_captions.py          |  11 +-
+ .../audits/_replace_media_in_place.py         | 317 ++++++++++++++++
+ .../audits/_replace_shorts_v02_youtube.py     |   7 +-
+ .../_build_launch_shorts_v01.py               |  22 +-
+ .../_patch_v14_tighten_prebrand_pause.py      |  46 +--
+ .../10_Shorts/_build_aliens_shorts_v02.py     |  21 +-
+ .../_build_blackhole_v04_upload_ready.py      |   9 +-
+ .../10_Shorts/_build_blackhole_shorts_v01.py  |  22 +-
+ .../10_Shorts/_build_blackhole_shorts_v02.py  |  21 +-
+ .../10_Shorts/_build_exoplanets_shorts_v02.py |  21 +-
+ 04_Audio/tools/README.md                      |  14 +
+ 04_Audio/tools/fix_published_playback_lag.py  | 200 +++++++++++
+ 04_Audio/tools/orbit_cfr_delivery.py          | 338 ++++++++++++++++++
+ 04_Audio/tools/test_orbit_cfr_delivery.py     | 202 +++++++++++
+ .../src/lib/publishing/adapters/youtube.ts    |   2 +
+ .../src/lib/publishing/media/ffprobe.ts       | 145 ++++++--
+ 07_Content-Ops/tests/ffprobe-cfr.test.ts      |  94 +++++
+ README.md                                     |   7 +-
+ docs/CONTENT_WORKFLOW.md                      |   5 +-
+ docs/PLAYBACK_LAG_FIX.md                      |  76 ++++
+ docs/TROUBLESHOOTING.md                       |   7 +
+ 22 files changed, 1442 insertions(+), 148 deletions(-)
+ create mode 100644 00_Brand/Channel-Setup/audits/_replace_media_in_place.py
+ create mode 100644 04_Audio/tools/fix_published_playback_lag.py
+ create mode 100644 04_Audio/tools/orbit_cfr_delivery.py
+ create mode 100644 04_Audio/tools/test_orbit_cfr_delivery.py
+ create mode 100644 07_Content-Ops/tests/ffprobe-cfr.test.ts
+ create mode 100644 docs/PLAYBACK_LAG_FIX.md
+
+diff --git a/.gitignore b/.gitignore
+index d6ec02a..5e5709b 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -54,3 +54,6 @@ node_modules/
+ 00_Brand/Channel-Setup/Threads/audit/
+ 00_Brand/Channel-Setup/Threads/auto_*.log
+ 00_Brand/Channel-Setup/Threads/AUTO_LAST_RUN.json
++
++00_Brand/Channel-Setup/audits/playback_lag_in_place_replace/
++00_Brand/Channel-Setup/audits/playback_lag_remaster_report.json
+diff --git a/00_Brand/Channel-Setup/TikTok/auto/onscreen_captions.py b/00_Brand/Channel-Setup/TikTok/auto/onscreen_captions.py
+index 6c0b0f6..5bb86ef 100644
+--- a/00_Brand/Channel-Setup/TikTok/auto/onscreen_captions.py
++++ b/00_Brand/Channel-Setup/TikTok/auto/onscreen_captions.py
+@@ -477,13 +477,16 @@ def ffmpeg_overlay_filter(
+         label = nxt
+         idx += 1
+ 
++    # fps=30 on the *final* label so PNG loops and the picture share a CFR clock.
++    # Skipping this (and encoding with VideoToolbox) is what made social playback
++    # stutter while audio stayed smooth.
+     if has_cta:
+         parts.append(
+             f"[{label}][{idx}:v]overlay=0:0:enable='gte(t,{cta_start:.3f})'"
+-            f":format=auto,format=yuv420p[v]"
++            f":format=auto,fps=30,format=yuv420p,setsar=1[v]"
+         )
+     else:
+-        parts.append(f"[{label}]format=yuv420p[v]")
++        parts.append(f"[{label}]fps=30,format=yuv420p,setsar=1[v]")
+     return ";".join(parts)
+ 
+ 
+@@ -498,5 +501,5 @@ def vertical_base_filter(*, framed: bool = False) -> str:
+         "[bgv][fgv]overlay=0:0:format=auto"
+     )
+     if framed:
+-        return core + ",drawbox=x=28:y=(h-574)/2:w=1024:h=574:color=white@0.15:t=2[base]"
+-    return core + "[base]"
++        return core + ",drawbox=x=28:y=(h-574)/2:w=1024:h=574:color=white@0.15:t=2,fps=30[base]"
++    return core + ",fps=30[base]"
+diff --git a/00_Brand/Channel-Setup/audits/_replace_media_in_place.py b/00_Brand/Channel-Setup/audits/_replace_media_in_place.py
+new file mode 100644
+index 0000000..c6dba92
+--- /dev/null
++++ b/00_Brand/Channel-Setup/audits/_replace_media_in_place.py
+@@ -0,0 +1,317 @@
++#!/usr/bin/env python3
++"""Replace the *file* on existing YouTube videos. Same id. Same views.
++
++YouTube Studio → video → Replace keeps:
++  video id, URL, views, watch time, likes, comments, publish date.
++
++It does NOT create a new video. Do not use `_replace_shorts_v02_youtube.py`
++for this job — that script uploads a new id and deletes the old one, which
++resets counters and can look like a brand-new upload to the algorithm.
++
++Requires the logged-in Chrome profile:
++  /Users/ben/code/youtube/.playwright-youtube-profile
++
++Usage:
++  python3 00_Brand/Channel-Setup/audits/_replace_media_in_place.py --dry-run
++  python3 00_Brand/Channel-Setup/audits/_replace_media_in_place.py
++  python3 00_Brand/Channel-Setup/audits/_replace_media_in_place.py --only 1HuV8o3gOss
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import re
++import sys
++from datetime import datetime, timezone
++from pathlib import Path
++
++REPO = Path(__file__).resolve().parents[3]
++PROFILE = "/Users/ben/code/youtube/.playwright-youtube-profile"
++AUDIT = Path(__file__).resolve().parent / "playback_lag_in_place_replace"
++CHANNEL = "UC_esArsDKd3GJvOkeO0DUog"
++LONG_IDS = {"Mo93x0fxB1Q", "n7CbJrOCnU0", "b8-X_FyJnHM"}
++
++
++def extract_long_id(data: dict) -> str:
++    for key in ("long_id", "related_to_long"):
++        if data.get(key):
++            return str(data[key])
++    for key in ("long_url", "long_placeholder"):
++        m = re.search(r"youtu\.be/([A-Za-z0-9_-]{11})", data.get(key) or "")
++        if m:
++            return m.group(1)
++    return ""
++
++
++
++def dismiss(page) -> None:
++    for name in ("Got it", "Dismiss", "Not now", "Close"):
++        try:
++            b = page.get_by_role("button", name=name, exact=True)
++            if b.count() and b.first.is_visible():
++                b.first.click(force=True, timeout=600)
++        except Exception:
++            pass
++
++
++def collect_jobs(root: Path) -> list[dict]:
++    jobs: list[dict] = []
++    for index_path in sorted((root / "02_Video-Projects").glob("*/10_Shorts/SHORTS_UPLOAD_INDEX.json")):
++        project_root = index_path.parents[1]
++        data = json.loads(index_path.read_text())
++        long_id = extract_long_id(data)
++        long_file = None
++        final_dir = project_root / "09_Final-Export"
++        if final_dir.is_dir():
++            masters = sorted(
++                p
++                for p in final_dir.glob("*UPLOAD_READY*.mp4")
++                if "_cfr_fixed" not in p.name and not p.name.startswith("_")
++            )
++            if masters:
++                long_file = masters[-1]
++        if long_id:
++            jobs.append(
++                {
++                    "kind": "longform",
++                    "project": project_root.name,
++                    "video_id": long_id,
++                    "title": data.get("long_title") or (long_file.name if long_file else ""),
++                    "file": str(long_file) if long_file else "",
++                }
++            )
++        for item in data.get("shorts") or []:
++            vid = item.get("youtube_video_id") or item.get("video_id")
++            rel = item.get("file")
++            if not vid or not rel:
++                continue
++            path = project_root / rel
++            if not path.exists():
++                # Prefer a remastered sibling if the index still points at the old name
++                alt = path.with_name(path.stem + "_cfr_fixed" + path.suffix)
++                path = alt if alt.exists() else path
++            jobs.append(
++                {
++                    "kind": "short",
++                    "project": project_root.name,
++                    "video_id": vid,
++                    "title": item.get("title") or "",
++                    "file": str(path),
++                    "index": str(index_path),
++                }
++            )
++    return jobs
++
++
++def click_replace_control(page) -> str:
++    """Open Studio's Replace flow. Fail if it is not available — never upload new."""
++    found = page.evaluate(
++        """() => {
++          const hit = (el) => {
++            const t = ((el.innerText || '') + ' ' + (el.getAttribute('aria-label') || '')).replace(/\\s+/g, ' ').trim();
++            if (/^replace( video| file)?$/i.test(t) || /replace video file/i.test(t)) {
++              const r = el.getBoundingClientRect();
++              if (r.width > 8 && r.height > 8) { el.click(); return t; }
++            }
++            return null;
++          };
++          const walk = (root) => {
++            for (const el of root.querySelectorAll('button,ytcp-button,[role=button],ytcp-icon-button,a,span,div')) {
++              const t = hit(el);
++              if (t) return t;
++            }
++            for (const el of root.querySelectorAll('*')) {
++              if (el.shadowRoot) {
++                const t = walk(el.shadowRoot);
++                if (t) return t;
++              }
++            }
++            return null;
++          };
++          return walk(document);
++        }"""
++    )
++    if found:
++        return f"direct:{found}"
++    # Overflow / options menu, then Replace
++    page.evaluate(
++        """() => {
++          const walk = (root) => {
++            for (const el of root.querySelectorAll('button,ytcp-icon-button,[role=button]')) {
++              const al = (el.getAttribute('aria-label') || '').toLowerCase();
++              if (al.includes('options') || al.includes('more actions') || al.includes('more options')) {
++                const r = el.getBoundingClientRect();
++                if (r.width > 8) { el.click(); return al; }
++              }
++            }
++            for (const el of root.querySelectorAll('*')) {
++              if (el.shadowRoot) {
++                const x = walk(el.shadowRoot);
++                if (x) return x;
++              }
++            }
++            return null;
++          };
++          return walk(document);
++        }"""
++    )
++    page.wait_for_timeout(600)
++    found = page.evaluate(
++        """() => {
++          const walk = (root) => {
++            for (const el of root.querySelectorAll('tp-yt-paper-item,[role=menuitem],yt-formatted-string,span,div')) {
++              const t = (el.innerText || '').trim();
++              if (/^Replace$/i.test(t) || /^Replace video$/i.test(t) || /^Replace file$/i.test(t)) {
++                const r = el.getBoundingClientRect();
++                if (r.width > 20) { el.click(); return t; }
++              }
++            }
++            for (const el of root.querySelectorAll('*')) {
++              if (el.shadowRoot) {
++                const x = walk(el.shadowRoot);
++                if (x) return x;
++              }
++            }
++            return null;
++          };
++          return walk(document);
++        }"""
++    )
++    if not found:
++        raise RuntimeError(
++            "Studio Replace control not found. Aborting rather than creating a new video "
++            "(new uploads reset view count)."
++        )
++    return f"menu:{found}"
++
++
++def set_replace_file(page, path: Path) -> None:
++    inputs = page.locator('input[type="file"]')
++    if inputs.count():
++        inputs.last.set_input_files(str(path))
++        return
++    with page.expect_file_chooser(timeout=20000) as fc:
++        click_replace_control(page)
++    fc.value.set_files(str(path))
++
++
++def confirm_replace(page) -> str:
++    for label in ("Replace video", "Replace", "Confirm", "Save", "Done"):
++        try:
++            btn = page.get_by_role("button", name=re.compile(rf"^{label}$", re.I))
++            if btn.count() and btn.last.is_enabled():
++                btn.last.click(force=True, timeout=2000)
++                return label
++        except Exception:
++            continue
++    return ""
++
++
++def replace_one(page, job: dict) -> dict:
++    vid = job["video_id"]
++    path = Path(job["file"])
++    row = {"video_id": vid, "file": str(path), "kind": job["kind"], "ok": False}
++    if vid in LONG_IDS and job["kind"] != "longform":
++        raise RuntimeError(f"refusing to treat long-form id {vid} as a Short")
++    if not path.exists():
++        row["error"] = f"missing file: {path}"
++        return row
++    page.goto(
++        f"https://studio.youtube.com/video/{vid}/edit",
++        wait_until="domcontentloaded",
++        timeout=120000,
++    )
++    page.wait_for_timeout(2800)
++    dismiss(page)
++    row["opened"] = page.url
++    row["replace_control"] = click_replace_control(page)
++    page.wait_for_timeout(800)
++    set_replace_file(page, path)
++    page.wait_for_timeout(1500)
++    row["confirm"] = confirm_replace(page)
++    page.wait_for_timeout(8000)
++    dismiss(page)
++    still = re.search(r"/video/([A-Za-z0-9_-]{11})/", page.url)
++    row["id_after"] = still.group(1) if still else ""
++    row["ok"] = row["id_after"] == vid
++    if not row["ok"]:
++        row["error"] = (
++            f"URL video id changed from {vid} to {row['id_after']!r} — "
++            "this would be a new upload. Investigate before continuing."
++        )
++    AUDIT.mkdir(parents=True, exist_ok=True)
++    page.screenshot(path=str(AUDIT / f"replace_{vid}.png"))
++    return row
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser(description=__doc__)
++    ap.add_argument("--root", type=Path, default=REPO)
++    ap.add_argument("--dry-run", action="store_true")
++    ap.add_argument("--only", action="append", default=[], help="Limit to these video ids")
++    args = ap.parse_args()
++    root = args.root.expanduser().resolve()
++    jobs = collect_jobs(root)
++    if args.only:
++        allow = set(args.only)
++        jobs = [j for j in jobs if j["video_id"] in allow]
++    AUDIT.mkdir(parents=True, exist_ok=True)
++    plan = {
++        "ran_at": datetime.now(timezone.utc).isoformat(),
++        "dry_run": args.dry_run,
++        "channel": CHANNEL,
++        "jobs": jobs,
++        "rule": "Studio Replace only. Never videos.insert / new upload for lag fixes.",
++    }
++    (AUDIT / "plan.json").write_text(json.dumps(plan, indent=2) + "\n")
++    print(f"{len(jobs)} in-place replacements planned → {AUDIT / 'plan.json'}")
++    if args.dry_run:
++        for job in jobs:
++            print(f"  {job['kind']:9} {job['video_id']}  {job['file']}")
++        return 0
++
++    from playwright.sync_api import sync_playwright
++
++    results: list[dict] = []
++    with sync_playwright() as p:
++        ctx = p.chromium.launch_persistent_context(
++            PROFILE,
++            headless=False,
++            channel="chrome",
++            args=["--disable-blink-features=AutomationControlled"],
++            viewport={"width": 1440, "height": 900},
++        )
++        page = ctx.pages[0] if ctx.pages else ctx.new_page()
++        for job in jobs:
++            print(f"Replace {job['video_id']} ← {Path(job['file']).name}", flush=True)
++            try:
++                row = replace_one(page, job)
++            except Exception as exc:
++                row = {**job, "ok": False, "error": str(exc)[:400]}
++                page.screenshot(path=str(AUDIT / f"err_{job['video_id']}.png"))
++                for _ in range(3):
++                    page.keyboard.press("Escape")
++                    page.wait_for_timeout(200)
++                    dismiss(page)
++            results.append(row)
++            print(f"  → {'OK' if row.get('ok') else 'FAIL'} {row.get('error') or row.get('id_after')}", flush=True)
++        ctx.close()
++
++    out = AUDIT / "result.json"
++    out.write_text(
++        json.dumps(
++            {
++                "ran_at": datetime.now(timezone.utc).isoformat(),
++                "ok": sum(1 for r in results if r.get("ok")),
++                "results": results,
++            },
++            indent=2,
++        )
++        + "\n"
++    )
++    print(out)
++    return 0 if all(r.get("ok") for r in results) else 1
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/00_Brand/Channel-Setup/audits/_replace_shorts_v02_youtube.py b/00_Brand/Channel-Setup/audits/_replace_shorts_v02_youtube.py
+index 139a6ee..4b635f2 100644
+--- a/00_Brand/Channel-Setup/audits/_replace_shorts_v02_youtube.py
++++ b/00_Brand/Channel-Setup/audits/_replace_shorts_v02_youtube.py
+@@ -1,5 +1,10 @@
+ #!/usr/bin/env python3
+-"""Replace Orbit Shorts on YouTube Studio with kinetic-caption v02 files.
++"""Upload NEW Shorts and delete old ones — resets view counts.
++
++Do **not** use this to fix playback lag. That must keep the original video id
++(Studio Replace). See `docs/PLAYBACK_LAG_FIX.md` and `_replace_media_in_place.py`.
++
++This script is the v02 caption-style cutover: new upload, new id, delete old.
+ 
+ For each short in SHORTS_UPLOAD_INDEX:
+   1) Delete the old scheduled/private draft (or private a public one)
+diff --git a/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_build_launch_shorts_v01.py b/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_build_launch_shorts_v01.py
+index ec1706f..40e3730 100644
+--- a/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_build_launch_shorts_v01.py
++++ b/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_build_launch_shorts_v01.py
+@@ -5,6 +5,7 @@ from __future__ import annotations
+ 
+ import json
+ import subprocess
++import sys
+ import tempfile
+ from pathlib import Path
+ 
+@@ -14,6 +15,10 @@ MASTER = ROOT / "09_Final-Export/aliens_BOLD_EXPLAINER_v17_FINAL_UPLOAD_READY_MA
+ OUT = ROOT / "10_Shorts/06_Final-Exports"
+ FONT = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+ 
++_TOOLS = Path(__file__).resolve().parents[3] / "04_Audio" / "tools"
++sys.path.insert(0, str(_TOOLS))
++from orbit_cfr_delivery import shorts_encode_args  # noqa: E402
++
+ SHORTS = [
+     {
+         "id": "01",
+@@ -197,24 +202,9 @@ def render(item: dict, temp: Path) -> Path:
+             "[v]",
+             "-map",
+             "0:a:0",
+-            "-c:v",
+-            "h264_videotoolbox",
+-            "-b:v",
+-            "12M",
+-            "-maxrate",
+-            "16M",
+-            "-r",
+-            "30",
+-            "-c:a",
+-            "aac",
+-            "-b:a",
+-            "256k",
+-            "-ar",
+-            "48000",
++            *shorts_encode_args(),
+             "-t",
+             duration,
+-            "-movflags",
+-            "+faststart",
+             str(output),
+         ]
+     )
+diff --git a/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_patch_v14_tighten_prebrand_pause.py b/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_patch_v14_tighten_prebrand_pause.py
+index bd46e5e..008c875 100644
+--- a/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_patch_v14_tighten_prebrand_pause.py
++++ b/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/07_Edit-Project/_patch_v14_tighten_prebrand_pause.py
+@@ -72,9 +72,9 @@ def render(destination: Path, *, proof: bool = False) -> None:
+         "error",
+     ]
+     if proof:
+-        command += ["-i", str(SOURCE)]
++        command += ["-t", "45", "-i", str(SOURCE)]
+     else:
+-        command += ["-hwaccel", "videotoolbox", "-i", str(SOURCE)]
++        command += ["-i", str(SOURCE)]
+     command += [
+         "-filter_complex",
+         filter_graph(),
+@@ -83,32 +83,22 @@ def render(destination: Path, *, proof: bool = False) -> None:
+         "-map",
+         "[a]",
+     ]
+-    if proof:
+-        command += [
+-            "-t",
+-            "45",
+-            "-c:v",
+-            "libx264",
+-            "-preset",
+-            "veryfast",
+-            "-crf",
+-            "18",
+-        ]
+-    else:
+-        command += [
+-            "-c:v",
+-            "h264_videotoolbox",
+-            "-b:v",
+-            "10M",
+-            "-maxrate",
+-            "14M",
+-            "-bufsize",
+-            "20M",
+-            "-profile:v",
+-            "high",
+-            "-allow_sw",
+-            "1",
+-        ]
++    command += [
++        "-c:v",
++        "libx264",
++        "-preset",
++        "medium",
++        "-crf",
++        "18",
++        "-profile:v",
++        "high",
++        "-pix_fmt",
++        "yuv420p",
++        "-fps_mode",
++        "cfr",
++        "-r",
++        "30",
++    ]
+     command += [
+         "-c:a",
+         "aac",
+diff --git a/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/10_Shorts/_build_aliens_shorts_v02.py b/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/10_Shorts/_build_aliens_shorts_v02.py
+index 2693a5a..c7003e2 100644
+--- a/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/10_Shorts/_build_aliens_shorts_v02.py
++++ b/02_Video-Projects/001_Will-We-Ever-Meet-Aliens/10_Shorts/_build_aliens_shorts_v02.py
+@@ -37,6 +37,10 @@ from onscreen_captions import (  # noqa: E402
+     vertical_base_filter,
+ )
+ 
++_TOOLS = Path(__file__).resolve().parents[3] / "04_Audio" / "tools"
++sys.path.insert(0, str(_TOOLS))
++from orbit_cfr_delivery import shorts_encode_args  # noqa: E402
++
+ SYNC_DIR = ROOT / "10_Shorts/07_Caption-Sync"
+ 
+ SHORTS = [
+@@ -133,24 +137,9 @@ def render(item: dict, temp: Path, master: Path) -> Path:
+         "[v]",
+         "-map",
+         "0:a:0",
+-        "-c:v",
+-        "h264_videotoolbox",
+-        "-b:v",
+-        "12M",
+-        "-maxrate",
+-        "16M",
+-        "-r",
+-        "30",
+-        "-c:a",
+-        "aac",
+-        "-b:a",
+-        "256k",
+-        "-ar",
+-        "48000",
++        *shorts_encode_args(),
+         "-t",
+         str(item["duration"]),
+-        "-movflags",
+-        "+faststart",
+         str(output),
+     ]
+     run(cmd)
+diff --git a/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/07_Edit-Project/_build_blackhole_v04_upload_ready.py b/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/07_Edit-Project/_build_blackhole_v04_upload_ready.py
+index 35dcedd..30d041c 100644
+--- a/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/07_Edit-Project/_build_blackhole_v04_upload_ready.py
++++ b/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/07_Edit-Project/_build_blackhole_v04_upload_ready.py
+@@ -15,11 +15,15 @@ Exports:
+ from __future__ import annotations
+ 
+ import json
+-import shutil
+ import subprocess
++import sys
+ import time
+ from pathlib import Path
+ 
++_TOOLS = Path(__file__).resolve().parents[3] / "04_Audio" / "tools"
++sys.path.insert(0, str(_TOOLS))
++from orbit_cfr_delivery import remaster_cfr  # noqa: E402
++
+ ROOT = Path(
+     "/Users/ben/code/Orbit-YouTube/02_Video-Projects/"
+     "002_What-Happens-If-You-Fall-Into-A-Black-Hole"
+@@ -208,7 +212,8 @@ def main() -> None:
+             str(MASTER),
+         ]
+     )
+-    shutil.copy2(MASTER, UPLOAD)
++    print("Remastering upload file to constant-frame-rate libx264 (keeps audio)...", flush=True)
++    remaster_cfr(MASTER, UPLOAD)
+ 
+     master_dur = probe_dur(MASTER)
+     out_meta = {
+diff --git a/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v01.py b/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v01.py
+index 308e1c0..c90a907 100644
+--- a/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v01.py
++++ b/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v01.py
+@@ -5,6 +5,7 @@ from __future__ import annotations
+ 
+ import json
+ import subprocess
++import sys
+ import tempfile
+ from pathlib import Path
+ 
+@@ -16,6 +17,10 @@ MASTER = ROOT / "09_Final-Export/blackhole_v04_UPLOAD_READY_MASTER.mp4"
+ OUT = ROOT / "10_Shorts/06_Final-Exports"
+ FONT = "/System/Library/Fonts/Supplemental/Arial Bold.ttf"
+ 
++_TOOLS = Path(__file__).resolve().parents[3] / "04_Audio" / "tools"
++sys.path.insert(0, str(_TOOLS))
++from orbit_cfr_delivery import shorts_encode_args  # noqa: E402
++
+ # Timestamps from blackhole_v03/v04 timeline scene starts
+ SHORTS = [
+     {
+@@ -212,24 +217,9 @@ def render(item: dict, temp: Path) -> Path:
+             "[v]",
+             "-map",
+             "0:a:0",
+-            "-c:v",
+-            "h264_videotoolbox",
+-            "-b:v",
+-            "12M",
+-            "-maxrate",
+-            "16M",
+-            "-r",
+-            "30",
+-            "-c:a",
+-            "aac",
+-            "-b:a",
+-            "256k",
+-            "-ar",
+-            "48000",
++            *shorts_encode_args(),
+             "-t",
+             duration,
+-            "-movflags",
+-            "+faststart",
+             str(output),
+         ]
+     )
+diff --git a/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v02.py b/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v02.py
+index 83144cd..962a1cb 100644
+--- a/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v02.py
++++ b/02_Video-Projects/002_What-Happens-If-You-Fall-Into-A-Black-Hole/10_Shorts/_build_blackhole_shorts_v02.py
+@@ -29,6 +29,10 @@ from onscreen_captions import (  # noqa: E402
+     vertical_base_filter,
+ )
+ 
++_TOOLS = Path(__file__).resolve().parents[3] / "04_Audio" / "tools"
++sys.path.insert(0, str(_TOOLS))
++from orbit_cfr_delivery import shorts_encode_args  # noqa: E402
++
+ SYNC_DIR = ROOT / "10_Shorts/07_Caption-Sync"
+ 
+ SHORTS = [
+@@ -149,24 +153,9 @@ def render(item: dict, temp: Path) -> Path:
+         "[v]",
+         "-map",
+         "0:a:0",
+-        "-c:v",
+-        "h264_videotoolbox",
+-        "-b:v",
+-        "12M",
+-        "-maxrate",
+-        "16M",
+-        "-r",
+-        "30",
+-        "-c:a",
+-        "aac",
+-        "-b:a",
+-        "256k",
+-        "-ar",
+-        "48000",
++        *shorts_encode_args(),
+         "-t",
+         str(item["duration"]),
+-        "-movflags",
+-        "+faststart",
+         str(output),
+     ]
+     run(cmd)
+diff --git a/02_Video-Projects/003_Exoplanets-Strangest-Alien-Worlds/10_Shorts/_build_exoplanets_shorts_v02.py b/02_Video-Projects/003_Exoplanets-Strangest-Alien-Worlds/10_Shorts/_build_exoplanets_shorts_v02.py
+index 7d0a990..12e36a6 100644
+--- a/02_Video-Projects/003_Exoplanets-Strangest-Alien-Worlds/10_Shorts/_build_exoplanets_shorts_v02.py
++++ b/02_Video-Projects/003_Exoplanets-Strangest-Alien-Worlds/10_Shorts/_build_exoplanets_shorts_v02.py
+@@ -29,6 +29,10 @@ from onscreen_captions import (  # noqa: E402
+     vertical_base_filter,
+ )
+ 
++_TOOLS = Path(__file__).resolve().parents[3] / "04_Audio" / "tools"
++sys.path.insert(0, str(_TOOLS))
++from orbit_cfr_delivery import shorts_encode_args  # noqa: E402
++
+ SYNC_DIR = ROOT / "10_Shorts/07_Caption-Sync"
+ 
+ SHORTS = [
+@@ -153,24 +157,9 @@ def render(item: dict, temp: Path) -> Path:
+         "[v]",
+         "-map",
+         "0:a:0",
+-        "-c:v",
+-        "h264_videotoolbox",
+-        "-b:v",
+-        "12M",
+-        "-maxrate",
+-        "16M",
+-        "-r",
+-        "30",
+-        "-c:a",
+-        "aac",
+-        "-b:a",
+-        "256k",
+-        "-ar",
+-        "48000",
++        *shorts_encode_args(),
+         "-t",
+         str(item["duration"]),
+-        "-movflags",
+-        "+faststart",
+         str(output),
+     ]
+     run(cmd)
+diff --git a/04_Audio/tools/README.md b/04_Audio/tools/README.md
+index cdacd6e..08edf82 100644
+--- a/04_Audio/tools/README.md
++++ b/04_Audio/tools/README.md
+@@ -65,6 +65,20 @@ python3 vidiq_title_score_sheet.py \
+ Opens/creates `11_Upload-Package/Titles/VIDIQ_TITLE_SCORE_SHEET.md`. Fill scores
+ in the vidIQ web app / extension (automation profile must be logged in).
+ 
++### 5. Fix playback lag (VFR / VideoToolbox)
++
++Smooth audio + stuttery picture on YouTube/Shorts/social is almost always a
++variable-frame-rate delivery file (Shorts used `h264_videotoolbox`). Remaster
++in place, then **Studio Replace** so view counts stay on the original video id.
++
++```bash
++python3 04_Audio/tools/test_orbit_cfr_delivery.py
++python3 04_Audio/tools/fix_published_playback_lag.py --apply
++python3 00_Brand/Channel-Setup/audits/_replace_media_in_place.py --dry-run
++```
++
++See `docs/PLAYBACK_LAG_FIX.md`.
++
+ ## Pipeline slot
+ 
+ | Step | When | Tool |
+diff --git a/04_Audio/tools/fix_published_playback_lag.py b/04_Audio/tools/fix_published_playback_lag.py
+new file mode 100644
+index 0000000..edfa7d6
+--- /dev/null
++++ b/04_Audio/tools/fix_published_playback_lag.py
+@@ -0,0 +1,200 @@
++#!/usr/bin/env python3
++"""Remaster published Orbit masters to YouTube-safe CFR without touching audio.
++
++Does **not** upload. Does **not** create new YouTube videos (that would reset
++view counts). Writes CFR files you then push through Studio **Replace**, which
++keeps the original video id, URL, views, comments and publish date.
++
++Usage:
++  python3 04_Audio/tools/fix_published_playback_lag.py
++  python3 04_Audio/tools/fix_published_playback_lag.py --apply
++  python3 04_Audio/tools/fix_published_playback_lag.py --root /path/to/Orbit-YouTube --apply
++"""
++from __future__ import annotations
++
++import argparse
++import json
++import shutil
++import sys
++from datetime import datetime, timezone
++from pathlib import Path
++
++TOOLS = Path(__file__).resolve().parent
++if str(TOOLS) not in sys.path:
++    sys.path.insert(0, str(TOOLS))
++
++from orbit_cfr_delivery import assess_file, needs_remaster, remaster_cfr  # noqa: E402
++
++REPO = TOOLS.parents[1]
++BACKUP_DIRNAME = "_pre_cfr_fix"
++FIXED_SUFFIX = "_cfr_fixed"
++SKIP_STEM_PARTS = (FIXED_SUFFIX, BACKUP_DIRNAME, "_qc_", "PROOF", "_proof", "_work_")
++
++
++def discover_masters(root: Path) -> list[Path]:
++    files: list[Path] = []
++    projects = root / "02_Video-Projects"
++    if not projects.is_dir():
++        return files
++    patterns = [
++        "*/09_Final-Export/*.mp4",
++        "*/10_Shorts/06_Final-Exports/*.mp4",
++        "*/07_Edit-Project/01_Masters/*UPLOAD_READY*.mp4",
++    ]
++    for pattern in patterns:
++        for path in projects.glob(pattern):
++            name = path.name
++            if path.suffix.lower() != ".mp4":
++                continue
++            if any(part in path.as_posix() or part in name for part in SKIP_STEM_PARTS):
++                continue
++            if name.startswith("_"):
++                continue
++            files.append(path)
++    return sorted(set(files))
++
++
++def load_studio_replace_targets(root: Path) -> list[dict]:
++    """Map remastered files back to existing YouTube ids (never new uploads)."""
++    targets: list[dict] = []
++    projects = root / "02_Video-Projects"
++    if not projects.is_dir():
++        return targets
++    for index_path in sorted(projects.glob("*/10_Shorts/SHORTS_UPLOAD_INDEX.json")):
++        data = json.loads(index_path.read_text())
++        project = index_path.parents[2].name
++        long_id = data.get("long_id") or data.get("related_to_long")
++        if long_id:
++            targets.append(
++                {
++                    "kind": "longform",
++                    "project": project,
++                    "video_id": long_id,
++                    "title": data.get("long_title") or "",
++                    "studio_url": f"https://studio.youtube.com/video/{long_id}/edit",
++                    "file": None,
++                }
++            )
++        for item in data.get("shorts") or []:
++            vid = item.get("youtube_video_id") or item.get("video_id")
++            if not vid:
++                continue
++            rel = item.get("file")
++            targets.append(
++                {
++                    "kind": "short",
++                    "project": project,
++                    "video_id": vid,
++                    "title": item.get("title") or "",
++                    "studio_url": f"https://studio.youtube.com/video/{vid}/edit",
++                    "file": rel,
++                }
++            )
++    return targets
++
++
++def backup_and_replace(original: Path, remastered: Path) -> Path:
++    backup_dir = original.parent / BACKUP_DIRNAME
++    backup_dir.mkdir(parents=True, exist_ok=True)
++    backup = backup_dir / original.name
++    if not backup.exists():
++        shutil.copy2(original, backup)
++    shutil.copy2(remastered, original)
++    return backup
++
++
++def main() -> int:
++    ap = argparse.ArgumentParser(description=__doc__)
++    ap.add_argument("--root", type=Path, default=REPO)
++    ap.add_argument(
++        "--apply",
++        action="store_true",
++        help="Overwrite originals in place after backing up to _pre_cfr_fix/ (same filename → same Studio Replace).",
++    )
++    ap.add_argument(
++        "--force",
++        action="store_true",
++        help="Remaster even if the file already looks like CFR libx264.",
++    )
++    args = ap.parse_args()
++    root = args.root.expanduser().resolve()
++    files = discover_masters(root)
++    report: dict = {
++        "ran_at": datetime.now(timezone.utc).isoformat(),
++        "root": str(root),
++        "apply": args.apply,
++        "files": [],
++        "studio_replace": load_studio_replace_targets(root),
++        "note": (
++            "Do not upload these as new YouTube videos. Use Studio Replace on the "
++            "existing video id so views/comments/URL stay put. See docs/PLAYBACK_LAG_FIX.md."
++        ),
++    }
++    if not files:
++        print("No delivery masters found (mp4s are gitignored; run on the production workspace).")
++        out = root / "00_Brand/Channel-Setup/audits/playback_lag_remaster_report.json"
++        out.parent.mkdir(parents=True, exist_ok=True)
++        out.write_text(json.dumps(report, indent=2) + "\n")
++        print(out)
++        return 0
++
++    for src in files:
++        row: dict = {"src": str(src.relative_to(root)) if src.is_relative_to(root) else str(src)}
++        try:
++            before = assess_file(src)
++            row["before"] = {
++                "ok": before["ok"],
++                "vfr": before["variable_frame_rate"],
++                "videotoolbox": before["videotoolbox"],
++                "r_frame_rate": before.get("r_frame_rate"),
++                "avg_frame_rate": before.get("avg_frame_rate"),
++                "encoder": before.get("encoder"),
++                "errors": before.get("errors"),
++            }
++            if not args.force and not needs_remaster(before):
++                row["skipped"] = "already_cfr"
++                print(f"OK  {row['src']}")
++            else:
++                dest = src.with_name(src.stem + FIXED_SUFFIX + src.suffix)
++                result = remaster_cfr(src, dest)
++                after = result["output"]
++                row["dest"] = str(dest.relative_to(root)) if dest.is_relative_to(root) else str(dest)
++                row["after"] = {
++                    "ok": after["ok"],
++                    "vfr": after["variable_frame_rate"],
++                    "r_frame_rate": after.get("r_frame_rate"),
++                    "avg_frame_rate": after.get("avg_frame_rate"),
++                    "encoder": after.get("encoder"),
++                    "errors": after.get("errors"),
++                }
++                row["copied_audio"] = result["copied_audio"]
++                if args.apply:
++                    backup = backup_and_replace(src, dest)
++                    row["applied"] = True
++                    row["backup"] = str(backup.relative_to(root)) if backup.is_relative_to(root) else str(backup)
++                if not after["ok"]:
++                    row["ok"] = False
++                    print(f"FAIL {row['src']} → still unhealthy: {after.get('errors')}")
++                else:
++                    row["ok"] = True
++                    print(f"FIX {row['src']} → {dest.name} (audio {'copied' if result['copied_audio'] else 're-encoded AAC'})")
++        except Exception as exc:
++            row["ok"] = False
++            row["error"] = str(exc)[:400]
++            print(f"ERR {row['src']}: {exc}")
++        report["files"].append(row)
++
++    out = root / "00_Brand/Channel-Setup/audits/playback_lag_remaster_report.json"
++    out.parent.mkdir(parents=True, exist_ok=True)
++    out.write_text(json.dumps(report, indent=2) + "\n")
++    print(out)
++    print(
++        "Next: python3 00_Brand/Channel-Setup/audits/_replace_media_in_place.py "
++        "(Studio Replace — keeps view counts). Do NOT run _replace_shorts_v02_youtube.py."
++    )
++    failed = sum(1 for f in report["files"] if f.get("ok") is False)
++    return 1 if failed else 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/04_Audio/tools/orbit_cfr_delivery.py b/04_Audio/tools/orbit_cfr_delivery.py
+new file mode 100644
+index 0000000..33fdd72
+--- /dev/null
++++ b/04_Audio/tools/orbit_cfr_delivery.py
+@@ -0,0 +1,338 @@
++#!/usr/bin/env python3
++"""YouTube / social delivery encode — constant frame rate H.264.
++
++Orbit Shorts were shipping with Apple `h264_videotoolbox` plus `-r 30` and no
++`fps` filter. That encoder writes irregular timestamps (VFR). YouTube, TikTok
++and Instagram then transcode the picture with dropped/duplicated frames while
++AAC audio plays smoothly — the lag viewers commented on.
++
++Delivery masters must be:
++  - libx264 (software), never VideoToolbox / NVENC / QSV for upload files
++  - constant frame rate (`fps=` filter + `-fps_mode cfr` + x264 force-cfr)
++  - yuv420p High@4.1
++  - +faststart
++
++Audio is copied when it is already AAC 48 kHz stereo so VO/mix is unchanged.
++"""
++from __future__ import annotations
++
++import json
++import shutil
++import subprocess
++from fractions import Fraction
++from pathlib import Path
++from typing import Any
++
++DELIVERY_FPS = 30
++STANDARD_RATES = (
++    Fraction(24, 1),
++    Fraction(25, 1),
++    Fraction(30, 1),
++    Fraction(50, 1),
++    Fraction(60, 1),
++    Fraction(24000, 1001),
++    Fraction(30000, 1001),
++)
++VIDEOTOOLBOX_MARKERS = ("videotoolbox", "h264_videotoolbox", "hevc_videotoolbox")
++
++
++def parse_rate(value: str | None) -> Fraction | None:
++    if not value or value in {"0/0", "N/A"}:
++        return None
++    try:
++        return Fraction(value)
++    except (ZeroDivisionError, ValueError):
++        return None
++
++
++def rate_to_ffmpeg(rate: Fraction) -> str:
++    if rate.denominator == 1:
++        return str(rate.numerator)
++    return f"{rate.numerator}/{rate.denominator}"
++
++
++def choose_delivery_fps(
++    r_frame_rate: str | None,
++    avg_frame_rate: str | None,
++    *,
++    vertical: bool = False,
++) -> Fraction:
++    """Keep a standard CFR rate when the source already has one; else 30.
++
++    Shorts always deliver at 30 fps (platform convention). Long-form keeps
++    24/25/30/60 when that is already the declared rate so we do not introduce
++    pulldown judder on cinematic masters.
++    """
++    if vertical:
++        return Fraction(DELIVERY_FPS, 1)
++    declared = parse_rate(r_frame_rate) or parse_rate(avg_frame_rate)
++    if declared is not None:
++        for standard in STANDARD_RATES:
++            if abs(float(declared) - float(standard)) < 0.08:
++                return standard
++    return Fraction(DELIVERY_FPS, 1)
++
++
++def is_variable_frame_rate(
++    r_frame_rate: str | None,
++    avg_frame_rate: str | None,
++    *,
++    tolerance: float = 0.08,
++) -> bool:
++    r = parse_rate(r_frame_rate)
++    avg = parse_rate(avg_frame_rate)
++    if r is None or avg is None or float(r) <= 0 or float(avg) <= 0:
++        return True
++    return abs(float(r) - float(avg)) > tolerance
++
++
++def encoder_is_videotoolbox(tags: dict[str, Any] | None, encoder_name: str | None = None) -> bool:
++    blob = " ".join(
++        str(x).lower()
++        for x in (
++            (tags or {}).get("encoder"),
++            (tags or {}).get("ENCODER"),
++            encoder_name,
++        )
++        if x
++    )
++    return any(marker in blob for marker in VIDEOTOOLBOX_MARKERS)
++
++
++def fps_mode_args() -> list[str]:
++    """ffmpeg 5+ flag; 6.1 in CI understands this."""
++    return ["-fps_mode", "cfr"]
++
++
++def x264_cfr_params(fps: Fraction) -> str:
++    keyint = max(24, int(round(float(fps) * 2)))
++    return f"keyint={keyint}:min-keyint={keyint}:scenecut=0:force-cfr=1"
++
++
++def video_timescale(fps: Fraction) -> int:
++    if fps.denominator == 1:
++        return int(fps.numerator) * 1000
++    return int(fps.numerator)
++
++
++def libx264_cfr_video_args(fps: Fraction) -> list[str]:
++    return [
++        *fps_mode_args(),
++        "-r",
++        rate_to_ffmpeg(fps),
++        "-c:v",
++        "libx264",
++        "-preset",
++        "medium",
++        "-crf",
++        "18",
++        "-profile:v",
++        "high",
++        "-level",
++        "4.1",
++        "-pix_fmt",
++        "yuv420p",
++        "-x264-params",
++        x264_cfr_params(fps),
++        "-video_track_timescale",
++        str(video_timescale(fps)),
++        "-movflags",
++        "+faststart",
++    ]
++
++
++def shorts_encode_args(*, fps: int = DELIVERY_FPS) -> list[str]:
++    """Drop-in replacement for the old VideoToolbox + `-r 30` block."""
++    rate = Fraction(fps, 1)
++    return [
++        *libx264_cfr_video_args(rate),
++        "-c:a",
++        "aac",
++        "-b:a",
++        "256k",
++        "-ar",
++        "48000",
++        "-ac",
++        "2",
++    ]
++
++
++def cfr_filter_tail(fps: Fraction = Fraction(DELIVERY_FPS, 1)) -> str:
++    return f"fps={rate_to_ffmpeg(fps)},format=yuv420p,setsar=1"
++
++
++def probe_json(path: Path) -> dict[str, Any]:
++    if not shutil.which("ffprobe"):
++        raise RuntimeError("ffprobe is required")
++    result = subprocess.run(
++        [
++            "ffprobe",
++            "-v",
++            "error",
++            "-show_entries",
++            "format=duration,size,bit_rate:"
++            "stream=index,codec_type,codec_name,width,height,"
++            "avg_frame_rate,r_frame_rate,nb_frames,duration,pix_fmt,profile,"
++            "sample_rate,channels:"
++            "stream_tags=encoder",
++            "-of",
++            "json",
++            str(path),
++        ],
++        check=True,
++        capture_output=True,
++        text=True,
++    )
++    return json.loads(result.stdout)
++
++
++def _stream(data: dict[str, Any], kind: str) -> dict[str, Any] | None:
++    for stream in data.get("streams") or []:
++        if stream.get("codec_type") == kind:
++            return stream
++    return None
++
++
++def assess_playback_health(
++    data: dict[str, Any],
++    *,
++    vertical: bool | None = None,
++) -> dict[str, Any]:
++    """Pure function so unit tests can feed fixture JSON (no ffmpeg required)."""
++    video = _stream(data, "video")
++    audio = _stream(data, "audio")
++    errors: list[str] = []
++    warnings: list[str] = []
++    if video is None:
++        errors.append("No video stream")
++        return {
++            "ok": False,
++            "variable_frame_rate": True,
++            "videotoolbox": False,
++            "errors": errors,
++            "warnings": warnings,
++        }
++
++    width = int(video.get("width") or 0)
++    height = int(video.get("height") or 0)
++    is_vertical = bool(vertical) if vertical is not None else (height > width > 0)
++    r_rate = video.get("r_frame_rate")
++    avg_rate = video.get("avg_frame_rate")
++    vfr = is_variable_frame_rate(r_rate, avg_rate)
++    toolbox = encoder_is_videotoolbox(video.get("tags"), video.get("codec_name"))
++    pix = (video.get("pix_fmt") or "").lower()
++    encoder = (video.get("tags") or {}).get("encoder") or video.get("codec_name")
++
++    if vfr:
++        errors.append(
++            f"Variable frame rate (r={r_rate} avg={avg_rate}). "
++            "YouTube/TikTok/IG transcode this as stuttery video with smooth audio."
++        )
++    if toolbox:
++        errors.append(
++            f"Hardware encoder {encoder!r} is not safe for social upload. Use libx264 CFR."
++        )
++    if pix and pix not in {"yuv420p", "yuvj420p"}:
++        errors.append(f"Pixel format {pix} is not yuv420p (platforms glitch on 422/444).")
++    if video.get("codec_name") not in {None, "h264"}:
++        warnings.append(f"Video codec is {video.get('codec_name')}, expected h264")
++
++    v_dur = float(video.get("duration") or 0) or None
++    a_dur = float(audio.get("duration") or 0) if audio else None
++    if v_dur and a_dur and abs(v_dur - a_dur) > 0.12:
++        warnings.append(f"Audio/video duration drift: video={v_dur:.3f}s audio={a_dur:.3f}s")
++
++    fps = choose_delivery_fps(r_rate, avg_rate, vertical=is_vertical)
++    return {
++        "ok": not errors,
++        "variable_frame_rate": vfr,
++        "videotoolbox": toolbox,
++        "r_frame_rate": r_rate,
++        "avg_frame_rate": avg_rate,
++        "pix_fmt": pix or None,
++        "encoder": encoder,
++        "width": width or None,
++        "height": height or None,
++        "vertical": is_vertical,
++        "delivery_fps": rate_to_ffmpeg(fps),
++        "has_audio": audio is not None,
++        "audio_codec": audio.get("codec_name") if audio else None,
++        "audio_rate": int(audio["sample_rate"]) if audio and audio.get("sample_rate") else None,
++        "audio_channels": audio.get("channels") if audio else None,
++        "video_duration": v_dur,
++        "audio_duration": a_dur,
++        "errors": errors,
++        "warnings": warnings,
++    }
++
++
++def assess_file(path: Path) -> dict[str, Any]:
++    health = assess_playback_health(probe_json(path))
++    health["path"] = str(path)
++    return health
++
++
++def _can_copy_audio(health: dict[str, Any]) -> bool:
++    return (
++        bool(health.get("has_audio"))
++        and health.get("audio_codec") == "aac"
++        and health.get("audio_rate") in {44100, 48000}
++        and int(health.get("audio_channels") or 0) in {1, 2}
++    )
++
++
++def remaster_cfr(
++    src: Path,
++    dest: Path,
++    *,
++    fps: Fraction | None = None,
++    copy_audio: bool | None = None,
++) -> dict[str, Any]:
++    """Re-encode picture to strict CFR. Audio is copied when already AAC.
++
++    Duration is taken from the source so a YouTube Studio *Replace* keeps
++    the same timeline (views, comments, URL stay on the original video id).
++    """
++    if not shutil.which("ffmpeg"):
++        raise RuntimeError("ffmpeg is required")
++    src = Path(src)
++    dest = Path(dest)
++    dest.parent.mkdir(parents=True, exist_ok=True)
++    health = assess_file(src)
++    rate = fps or Fraction(health["delivery_fps"])
++    keep_audio = _can_copy_audio(health) if copy_audio is None else copy_audio
++
++    vf = cfr_filter_tail(rate)
++    cmd = [
++        "ffmpeg",
++        "-y",
++        "-hide_banner",
++        "-loglevel",
++        "error",
++        "-i",
++        str(src),
++        "-map",
++        "0:v:0",
++        "-vf",
++        vf,
++        *libx264_cfr_video_args(rate),
++    ]
++    if health.get("has_audio"):
++        cmd += ["-map", "0:a:0"]
++        if keep_audio:
++            cmd += ["-c:a", "copy"]
++        else:
++            cmd += ["-c:a", "aac", "-b:a", "256k", "-ar", "48000", "-ac", "2"]
++    else:
++        cmd += ["-an"]
++
++    tmp = dest.with_suffix(dest.suffix + ".tmp.mp4")
++    cmd.append(str(tmp))
++    subprocess.run(cmd, check=True)
++    tmp.replace(dest)
++    after = assess_file(dest)
++    return {"source": health, "output": after, "copied_audio": bool(keep_audio and health.get("has_audio"))}
++
++
++def needs_remaster(health: dict[str, Any]) -> bool:
++    return not health.get("ok")
+diff --git a/04_Audio/tools/test_orbit_cfr_delivery.py b/04_Audio/tools/test_orbit_cfr_delivery.py
+new file mode 100644
+index 0000000..72aa0aa
+--- /dev/null
++++ b/04_Audio/tools/test_orbit_cfr_delivery.py
+@@ -0,0 +1,202 @@
++#!/usr/bin/env python3
++"""Tests for YouTube-safe CFR delivery (no VideoToolbox, no VFR)."""
++from __future__ import annotations
++
++import subprocess
++import sys
++import tempfile
++import unittest
++from fractions import Fraction
++from pathlib import Path
++from shutil import which
++
++TOOLS = Path(__file__).resolve().parent
++sys.path.insert(0, str(TOOLS))
++
++from orbit_cfr_delivery import (  # noqa: E402
++    assess_playback_health,
++    choose_delivery_fps,
++    encoder_is_videotoolbox,
++    is_variable_frame_rate,
++    libx264_cfr_video_args,
++    remaster_cfr,
++    shorts_encode_args,
++)
++
++
++def have_ffmpeg() -> bool:
++    return bool(which("ffmpeg") and which("ffprobe"))
++
++
++class HealthAssessmentTests(unittest.TestCase):
++    def test_vfr_when_avg_differs_from_r(self) -> None:
++        self.assertTrue(is_variable_frame_rate("30/1", "24/1"))
++        self.assertFalse(is_variable_frame_rate("30/1", "30/1"))
++        self.assertFalse(is_variable_frame_rate("30000/1001", "30000/1001"))
++
++    def test_missing_rates_count_as_vfr(self) -> None:
++        self.assertTrue(is_variable_frame_rate("0/0", "30/1"))
++        self.assertTrue(is_variable_frame_rate(None, "30/1"))
++
++    def test_videotoolbox_tag(self) -> None:
++        self.assertTrue(encoder_is_videotoolbox({"encoder": "h264_videotoolbox"}))
++        self.assertTrue(encoder_is_videotoolbox({"encoder": "VideoToolbox"}))
++        self.assertFalse(encoder_is_videotoolbox({"encoder": "Lavc60.31.102 libx264"}))
++
++    def test_shorts_stay_30fps(self) -> None:
++        self.assertEqual(choose_delivery_fps("24/1", "24/1", vertical=True), Fraction(30, 1))
++
++    def test_longform_keeps_cinematic_24(self) -> None:
++        self.assertEqual(choose_delivery_fps("24/1", "24/1", vertical=False), Fraction(24, 1))
++
++    def test_unhealthy_vfr_json(self) -> None:
++        data = {
++            "streams": [
++                {
++                    "codec_type": "video",
++                    "codec_name": "h264",
++                    "width": 1080,
++                    "height": 1920,
++                    "r_frame_rate": "30/1",
++                    "avg_frame_rate": "24/1",
++                    "pix_fmt": "yuv420p",
++                    "tags": {"encoder": "h264_videotoolbox"},
++                },
++                {
++                    "codec_type": "audio",
++                    "codec_name": "aac",
++                    "sample_rate": "48000",
++                    "channels": 2,
++                    "duration": "12.0",
++                },
++            ]
++        }
++        health = assess_playback_health(data)
++        self.assertFalse(health["ok"])
++        self.assertTrue(health["variable_frame_rate"])
++        self.assertTrue(health["videotoolbox"])
++        self.assertTrue(any("Variable frame rate" in e for e in health["errors"]))
++        self.assertTrue(any("Hardware encoder" in e for e in health["errors"]))
++
++    def test_healthy_cfr_json(self) -> None:
++        data = {
++            "streams": [
++                {
++                    "codec_type": "video",
++                    "codec_name": "h264",
++                    "width": 1920,
++                    "height": 1080,
++                    "r_frame_rate": "30/1",
++                    "avg_frame_rate": "30/1",
++                    "pix_fmt": "yuv420p",
++                    "tags": {"encoder": "Lavc libx264"},
++                    "duration": "10.0",
++                },
++                {
++                    "codec_type": "audio",
++                    "codec_name": "aac",
++                    "sample_rate": "48000",
++                    "channels": 2,
++                    "duration": "10.0",
++                },
++            ]
++        }
++        health = assess_playback_health(data)
++        self.assertTrue(health["ok"])
++        self.assertFalse(health["variable_frame_rate"])
++        self.assertEqual(health["delivery_fps"], "30")
++
++
++class EncodeArgsTests(unittest.TestCase):
++    def test_never_videotoolbox(self) -> None:
++        blob = " ".join(shorts_encode_args())
++        self.assertNotIn("videotoolbox", blob)
++        self.assertIn("libx264", blob)
++        self.assertIn("fps_mode", blob)
++        self.assertIn("force-cfr=1", blob)
++        self.assertIn("yuv420p", blob)
++
++    def test_libx264_args_include_timescale(self) -> None:
++        args = libx264_cfr_video_args(Fraction(30, 1))
++        self.assertIn("30000", args)
++
++
++@unittest.skipUnless(have_ffmpeg(), "ffmpeg/ffprobe required")
++class RemasterRoundtripTests(unittest.TestCase):
++    def test_vfr_source_becomes_cfr(self) -> None:
++        with tempfile.TemporaryDirectory(prefix="orbit-cfr-") as tmp_name:
++            tmp = Path(tmp_name)
++            src = tmp / "vfr_source.mp4"
++            dest = tmp / "cfr_out.mp4"
++            # Irregular timestamps: stretch 30fps testsrc onto a 24fps timebase
++            # then declare 30fps at mux — classic VFR that social platforms choke on.
++            subprocess.run(
++                [
++                    "ffmpeg",
++                    "-y",
++                    "-hide_banner",
++                    "-loglevel",
++                    "error",
++                    "-f",
++                    "lavfi",
++                    "-i",
++                    "testsrc=duration=2:size=320x240:rate=30",
++                    "-f",
++                    "lavfi",
++                    "-i",
++                    "sine=frequency=440:duration=2",
++                    "-vf",
++                    "setpts=N/(24*TB)",
++                    "-fps_mode",
++                    "vfr",
++                    "-c:v",
++                    "libx264",
++                    "-preset",
++                    "ultrafast",
++                    "-pix_fmt",
++                    "yuv420p",
++                    "-c:a",
++                    "aac",
++                    "-ar",
++                    "48000",
++                    "-ac",
++                    "2",
++                    str(src),
++                ],
++                check=True,
++            )
++            result = remaster_cfr(src, dest)
++            after = result["output"]
++            self.assertTrue(after["ok"], after.get("errors"))
++            self.assertFalse(after["variable_frame_rate"])
++            self.assertEqual(after["r_frame_rate"], after["avg_frame_rate"])
++            self.assertFalse(after["videotoolbox"])
++            self.assertEqual(after["pix_fmt"], "yuv420p")
++            self.assertTrue(result["copied_audio"])
++            # Audio duration stays within a frame of the source (no reset / trim)
++            src_a = float(result["source"]["audio_duration"] or 0)
++            dst_a = float(after["audio_duration"] or 0)
++            self.assertGreater(dst_a, 1.5)
++            self.assertLess(abs(dst_a - src_a), 0.15)
++
++
++class OverlayFilterTests(unittest.TestCase):
++    def test_final_overlay_forces_cfr_30(self) -> None:
++        auto = TOOLS.parents[1] / "00_Brand" / "Channel-Setup" / "TikTok" / "auto"
++        sys.path.insert(0, str(auto))
++        try:
++            from onscreen_captions import ffmpeg_overlay_filter, vertical_base_filter
++        except ImportError as exc:
++            self.skipTest(f"onscreen_captions import failed: {exc}")
++
++        beats = [{"start": 0.0, "end": 2.0, "lines": [("hello", "yellow")]}]
++        tail = ffmpeg_overlay_filter(beats, cta_start=8.0)
++        self.assertIn("fps=30", tail)
++        self.assertTrue(tail.endswith("[v]") or "[v]" in tail)
++        base = vertical_base_filter(framed=False)
++        self.assertIn("fps=30", base)
++        self.assertIn("[base]", base)
++
++
++if __name__ == "__main__":
++    unittest.main()
+diff --git a/07_Content-Ops/src/lib/publishing/adapters/youtube.ts b/07_Content-Ops/src/lib/publishing/adapters/youtube.ts
+index 703a196..4273656 100644
+--- a/07_Content-Ops/src/lib/publishing/adapters/youtube.ts
++++ b/07_Content-Ops/src/lib/publishing/adapters/youtube.ts
+@@ -45,6 +45,8 @@ export function youtubeCapabilities(connected: boolean, scopes: string[] = []):
+       "Native schedule uses privacyStatus=private + publishAt (upload now, go live later)",
+       "madeForKids must be set explicitly",
+       "YouTube Studio CDP is fallback only — Data API is the default upload path",
++      "VFR / VideoToolbox files are rejected at validatePost — remaster to libx264 CFR first",
++      "Lag fixes must Studio-Replace the existing video id (never videos.insert) so views stay put",
+     ],
+   };
+ }
+diff --git a/07_Content-Ops/src/lib/publishing/media/ffprobe.ts b/07_Content-Ops/src/lib/publishing/media/ffprobe.ts
+index c2eae51..4cf1a9a 100644
+--- a/07_Content-Ops/src/lib/publishing/media/ffprobe.ts
++++ b/07_Content-Ops/src/lib/publishing/media/ffprobe.ts
+@@ -4,6 +4,8 @@ import fs from "fs/promises";
+ 
+ const execFileAsync = promisify(execFile);
+ 
++const VIDEOTOOLBOX_MARKERS = ["videotoolbox", "h264_videotoolbox", "hevc_videotoolbox"];
++
+ export type ProbeResult = {
+   ok: boolean;
+   errors: string[];
+@@ -16,12 +18,106 @@ export type ProbeResult = {
+   audioCodec?: string;
+   sizeBytes?: number;
+   frameRate?: number;
++  rFrameRate?: number;
++  avgFrameRate?: number;
++  variableFrameRate?: boolean;
++  videoToolbox?: boolean;
++  pixelFormat?: string;
++  encoder?: string;
+   hasAudio?: boolean;
+ };
+ 
+-export async function probeVideo(filePath: string): Promise<ProbeResult> {
++type ProbeStream = {
++  codec_type?: string;
++  codec_name?: string;
++  width?: number;
++  height?: number;
++  avg_frame_rate?: string;
++  r_frame_rate?: string;
++  pix_fmt?: string;
++  tags?: { encoder?: string };
++};
++
++type ProbeJson = {
++  format?: { duration?: string; size?: string };
++  streams?: ProbeStream[];
++};
++
++export function parseFrameRate(value?: string): number | undefined {
++  if (!value || value === "0/0" || !value.includes("/")) return undefined;
++  const [a, b] = value.split("/").map(Number);
++  if (!b) return undefined;
++  const n = a / b;
++  return Number.isFinite(n) && n > 0 ? n : undefined;
++}
++
++export function isVariableFrameRate(rFrameRate?: string, avgFrameRate?: string, tolerance = 0.08): boolean {
++  const r = parseFrameRate(rFrameRate);
++  const avg = parseFrameRate(avgFrameRate);
++  if (r == null || avg == null) return true;
++  return Math.abs(r - avg) > tolerance;
++}
++
++export function encoderIsVideoToolbox(encoder?: string, codecName?: string): boolean {
++  const blob = `${encoder || ""} ${codecName || ""}`.toLowerCase();
++  return VIDEOTOOLBOX_MARKERS.some((m) => blob.includes(m));
++}
++
++export function assessPlaybackHealth(data: ProbeJson): {
++  errors: string[];
++  warnings: string[];
++  video?: ProbeStream;
++  audio?: ProbeStream;
++  variableFrameRate: boolean;
++  videoToolbox: boolean;
++  frameRate?: number;
++  rFrameRate?: number;
++  avgFrameRate?: number;
++  pixelFormat?: string;
++  encoder?: string;
++} {
+   const errors: string[] = [];
+   const warnings: string[] = [];
++  const video = data.streams?.find((s) => s.codec_type === "video");
++  const audio = data.streams?.find((s) => s.codec_type === "audio");
++  const rFrameRate = parseFrameRate(video?.r_frame_rate);
++  const avgFrameRate = parseFrameRate(video?.avg_frame_rate);
++  const encoder = video?.tags?.encoder || video?.codec_name;
++  const vfr = isVariableFrameRate(video?.r_frame_rate, video?.avg_frame_rate);
++  const toolbox = encoderIsVideoToolbox(video?.tags?.encoder, video?.codec_name);
++  const pix = (video?.pix_fmt || "").toLowerCase();
++
++  if (!video) errors.push("No video stream");
++  if (vfr && video) {
++    errors.push(
++      `Variable frame rate (r=${video.r_frame_rate} avg=${video.avg_frame_rate}). ` +
++        "YouTube/TikTok/IG transcode this as stuttery video with smooth audio.",
++    );
++  }
++  if (toolbox) {
++    errors.push(`Hardware encoder ${encoder} is not safe for social upload. Use libx264 CFR.`);
++  }
++  if (pix && pix !== "yuv420p" && pix !== "yuvj420p") {
++    errors.push(`Pixel format ${pix} is not yuv420p (platforms glitch on 422/444).`);
++  }
++  if (!audio) warnings.push("No audio track detected");
++
++  return {
++    errors,
++    warnings,
++    video,
++    audio,
++    variableFrameRate: vfr,
++    videoToolbox: toolbox,
++    frameRate: avgFrameRate ?? rFrameRate,
++    rFrameRate,
++    avgFrameRate,
++    pixelFormat: pix || undefined,
++    encoder,
++  };
++}
++
++export async function probeVideo(filePath: string): Promise<ProbeResult> {
+   try {
+     const stat = await fs.stat(filePath);
+     if (stat.size === 0) {
+@@ -38,29 +134,20 @@ export async function probeVideo(filePath: string): Promise<ProbeResult> {
+         "-v",
+         "error",
+         "-show_entries",
+-        "format=duration,size:stream=codec_type,codec_name,width,height,avg_frame_rate",
++        "format=duration,size:stream=codec_type,codec_name,width,height,avg_frame_rate,r_frame_rate,pix_fmt:stream_tags=encoder",
+         "-of",
+         "json",
+         filePath,
+       ],
+       { timeout: 30_000 },
+     );
+-    const data = JSON.parse(stdout) as {
+-      format?: { duration?: string; size?: string };
+-      streams?: Array<{
+-        codec_type?: string;
+-        codec_name?: string;
+-        width?: number;
+-        height?: number;
+-        avg_frame_rate?: string;
+-      }>;
+-    };
+-    const video = data.streams?.find((s) => s.codec_type === "video");
+-    const audio = data.streams?.find((s) => s.codec_type === "audio");
++    const data = JSON.parse(stdout) as ProbeJson;
++    const health = assessPlaybackHealth(data);
+     const durationSeconds = data.format?.duration ? Number(data.format.duration) : undefined;
+-    const width = video?.width;
+-    const height = video?.height;
++    const width = health.video?.width;
++    const height = health.video?.height;
+     let aspectRatio: string | undefined;
++    const warnings = [...health.warnings];
+     if (width && height) {
+       const g = gcd(width, height);
+       aspectRatio = `${width / g}:${height / g}`;
+@@ -68,25 +155,25 @@ export async function probeVideo(filePath: string): Promise<ProbeResult> {
+         warnings.push(`Aspect ${aspectRatio} is not close to 9:16`);
+       }
+     }
+-    let frameRate: number | undefined;
+-    if (video?.avg_frame_rate && video.avg_frame_rate.includes("/")) {
+-      const [a, b] = video.avg_frame_rate.split("/").map(Number);
+-      if (b) frameRate = a / b;
+-    }
+-    if (!audio) warnings.push("No audio track detected");
+     return {
+-      ok: errors.length === 0,
+-      errors,
++      ok: health.errors.length === 0,
++      errors: health.errors,
+       warnings,
+       durationSeconds,
+       width,
+       height,
+       aspectRatio,
+-      videoCodec: video?.codec_name,
+-      audioCodec: audio?.codec_name,
++      videoCodec: health.video?.codec_name,
++      audioCodec: health.audio?.codec_name,
+       sizeBytes: data.format?.size ? Number(data.format.size) : undefined,
+-      frameRate,
+-      hasAudio: Boolean(audio),
++      frameRate: health.frameRate,
++      rFrameRate: health.rFrameRate,
++      avgFrameRate: health.avgFrameRate,
++      variableFrameRate: health.variableFrameRate,
++      videoToolbox: health.videoToolbox,
++      pixelFormat: health.pixelFormat,
++      encoder: health.encoder,
++      hasAudio: Boolean(health.audio),
+     };
+   } catch (err) {
+     return {
+@@ -94,7 +181,7 @@ export async function probeVideo(filePath: string): Promise<ProbeResult> {
+       errors: [
+         `ffprobe unavailable or failed: ${err instanceof Error ? err.message : "unknown"}`,
+       ],
+-      warnings,
++      warnings: [],
+     };
+   }
+ }
+diff --git a/07_Content-Ops/tests/ffprobe-cfr.test.ts b/07_Content-Ops/tests/ffprobe-cfr.test.ts
+new file mode 100644
+index 0000000..925a1c6
+--- /dev/null
++++ b/07_Content-Ops/tests/ffprobe-cfr.test.ts
+@@ -0,0 +1,94 @@
++import { describe, expect, it } from "vitest";
++import {
++  assessPlaybackHealth,
++  encoderIsVideoToolbox,
++  isVariableFrameRate,
++  parseFrameRate,
++  validateForPlatform,
++  type ProbeResult,
++} from "../src/lib/publishing/media/ffprobe";
++
++describe("CFR / playback-lag probe", () => {
++  it("parses rational frame rates", () => {
++    expect(parseFrameRate("30/1")).toBe(30);
++    expect(parseFrameRate("30000/1001")).toBeCloseTo(29.97, 2);
++    expect(parseFrameRate("0/0")).toBeUndefined();
++  });
++
++  it("flags VFR when avg and r disagree", () => {
++    expect(isVariableFrameRate("30/1", "24/1")).toBe(true);
++    expect(isVariableFrameRate("30/1", "30/1")).toBe(false);
++    expect(isVariableFrameRate("0/0", "30/1")).toBe(true);
++  });
++
++  it("detects VideoToolbox encoder tags", () => {
++    expect(encoderIsVideoToolbox("h264_videotoolbox")).toBe(true);
++    expect(encoderIsVideoToolbox("Lavc60.31.102 libx264")).toBe(false);
++  });
++
++  it("blocks the VideoToolbox + VFR combo that caused social stutter", () => {
++    const health = assessPlaybackHealth({
++      streams: [
++        {
++          codec_type: "video",
++          codec_name: "h264",
++          width: 1080,
++          height: 1920,
++          r_frame_rate: "30/1",
++          avg_frame_rate: "24/1",
++          pix_fmt: "yuv420p",
++          tags: { encoder: "h264_videotoolbox" },
++        },
++        { codec_type: "audio", codec_name: "aac" },
++      ],
++    });
++    expect(health.variableFrameRate).toBe(true);
++    expect(health.videoToolbox).toBe(true);
++    expect(health.errors.some((e) => /Variable frame rate/.test(e))).toBe(true);
++    expect(health.errors.some((e) => /Hardware encoder/.test(e))).toBe(true);
++
++    const probe: ProbeResult = {
++      ok: false,
++      errors: health.errors,
++      warnings: health.warnings,
++      durationSeconds: 40,
++      variableFrameRate: true,
++      videoToolbox: true,
++    };
++    const check = validateForPlatform("youtube_shorts", probe);
++    expect(check.ok).toBe(false);
++  });
++
++  it("accepts CFR libx264 Shorts", () => {
++    const health = assessPlaybackHealth({
++      streams: [
++        {
++          codec_type: "video",
++          codec_name: "h264",
++          width: 1080,
++          height: 1920,
++          r_frame_rate: "30/1",
++          avg_frame_rate: "30/1",
++          pix_fmt: "yuv420p",
++          tags: { encoder: "Lavc libx264" },
++        },
++        { codec_type: "audio", codec_name: "aac" },
++      ],
++    });
++    expect(health.errors).toEqual([]);
++    expect(health.variableFrameRate).toBe(false);
++
++    const probe: ProbeResult = {
++      ok: true,
++      errors: [],
++      warnings: [],
++      durationSeconds: 40,
++      width: 1080,
++      height: 1920,
++      variableFrameRate: false,
++      videoToolbox: false,
++      hasAudio: true,
++    };
++    expect(validateForPlatform("youtube_shorts", probe).ok).toBe(true);
++  });
++});
+diff --git a/README.md b/README.md
+index 28c3bee..dd4e9ac 100644
+--- a/README.md
++++ b/README.md
+@@ -24,7 +24,8 @@ asking the biggest questions in the universe.*
+ **Next brief:** `cd 07_Content-Ops && npm run brief:next -- --file metrics.json`  
+ **New episode scaffold:** `02_Video-Projects/_template_NNN_Episode-Slug/`  
+ **Cursor hooks:** `.cursor/hooks.json` (session checklist + pre-gen reminder)  
+-**Shorts mirrors:** TikTok `Channel-Setup/TikTok/AUTO_POST.md` · Meta (IG+FB) `Channel-Setup/Meta/AUTO_POST.md`
++**Shorts mirrors:** TikTok `Channel-Setup/TikTok/AUTO_POST.md` · Meta (IG+FB) `Channel-Setup/Meta/AUTO_POST.md`  
++**Playback lag (smooth audio, glitchy picture):** `docs/PLAYBACK_LAG_FIX.md` — remaster CFR then Studio **Replace** (keeps views)
+ 
+ This repository holds every asset for the channel — the character bible, the
+ per-video projects, reusable animation and audio libraries, and final exports.
+@@ -251,7 +252,7 @@ For each selected clip:
+ 6. Keep Orbit inside safe margins.
+ 7. Avoid aggressive sharpening or filters.
+ 8. **Do not add music or narration** at this stage — these are reusable clips.
+-9. Preserve the original frame rate where possible.
++9. Export **constant 30 fps** (`libx264`). Do not preserve AI-clip VFR and do not use VideoToolbox for delivery files — that is the social-playback stutter (smooth audio, glitchy picture). See `docs/PLAYBACK_LAG_FIX.md`.
+ 10. Export a high-quality reusable master.
+ 
+ ### Export format
+@@ -261,7 +262,7 @@ For each selected clip:
+ | Container | MP4 |
+ | Codec | H.264 |
+ | Resolution | 1920 × 1080 minimum |
+-| Frame rate | Original, or 30 fps |
++| Frame rate | **30 fps constant (CFR)** — never “original” / VFR |
+ | Bitrate | High |
+ | Watermark | None |
+ | Audio | None, unless useful source audio is deliberately retained |
+diff --git a/docs/CONTENT_WORKFLOW.md b/docs/CONTENT_WORKFLOW.md
+index dff2867..498cf22 100644
+--- a/docs/CONTENT_WORKFLOW.md
++++ b/docs/CONTENT_WORKFLOW.md
+@@ -10,8 +10,11 @@ Before a video is “completed” for distribution, use shared CLIs in `04_Audio
+ | VO → SRT captions | `transcribe_vo.py` |
+ | `[SFX:]` → ElevenLabs SFX | `generate_sfx_from_script.py` |
+ | `[MUSIC:]` → instrumental bed | `generate_music_bed.py` |
++| **CFR remaster (playback lag)** | `orbit_cfr_delivery.py` / `fix_published_playback_lag.py` |
+ 
+-Details: `04_Audio/tools/README.md` · package checklist in `VIDEO_PACKAGE_TEMPLATE.md`.
++Laggy/glitchy picture with smooth audio is VFR + VideoToolbox. Remaster, then **Studio Replace** the original video id — never a new upload. Details: `docs/PLAYBACK_LAG_FIX.md`.
++
++Package checklist: `00_Brand/Channel-Setup/VIDEO_PACKAGE_TEMPLATE.md`. Other CLIs: `04_Audio/tools/README.md`.
+ 
+ ## 1. Register a completed long-form video
+ 
+diff --git a/docs/PLAYBACK_LAG_FIX.md b/docs/PLAYBACK_LAG_FIX.md
+new file mode 100644
+index 0000000..15aa2fa
+--- /dev/null
++++ b/docs/PLAYBACK_LAG_FIX.md
+@@ -0,0 +1,76 @@
++# Playback lag on YouTube / Shorts / social
++
++## What viewers are seeing
++
++Audio is smooth. Picture stutters, hitching, or “lags.” Comments landed on
++the YouTube channel. Same files go out to TikTok / Instagram / Facebook, so
++the glitch follows the master — it is not a YouTube-only CDN bug.
++
++## Root cause
++
++1. **Apple `h264_videotoolbox` on Shorts** (`-c:v h264_videotoolbox` + `-r 30`
++   and no `fps=` filter). VideoToolbox writes irregular timestamps (VFR).
++   Platforms transcode VFR by dropping/duplicating **video** frames; AAC
++   audio is left alone. That is exactly “smooth audio, glitchy video.”
++2. **Missing `fps=30` on the caption overlay graph** so still PNG loops and
++   the picture track do not share a clock.
++3. **Long-form upload mux with `-c:v copy`** after a VFR picture pass, which
++   bakes the bad timestamps into the file that gets uploaded.
++4. **CapCut “original frame rate”** (README used to allow this). AI clips
++   (Veo / Seedance) are often VFR; “original” preserves that.
++
++Re-uploading as a **new** YouTube video would fix the file but reset views,
++watch time and make the item look brand-new. Do not do that.
++
++## Fix existing published videos (keep views)
++
++On the machine that has the masters (mp4s are gitignored):
++
++```bash
++# 1. Rewrite picture to constant 30 fps libx264. Audio is copied (unchanged).
++python3 04_Audio/tools/fix_published_playback_lag.py --apply
++
++# 2. Preview which Studio videos will be updated (same ids)
++python3 00_Brand/Channel-Setup/audits/_replace_media_in_place.py --dry-run
++
++# 3. Push the new bytes onto the ORIGINAL videos
++python3 00_Brand/Channel-Setup/audits/_replace_media_in_place.py
++```
++
++YouTube Studio **Replace** keeps: video id, URL, views, watch time, likes,
++comments, publish date. The video may be briefly unavailable while YouTube
++reprocesses. Analytics stay on the same item.
++
++**Do not run** `00_Brand/Channel-Setup/audits/_replace_shorts_v02_youtube.py`
++for this. That script uploads a new id and deletes the old one.
++
++### Manual Studio fallback
++
++1. [YouTube Studio](https://studio.youtube.com) → Content → the video
++2. Details → **Replace** (under the thumbnail, or ⋮ → Replace)
++3. Choose the remastered mp4 (same filename after `--apply`)
++4. Confirm **Replace video** — do not “Upload videos”
++
++### TikTok / Instagram / Facebook
++
++Those apps do **not** offer a view-preserving file replace on a live post.
++YouTube is the canonical copy. Re-post social only if you accept a new post
++id there. Never delete-and-reupload the YouTube original to “match” social.
++
++## Prevent it on the next export
++
++| Setting | Required |
++|---|---|
++| Encoder | `libx264` only (never VideoToolbox / NVENC for **delivery**) |
++| Frame rate | Constant 30 fps Shorts; 24/25/30/60 CFR long-form |
++| Filter | `fps=<rate>,format=yuv420p` on the **final** picture |
++| Mux | `-fps_mode cfr` + x264 `force-cfr=1` + `-movflags +faststart` |
++| Audio | Copy AAC when already 48 kHz; otherwise AAC 256k |
++
++Shared helpers:
++
++- `04_Audio/tools/orbit_cfr_delivery.py` — probe + encode args + remaster
++- Shorts builders import `shorts_encode_args()`
++- Content Ops `probeVideo()` **blocks** VFR / VideoToolbox before publish
++
++CapCut: export **30 fps**, not “original.”
+diff --git a/docs/TROUBLESHOOTING.md b/docs/TROUBLESHOOTING.md
+index 67cf74d..15fd890 100644
+--- a/docs/TROUBLESHOOTING.md
++++ b/docs/TROUBLESHOOTING.md
+@@ -32,3 +32,10 @@ v1 does not auto-publish. Manual upload is still required. Adapters only report
+ ## Watermarked video
+ 
+ Never re-upload a TikTok/Instagram download. Always use the clean export from `content/exports/.../video/`.
++
++## Smooth audio, glitchy / laggy picture
++
++That is variable frame rate (usually Apple VideoToolbox Shorts encodes), not a
++broken voiceover. Remaster with `04_Audio/tools/fix_published_playback_lag.py`
++and **Replace** the file on the existing YouTube video. Do not upload a new
++video — that resets views. Full runbook: `docs/PLAYBACK_LAG_FIX.md`.
+-- 
+2.43.0
+
