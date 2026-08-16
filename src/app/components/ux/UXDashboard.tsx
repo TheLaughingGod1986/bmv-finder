@@ -26,6 +26,7 @@ import {
   ThumbsDown,
   ArrowUp,
   ArrowDown,
+  ArrowRight,
   Minus
 } from 'lucide-react';
 

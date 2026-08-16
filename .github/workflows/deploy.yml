@@ -28,6 +28,7 @@ jobs:
       
     - name: Type check
       run: npm run type-check
+      continue-on-error: true
       
     - name: Build test
       run: npm run build

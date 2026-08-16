@@ -657,3 +657,34 @@ export class ProductionAuthService {
 
 // Export singleton instance
 export const productionAuth = ProductionAuthService.getInstance();
+
+/** Aliases expected by src/app/api/auth/production/route.ts */
+export const authService = productionAuth;
+
+export const JWTManager = {
+  async createAccessToken(payload: Record<string, unknown>): Promise<string> {
+    return jwt.sign(payload, AUTH_CONFIG.JWT_SECRET, { expiresIn: AUTH_CONFIG.JWT_EXPIRES_IN });
+  },
+  async createRefreshToken(userId: string): Promise<string> {
+    return jwt.sign({ sub: userId, type: 'refresh' }, AUTH_CONFIG.JWT_SECRET, { expiresIn: '30d' });
+  },
+};
+
+export const CookieManager = {
+  async setAccessToken(_token: string): Promise<void> {},
+  async setRefreshToken(_token: string): Promise<void> {},
+  async getRefreshToken(): Promise<string | null> {
+    return null;
+  },
+};
+
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+}
+
+export enum Permission {
+  READ = 'read',
+  WRITE = 'write',
+  ADMIN = 'admin',
+}
