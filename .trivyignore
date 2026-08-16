@@ -1,0 +1,6 @@
+# SheetJS (xlsx) 0.18.x has no patched release. Runtime usage is server-side
+# report export only; do not treat these as merge-blocking until a fork/replacement.
+CVE-2023-30533
+CVE-2024-22363
+GHSA-4r6h-8v6p-xvw6
+GHSA-5pgg-2g8v-wjq7

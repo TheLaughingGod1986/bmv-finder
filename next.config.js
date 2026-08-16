@@ -43,13 +43,7 @@ const nextConfig = {
     ];
   },
   async redirects() {
-    return [
-      {
-        source: '/admin',
-        destination: '/admin',
-        permanent: false,
-      },
-    ];
+    return [];
   },
   webpack: (config, { isServer }) => {
     config.resolve.fallback = {
