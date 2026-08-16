@@ -136,7 +136,7 @@ export default function MobileHomePage({ className = "" }: MobileHomePageProps) 
               {isOnline ? (
                 <WifiIcon className="w-5 h-5 text-green-500" />
               ) : (
-                <WifiSlashIcon className="w-5 h-5 text-red-500" />
+                <SignalSlashIcon className="w-5 h-5 text-red-500" />
               )}
             </div>
           </div>
@@ -268,7 +268,7 @@ export default function MobileHomePage({ className = "" }: MobileHomePageProps) 
         {!isOnline && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <div className="flex items-center">
-              <WifiSlashIcon className="w-5 h-5 text-yellow-600 mr-3" />
+              <SignalSlashIcon className="w-5 h-5 text-yellow-600 mr-3" />
               <div>
                 <h3 className="font-medium text-yellow-800">You're Offline</h3>
                 <p className="text-sm text-yellow-700 mt-1">

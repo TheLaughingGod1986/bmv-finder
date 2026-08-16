@@ -285,7 +285,7 @@ export default function InteractiveMap({
             <span className="text-gray-600">{filteredProperties.length} properties</span>
           </div>
           <div className="flex items-center space-x-1">
-            <TrendingUpIcon className="w-4 h-4 text-green-500" />
+            <ArrowTrendingUpIcon className="w-4 h-4 text-green-500" />
             <span className="text-gray-600">
               {filteredProperties.filter(p => p.bmvScore >= 80).length} high BMV
             </span>

@@ -53,6 +53,7 @@ class TestRunner {
     try {
       // Configure test framework
       testFramework.config = {
+        ...this.config,
         timeout: this.config.timeout,
         parallel: this.config.parallel,
         verbose: this.config.verbose,
@@ -71,6 +72,9 @@ class TestRunner {
 
       // Print summary
       this.printSummary(results, totalDuration);
+
+      const failed = testFramework.getSummary().failed;
+      process.exit(failed > 0 ? 1 : 0);
 
     } catch (error: any) {
       console.error('❌ Test runner error:', error.message);
