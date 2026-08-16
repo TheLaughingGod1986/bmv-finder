@@ -341,10 +341,15 @@ jobs:
     name: Cleanup
     runs-on: ubuntu-latest
     needs: [deploy-production, migrate]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always()
     
     steps:
+    - name: Skip package cleanup on pull requests
+      if: github.event_name != 'push' || github.ref != 'refs/heads/main'
+      run: echo "GHCR/Vercel cleanup only runs after production deploys on main."
+
     - name: Clean up old images
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/delete-package-versions@v4
       continue-on-error: true
       with:
@@ -355,7 +360,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Clean up old deployments
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       continue-on-error: true
       run: |
-        # Clean up old Vercel deployments
         npx vercel --token=${{ secrets.VERCEL_TOKEN }} --scope=${{ secrets.VERCEL_ORG_ID }} --yes
